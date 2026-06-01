@@ -9,19 +9,16 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: #101114;
+  background: #07090d;
 }
 
 #app {
-  display: grid;
-  place-items: center;
+  position: fixed;
+  inset: 0;
 }
 
-.placeholder-square {
-  width: 240px;
-  height: 240px;
-  background: #28d17c;
-  border: 4px solid #e9fff4;
-  box-shadow: 0 0 40px rgba(40, 209, 124, 0.45);
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
-

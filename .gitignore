@@ -3,4 +3,7 @@ dist/
 coverage/
 .vite/
 npm-debug.log*
-
+temp/*.png
+temp/*.jpg
+temp/*.jpeg
+temp/*.webp

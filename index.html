@@ -3,36 +3,10 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Wallpaper Engine Web Test</title>
-	<style>
-		* {
-			box-sizing: border-box;
-		}
-
-		html,
-		body {
-			width: 100%;
-			height: 100%;
-			margin: 0;
-			overflow: hidden;
-			background: #101114;
-		}
-
-		body {
-			display: grid;
-			place-items: center;
-		}
-
-		.test-square {
-			width: 240px;
-			height: 240px;
-			background: #28d17c;
-			border: 4px solid #e9fff4;
-			box-shadow: 0 0 40px rgba(40, 209, 124, 0.45);
-		}
-	</style>
+	<title>Four Camera Tesseract</title>
 </head>
 <body>
-	<div class="test-square" aria-label="render test square"></div>
+	<div id="app"></div>
+	<script type="module" src="/src/demo.ts"></script>
 </body>
 </html>

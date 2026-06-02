@@ -1,0 +1,116 @@
+.camera3-gizmo {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 10;
+  width: 148px;
+  padding: 8px 8px 10px;
+  border: 1px solid rgba(154, 171, 188, 0.24);
+  border-radius: 6px;
+  background: rgba(19, 25, 32, 0.92);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.34);
+  color: #d6dde5;
+  user-select: none;
+  pointer-events: auto;
+  backdrop-filter: blur(4px);
+}
+
+.camera3-gizmo__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 18px;
+  margin-bottom: 1px;
+}
+
+.camera3-gizmo__icon,
+.camera3-gizmo__mode {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.camera3-gizmo__icon {
+  position: relative;
+  width: 24px;
+  height: 18px;
+  opacity: 0.86;
+}
+
+.camera3-gizmo__menu::before,
+.camera3-gizmo__menu::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: #909ba7;
+}
+
+.camera3-gizmo__menu::before {
+  top: 5px;
+  box-shadow: 0 5px 0 #909ba7;
+}
+
+.camera3-gizmo__menu::after {
+  display: none;
+}
+
+.camera3-gizmo__lock::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 8px;
+  height: 7px;
+  border-radius: 2px;
+  background: #cfd7df;
+}
+
+.camera3-gizmo__lock::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 3px;
+  width: 6px;
+  height: 8px;
+  border: 2px solid #cfd7df;
+  border-bottom: 0;
+  border-radius: 7px 7px 0 0;
+}
+
+.camera3-gizmo[data-locked="true"] .camera3-gizmo__lock::after {
+  left: 12px;
+  transform: rotate(18deg);
+  transform-origin: 0 100%;
+}
+
+.camera3-gizmo__canvas {
+  display: block;
+  width: 132px;
+  height: 132px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.camera3-gizmo[data-locked="true"] .camera3-gizmo__canvas {
+  cursor: default;
+}
+
+.camera3-gizmo__canvas:active {
+  cursor: grabbing;
+}
+
+.camera3-gizmo__mode {
+  display: block;
+  width: 100%;
+  height: 18px;
+  color: #9aa4af;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  line-height: 18px;
+  text-align: center;
+}

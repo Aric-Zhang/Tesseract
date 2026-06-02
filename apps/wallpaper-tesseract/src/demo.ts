@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import "./style.css";
+import "./camera-gizmo.css";
 import { Camera4D, CPUProjector4D, createTesseract4D } from "four-camera";
 import { ThreeLineAdapter } from "four-camera-three";
 import {
@@ -9,6 +10,8 @@ import {
   rotateYZ,
   rotateZU
 } from "four-rotation";
+import { Camera3Gizmo } from "./camera3-gizmo";
+import { Camera3Rig } from "./camera3-rig";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -20,7 +23,16 @@ if (app) {
 
   const scene = new THREE.Scene();
   const camera3 = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-  camera3.position.set(0, 0, 6);
+  const camera3Rig = new Camera3Rig({
+    target: new THREE.Vector3(0, 0, 0),
+    distance: 6
+  });
+  camera3Rig.updateCamera(camera3);
+  const camera3Gizmo = new Camera3Gizmo({
+    camera: camera3,
+    rig: camera3Rig,
+    parent: mount
+  });
 
   const geometry4 = createTesseract4D({ size: 2 });
   const camera4 = new Camera4D({
@@ -77,8 +89,8 @@ if (app) {
       out: lineResult
     });
     lineAdapter.update(lineResult);
-    lineAdapter.object.rotation.y = Math.sin(t * 0.2) * 0.12;
-    lineAdapter.object.rotation.x = Math.cos(t * 0.17) * 0.08;
+    camera3Rig.updateCamera(camera3);
+    camera3Gizmo.update();
     renderer.render(scene, camera3);
   }
 
@@ -103,6 +115,7 @@ if (app) {
   function dispose() {
     stop();
     window.removeEventListener("resize", resize);
+    camera3Gizmo.dispose();
     lineAdapter.dispose();
     renderer.dispose();
   }

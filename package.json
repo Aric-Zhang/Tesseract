@@ -11,7 +11,8 @@
     "dev": "npm run dev -w wallpaper-tesseract",
     "test": "npm run build -w four-rotation && npm run test -w four-rotation && npm run build -w four-camera && npm run test -w four-camera && npm run build -w four-camera-three && npm run test -w four-camera-three",
     "typecheck": "npm run typecheck -w four-rotation && npm run build -w four-rotation && npm run typecheck -w four-camera && npm run build -w four-camera && npm run typecheck -w four-camera-three && npm run build -w four-camera-three && npm run typecheck -w wallpaper-tesseract",
-    "build": "npm run build -w four-rotation && npm run build -w four-camera && npm run build -w four-camera-three && npm run build -w wallpaper-tesseract"
+    "build": "npm run build -w four-rotation && npm run build -w four-camera && npm run build -w four-camera-three && npm run build -w wallpaper-tesseract && node scripts/copy-wallpaper-build.mjs",
+    "build:wallpaper": "npm run build -w wallpaper-tesseract && node scripts/copy-wallpaper-build.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

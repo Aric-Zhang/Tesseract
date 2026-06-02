@@ -5,6 +5,16 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
-    target: "es2022"
+    target: "es2020",
+    modulePreload: false,
+    rollupOptions: {
+      output: {
+        format: "iife",
+        entryFileNames: "assets/index.js",
+        chunkFileNames: "assets/[name].js",
+        assetFileNames: "assets/[name][extname]",
+        inlineDynamicImports: true
+      }
+    }
   }
 });

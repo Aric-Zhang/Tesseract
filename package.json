@@ -1,20 +1,20 @@
 {
-  "name": "four-camera-wallpaper",
+  "name": "tesseract-workspace",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "build": "vite build"
-  },
-  "dependencies": {
-    "three": "^0.181.2"
+    "dev": "npm run dev -w wallpaper-tesseract",
+    "test": "npm run build -w four-rotation && npm run test -w four-rotation && npm run build -w four-camera && npm run test -w four-camera && npm run build -w four-camera-three && npm run test -w four-camera-three",
+    "typecheck": "npm run typecheck -w four-rotation && npm run build -w four-rotation && npm run typecheck -w four-camera && npm run build -w four-camera && npm run typecheck -w four-camera-three && npm run build -w four-camera-three && npm run typecheck -w wallpaper-tesseract",
+    "build": "npm run build -w four-rotation && npm run build -w four-camera && npm run build -w four-camera-three && npm run build -w wallpaper-tesseract"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
-    "@types/three": "^0.184.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.4",
     "vitest": "^4.0.14"

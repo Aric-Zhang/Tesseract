@@ -1,4 +1,4 @@
-import { EPSILON4D } from "../math/constants";
+import { EPSILON4D } from "four-rotation";
 
 export interface SegmentClip {
   t0: number;

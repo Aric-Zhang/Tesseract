@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { LineProjectionResult } from "../projector/projection-result";
+import type { LineProjectionResult } from "four-camera";
 
 export type ThreeLineBoundsMode = "none" | "fixed" | "compute-each-frame";
 

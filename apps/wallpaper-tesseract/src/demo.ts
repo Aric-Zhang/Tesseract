@@ -1,16 +1,14 @@
 import * as THREE from "three";
 import "./style.css";
+import { Camera4D, CPUProjector4D, createTesseract4D } from "four-camera";
+import { ThreeLineAdapter } from "four-camera-three";
 import {
-  Camera4D,
-  CPUProjector4D,
-  ThreeLineAdapter,
-  createTesseract4D,
   identityTransform4D,
   multiplyTransform4D,
   rotateXU,
   rotateYZ,
   rotateZU
-} from "./index";
+} from "four-rotation";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 

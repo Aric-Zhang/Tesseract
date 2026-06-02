@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { createBounds3, ThreeLineAdapter, type LineProjectionResult } from "../src";
+import { createBounds3, type LineProjectionResult } from "four-camera";
+import { ThreeLineAdapter } from "../src";
 
 function createLineResult(segmentCount: number): LineProjectionResult {
   return {

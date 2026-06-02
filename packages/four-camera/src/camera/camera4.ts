@@ -1,6 +1,4 @@
-import { EPSILON4D } from "../math/constants";
-import type { Vec3, Vec4, Vec4Like } from "../math/types";
-import { det4Columns, dot4Array, normalize4To, rejectFromBasis4To, subtract4To } from "../math/vec4";
+import { EPSILON4D, det4Columns, dot4Array, normalize4To, rejectFromBasis4To, subtract4To, type Vec3, type Vec4, type Vec4Like } from "four-rotation";
 import { assertEnum, assertFiniteVec3, assertFiniteVec4 } from "../validation/assert";
 
 export type ProjectionMode4D = "orthographic" | "perspective";

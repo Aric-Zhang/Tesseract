@@ -1,4 +1,5 @@
-import { Camera4D, det4Columns, dot4Array } from "../src";
+import { det4Columns, dot4Array } from "four-rotation";
+import { Camera4D } from "../src";
 
 function expectBasisOrthonormal(camera: Camera4D) {
   const bases = [camera.basisX, camera.basisY, camera.basisZ, camera.basisU];

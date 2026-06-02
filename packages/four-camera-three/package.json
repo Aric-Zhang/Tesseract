@@ -1,0 +1,28 @@
+{
+  "name": "four-camera-three",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "four-camera": "0.1.0"
+  },
+  "peerDependencies": {
+    "three": ">=0.181.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.184.1",
+    "three": "^0.181.2"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.json"
+  }
+}

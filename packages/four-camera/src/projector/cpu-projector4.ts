@@ -1,8 +1,7 @@
 import type { Camera4D } from "../camera/camera4";
 import type { Geometry4D } from "../geometry/geometry4";
 import { normalizeGeometry4D } from "../geometry/validate-geometry4";
-import { EPSILON4D } from "../math/constants";
-import { identityTransform4D, type Transform4D } from "../math/transform4";
+import { EPSILON4D, identityTransform4D, type Transform4D } from "four-rotation";
 import { assertEnum, assertMinLength } from "../validation/assert";
 import { clipSegmentByURange, clipSegmentNearFar } from "./edge-clipper4";
 import { createBounds3, includeBounds3, resetBounds3, type CompactPointProjectionResult, type IndexedPointProjectionResult, type LineProjectionResult, type PointProjectionResult } from "./projection-result";

@@ -1,0 +1,20 @@
+{
+  "name": "wallpaper-tesseract",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "four-camera": "0.1.0",
+    "four-camera-three": "0.1.0",
+    "four-rotation": "0.1.0",
+    "three": "^0.181.2"
+  },
+  "devDependencies": {
+    "@types/three": "^0.184.1"
+  }
+}

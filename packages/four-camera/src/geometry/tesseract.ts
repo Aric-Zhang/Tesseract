@@ -1,4 +1,4 @@
-import type { Vec4 } from "../math/types";
+import type { Vec4 } from "four-rotation";
 import type { Geometry4D } from "./geometry4";
 import { validateTesseractOptions } from "./validate-geometry4";
 
@@ -39,4 +39,3 @@ export function createTesseract4D(options: TesseractOptions = {}): Geometry4D {
     edgeCount: edgePairs.length / 2
   };
 }
-

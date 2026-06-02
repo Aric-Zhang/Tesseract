@@ -1,4 +1,4 @@
-import type { Vec4Like } from "../math/types";
+import type { Vec4Like } from "four-rotation";
 import type { TesseractOptions } from "./tesseract";
 import type { Geometry4D } from "./geometry4";
 
@@ -70,4 +70,3 @@ function validateIndices(indices: Uint16Array | Uint32Array, vertexCount: number
     }
   }
 }
-

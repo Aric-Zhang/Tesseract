@@ -81,6 +81,11 @@ export class Camera3Gizmo {
   private dragging = false;
   private dragX = 0;
   private dragY = 0;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private pendingAxisClick: Camera3Axis | null = null;
+  private lastAxisClick: Camera3Axis | null = null;
+  private lastAxisClickTime = 0;
   private currentModeLabel = "";
 
   constructor(options: Camera3GizmoOptions) {
@@ -141,16 +146,12 @@ export class Camera3Gizmo {
     this.canvas.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       const point = this.toCanvasPoint(event);
-      const hit = this.hitAxis(point.x, point.y);
-      if (hit) {
-        this.rig.snapToAxis(hit);
-        this.rig.updateCamera(this.camera);
-        this.draw();
-        return;
-      }
       this.dragging = true;
       this.dragX = event.clientX;
       this.dragY = event.clientY;
+      this.dragStartX = event.clientX;
+      this.dragStartY = event.clientY;
+      this.pendingAxisClick = this.hitAxis(point.x, point.y);
       this.canvas.setPointerCapture(event.pointerId);
     });
 
@@ -160,21 +161,28 @@ export class Camera3Gizmo {
       const dy = event.clientY - this.dragY;
       this.dragX = event.clientX;
       this.dragY = event.clientY;
+      if (Math.hypot(event.clientX - this.dragStartX, event.clientY - this.dragStartY) > 6) {
+        this.pendingAxisClick = null;
+      }
       this.rig.orbit(dx, dy);
       this.rig.updateCamera(this.camera);
       this.draw();
     });
 
-    const endDrag = (event: PointerEvent) => {
+    const endDrag = (event: PointerEvent, allowAxisClick: boolean) => {
       if (!this.dragging) return;
+      const axisClick = this.resolveAxisClick(event, allowAxisClick);
       this.dragging = false;
       if (this.canvas.hasPointerCapture(event.pointerId)) {
         this.canvas.releasePointerCapture(event.pointerId);
       }
+      if (axisClick) {
+        this.registerAxisClick(axisClick, event.timeStamp);
+      }
     };
-    this.canvas.addEventListener("pointerup", endDrag);
-    this.canvas.addEventListener("pointercancel", endDrag);
-    this.canvas.addEventListener("pointerleave", endDrag);
+    this.canvas.addEventListener("pointerup", (event) => endDrag(event, true));
+    this.canvas.addEventListener("pointercancel", (event) => endDrag(event, false));
+    this.canvas.addEventListener("pointerleave", (event) => endDrag(event, false));
   }
 
   private draw(): void {
@@ -318,6 +326,31 @@ export class Camera3Gizmo {
       }
     }
     return bestAxis;
+  }
+
+  private resolveAxisClick(event: PointerEvent, allowAxisClick: boolean): Camera3Axis | null {
+    if (!allowAxisClick || !this.pendingAxisClick) {
+      this.pendingAxisClick = null;
+      return null;
+    }
+    const moved = Math.hypot(event.clientX - this.dragStartX, event.clientY - this.dragStartY);
+    const axis = moved <= 6 ? this.pendingAxisClick : null;
+    this.pendingAxisClick = null;
+    return axis;
+  }
+
+  private registerAxisClick(axis: Camera3Axis, timeStamp: number): void {
+    const doubleClickWindowMs = 360;
+    if (this.lastAxisClick === axis && timeStamp - this.lastAxisClickTime <= doubleClickWindowMs) {
+      this.lastAxisClick = null;
+      this.lastAxisClickTime = 0;
+      this.rig.snapToAxis(axis);
+      this.rig.updateCamera(this.camera);
+      this.draw();
+      return;
+    }
+    this.lastAxisClick = axis;
+    this.lastAxisClickTime = timeStamp;
   }
 
   private toCanvasPoint(event: PointerEvent): { x: number; y: number } {

@@ -10,6 +10,13 @@ export function clipSegmentNearFar(u0: number, u1: number, safeNear: number, far
 }
 
 export function clipSegmentByURange(u0: number, u1: number, minU: number, maxU = Infinity): SegmentClip | null {
+  if (!Number.isFinite(u0) || !Number.isFinite(u1) || !Number.isFinite(minU) || Number.isNaN(maxU)) {
+    return null;
+  }
+  if (Number.isFinite(maxU) && maxU < minU) {
+    return null;
+  }
+
   let t0 = 0;
   let t1 = 1;
   const du = u1 - u0;
@@ -44,4 +51,3 @@ function clipHalfSpace(value0: number, value1: number, currentT0: number, curren
   const t1 = Math.min(currentT1, t);
   return currentT0 <= t1 ? { t0: currentT0, t1 } : null;
 }
-

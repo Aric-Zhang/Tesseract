@@ -1,6 +1,7 @@
 import { EPSILON4D } from "../math/constants";
 import type { Vec3, Vec4, Vec4Like } from "../math/types";
 import { det4Columns, dot4Array, normalize4To, rejectFromBasis4To, subtract4To } from "../math/vec4";
+import { assertEnum, assertFiniteVec3, assertFiniteVec4 } from "../validation/assert";
 
 export type ProjectionMode4D = "orthographic" | "perspective";
 export type LookAtStabilityMode = "deterministic" | "continuous";
@@ -51,9 +52,15 @@ export class Camera4D {
     overHint?: Vec4;
     stability?: LookAtStabilityMode;
   } = {}): this {
-    if (options.stability === "continuous") {
+    const stability = options.stability ?? "deterministic";
+    assertEnum(stability, ["deterministic", "continuous"], "Camera4D lookAt stability");
+    if (stability === "continuous") {
       throw new Error("continuous lookAt4D is not implemented yet");
     }
+    assertFiniteVec4(position, "Camera4D lookAt position");
+    assertFiniteVec4(target, "Camera4D lookAt target");
+    if (options.upHint) assertFiniteVec4(options.upHint, "Camera4D lookAt upHint");
+    if (options.overHint) assertFiniteVec4(options.overHint, "Camera4D lookAt overHint");
     copy4(position, this.position);
     lookAtBasis(position, target, options.upHint ?? [0, 1, 0, 0], options.overHint ?? [0, 0, 1, 0], this.basisX, this.basisY, this.basisZ, this.basisU);
     validateBasis(this.basisX, this.basisY, this.basisZ, this.basisU);
@@ -61,6 +68,7 @@ export class Camera4D {
   }
 
   setProjection(mode: ProjectionMode4D, options: Camera4DOptions = {}): this {
+    assertEnum(mode, ["orthographic", "perspective"], "Camera4D projection");
     this.projection = mode;
     this.applyProjectionOptions(options);
     this.validate();
@@ -77,7 +85,10 @@ export class Camera4D {
     if (options.basisY) copy4(options.basisY, this.basisY);
     if (options.basisZ) copy4(options.basisZ, this.basisZ);
     if (options.basisU) copy4(options.basisU, this.basisU);
-    if (options.projection) this.projection = options.projection;
+    if (options.projection !== undefined) {
+      assertEnum(options.projection, ["orthographic", "perspective"], "Camera4D projection");
+      this.projection = options.projection;
+    }
     if (options.near !== undefined) this.near = options.near;
     if (options.far !== undefined) this.far = options.far;
     if (options.viewBoxCenter) copy3(options.viewBoxCenter, this.viewBoxCenter);
@@ -116,9 +127,9 @@ export class Camera4D {
   }
 
   private validate(): void {
-    if (this.projection !== "orthographic" && this.projection !== "perspective") {
-      throw new Error("Camera4D projection must be orthographic or perspective.");
-    }
+    assertEnum(this.projection, ["orthographic", "perspective"], "Camera4D projection");
+    assertFiniteVec4(this.position, "Camera4D position");
+    assertFiniteVec3(this.viewBoxCenter, "Camera4D viewBoxCenter");
     if (!Number.isFinite(this.near) || this.near <= 0) {
       throw new Error("Camera4D near must be finite and > 0.");
     }
@@ -235,4 +246,3 @@ function validateFov(value: number): void {
     throw new Error("Camera4D fov values must be finite and in (0, PI).");
   }
 }
-

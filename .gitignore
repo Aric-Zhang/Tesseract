@@ -7,3 +7,4 @@ temp/*.png
 temp/*.jpg
 temp/*.jpeg
 temp/*.webp
+temp/*.test.ts

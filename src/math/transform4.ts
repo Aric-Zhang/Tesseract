@@ -122,13 +122,19 @@ export function composeTransform4D(parts: Transform4D[], out: Transform4D = crea
 }
 
 export function composeTransform4DInto(out: Transform4D, ...parts: Transform4D[]): Transform4D {
+  let safeParts = parts;
+  if (parts.some(part => part === out)) {
+    const outSnapshot = cloneTransform4D(out);
+    safeParts = parts.map(part => part === out ? outSnapshot : part);
+  }
+
   identityTransform4D(out);
-  if (parts.length === 0) {
+  if (safeParts.length === 0) {
     return out;
   }
 
   const tmp = createTransform4D();
-  for (const part of parts) {
+  for (const part of safeParts) {
     multiplyTransform4D(part, out, tmp);
     out.matrix.set(tmp.matrix);
     out.translation.set(tmp.translation);

@@ -3,6 +3,7 @@ import type { Geometry4D } from "../geometry/geometry4";
 import { normalizeGeometry4D } from "../geometry/validate-geometry4";
 import { EPSILON4D } from "../math/constants";
 import { identityTransform4D, type Transform4D } from "../math/transform4";
+import { assertEnum, assertMinLength } from "../validation/assert";
 import { clipSegmentByURange, clipSegmentNearFar } from "./edge-clipper4";
 import { createBounds3, includeBounds3, resetBounds3, type CompactPointProjectionResult, type IndexedPointProjectionResult, type LineProjectionResult, type PointProjectionResult } from "./projection-result";
 
@@ -87,6 +88,7 @@ export class CPUProjector4D {
     const geometry = normalizeGeometry4D(input.geometry);
     const model = input.model ?? IDENTITY_MODEL;
     const out = input.out;
+    assertPointResultCapacity(out, geometry.vertexCount);
     resetBounds3(out.bounds3);
     let visibleCount = 0;
     if (out.layout === "indexed") out.visibility.fill(0);
@@ -130,6 +132,7 @@ export class CPUProjector4D {
     }
     const model = input.model ?? IDENTITY_MODEL;
     const out = input.out;
+    assertLineResultCapacity(out, geometry.edgeCount);
     out.segmentCount = 0;
     resetBounds3(out.bounds3);
     this.ensureScratchCapacity(geometry.vertexCount);
@@ -221,9 +224,37 @@ export class CPUProjector4D {
 }
 
 function validateClippingOptions(clipping: ClippingMode4D, policy: SingularityPolicy4D): void {
+  assertEnum(clipping, ["none-unsafe", "singularity-only", "near-far", "frustum"], "CPUProjector4D clipping");
+  assertEnum(policy, ["drop", "allow"], "CPUProjector4D singularityPolicy");
   if (policy === "allow" && clipping !== "none-unsafe") {
     throw new Error('singularityPolicy="allow" requires clipping="none-unsafe".');
   }
+}
+
+function assertPointResultCapacity(out: PointProjectionResult, vertexCount: number): void {
+  if (out.layout === "indexed") {
+    if (out.vertexCount !== vertexCount) {
+      throw new Error("IndexedPointProjectionResult vertexCount must match geometry.vertexCount.");
+    }
+    assertMinLength(out.positions3, vertexCount * 3, "IndexedPointProjectionResult.positions3");
+    assertMinLength(out.depths4, vertexCount, "IndexedPointProjectionResult.depths4");
+    assertMinLength(out.visibility, vertexCount, "IndexedPointProjectionResult.visibility");
+    return;
+  }
+
+  if (out.layout === "compact") {
+    assertMinLength(out.positions3, vertexCount * 3, "CompactPointProjectionResult.positions3");
+    assertMinLength(out.depths4, vertexCount, "CompactPointProjectionResult.depths4");
+    assertMinLength(out.sourceIndices, vertexCount, "CompactPointProjectionResult.sourceIndices");
+    return;
+  }
+
+  throw new Error("PointProjectionResult layout must be indexed or compact.");
+}
+
+function assertLineResultCapacity(out: LineProjectionResult, edgeCount: number): void {
+  assertMinLength(out.positions3, edgeCount * 2 * 3, "LineProjectionResult.positions3");
+  assertMinLength(out.depths4, edgeCount * 2, "LineProjectionResult.depths4");
 }
 
 function writeProjectedEyeToScene(camera: Camera4D, x: number, y: number, z: number, u: number, out: Float32Array, offset: number): boolean {

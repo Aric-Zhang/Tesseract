@@ -73,4 +73,22 @@ describe("CPUProjector4D.projectLines", () => {
 
     expect(() => projector.projectLines({ geometry, camera, out })).toThrow(/requires geometry\.edges/);
   });
+
+  it("rejects undersized line output buffers", () => {
+    const geometry = {
+      positions4: new Float32Array([
+        0, 0, 0, 1,
+        1, 0, 0, 1
+      ]),
+      vertexCount: 2,
+      edges: new Uint16Array([0, 1]),
+      edgeCount: 1
+    };
+    const projector = new CPUProjector4D();
+    const camera = new Camera4D({ position: [0, 0, 0, 0] });
+    const out = projector.createLineResult(geometry);
+    out.positions3 = new Float32Array(0);
+
+    expect(() => projector.projectLines({ geometry, camera, out })).toThrow(/positions3/);
+  });
 });

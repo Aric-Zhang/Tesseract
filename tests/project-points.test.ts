@@ -63,4 +63,53 @@ describe("CPUProjector4D.projectPoints", () => {
     expect(() => new CPUProjector4D({ clipping: "singularity-only", singularityPolicy: "allow" })).toThrow(/requires/);
     expect(() => new CPUProjector4D({ clipping: "none-unsafe", singularityPolicy: "allow" })).not.toThrow();
   });
+
+  it("rejects unknown clipping modes and singularity policies", () => {
+    expect(() => new CPUProjector4D({ clipping: "bad-mode" as never })).toThrow(/clipping/);
+    expect(() => new CPUProjector4D({ singularityPolicy: "bad-policy" as never })).toThrow(/singularityPolicy/);
+  });
+
+  it("rejects undersized indexed output buffers", () => {
+    const geometry = {
+      positions4: new Float32Array([0, 0, 0, 1]),
+      vertexCount: 1
+    };
+    const projector = new CPUProjector4D();
+    const camera = new Camera4D({ position: [0, 0, 0, 0] });
+
+    expect(() => projector.projectPoints({
+      geometry,
+      camera,
+      out: {
+        layout: "indexed",
+        positions3: new Float32Array(0),
+        depths4: new Float32Array(1),
+        visibility: new Uint8Array(1),
+        vertexCount: 1,
+        bounds3: projector.createIndexedPointResult(geometry).bounds3
+      }
+    })).toThrow(/positions3/);
+  });
+
+  it("rejects undersized compact output buffers", () => {
+    const geometry = {
+      positions4: new Float32Array([0, 0, 0, 1]),
+      vertexCount: 1
+    };
+    const projector = new CPUProjector4D();
+    const camera = new Camera4D({ position: [0, 0, 0, 0] });
+
+    expect(() => projector.projectPoints({
+      geometry,
+      camera,
+      out: {
+        layout: "compact",
+        positions3: new Float32Array(3),
+        depths4: new Float32Array(0),
+        sourceIndices: new Uint32Array(1),
+        visiblePointCount: 0,
+        bounds3: projector.createCompactPointResult(geometry).bounds3
+      }
+    })).toThrow(/depths4/);
+  });
 });

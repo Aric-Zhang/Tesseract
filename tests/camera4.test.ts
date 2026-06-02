@@ -51,6 +51,18 @@ describe("Camera4D", () => {
     expect(() => new Camera4D({ basisX: [-1, 0, 0, 0] })).toThrow(/determinant/);
   });
 
+  it("rejects non-finite position and viewBoxCenter values", () => {
+    expect(() => new Camera4D({ position: [Number.NaN, 0, 0, -5] })).toThrow(/position.*finite/);
+    expect(() => new Camera4D({ position: [0, 0, 0, Infinity] })).toThrow(/position.*finite/);
+    expect(() => new Camera4D({ viewBoxCenter: [0, Number.NaN, 0] })).toThrow(/viewBoxCenter.*finite/);
+  });
+
+  it("rejects unknown projection and lookAt stability values", () => {
+    expect(() => new Camera4D({ projection: "bad-mode" as never })).toThrow(/projection/);
+    expect(() => new Camera4D().setProjection("bad-mode" as never)).toThrow(/projection/);
+    expect(() => new Camera4D().setLookAt([0, 0, 0, -5], [0, 0, 0, 0], { stability: "bad-mode" as never })).toThrow(/stability/);
+  });
+
   it("constructs a deterministic lookAt basis", () => {
     const camera = new Camera4D();
     camera.setLookAt([0, 0, 0, -5], [0, 0, 0, 0]);
@@ -70,6 +82,8 @@ describe("Camera4D", () => {
   it("rejects invalid lookAt requests", () => {
     const camera = new Camera4D();
     expect(() => camera.setLookAt([0, 0, 0, 0], [0, 0, 0, 0])).toThrow(/must not be equal/);
+    expect(() => camera.setLookAt([Number.NaN, 0, 0, 0], [0, 0, 0, 1])).toThrow(/position.*finite/);
+    expect(() => camera.setLookAt([0, 0, 0, 0], [0, Infinity, 0, 1])).toThrow(/target.*finite/);
     expect(() => camera.setLookAt([0, 0, 0, -5], [0, 0, 0, 0], { stability: "continuous" })).toThrow(/continuous/);
   });
 });

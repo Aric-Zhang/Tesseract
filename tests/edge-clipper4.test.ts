@@ -21,4 +21,11 @@ describe("4D edge clipping helpers", () => {
     expect(clip?.t0).toBeCloseTo(0.5, 5);
     expect(clip?.t1).toBe(1);
   });
+
+  it("rejects non-finite depths without producing NaN clip parameters", () => {
+    expect(clipSegmentByURange(Number.NaN, 2, 0.1, 10)).toBeNull();
+    expect(clipSegmentByURange(1, Infinity, 0.1, 10)).toBeNull();
+    expect(clipSegmentByURange(1, 2, Number.NaN, 10)).toBeNull();
+    expect(clipSegmentByURange(1, 2, 0.1, Number.NaN)).toBeNull();
+  });
 });

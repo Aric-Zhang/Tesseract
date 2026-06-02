@@ -56,6 +56,20 @@ describe("Transform4D", () => {
     expectPointClose(aliasedB.translation, Array.from(expected.translation));
   });
 
+  it("supports compose output aliasing", () => {
+    const first = translate4D([1, 0, 0, 0]);
+    const second = rotateXY(Math.PI / 2);
+    const expected = composeTransform4D([first, second]);
+    const expectedPoint = new Float32Array(4);
+    transformPoint4D(expected, 0, 0, 0, 0, expectedPoint);
+
+    composeTransform4D([first, second], first);
+
+    const actualPoint = new Float32Array(4);
+    transformPoint4D(first, 0, 0, 0, 0, actualPoint);
+    expectPointClose(actualPoint, Array.from(expectedPoint));
+  });
+
   it("scales uniformly and per axis", () => {
     const out = new Float32Array(4);
     transformPoint4D(scale4D(2), 1, 2, 3, 4, out);
@@ -65,4 +79,3 @@ describe("Transform4D", () => {
     expectPointClose(out, [1, 2, 3, 4]);
   });
 });
-

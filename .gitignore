@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 .vite/
+.cache/
 npm-debug.log*
 temp/*.png
 temp/*.jpg

@@ -4,7 +4,7 @@
     "noEmit": true,
     "types": ["vite/client"],
     "composite": true,
-    "tsBuildInfoFile": "node_modules/.cache/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "../../.cache/wallpaper-tesseract.tsbuildinfo"
   },
   "include": ["src", "vite.config.ts"],
   "references": [

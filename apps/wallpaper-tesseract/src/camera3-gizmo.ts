@@ -143,6 +143,8 @@ export class Camera3Gizmo {
   }
 
   private bindPointerEvents(): void {
+    // Gizmo interaction contract: the pointer stays bound to the gizmo that received
+    // pointerdown until pointerup or pointercancel, even after leaving its bounds.
     this.canvas.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       const point = this.toCanvasPoint(event);
@@ -182,7 +184,6 @@ export class Camera3Gizmo {
     };
     this.canvas.addEventListener("pointerup", (event) => endDrag(event, true));
     this.canvas.addEventListener("pointercancel", (event) => endDrag(event, false));
-    this.canvas.addEventListener("pointerleave", (event) => endDrag(event, false));
   }
 
   private draw(): void {

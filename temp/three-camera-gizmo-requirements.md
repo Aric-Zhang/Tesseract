@@ -341,6 +341,15 @@ Gizmo overlay 不应该覆盖整个屏幕。
 非 Gizmo 区域保持 pointer-events: none 或不拦截。
 ```
 
+通用 Gizmo 操作原则：
+
+```text
+一旦 pointerdown / touchstart 命中某个 Gizmo，该操作对象就固定为这个 Gizmo。
+只要鼠标按键未松开或触摸未松开，即使指针移出 Gizmo 可视范围，也必须继续由原 Gizmo 处理。
+操作只能在 pointerup / touchend 或 pointercancel 时结束。
+后续所有 Gizmo 都必须遵守这个捕获语义，避免拖拽越界时交互突然中断。
+```
+
 建议：
 
 ```css

@@ -25,7 +25,6 @@ export class Camera3Gizmo {
   private readonly canvas: HTMLCanvasElement;
   private readonly context: CanvasRenderingContext2D;
   private readonly modeLabel: HTMLButtonElement;
-  private readonly lockButton: HTMLButtonElement;
   private readonly size: number;
   private readonly center: number;
   private readonly radius: number;
@@ -56,28 +55,6 @@ export class Camera3Gizmo {
 
     this.element = document.createElement("div");
     this.element.className = "camera3-gizmo";
-    this.element.dataset.locked = String(this.rig.locked);
-
-    const toolbar = document.createElement("div");
-    toolbar.className = "camera3-gizmo__toolbar";
-
-    const menuButton = document.createElement("button");
-    menuButton.className = "camera3-gizmo__icon camera3-gizmo__menu";
-    menuButton.type = "button";
-    menuButton.setAttribute("aria-label", "Camera gizmo menu");
-    menuButton.tabIndex = -1;
-
-    this.lockButton = document.createElement("button");
-    this.lockButton.className = "camera3-gizmo__icon camera3-gizmo__lock";
-    this.lockButton.type = "button";
-    this.lockButton.setAttribute("aria-label", "Lock camera gizmo");
-    this.lockButton.addEventListener("click", () => {
-      this.rig.locked = !this.rig.locked;
-      this.element.dataset.locked = String(this.rig.locked);
-      this.draw();
-    });
-
-    toolbar.append(menuButton, this.lockButton);
 
     this.canvas = document.createElement("canvas");
     this.canvas.className = "camera3-gizmo__canvas";
@@ -93,7 +70,7 @@ export class Camera3Gizmo {
     this.modeLabel.tabIndex = -1;
     this.modeLabel.textContent = "< Persp";
 
-    this.element.append(toolbar, this.canvas, this.modeLabel);
+    this.element.append(this.canvas, this.modeLabel);
     (options.parent ?? document.body).append(this.element);
 
     this.resizeCanvas();
@@ -126,7 +103,6 @@ export class Camera3Gizmo {
   private bindPointerEvents(): void {
     this.canvas.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      if (this.rig.locked) return;
       const point = this.toCanvasPoint(event);
       const hit = this.hitAxis(point.x, point.y);
       if (hit) {
@@ -142,7 +118,7 @@ export class Camera3Gizmo {
     });
 
     this.canvas.addEventListener("pointermove", (event) => {
-      if (!this.dragging || this.rig.locked) return;
+      if (!this.dragging) return;
       const dx = event.clientX - this.dragX;
       const dy = event.clientY - this.dragY;
       this.dragX = event.clientX;
@@ -170,7 +146,6 @@ export class Camera3Gizmo {
     this.updateAxisProjection();
 
     ctx.save();
-    ctx.globalAlpha = this.rig.locked ? 0.55 : 1;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
@@ -201,7 +176,7 @@ export class Camera3Gizmo {
     const color = axis.positive ? axis.color : axis.dimColor;
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
-    ctx.globalAlpha = this.rig.locked ? opacity * 0.55 : opacity;
+    ctx.globalAlpha = opacity;
     ctx.lineWidth = axis.positive ? 4 : 3;
     ctx.beginPath();
     ctx.moveTo(this.center, this.center);
@@ -227,7 +202,7 @@ export class Camera3Gizmo {
 
   private drawCenter(): void {
     const ctx = this.context;
-    ctx.globalAlpha = this.rig.locked ? 0.72 : 1;
+    ctx.globalAlpha = 1;
     ctx.fillStyle = "#eef2f6";
     ctx.strokeStyle = "#bfc8d2";
     ctx.lineWidth = 1.5;
@@ -242,7 +217,7 @@ export class Camera3Gizmo {
     const length = Math.hypot(dx, dy) || 1;
     const x = axis.screenX + dx / length * 13;
     const y = axis.screenY + dy / length * 13;
-    ctx.globalAlpha = this.rig.locked ? 0.65 : 1;
+    ctx.globalAlpha = 1;
     ctx.fillStyle = axis.color;
     ctx.font = "700 13px Arial, sans-serif";
     ctx.textAlign = "center";

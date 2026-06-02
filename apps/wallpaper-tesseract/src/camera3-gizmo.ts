@@ -13,6 +13,23 @@ interface AxisRenderState {
   positive: boolean;
 }
 
+interface CubeVertexRenderState {
+  localX: number;
+  localY: number;
+  localZ: number;
+  screenX: number;
+  screenY: number;
+  depth: number;
+}
+
+interface CubeFaceRenderState {
+  indices: readonly [number, number, number, number];
+  normal: THREE.Vector3;
+  fillStyle: string;
+  depth: number;
+  normalDepth: number;
+}
+
 export interface Camera3GizmoOptions {
   camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
   rig: Camera3Rig;
@@ -32,6 +49,26 @@ export class Camera3Gizmo {
   private readonly rig: Camera3Rig;
   private readonly inverseCameraRotation = new THREE.Quaternion();
   private readonly viewAxis = new THREE.Vector3();
+  private readonly cubeVector = new THREE.Vector3();
+  private readonly cubeVertices: CubeVertexRenderState[] = [
+    { localX: -1, localY: -1, localZ: -1, screenX: 0, screenY: 0, depth: 0 },
+    { localX: 1, localY: -1, localZ: -1, screenX: 0, screenY: 0, depth: 0 },
+    { localX: 1, localY: 1, localZ: -1, screenX: 0, screenY: 0, depth: 0 },
+    { localX: -1, localY: 1, localZ: -1, screenX: 0, screenY: 0, depth: 0 },
+    { localX: -1, localY: -1, localZ: 1, screenX: 0, screenY: 0, depth: 0 },
+    { localX: 1, localY: -1, localZ: 1, screenX: 0, screenY: 0, depth: 0 },
+    { localX: 1, localY: 1, localZ: 1, screenX: 0, screenY: 0, depth: 0 },
+    { localX: -1, localY: 1, localZ: 1, screenX: 0, screenY: 0, depth: 0 }
+  ];
+  private readonly cubeFaces: CubeFaceRenderState[] = [
+    { indices: [1, 5, 6, 2], normal: new THREE.Vector3(1, 0, 0), fillStyle: "rgba(246, 212, 210, 0.96)", depth: 0, normalDepth: 0 },
+    { indices: [0, 3, 7, 4], normal: new THREE.Vector3(-1, 0, 0), fillStyle: "rgba(213, 219, 226, 0.9)", depth: 0, normalDepth: 0 },
+    { indices: [3, 2, 6, 7], normal: new THREE.Vector3(0, 1, 0), fillStyle: "rgba(226, 244, 213, 0.96)", depth: 0, normalDepth: 0 },
+    { indices: [0, 4, 5, 1], normal: new THREE.Vector3(0, -1, 0), fillStyle: "rgba(207, 214, 222, 0.9)", depth: 0, normalDepth: 0 },
+    { indices: [4, 7, 6, 5], normal: new THREE.Vector3(0, 0, 1), fillStyle: "rgba(224, 238, 255, 0.98)", depth: 0, normalDepth: 0 },
+    { indices: [0, 1, 2, 3], normal: new THREE.Vector3(0, 0, -1), fillStyle: "rgba(210, 217, 225, 0.9)", depth: 0, normalDepth: 0 }
+  ];
+  private readonly sortedCubeFaces: CubeFaceRenderState[] = this.cubeFaces.slice();
   private readonly axes: AxisRenderState[] = [
     { axis: "+x", label: "x", color: "#e55a52", dimColor: "#7b3c3c", world: new THREE.Vector3(1, 0, 0), screenX: 0, screenY: 0, depth: 0, positive: true },
     { axis: "-x", label: "", color: "#d9dce0", dimColor: "#6d747d", world: new THREE.Vector3(-1, 0, 0), screenX: 0, screenY: 0, depth: 0, positive: false },
@@ -202,12 +239,57 @@ export class Camera3Gizmo {
 
   private drawCenter(): void {
     const ctx = this.context;
+    this.updateCubeProjection();
+    this.sortedCubeFaces.sort((a, b) => a.depth - b.depth);
+
     ctx.globalAlpha = 1;
-    ctx.fillStyle = "#eef2f6";
-    ctx.strokeStyle = "#bfc8d2";
-    ctx.lineWidth = 1.5;
-    ctx.fillRect(this.center - 9, this.center - 9, 18, 18);
-    ctx.strokeRect(this.center - 9, this.center - 9, 18, 18);
+    ctx.lineWidth = 1.35;
+    ctx.strokeStyle = "rgba(250, 253, 255, 0.9)";
+
+    for (const face of this.sortedCubeFaces) {
+      if (face.normalDepth < -0.02) continue;
+      this.drawCubeFace(face);
+    }
+  }
+
+  private updateCubeProjection(): void {
+    const cubeHalfSize = 9;
+    for (const vertex of this.cubeVertices) {
+      this.cubeVector
+        .set(vertex.localX * cubeHalfSize, vertex.localY * cubeHalfSize, vertex.localZ * cubeHalfSize)
+        .applyQuaternion(this.inverseCameraRotation);
+      vertex.screenX = this.center + this.cubeVector.x;
+      vertex.screenY = this.center - this.cubeVector.y;
+      vertex.depth = this.cubeVector.z;
+    }
+
+    for (const face of this.cubeFaces) {
+      const a = this.cubeVertices[face.indices[0]];
+      const b = this.cubeVertices[face.indices[1]];
+      const c = this.cubeVertices[face.indices[2]];
+      const d = this.cubeVertices[face.indices[3]];
+      face.depth = (a.depth + b.depth + c.depth + d.depth) * 0.25;
+      this.cubeVector.copy(face.normal).applyQuaternion(this.inverseCameraRotation);
+      face.normalDepth = this.cubeVector.z;
+    }
+  }
+
+  private drawCubeFace(face: CubeFaceRenderState): void {
+    const ctx = this.context;
+    const a = this.cubeVertices[face.indices[0]];
+    const b = this.cubeVertices[face.indices[1]];
+    const c = this.cubeVertices[face.indices[2]];
+    const d = this.cubeVertices[face.indices[3]];
+
+    ctx.fillStyle = face.fillStyle;
+    ctx.beginPath();
+    ctx.moveTo(a.screenX, a.screenY);
+    ctx.lineTo(b.screenX, b.screenY);
+    ctx.lineTo(c.screenX, c.screenY);
+    ctx.lineTo(d.screenX, d.screenY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
   }
 
   private drawLabel(axis: AxisRenderState): void {

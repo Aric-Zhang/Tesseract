@@ -1,9 +1,15 @@
 export {
+  actorInputScopeRoutePriority,
+  getActorInputScopeRoutePriority,
+  type ActorInputHit,
+  type ActorInputPathNode,
+  type ActorInputSelection
+} from "./actor-input-hit";
+export {
   GizmoEventBindingComponent,
   gizmoEventBindingComponentType
 } from "./gizmo-event-binding-component";
 export { gizmoEventBindingComponentDefinition } from "./gizmo-event-binding-definition";
-export type { ActorInputHit, ActorInputPathNode, ActorInputSelection } from "./actor-input-hit";
 export type {
   ActorInputCancelEvent,
   ActorInputClickEvent,

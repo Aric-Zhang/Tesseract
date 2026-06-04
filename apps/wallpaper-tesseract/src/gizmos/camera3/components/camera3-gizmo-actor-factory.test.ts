@@ -4,7 +4,12 @@ import { AppRuntimeContext } from "../../../app-runtime";
 import type { Camera3CommandSink, Camera3ControlCommand } from "../../../camera3-control";
 import { installCoreComponentDefinitions } from "../../../component-definitions";
 import type { RuntimeObject, RuntimeRegistration, SceneStateObserver, SceneUpdateCommand } from "../../../scene-runtime";
-import { gizmoEventBindingComponentType, isActorInputParticipant, isGizmoResponder } from "../../../gizmo-runtime";
+import {
+  actorInputScopeRoutePriority,
+  gizmoEventBindingComponentType,
+  isActorInputParticipant,
+  isGizmoResponder
+} from "../../../gizmo-runtime";
 import { Camera3ProjectionModeController } from "../../../features/camera3/model";
 import type { Camera3Gizmo, Camera3GizmoOptions } from "../camera3-gizmo";
 import { camera3GizmoComponentType } from "./camera3-gizmo-component";
@@ -225,6 +230,9 @@ describe("createCamera3GizmoActor", () => {
     const actorInputHit = (hit.data as { actorInputHit?: { region?: string; data?: { gizmoHit?: GizmoHit } } })
       .actorInputHit;
     expect(actorInputHit?.region).toBe("actor-overlay");
+    expect((actorInputHit as { scopeRoutePriority?: number } | undefined)?.scopeRoutePriority).toBe(
+      actorInputScopeRoutePriority.actorOverlay
+    );
     expect(actorInputHit?.data?.gizmoHit?.kind).toBe("axis");
 
     binding.onGizmoStart?.(createMoveEvent(binding, hit));

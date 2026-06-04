@@ -3,7 +3,7 @@ import type { Actor, Component, ComponentType } from "../actor-runtime";
 import { sceneParameterPaths, type SceneCommandSink, type SceneStateChangedEvent } from "../scene-runtime";
 import type { ActorInputEndEvent, ActorInputHit, ActorInputParticipant } from "../gizmo-runtime";
 import type { StateObserverResponder } from "../state-runtime";
-import type { FloatingWindowContentAttachment, FloatingWindowHost } from "../window-runtime";
+import type { WindowContentAttachment, WindowContentHost } from "../window-runtime";
 import type { HierarchyObjectItem, HierarchyObjectSource } from "./hierarchy-object-source";
 
 export const hierarchyPanelComponentType =
@@ -18,7 +18,7 @@ export interface HierarchyPanelComponentOptions {
 }
 
 export interface HierarchyPanelComponentServices {
-  host: FloatingWindowHost & { readonly inputStackPriority?: number };
+  host: WindowContentHost & { readonly inputStackPriority?: number };
   commandSink: SceneCommandSink;
 }
 
@@ -40,9 +40,9 @@ export class HierarchyPanelComponent implements Component, ActorInputParticipant
   readonly #objectSource: HierarchyObjectSource;
   readonly #commandSink: SceneCommandSink;
   readonly #priority: number;
-  readonly #host: FloatingWindowHost & { readonly inputStackPriority?: number };
+  readonly #host: WindowContentHost & { readonly inputStackPriority?: number };
   readonly #root: HTMLDivElement;
-  readonly #attachment: FloatingWindowContentAttachment;
+  readonly #attachment: WindowContentAttachment;
   readonly #emptyLabel: string;
   #rows: RowEntry[] = [];
   #activeObject: string | null = null;
@@ -95,6 +95,7 @@ export class HierarchyPanelComponent implements Component, ActorInputParticipant
 
   hitTestInput(point: ScreenPoint): ActorInputHit | null {
     if (!this.enabled) return null;
+    if (!this.#attachment.interactable || !this.#host.isContentInteractable(this.#root)) return null;
     const rootRect = this.#root.getBoundingClientRect();
     if (!isPointInsideRect(point, rootRect)) return null;
     for (const row of this.#rows) {

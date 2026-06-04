@@ -113,7 +113,7 @@ export class GizmoEventBindingComponent implements ComponentLifecycleObserver, G
       gizmoId: this.id,
       partId: selection.hit.partId,
       kind: "custom",
-      priority: selection.routeScore,
+      priority: selection.scopeRouteScore,
       data: {
         actorInputHit: selection.hit,
         targetComponentId: selection.target.id

@@ -6,10 +6,11 @@ import { sceneParameterPaths, vec2 } from "../../scene-runtime";
 import { createTestComponentRegistry } from "../../test-support";
 import {
   floatingWindowComponentType,
-  type FloatingWindowContentAttachment,
-  type FloatingWindowHost,
   installWindowComponentDefinitions,
-  type FloatingWindowState
+  type FloatingWindowState,
+  type WindowContentAttachment,
+  type WindowContentAttachmentRequest,
+  type WindowContentHost
 } from "../../window-runtime";
 import { createDefaultDebugWindowState } from "../debug-window-parameters";
 import {
@@ -74,7 +75,7 @@ class FakeElement {
   }
 }
 
-class FakeWindowHost implements FloatingWindowHost {
+class FakeWindowHost implements WindowContentHost {
   readonly id = "floating-window:test";
   readonly state: FloatingWindowState = {
     position: vec2(0, 0),
@@ -105,11 +106,24 @@ class FakeWindowHost implements FloatingWindowHost {
     };
   }
 
-  mountContent(element: HTMLElement): FloatingWindowContentAttachment {
+  isContentInteractable(element: HTMLElement): boolean {
+    return this.mounted.includes(element);
+  }
+
+  mountContent(request: HTMLElement | WindowContentAttachmentRequest): WindowContentAttachment {
+    const element = isWindowContentAttachmentRequest(request) ? request.element : request;
     this.mounted.push(element);
     let disposed = false;
+    let interactable = true;
     return {
       element,
+      host: this,
+      get interactable() {
+        return !disposed && interactable;
+      },
+      setInteractable(nextInteractable: boolean): void {
+        interactable = nextInteractable;
+      },
       dispose: () => {
         if (disposed) return;
         disposed = true;
@@ -124,6 +138,12 @@ class FakeWindowHost implements FloatingWindowHost {
   requestVisible(visible: boolean): void {
     this.visibleRequests.push(visible);
   }
+}
+
+function isWindowContentAttachmentRequest(
+  request: HTMLElement | WindowContentAttachmentRequest
+): request is WindowContentAttachmentRequest {
+  return typeof request === "object" && request !== null && "element" in request;
 }
 
 function createRegistry() {

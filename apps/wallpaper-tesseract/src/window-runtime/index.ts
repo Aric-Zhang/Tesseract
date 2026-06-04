@@ -12,7 +12,17 @@ export type {
   FloatingWindowStateOptions,
   RegisterFloatingWindowParametersOptions
 } from "./floating-window-state";
-export type { FloatingWindowContentAttachment, FloatingWindowHost } from "./floating-window-host";
+export {
+  createWindowContentAttachment,
+  getWindowContentAttachment
+} from "./floating-window-host";
+export type {
+  FloatingWindowContentAttachment,
+  FloatingWindowHost,
+  WindowContentAttachment,
+  WindowContentAttachmentRequest,
+  WindowContentHost
+} from "./floating-window-host";
 export {
   DEFAULT_FLOATING_WINDOW_PRIORITY,
   FloatingWindowComponent,
@@ -36,6 +46,29 @@ export type {
   WindowControlSource,
   WindowControlSourceOptions
 } from "./window-control-source";
+export {
+  createWindowWorkspaceLayout,
+  dockWindowAsTab,
+  findDockTabsetContaining,
+  normalizeWindowWorkspaceLayout,
+  removeWindowFromDock,
+  removeWindowFromLayout,
+  setActiveDockTab,
+  splitDockTab,
+  undockWindow
+} from "./window-workspace-layout";
+export type {
+  CreateWindowWorkspaceLayoutOptions,
+  SplitDockTabOptions,
+  WindowWorkspaceDockNode,
+  WindowWorkspaceFloatingWindow,
+  WindowWorkspaceLayout,
+  WindowWorkspaceSplitDirection,
+  WindowWorkspaceSplitNode,
+  WindowWorkspaceSplitPlacement,
+  WindowWorkspaceTabsetNode,
+  WindowWorkspaceWindowDescriptor
+} from "./window-workspace-layout";
 export {
   WINDOW_FLOATING_FOCUS_LAYER_END,
   WINDOW_FLOATING_FOCUS_LAYER_START,

@@ -230,6 +230,16 @@ describe("architecture boundaries", () => {
     expect(appRuntimeSource).toMatch(/\bactorWindowFocus:\s*options\.actorWindowFocus\b/);
   });
 
+  it("keeps actor-local input route scores out of gizmo-core hit priority", () => {
+    const bindingSource = sourceFiles["./gizmo-runtime/gizmo-event-binding-component.ts"] ?? "";
+    const routerSource = sourceFiles["./gizmo-runtime/actor-input-router.ts"] ?? "";
+
+    expect(bindingSource).not.toMatch(/priority:\s*selection\.routeScore\b/);
+    expect(bindingSource).toMatch(/priority:\s*selection\.scopeRouteScore\b/);
+    expect(routerSource).toMatch(/\bscopeRouteScore\b/);
+    expect(routerSource).toMatch(/\bgetActorInputScopeRoutePriority\b/);
+  });
+
   it("keeps feature definition installation owned by features and composed by app", () => {
     const coreSource = sourceFiles["./component-definitions.ts"] ?? "";
     const appInstallerSource = sourceFiles["./app/install-component-definitions.ts"] ?? "";
@@ -303,6 +313,63 @@ describe("architecture boundaries", () => {
     const violations = Object.entries(sourceFiles)
       .filter(([file]) => file.startsWith("./window-runtime/"))
       .filter(([, source]) => /from\s+["'](?:\.\.\/)+features\//.test(source))
+      .map(([file]) => file)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps WindowWorkspaceController generic instead of importing concrete window features", () => {
+    const controllerSource = sourceFiles["./window-runtime/window-workspace-controller.ts"] ?? "";
+
+    expect(controllerSource).not.toMatch(/debug-log-window-actor-factory|hierarchy-panel-actor-factory/);
+    expect(controllerSource).not.toMatch(/scene-window-actor-factory|createSceneWindowActor/);
+    expect(controllerSource).not.toMatch(/from\s+["'](?:\.\.\/)+(?:debug|hierarchy|features\/scene|gizmos\/camera3)/);
+  });
+
+  it("keeps FloatingWindowComponent independent from app-runtime", () => {
+    const source = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
+
+    expect(source).not.toMatch(/from\s+["'](?:\.\.\/)+app-runtime(?:\/index)?["']/);
+    expect(source).not.toMatch(/\bAppRuntimeContext\b/);
+  });
+
+  it("keeps feature window content components on the narrow WindowContentHost port", () => {
+    const contentFiles = [
+      "./debug/components/debug-log-content-component.ts",
+      "./hierarchy/hierarchy-panel-component.ts"
+    ];
+
+    for (const file of contentFiles) {
+      const source = sourceFiles[file] ?? "";
+      expect(source).toMatch(/\bWindowContentHost\b/);
+      expect(source).toMatch(/\bWindowContentAttachment\b/);
+      expect(source).not.toMatch(/\bFloatingWindowHost\b/);
+      expect(source).not.toMatch(/\bFloatingWindowContentAttachment\b/);
+    }
+  });
+
+  it("keeps future dock layout model pure and DOM-free", () => {
+    const violations = Object.entries(sourceFiles)
+      .filter(([file]) => (
+        file.startsWith("./window-runtime/") &&
+        !file.endsWith(".test.ts") &&
+        /(?:dock|workspace-layout)/i.test(file)
+      ))
+      .filter(([, source]) => (
+        /\b(?:HTMLElement|HTMLDivElement|Document|Element|getBoundingClientRect|querySelector)\b/.test(source) ||
+        /from\s+["'](?:gizmo-core|three)["']/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps future dock tab input on actor input instead of DOM click handlers", () => {
+    const violations = Object.entries(sourceFiles)
+      .filter(([file]) => file.startsWith("./window-runtime/") && /dock/i.test(file) && !file.endsWith(".test.ts"))
+      .filter(([, source]) => /addEventListener\s*\(\s*["']click["']|\.onclick\s*=/.test(source))
       .map(([file]) => file)
       .sort();
 

@@ -8,7 +8,7 @@ import type {
   ScreenPoint
 } from "gizmo-core";
 import type { Actor, Component } from "../actor-runtime";
-import type { ActorInputHit, ActorInputSelection } from "./actor-input-hit";
+import { getActorInputScopeRoutePriority, type ActorInputHit, type ActorInputSelection } from "./actor-input-hit";
 import {
   isActorInputParticipant,
   type ActorInputCancelEvent,
@@ -59,6 +59,9 @@ const routeScoreLocalRouteFactor = 1_000_000_000_000;
 const routeScoreInputFactor = 100_000_000;
 const routeScoreHitFactor = 10_000;
 const routeScorePathFactor = 100;
+const scopeRouteScorePriorityFactor = 1_000_000;
+const scopeRouteScoreHitFactor = 1000;
+const scopeRouteScorePathFactor = 10;
 
 export class ActorInputRouter {
   private readonly actor: Actor;
@@ -179,11 +182,19 @@ export class ActorInputRouter {
     const participantInputPriority = entry.participant.inputPriority ?? 0;
     const hitPriority = hit.hitPriority ?? 0;
     const pathDepth = hit.path.length;
+    const scopeRoutePriority = getActorInputScopeRoutePriority(hit);
     return {
       target: entry.participant,
       hit,
       pathComponents,
       stackPriority: entry.participant.inputStackPriority ?? 0,
+      scopeRoutePriority,
+      scopeRouteScore: createScopeRouteScore({
+        scopeRoutePriority,
+        hitPriority,
+        pathDepth,
+        order: entry.order
+      }),
       routeScore: createRouteScore({
         localRoutePriority: hit.localRoutePriority,
         participantInputPriority,
@@ -352,6 +363,20 @@ function createRouteScore(options: {
     options.participantInputPriority * routeScoreInputFactor +
     options.hitPriority * routeScoreHitFactor +
     options.pathDepth * routeScorePathFactor +
+    options.order
+  );
+}
+
+function createScopeRouteScore(options: {
+  readonly scopeRoutePriority: number;
+  readonly hitPriority: number;
+  readonly pathDepth: number;
+  readonly order: number;
+}): number {
+  return (
+    options.scopeRoutePriority * scopeRouteScorePriorityFactor +
+    options.hitPriority * scopeRouteScoreHitFactor +
+    options.pathDepth * scopeRouteScorePathFactor +
     options.order
   );
 }

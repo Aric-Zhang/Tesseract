@@ -56,6 +56,9 @@ export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocu
   }
 
   updateFrame(_frame: SceneFrame): void {
+    // First-pass strategy: window counts are small, so polling keeps actor,
+    // state, and source changes aligned. Once docking/layout grows, move this
+    // to explicit invalidation from actor/window/source change events.
     this.reconcile();
   }
 

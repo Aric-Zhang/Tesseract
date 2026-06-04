@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, type Actor } from "../../actor-runtime";
+import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
 import {
   parameterPath,
   sceneParameterPaths,
@@ -315,6 +316,8 @@ describe("AppMenuBarComponent", () => {
     expect(menuButton(root).getAttribute("aria-expanded")).toBe("true");
     const sceneHit = component.hitTestInput({ x: 640, y: 50 });
     if (!sceneHit) throw new Error("Expected Scene row hit.");
+    expect(buttonHit.scopeRoutePriority).toBe(actorInputScopeRoutePriority.appOverlay);
+    expect(sceneHit.scopeRoutePriority).toBe(actorInputScopeRoutePriority.appOverlay);
     expect(sceneHit.data).toEqual({ kind: "window-toggle", actorId: "scene-window" });
 
     component.onInputEnd(createActorInputEndEvent(sceneHit, { wasClick: true, timeStamp: 20 }));

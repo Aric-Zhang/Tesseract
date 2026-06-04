@@ -10,6 +10,7 @@ import {
   type Vec2
 } from "../scene-runtime";
 import { type Actor, type Component, type ComponentType } from "../actor-runtime";
+import { actorInputScopeRoutePriority } from "../gizmo-runtime";
 import type {
   ActorInputCancelEvent,
   ActorInputEndEvent,
@@ -19,7 +20,12 @@ import type {
   ActorInputStartEvent
 } from "../gizmo-runtime";
 import type { StateObserverResponder } from "../state-runtime";
-import type { FloatingWindowContentAttachment, FloatingWindowHost } from "./floating-window-host";
+import {
+  createWindowContentAttachment,
+  type FloatingWindowContentAttachment,
+  type FloatingWindowHost,
+  type WindowContentAttachmentRequest
+} from "./floating-window-host";
 import {
   cloneFloatingWindowState,
   DEFAULT_FLOATING_WINDOW_MIN_SIZE,
@@ -233,25 +239,31 @@ export class FloatingWindowComponent
     return this.#rootElement.getBoundingClientRect();
   }
 
-  mountContent(element: HTMLElement): FloatingWindowContentAttachment {
+  mountContent(requestOrElement: HTMLElement | WindowContentAttachmentRequest): FloatingWindowContentAttachment {
     if (this.#contentAttachment) {
       throw new Error(`FloatingWindowComponent already has mounted content: ${this.id}`);
     }
-    this.#contentSlot.append(element);
-    let disposed = false;
-    const attachment: FloatingWindowContentAttachment = {
-      element,
-      dispose: () => {
-        if (disposed) return;
-        disposed = true;
-        element.remove();
-        if (this.#contentAttachment === attachment) {
+    const attachment = createWindowContentAttachment(
+      this,
+      requestOrElement,
+      (element) => this.#contentSlot.append(element),
+      (disposedAttachment) => {
+        disposedAttachment.element.remove();
+        if (this.#contentAttachment === disposedAttachment) {
           this.#contentAttachment = null;
         }
       }
-    };
+    );
     this.#contentAttachment = attachment;
     return attachment;
+  }
+
+  isContentInteractable(element: HTMLElement): boolean {
+    return (
+      this.#contentAttachment?.element === element &&
+      this.#contentAttachment.interactable &&
+      this.state.visible
+    );
   }
 
   requestVisible(visible: boolean, timeStamp?: number): void {
@@ -317,7 +329,10 @@ export class FloatingWindowComponent
     if (isPointInsideRect(point, this.#titlebar.getBoundingClientRect())) {
       return this.createHit("titlebar", 20);
     }
-    if (isPointInsideRect(point, this.#contentSlot.getBoundingClientRect())) {
+    if (
+      isPointInsideRect(point, this.#contentSlot.getBoundingClientRect()) &&
+      (!this.#contentAttachment || this.#contentAttachment.interactable)
+    ) {
       return this.createContentHit();
     }
     return null;
@@ -409,6 +424,7 @@ export class FloatingWindowComponent
       partId,
       kind: "chrome",
       region: "window-frame",
+      scopeRoutePriority: actorInputScopeRoutePriority.windowChrome,
       localRoutePriority: 3000,
       hitPriority: priority,
       path: [{
@@ -425,6 +441,7 @@ export class FloatingWindowComponent
       partId: "window-content",
       kind: "content",
       region: "window-content",
+      scopeRoutePriority: actorInputScopeRoutePriority.windowContent,
       localRoutePriority: 100,
       hitPriority: 1,
       path: [{

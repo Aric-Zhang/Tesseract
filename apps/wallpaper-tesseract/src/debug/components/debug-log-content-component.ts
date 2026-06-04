@@ -1,7 +1,7 @@
 import type { GizmoDebugLogEntry } from "gizmo-core";
 import type { Actor, Component, ComponentType } from "../../actor-runtime";
 import type { SceneFrame } from "../../scene-runtime";
-import type { FloatingWindowContentAttachment, FloatingWindowHost } from "../../window-runtime";
+import type { WindowContentAttachment, WindowContentHost } from "../../window-runtime";
 
 export const debugLogContentComponentType =
   "debug-log-content-component" as ComponentType<DebugLogContentComponent>;
@@ -13,7 +13,7 @@ export interface DebugLogContentComponentOptions {
 }
 
 export interface DebugLogContentComponentServices {
-  host: FloatingWindowHost;
+  host: WindowContentHost;
 }
 
 const DEFAULT_DEBUG_LOG_CONTENT_ID = "debug-log-content";
@@ -26,7 +26,7 @@ export class DebugLogContentComponent implements Component {
   enabled = true;
   readonly content: HTMLPreElement;
 
-  readonly #attachment: FloatingWindowContentAttachment;
+  readonly #attachment: WindowContentAttachment;
   readonly #lines: string[] = [];
   readonly #maxLines: number;
   #logDirty = true;

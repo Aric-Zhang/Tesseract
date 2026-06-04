@@ -4,6 +4,7 @@ import { ActorSystem } from "../actor-runtime";
 import { installCoreComponentDefinitions } from "../component-definitions";
 import { installWindowComponentDefinitions } from "./install-component-definitions";
 import {
+  actorInputScopeRoutePriority,
   gizmoEventBindingComponentType,
   type GizmoEventBindingComponent
 } from "../gizmo-runtime";
@@ -49,6 +50,7 @@ class FakeElement {
 
   append(...children: FakeElement[]): void {
     for (const child of children) {
+      child.remove();
       child.parentElement = this;
       this.children.push(child);
     }
@@ -408,6 +410,7 @@ describe("FloatingWindowComponent DOM shell", () => {
       partId: "close",
       kind: "chrome",
       region: "window-frame",
+      scopeRoutePriority: actorInputScopeRoutePriority.windowChrome,
       localRoutePriority: 3000,
       hitPriority: 50,
       path: [{ componentId: "floating-window:test", role: "surface", partId: "close" }]
@@ -425,6 +428,7 @@ describe("FloatingWindowComponent DOM shell", () => {
       partId: "window-content",
       kind: "content",
       region: "window-content",
+      scopeRoutePriority: actorInputScopeRoutePriority.windowContent,
       localRoutePriority: 100,
       hitPriority: 1,
       path: [{ componentId: "floating-window:test", role: "surface", partId: "window-content" }]
@@ -571,12 +575,37 @@ describe("FloatingWindowComponent DOM shell", () => {
     const attachment = component.mountContent(content as unknown as HTMLElement);
 
     expect(attachment.element).toBe(content);
+    expect(attachment.host).toBe(component);
+    expect(attachment.interactable).toBe(true);
+    expect(component.isContentInteractable(content as unknown as HTMLElement)).toBe(true);
     expect(contentSlot.children).toEqual([content]);
 
     attachment.dispose();
     attachment.dispose();
 
+    expect(attachment.interactable).toBe(false);
+    expect(component.isContentInteractable(content as unknown as HTMLElement)).toBe(false);
     expect(contentSlot.children).toEqual([]);
+  });
+
+  it("reparents one content element between hosts without resetting element state", () => {
+    const first = createSubject();
+    const second = createSubject();
+    const firstSlot = findChildByClass(first.root, "floating-gizmo-window__content");
+    const secondSlot = findChildByClass(second.root, "floating-gizmo-window__content");
+    const content = first.document.createElement("pre");
+    content.textContent = "preserved state";
+    const firstAttachment = first.component.mountContent(content as unknown as HTMLElement);
+
+    const secondAttachment = second.component.mountContent(content as unknown as HTMLElement);
+
+    expect(firstAttachment.interactable).toBe(false);
+    expect(secondAttachment.interactable).toBe(true);
+    expect(content.textContent).toBe("preserved state");
+    expect(firstSlot.children).toEqual([]);
+    expect(secondSlot.children).toEqual([content]);
+    expect(first.component.isContentInteractable(content as unknown as HTMLElement)).toBe(false);
+    expect(second.component.isContentInteractable(content as unknown as HTMLElement)).toBe(true);
   });
 
   it("rejects duplicate mounted content", () => {
@@ -586,6 +615,18 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(() => component.mountContent(document.createElement("div") as unknown as HTMLElement)).toThrow(
       /already has mounted content/
     );
+  });
+
+  it("does not hit-test inactive mounted content", () => {
+    const { component, document, root } = createSubject();
+    setWindowRects(root);
+    const attachment = component.mountContent(document.createElement("pre") as unknown as HTMLElement);
+
+    expect(component.hitTestInput({ x: 40, y: 90 })?.partId).toBe("window-content");
+
+    attachment.setInteractable(false);
+
+    expect(component.hitTestInput({ x: 40, y: 90 })).toBeNull();
   });
 
   it("removes mounted content and root on dispose", () => {

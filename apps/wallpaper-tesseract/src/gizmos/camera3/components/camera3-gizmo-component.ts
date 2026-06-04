@@ -4,6 +4,7 @@ import type {
   ScreenPoint
 } from "gizmo-core";
 import type { Actor, ComponentType } from "../../../actor-runtime";
+import { actorInputScopeRoutePriority } from "../../../gizmo-runtime";
 import type {
   ActorInputCancelEvent,
   ActorInputClickEvent,
@@ -59,6 +60,7 @@ export class Camera3GizmoComponent implements ActorInputParticipant {
       partId: gizmoHit.partId,
       kind: "custom",
       region: "actor-overlay",
+      scopeRoutePriority: actorInputScopeRoutePriority.actorOverlay,
       localRoutePriority: 0,
       hitPriority: gizmoHit.priority ?? 0,
       path: [{

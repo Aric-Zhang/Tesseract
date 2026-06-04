@@ -1,5 +1,6 @@
 import type { ScreenPoint } from "gizmo-core";
 import type { Actor, ActorWindowFocusService, Component, ComponentType } from "../../actor-runtime";
+import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
 import {
   sceneParameterPaths,
   type SceneCommandSink,
@@ -270,6 +271,7 @@ export class AppMenuBarComponent
       partId,
       kind: "chrome",
       region: "actor-overlay",
+      scopeRoutePriority: actorInputScopeRoutePriority.appOverlay,
       localRoutePriority: 4000,
       hitPriority,
       path: [{

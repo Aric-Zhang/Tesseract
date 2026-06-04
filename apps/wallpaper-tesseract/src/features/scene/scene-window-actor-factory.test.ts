@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry, type RegisteredActor } from "../../actor-runtime";
 import { installCoreComponentDefinitions } from "../../component-definitions";
+import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
 import { sceneParameterPaths, type SceneUpdateCommand } from "../../scene-runtime";
 import { floatingWindowComponentType } from "../../window-runtime";
 import { installWindowComponentDefinitions } from "../../window-runtime";
@@ -269,7 +270,8 @@ describe("createSceneWindowActor", () => {
       componentId: "scene-mode-toggle",
       partId: "scene-mode-toggle",
       kind: "chrome",
-      region: "actor-overlay"
+      region: "actor-overlay",
+      scopeRoutePriority: actorInputScopeRoutePriority.actorOverlay
     });
     expect(handle.modeToggle.buttonElement.className).toContain("scene-window__mode-toggle-button--windowed");
     expect(commands).toEqual([

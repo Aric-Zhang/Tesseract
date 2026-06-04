@@ -1,5 +1,6 @@
 import type { ScreenPoint } from "gizmo-core";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
+import { actorInputScopeRoutePriority } from "../../../gizmo-runtime";
 import type {
   ActorInputEndEvent,
   ActorInputHit,
@@ -94,6 +95,7 @@ export class SceneModeToggleComponent
       partId: "scene-mode-toggle",
       kind: "chrome",
       region: "actor-overlay",
+      scopeRoutePriority: actorInputScopeRoutePriority.actorOverlay,
       localRoutePriority: 2000,
       hitPriority: 60,
       path: [{

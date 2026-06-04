@@ -16,7 +16,7 @@ import {
   createRecordingRuntimeRegistration,
   createTestComponentRegistry
 } from "../test-support";
-import type { ActorInputHit } from "./actor-input-hit";
+import { actorInputScopeRoutePriority, type ActorInputHit, type ActorInputHitRegion } from "./actor-input-hit";
 import type { ActorInputParticipant } from "./actor-input-participant";
 import { gizmoEventBindingComponentType } from "./gizmo-event-binding-component";
 import { gizmoEventBindingComponentDefinition } from "./gizmo-event-binding-definition";
@@ -120,6 +120,8 @@ function createResponderDefinition(
 }
 
 function createActorInputHit(componentId: string, label: string, options: {
+  region?: ActorInputHitRegion;
+  scopeRoutePriority?: number;
   localRoutePriority?: number;
   hitPriority?: number;
   path?: ActorInputHit["path"];
@@ -128,7 +130,8 @@ function createActorInputHit(componentId: string, label: string, options: {
     componentId,
     partId: label,
     kind: "control",
-    region: "content-control",
+    region: options.region ?? "content-control",
+    scopeRoutePriority: options.scopeRoutePriority,
     localRoutePriority: options.localRoutePriority ?? 0,
     hitPriority: options.hitPriority,
     path: options.path ?? [{
@@ -145,6 +148,8 @@ function createActorInputParticipantDefinition(
   options: {
     inputStackPriority?: number;
     inputPriority?: number;
+    region?: ActorInputHitRegion;
+    scopeRoutePriority?: number;
     localRoutePriority?: number;
     hitPriority?: number;
     path?: ActorInputHit["path"];
@@ -159,6 +164,8 @@ function createActorInputParticipantDefinition(
     },
     create(actor) {
       const hit = createActorInputHit(`${label}-participant`, label, {
+        region: options.region,
+        scopeRoutePriority: options.scopeRoutePriority,
         localRoutePriority: options.localRoutePriority,
         hitPriority: options.hitPriority,
         path: options.path
@@ -419,7 +426,7 @@ describe("GizmoEventBindingComponent", () => {
     expect(binding.priority).toBe(3);
   });
 
-  it("exposes stack priority on the binding and actor-local route score on the hit", () => {
+  it("exposes stack priority on the binding and scope route score on the hit", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
     registry.registerDefinition(createActorInputParticipantDefinition(calls, "stack", {
       inputStackPriority: 900,
@@ -441,7 +448,8 @@ describe("GizmoEventBindingComponent", () => {
 
     expect(binding.priority).toBe(900);
     expect(hit?.partId).toBe("route");
-    expect(hit?.priority).toBeGreaterThan(900);
+    expect(hit?.priority).toBeGreaterThan(actorInputScopeRoutePriority.contentControl);
+    expect(hit?.priority).toBeLessThan(actorInputScopeRoutePriority.actorOverlay * 1_000_000);
     expect(hit?.data).toMatchObject({
       targetComponentId: "route-participant",
       actorInputHit: {
@@ -859,39 +867,92 @@ describe("GizmoEventBindingComponent", () => {
     system.dispose();
   });
 
-  it("compares actor-local route score when stack priority matches", () => {
+  it("does not let actor-local route score escape same-stack cross-actor selection", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
-    registry.registerDefinition(createActorInputParticipantDefinition(calls, "low-route", {
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "content-fallback", {
       inputStackPriority: 500,
-      localRoutePriority: 1000,
+      region: "window-content",
+      scopeRoutePriority: actorInputScopeRoutePriority.windowContent,
+      localRoutePriority: 5000,
+      hitPriority: 100
+    }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "overlay-control", {
+      inputStackPriority: 500,
+      region: "actor-overlay",
+      scopeRoutePriority: actorInputScopeRoutePriority.actorOverlay,
+      localRoutePriority: 0,
       hitPriority: 1
     }));
-    registry.registerDefinition(createActorInputParticipantDefinition(calls, "high-route", {
-      inputStackPriority: 500,
-      localRoutePriority: 2000,
-      hitPriority: 1
-    }));
-    const lowActor = actorSystem.createActor({ id: "low-route-actor" });
-    const highActor = actorSystem.createActor({ id: "high-route-actor" });
-    registry.addComponent(lowActor, gizmoEventBindingComponentType);
-    registry.addComponent(lowActor, componentType<ActorInputParticipant>("input-participant-low-route"));
-    registry.addComponent(highActor, gizmoEventBindingComponentType);
-    registry.addComponent(highActor, componentType<ActorInputParticipant>("input-participant-high-route"));
+    const overlayActor = actorSystem.createActor({ id: "overlay-actor" });
+    const contentActor = actorSystem.createActor({ id: "content-actor" });
+    registry.addComponent(overlayActor, gizmoEventBindingComponentType);
+    registry.addComponent(overlayActor, componentType<ActorInputParticipant>("input-participant-overlay-control"));
+    registry.addComponent(contentActor, gizmoEventBindingComponentType);
+    registry.addComponent(contentActor, componentType<ActorInputParticipant>("input-participant-content-fallback"));
     const system = new RuntimeGizmoEventSystem({ target: new FakeEventTarget() as unknown as EventTarget });
-    const lowBinding = findRegisteredBinding(registered, "low-route-actor:gizmo-event-binding");
-    const highBinding = findRegisteredBinding(registered, "high-route-actor:gizmo-event-binding");
-    system.register(lowBinding);
-    system.register(highBinding);
+    const overlayBinding = findRegisteredBinding(registered, "overlay-actor:gizmo-event-binding");
+    const contentBinding = findRegisteredBinding(registered, "content-actor:gizmo-event-binding");
+    system.register(overlayBinding);
+    system.register(contentBinding);
 
     const selected = selectBestHit(system, { x: 0, y: 0 });
 
-    expect(lowBinding.priority).toBe(500);
-    expect(highBinding.priority).toBe(500);
-    expect((highBinding.hitTest({ x: 0, y: 0 })?.priority ?? 0)).toBeGreaterThan(
-      lowBinding.hitTest({ x: 0, y: 0 })?.priority ?? 0
+    expect(contentBinding.priority).toBe(500);
+    expect(overlayBinding.priority).toBe(500);
+    expect((contentBinding.hitTest({ x: 0, y: 0 })?.priority ?? 0)).toBeLessThan(
+      overlayBinding.hitTest({ x: 0, y: 0 })?.priority ?? 0
     );
-    expect(selected?.gizmo).toBe(highBinding);
-    expect(selected?.hit.partId).toBe("high-route");
+    expect(selected?.gizmo).toBe(overlayBinding);
+    expect(selected?.hit.partId).toBe("overlay-control");
+
+    system.dispose();
+  });
+
+  it("routes Scene-window Camera3 overlay ahead of the Scene window content fallback", () => {
+    const { actorSystem, calls, registered, registry } = createRegistry({
+      actorWindowFocus: {
+        getEffectiveStackPriorityForActor(actor) {
+          return actor.id === "scene-window" || actor.id === "camera3" ? 2000 : null;
+        },
+        focusActorWindow(): void {},
+        requestFocusOnVisible(): void {}
+      }
+    });
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "camera3-orbit", {
+      inputStackPriority: 100,
+      region: "actor-overlay",
+      scopeRoutePriority: actorInputScopeRoutePriority.actorOverlay,
+      localRoutePriority: 0,
+      hitPriority: 0
+    }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "window-content", {
+      inputStackPriority: 2000,
+      region: "window-content",
+      scopeRoutePriority: actorInputScopeRoutePriority.windowContent,
+      localRoutePriority: 5000,
+      hitPriority: 100
+    }));
+    const sceneWindow = actorSystem.createActor({ id: "scene-window" });
+    const camera3 = actorSystem.createActor({ id: "camera3", parent: sceneWindow });
+    registry.addComponent(sceneWindow, gizmoEventBindingComponentType);
+    registry.addComponent(sceneWindow, componentType<ActorInputParticipant>("input-participant-window-content"));
+    registry.addComponent(camera3, gizmoEventBindingComponentType);
+    registry.addComponent(camera3, componentType<ActorInputParticipant>("input-participant-camera3-orbit"));
+    const system = new RuntimeGizmoEventSystem({ target: new FakeEventTarget() as unknown as EventTarget });
+    const sceneBinding = findRegisteredBinding(registered, "scene-window:gizmo-event-binding");
+    const cameraBinding = findRegisteredBinding(registered, "camera3:gizmo-event-binding");
+    system.register(sceneBinding);
+    system.register(cameraBinding);
+
+    const selected = selectBestHit(system, { x: 0, y: 0 });
+
+    expect(sceneBinding.priority).toBe(2000);
+    expect(cameraBinding.priority).toBe(2000);
+    expect((sceneBinding.hitTest({ x: 0, y: 0 })?.priority ?? 0)).toBeLessThan(
+      cameraBinding.hitTest({ x: 0, y: 0 })?.priority ?? 0
+    );
+    expect(selected?.gizmo).toBe(cameraBinding);
+    expect(selected?.hit.partId).toBe("camera3-orbit");
 
     system.dispose();
   });

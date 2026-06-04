@@ -18,11 +18,20 @@ export interface ActorInputPathNode {
   readonly partId?: string;
 }
 
+export const actorInputScopeRoutePriority = {
+  windowContent: 0,
+  contentControl: 1000,
+  actorOverlay: 2000,
+  windowChrome: 3000,
+  appOverlay: 4000
+} as const;
+
 export interface ActorInputHit {
   readonly componentId: string;
   readonly partId: string;
   readonly kind: ActorInputHitKind;
   readonly region: ActorInputHitRegion;
+  readonly scopeRoutePriority?: number;
   readonly localRoutePriority: number;
   readonly hitPriority?: number;
   readonly path: readonly ActorInputPathNode[];
@@ -34,5 +43,16 @@ export interface ActorInputSelection {
   readonly hit: ActorInputHit;
   readonly pathComponents: readonly Component[];
   readonly stackPriority: number;
+  readonly scopeRoutePriority: number;
+  readonly scopeRouteScore: number;
   readonly routeScore: number;
+}
+
+export function getActorInputScopeRoutePriority(hit: ActorInputHit): number {
+  if (typeof hit.scopeRoutePriority === "number") return hit.scopeRoutePriority;
+  if (hit.region === "window-frame") return actorInputScopeRoutePriority.windowChrome;
+  if (hit.region === "actor-overlay") return actorInputScopeRoutePriority.actorOverlay;
+  if (hit.region === "content-control") return actorInputScopeRoutePriority.contentControl;
+  if (hit.region === "window-content") return actorInputScopeRoutePriority.windowContent;
+  return actorInputScopeRoutePriority.contentControl;
 }

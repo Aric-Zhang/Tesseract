@@ -8,7 +8,14 @@ import {
   vec2
 } from "../scene-runtime";
 import { createActorInputEndEvent, createTestComponentRegistry } from "../test-support";
-import { floatingWindowComponentType, installWindowComponentDefinitions, type FloatingWindowContentAttachment, type FloatingWindowHost, type FloatingWindowState } from "../window-runtime";
+import {
+  floatingWindowComponentType,
+  installWindowComponentDefinitions,
+  type FloatingWindowState,
+  type WindowContentAttachment,
+  type WindowContentAttachmentRequest,
+  type WindowContentHost
+} from "../window-runtime";
 import {
   createStaticHierarchyObjectSource,
   type HierarchyObjectItem,
@@ -137,7 +144,7 @@ class FakeElement {
   }
 }
 
-class FakeWindowHost implements FloatingWindowHost {
+class FakeWindowHost implements WindowContentHost {
   readonly id = "floating-window:hierarchy";
   readonly inputStackPriority = 1100;
   readonly state: FloatingWindowState = {
@@ -146,6 +153,7 @@ class FakeWindowHost implements FloatingWindowHost {
     visible: true
   };
   mounted: HTMLElement[] = [];
+  contentInteractable = true;
 
   setTitle(): void {}
 
@@ -153,11 +161,24 @@ class FakeWindowHost implements FloatingWindowHost {
     return createRect(0, 0, 280, 360);
   }
 
-  mountContent(element: HTMLElement): FloatingWindowContentAttachment {
+  isContentInteractable(element: HTMLElement): boolean {
+    return this.contentInteractable && this.mounted.includes(element);
+  }
+
+  mountContent(request: HTMLElement | WindowContentAttachmentRequest): WindowContentAttachment {
+    const element = isWindowContentAttachmentRequest(request) ? request.element : request;
     this.mounted.push(element);
     let disposed = false;
+    let interactable = true;
     return {
       element,
+      host: this,
+      get interactable() {
+        return !disposed && interactable;
+      },
+      setInteractable(nextInteractable: boolean): void {
+        interactable = nextInteractable;
+      },
       dispose: () => {
         if (disposed) return;
         disposed = true;
@@ -170,6 +191,12 @@ class FakeWindowHost implements FloatingWindowHost {
   }
 
   requestVisible(): void {}
+}
+
+function isWindowContentAttachmentRequest(
+  request: HTMLElement | WindowContentAttachmentRequest
+): request is WindowContentAttachmentRequest {
+  return typeof request === "object" && request !== null && "element" in request;
 }
 
 function createRect(x: number, y: number, width: number, height: number): DOMRectReadOnly {
@@ -393,6 +420,19 @@ describe("HierarchyPanelComponent", () => {
     expect(component.inputStackPriority).toBe(1100);
     expect(component.inputPriority).toBe(900);
     expect(component.hitTestInput({ x: 10, y: -20 })).toBeNull();
+  });
+
+  it("does not hit-test rows when hosted content is not interactable", () => {
+    const { component, host, root } = createSubject();
+    const [firstRow] = rows(root);
+    root.rect = createRect(0, 0, 200, 60);
+    firstRow.rect = createRect(0, 0, 200, 24);
+
+    expect(component.hitTestInput({ x: 10, y: 10 })?.partId).toBe("row");
+
+    host.contentInteractable = false;
+
+    expect(component.hitTestInput({ x: 10, y: 10 })).toBeNull();
   });
 
   it("submits selection commands through gizmo click and keyboard activation", () => {

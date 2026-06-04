@@ -1,0 +1,159 @@
+.floating-gizmo-window {
+  position: fixed;
+  z-index: 20;
+  max-width: calc(100vw - 28px);
+  max-height: calc(100vh - 28px);
+  border: 1px solid rgba(118, 199, 255, 0.28);
+  background: rgba(3, 6, 10, 0.72);
+  color: rgba(218, 239, 255, 0.92);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.floating-gizmo-window--fullscreen {
+  max-width: none;
+  max-height: none;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.floating-gizmo-window__titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 7px 0 10px;
+  border-bottom: 1px solid rgba(118, 199, 255, 0.18);
+  background: rgba(14, 22, 31, 0.76);
+  cursor: grab;
+}
+
+.floating-gizmo-window--fullscreen .floating-gizmo-window__titlebar {
+  display: none;
+}
+
+.floating-gizmo-window__title {
+  min-width: 0;
+  overflow: hidden;
+  font: 12px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: rgba(232, 246, 255, 0.92);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.floating-gizmo-window__content {
+  width: 100%;
+  height: calc(100% - 30px);
+  overflow: hidden;
+}
+
+.floating-gizmo-window--fullscreen .floating-gizmo-window__content {
+  height: 100%;
+}
+
+.floating-gizmo-window__close {
+  position: relative;
+  display: grid;
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(232, 246, 255, 0.78);
+  cursor: pointer;
+  font: 18px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  place-items: center;
+}
+
+.floating-gizmo-window__close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.floating-gizmo-window__resize {
+  position: absolute;
+  z-index: 2;
+}
+
+.floating-gizmo-window--fullscreen .floating-gizmo-window__resize {
+  display: none;
+}
+
+.floating-gizmo-window__resize--left {
+  top: 16px;
+  bottom: 16px;
+  left: 0;
+  width: 9px;
+  cursor: ew-resize;
+}
+
+.floating-gizmo-window__resize--right {
+  top: 16px;
+  right: 0;
+  bottom: 16px;
+  width: 9px;
+  cursor: ew-resize;
+}
+
+.floating-gizmo-window__resize--top {
+  top: 0;
+  right: 16px;
+  left: 16px;
+  height: 9px;
+  cursor: ns-resize;
+}
+
+.floating-gizmo-window__resize--bottom {
+  right: 16px;
+  bottom: 0;
+  left: 16px;
+  height: 9px;
+  cursor: ns-resize;
+}
+
+.floating-gizmo-window__resize--top-left,
+.floating-gizmo-window__resize--top-right,
+.floating-gizmo-window__resize--bottom-left,
+.floating-gizmo-window__resize--bottom-right {
+  width: 16px;
+  height: 16px;
+}
+
+.floating-gizmo-window__resize--top-left {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.floating-gizmo-window__resize--top-right {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.floating-gizmo-window__resize--bottom-left {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.floating-gizmo-window__resize--bottom-right {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+}
+
+.floating-gizmo-window__resize--bottom-right::after {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid rgba(180, 222, 255, 0.45);
+  border-bottom: 1px solid rgba(180, 222, 255, 0.45);
+  content: "";
+}

@@ -9,9 +9,9 @@
   ],
   "scripts": {
     "dev": "npm run dev -w wallpaper-tesseract",
-    "test": "npm run build -w four-rotation && npm run test -w four-rotation && npm run build -w four-camera && npm run test -w four-camera && npm run build -w four-camera-three && npm run test -w four-camera-three",
-    "typecheck": "npm run typecheck -w four-rotation && npm run build -w four-rotation && npm run typecheck -w four-camera && npm run build -w four-camera && npm run typecheck -w four-camera-three && npm run build -w four-camera-three && npm run typecheck -w wallpaper-tesseract",
-    "build": "npm run build -w four-rotation && npm run build -w four-camera && npm run build -w four-camera-three && npm run build -w wallpaper-tesseract",
+    "test": "npm run build -w gizmo-core && npm run test -w gizmo-core && npm run build -w four-rotation && npm run test -w four-rotation && npm run build -w four-camera && npm run test -w four-camera && npm run build -w four-camera-three && npm run test -w four-camera-three && npm run test -w wallpaper-tesseract",
+    "typecheck": "npm run typecheck -w gizmo-core && npm run typecheck -w four-rotation && npm run build -w four-rotation && npm run typecheck -w four-camera && npm run build -w four-camera && npm run typecheck -w four-camera-three && npm run build -w four-camera-three && npm run typecheck -w wallpaper-tesseract",
+    "build": "npm run build -w gizmo-core && npm run build -w four-rotation && npm run build -w four-camera && npm run build -w four-camera-three && npm run build -w wallpaper-tesseract",
     "build:wallpaper": "npm run build -w wallpaper-tesseract"
   },
   "devDependencies": {

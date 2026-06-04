@@ -9,6 +9,11 @@
   pointer-events: auto;
 }
 
+.scene-window__overlay .camera3-gizmo {
+  position: absolute;
+  z-index: 1;
+}
+
 .camera3-gizmo__canvas {
   display: block;
   width: 132px;
@@ -30,9 +35,11 @@
   background: transparent;
   height: 18px;
   color: rgba(211, 219, 228, 0.82);
+  cursor: pointer;
   font-family: Arial, sans-serif;
   font-size: 14px;
   line-height: 18px;
   text-align: center;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+  touch-action: none;
 }

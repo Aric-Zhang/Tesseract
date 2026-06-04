@@ -16,12 +16,11 @@ export class Camera3Rig {
   yaw: number;
   pitch: number;
   roll = 0;
-  mode: "perspective" | "orthographic" = "perspective";
   locked: boolean;
-  minPitch = -Math.PI * 0.49;
-  maxPitch = Math.PI * 0.49;
   orbitSensitivity = 0.008;
   private readonly direction = new THREE.Vector3();
+  private readonly cameraRight = new THREE.Vector3();
+  private readonly cameraUp = new THREE.Vector3();
 
   constructor(options: Camera3RigOptions = {}) {
     this.target = options.target?.clone() ?? new THREE.Vector3(0, 0, 0);
@@ -34,7 +33,8 @@ export class Camera3Rig {
   updateCamera(camera: THREE.PerspectiveCamera | THREE.OrthographicCamera): void {
     this.getDirection(this.direction);
     camera.position.copy(this.target).addScaledVector(this.direction, this.distance);
-    chooseStableUp(this.direction, camera.up);
+    this.getStableScreenBasis(this.direction, this.cameraRight, this.cameraUp);
+    camera.up.copy(this.cameraUp);
     camera.lookAt(this.target);
     camera.updateMatrixWorld();
   }
@@ -43,7 +43,6 @@ export class Camera3Rig {
     if (this.locked) return;
     this.yaw -= deltaX * this.orbitSensitivity;
     this.pitch += deltaY * this.orbitSensitivity;
-    this.pitch = clamp(this.pitch, this.minPitch, this.maxPitch);
   }
 
   snapToAxis(axis: Camera3Axis): void {
@@ -82,17 +81,21 @@ export class Camera3Rig {
 
   private setDirection(x: number, y: number, z: number): void {
     this.direction.set(x, y, z).normalize();
-    this.yaw = Math.atan2(this.direction.x, this.direction.z);
+    const horizontalLength = Math.hypot(this.direction.x, this.direction.z);
+    if (horizontalLength > 1e-6) {
+      this.yaw = Math.atan2(this.direction.x, this.direction.z);
+    }
     this.pitch = Math.asin(clamp(this.direction.y, -1, 1));
   }
-}
 
-function chooseStableUp(directionFromTarget: THREE.Vector3, out: THREE.Vector3): void {
-  if (Math.abs(directionFromTarget.y) > 0.98) {
-    out.set(0, 0, directionFromTarget.y > 0 ? -1 : 1);
-    return;
+  private getStableScreenBasis(directionFromTarget: THREE.Vector3, outRight: THREE.Vector3, outUp: THREE.Vector3): void {
+    outRight.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw)).normalize();
+    outUp.crossVectors(directionFromTarget, outRight).normalize();
+    if (outUp.lengthSq() < 1e-12) {
+      outRight.set(1, 0, 0);
+      outUp.crossVectors(directionFromTarget, outRight).normalize();
+    }
   }
-  out.set(0, 1, 0);
 }
 
 function clamp(value: number, min: number, max: number): number {

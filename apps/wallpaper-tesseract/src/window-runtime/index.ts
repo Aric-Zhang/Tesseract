@@ -4,6 +4,8 @@ export {
   createDefaultFloatingWindowState,
   registerFloatingWindowParameters
 } from "./floating-window-state";
+export { createActorWindowFocusServiceProxy } from "./actor-window-focus-service";
+export type { ActorWindowFocusServiceProxy } from "./actor-window-focus-service";
 export type {
   FloatingWindowParameterPaths,
   FloatingWindowState,
@@ -34,6 +36,16 @@ export type {
   WindowControlSource,
   WindowControlSourceOptions
 } from "./window-control-source";
+export {
+  WINDOW_FLOATING_FOCUS_LAYER_END,
+  WINDOW_FLOATING_FOCUS_LAYER_START,
+  WINDOW_WORKSPACE_CONTROLLER_ID,
+  WindowWorkspaceController
+} from "./window-workspace-controller";
+export type {
+  WindowWorkspaceControllerOptions,
+  WindowWorkspaceStackEntry
+} from "./window-workspace-controller";
 export {
   WINDOW_VISIBILITY_ACTIVATION_CONTROLLER_ID,
   WINDOW_VISIBILITY_ACTIVATION_CONTROLLER_PRIORITY,

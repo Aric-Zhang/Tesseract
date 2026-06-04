@@ -1,0 +1,289 @@
+import { describe, expect, it } from "vitest";
+import { ActorSystem, type Actor } from "../actor-runtime";
+import { installCoreComponentDefinitions } from "../component-definitions";
+import { parameterPath, vec2 } from "../scene-runtime";
+import { createTestComponentRegistry } from "../test-support";
+import {
+  FloatingWindowComponent,
+  floatingWindowComponentType,
+  type FloatingWindowMenuOptions,
+  type FloatingWindowPresentation
+} from "./floating-window-component";
+import { installWindowComponentDefinitions } from "./install-component-definitions";
+import type { FloatingWindowParameterPaths } from "./floating-window-state";
+import { createWindowControlSource } from "./window-control-source";
+import {
+  WINDOW_FLOATING_FOCUS_LAYER_START,
+  WindowWorkspaceController
+} from "./window-workspace-controller";
+
+class FakeDocument {
+  createElement(tagName: string): FakeElement {
+    return new FakeElement(this, tagName);
+  }
+}
+
+class FakeElement {
+  readonly ownerDocument: FakeDocument;
+  readonly tagName: string;
+  className = "";
+  textContent = "";
+  hidden = false;
+  type = "";
+  tabIndex = 0;
+  ariaLabel = "";
+  readonly style: Record<string, string> = {};
+  readonly children: FakeElement[] = [];
+  parentElement: FakeElement | null = null;
+
+  constructor(ownerDocument: FakeDocument, tagName: string) {
+    this.ownerDocument = ownerDocument;
+    this.tagName = tagName;
+  }
+
+  append(...children: FakeElement[]): void {
+    for (const child of children) {
+      child.parentElement = this;
+      this.children.push(child);
+    }
+  }
+
+  remove(): void {
+    if (!this.parentElement) return;
+    const index = this.parentElement.children.indexOf(this);
+    if (index >= 0) this.parentElement.children.splice(index, 1);
+    this.parentElement = null;
+  }
+
+  getBoundingClientRect(): DOMRectReadOnly {
+    return {
+      x: 0,
+      y: 0,
+      width: 320,
+      height: 180,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 180,
+      toJSON() {
+        return this;
+      }
+    };
+  }
+}
+
+interface WindowFixture {
+  readonly actor: Actor;
+  readonly component: FloatingWindowComponent;
+  readonly parent: FakeElement;
+  readonly paths: FloatingWindowParameterPaths;
+}
+
+interface CreateWorkspaceOptions {
+  readonly windows: readonly CreateWindowOptions[];
+}
+
+interface CreateWindowOptions {
+  readonly actorId: string;
+  readonly parentActor?: Actor;
+  readonly visible?: boolean;
+  readonly enabled?: boolean;
+  readonly priority: number;
+  readonly presentation?: FloatingWindowPresentation;
+  readonly windowMenu?: FloatingWindowMenuOptions;
+}
+
+function createWorkspace(options: CreateWorkspaceOptions) {
+  const actorSystem = new ActorSystem();
+  const document = new FakeDocument();
+  const { registry } = createTestComponentRegistry({ actorSystem });
+  installCoreComponentDefinitions(registry);
+  installWindowComponentDefinitions(registry);
+  const windows: Record<string, WindowFixture> = {};
+  for (const windowOptions of options.windows) {
+    const actor = actorSystem.createActor({
+      id: windowOptions.actorId,
+      parent: windowOptions.parentActor,
+      enabled: windowOptions.enabled
+    });
+    const parent = document.createElement("div");
+    const paths = createPaths(windowOptions.actorId);
+    const component = registry.addComponent(actor, floatingWindowComponentType, {
+      id: `floating-window:${windowOptions.actorId}`,
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      title: windowOptions.actorId,
+      paths,
+      initialState: {
+        position: vec2(12, 24),
+        size: vec2(320, 180),
+        visible: windowOptions.visible ?? true
+      },
+      priority: windowOptions.priority,
+      presentation: windowOptions.presentation,
+      windowMenu: windowOptions.windowMenu
+    });
+    windows[windowOptions.actorId] = { actor, component, parent, paths };
+  }
+  const source = createWindowControlSource({ actorSystem });
+  const controller = new WindowWorkspaceController({ actorSystem, source });
+  return { actorSystem, controller, document, registry, source, windows };
+}
+
+function createPaths(prefix: string): FloatingWindowParameterPaths {
+  return {
+    position: parameterPath(`${prefix}.position`),
+    size: parameterPath(`${prefix}.size`),
+    visible: parameterPath(`${prefix}.visible`)
+  };
+}
+
+function priorityOf(fixture: WindowFixture): number {
+  return fixture.component.inputStackPriority;
+}
+
+describe("WindowWorkspaceController", () => {
+  it("assigns dense effective priorities from base priority and source order", () => {
+    const { controller, windows } = createWorkspace({
+      windows: [
+        { actorId: "debug", priority: 1000 },
+        { actorId: "scene", priority: 500 },
+        { actorId: "hierarchy", priority: 1100 }
+      ]
+    });
+
+    expect(controller.listStackEntries().map((entry) => entry.actorId)).toEqual([
+      "scene",
+      "debug",
+      "hierarchy"
+    ]);
+    expect(priorityOf(windows.scene!)).toBe(WINDOW_FLOATING_FOCUS_LAYER_START);
+    expect(priorityOf(windows.debug!)).toBe(WINDOW_FLOATING_FOCUS_LAYER_START + 1);
+    expect(priorityOf(windows.hierarchy!)).toBe(WINDOW_FLOATING_FOCUS_LAYER_START + 2);
+  });
+
+  it("brings a visible window to front without priority drift", () => {
+    const { controller, windows } = createWorkspace({
+      windows: [
+        { actorId: "scene", priority: 500 },
+        { actorId: "debug", priority: 1000 },
+        { actorId: "hierarchy", priority: 1100 }
+      ]
+    });
+
+    controller.bringToFront(windows.debug!.actor);
+    controller.bringToFront(windows.debug!.actor);
+
+    expect(controller.listStackEntries().map((entry) => [entry.actorId, entry.effectivePriority])).toEqual([
+      ["scene", WINDOW_FLOATING_FOCUS_LAYER_START],
+      ["hierarchy", WINDOW_FLOATING_FOCUS_LAYER_START + 1],
+      ["debug", WINDOW_FLOATING_FOCUS_LAYER_START + 2]
+    ]);
+  });
+
+  it("excludes hidden, inactive, and fullscreen windows from dense stack priority", () => {
+    const { controller, windows } = createWorkspace({
+      windows: [
+        { actorId: "visible", priority: 500 },
+        { actorId: "hidden", priority: 900, visible: false },
+        { actorId: "inactive", priority: 1000, enabled: false },
+        { actorId: "fullscreen", priority: 1100, presentation: "fullscreen" }
+      ]
+    });
+
+    expect(controller.getEffectivePriority("visible")).toBe(WINDOW_FLOATING_FOCUS_LAYER_START);
+    expect(controller.getEffectivePriority("hidden")).toBeNull();
+    expect(controller.getEffectivePriority("inactive")).toBeNull();
+    expect(controller.getEffectivePriority("fullscreen")).toBeNull();
+    expect(priorityOf(windows.hidden!)).toBe(900);
+    expect(priorityOf(windows.inactive!)).toBe(1000);
+    expect(priorityOf(windows.fullscreen!)).toBe(1100);
+  });
+
+  it("focuses a pending hidden restore only after it becomes visible", () => {
+    const { controller, windows } = createWorkspace({
+      windows: [
+        { actorId: "scene", priority: 500 },
+        { actorId: "debug", priority: 1000, visible: false },
+        { actorId: "hierarchy", priority: 1100 }
+      ]
+    });
+
+    controller.requestFocusOnVisible(windows.debug!.actor, "menu-restore");
+
+    expect(controller.getEffectivePriority("debug")).toBeNull();
+    windows.debug!.component.state.visible = true;
+    controller.reconcile();
+
+    expect(controller.listStackEntries().at(-1)?.actorId).toBe("debug");
+    expect(controller.getEffectivePriority("debug")).toBe(WINDOW_FLOATING_FOCUS_LAYER_START + 2);
+  });
+
+  it("clears pending focus when the target is destroyed or cannot be toggled", () => {
+    const workspace = createWorkspace({
+      windows: [
+        { actorId: "debug", priority: 1000, visible: false },
+        {
+          actorId: "diagnostics",
+          priority: 1100,
+          visible: false,
+          windowMenu: { include: true, activationMode: "none" }
+        }
+      ]
+    });
+
+    workspace.controller.requestFocusOnVisible(workspace.windows.debug!.actor, "menu-restore");
+    workspace.actorSystem.destroyActor(workspace.windows.debug!.actor);
+    workspace.controller.reconcile();
+    workspace.controller.requestFocusOnVisible(workspace.windows.diagnostics!.actor, "menu-restore");
+    workspace.windows.diagnostics!.component.state.visible = true;
+    workspace.controller.reconcile();
+
+    expect(workspace.controller.listStackEntries().map((entry) => entry.actorId)).toEqual(["diagnostics"]);
+    expect(workspace.controller.getEffectivePriority("debug")).toBeNull();
+    expect(workspace.controller.getEffectivePriority("diagnostics")).toBe(WINDOW_FLOATING_FOCUS_LAYER_START);
+  });
+
+  it("finds the nearest owning window actor through the parent chain", () => {
+    const workspace = createWorkspace({
+      windows: [
+        { actorId: "scene", priority: 500 },
+        { actorId: "debug", priority: 1000 }
+      ]
+    });
+    const camera = workspace.actorSystem.createActor({
+      id: "camera",
+      parent: workspace.windows.scene!.actor
+    });
+    const cameraChild = workspace.actorSystem.createActor({
+      id: "camera-child",
+      parent: camera
+    });
+
+    expect(workspace.controller.findOwningWindowActor(cameraChild)?.id).toBe("scene");
+    expect(workspace.controller.getEffectiveStackPriorityForActor(cameraChild)).toBe(
+      WINDOW_FLOATING_FOCUS_LAYER_START
+    );
+  });
+
+  it("prunes destroyed windows and ignores mutations after dispose", () => {
+    const { actorSystem, controller, windows } = createWorkspace({
+      windows: [
+        { actorId: "scene", priority: 500 },
+        { actorId: "debug", priority: 1000 }
+      ]
+    });
+    actorSystem.destroyActor(windows.debug!.actor);
+
+    controller.reconcile();
+
+    expect(controller.listStackEntries().map((entry) => entry.actorId)).toEqual(["scene"]);
+    const scenePriority = priorityOf(windows.scene!);
+    controller.dispose();
+    controller.bringToFront(windows.scene!.actor);
+    controller.reconcile();
+
+    expect(priorityOf(windows.scene!)).toBe(scenePriority);
+    expect(controller.listStackEntries()).toEqual([]);
+  });
+});

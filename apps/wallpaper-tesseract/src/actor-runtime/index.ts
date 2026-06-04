@@ -5,6 +5,8 @@ export {
   componentType
 } from "./component";
 export type {
+  ActorWindowFocusReason,
+  ActorWindowFocusService,
   Component,
   ComponentCapability,
   ActorSystemView,

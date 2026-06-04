@@ -1,5 +1,5 @@
 import type { ScreenPoint } from "gizmo-core";
-import type { Actor, Component, ComponentType } from "../../actor-runtime";
+import type { Actor, ActorWindowFocusService, Component, ComponentType } from "../../actor-runtime";
 import {
   sceneParameterPaths,
   type SceneCommandSink,
@@ -39,6 +39,7 @@ export interface AppMenuBarComponentOptions {
 
 export interface AppMenuBarComponentServices {
   readonly commandSink: SceneCommandSink;
+  readonly actorWindowFocus?: ActorWindowFocusService;
 }
 
 interface MenuRow {
@@ -59,6 +60,7 @@ export class AppMenuBarComponent
   enabled = true;
 
   readonly #commandSink: SceneCommandSink;
+  readonly #actorWindowFocus?: ActorWindowFocusService;
   readonly #windowSource: WindowControlSource;
   readonly #root: HTMLDivElement;
   readonly #windowButton: HTMLButtonElement;
@@ -78,6 +80,7 @@ export class AppMenuBarComponent
     this.#mode = options.initialMode ?? "develop";
     this.#windowSource = options.windowSource;
     this.#commandSink = services.commandSink;
+    this.#actorWindowFocus = services.actorWindowFocus;
 
     const documentRef = resolveDocument(options);
     this.#root = documentRef.createElement("div");
@@ -152,6 +155,9 @@ export class AppMenuBarComponent
     const item = this.#windowSource.listWindows().find((candidate) => candidate.actorId === hitData.actorId);
     if (!item?.canToggle) return;
     const nextVisible = getNextVisibleValue(item);
+    if (nextVisible && !item.visible) {
+      this.#actorWindowFocus?.requestFocusOnVisible(item.actor, "menu-restore");
+    }
     this.#commandSink.submit({
       source: APP_MENU_SOURCE,
       target: item.visiblePath,

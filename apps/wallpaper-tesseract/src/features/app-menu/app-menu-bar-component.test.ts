@@ -77,6 +77,7 @@ class FakeElement {
 interface Subject {
   readonly commands: SceneUpdateCommand[];
   readonly component: AppMenuBarComponent;
+  readonly focusCalls: string[];
   readonly sceneActor: Actor;
   readonly debugActor: Actor;
   readonly hierarchyActor: Actor;
@@ -157,6 +158,7 @@ function createSubject(options: CreateSubjectOptions = {}): Subject {
   const document = new FakeDocument();
   const parent = document.createElement("div");
   const commands: SceneUpdateCommand[] = [];
+  const focusCalls: string[] = [];
   const component = new AppMenuBarComponent(menuActor, {
     parent: parent as unknown as HTMLElement,
     document: document as unknown as Document,
@@ -167,11 +169,22 @@ function createSubject(options: CreateSubjectOptions = {}): Subject {
       submit(command) {
         commands.push(command);
       }
+    },
+    actorWindowFocus: {
+      getEffectiveStackPriorityForActor() {
+        return null;
+      },
+      focusActorWindow(actor, reason) {
+        focusCalls.push(`focus:${actor.id}:${reason}`);
+      },
+      requestFocusOnVisible(actor, reason) {
+        focusCalls.push(`pending:${actor.id}:${reason}`);
+      }
     }
   });
   const root = parent.children[0];
   if (!root) throw new Error("Expected menu root.");
-  return { commands, component, sceneActor, debugActor, hierarchyActor, items, root };
+  return { commands, component, focusCalls, sceneActor, debugActor, hierarchyActor, items, root };
 }
 
 function createWindowItem(
@@ -292,7 +305,7 @@ describe("AppMenuBarComponent", () => {
   });
 
   it("routes input to the Scene menu row and submits a visibility command", () => {
-    const { commands, component, root } = createSubject();
+    const { commands, component, focusCalls, root } = createSubject();
     setMenuRects(root);
     const buttonHit = component.hitTestInput({ x: 735, y: 18 });
     if (!buttonHit) throw new Error("Expected menu button hit.");
@@ -313,11 +326,12 @@ describe("AppMenuBarComponent", () => {
       value: false,
       timeStamp: 20
     }]);
+    expect(focusCalls).toEqual([]);
     expect(menu(root).hidden).toBe(true);
   });
 
   it("submits a show command when clicking a hidden window row", () => {
-    const { commands, component, root } = createSubject();
+    const { commands, component, focusCalls, root } = createSubject();
     setMenuRects(root);
     const buttonHit = component.hitTestInput({ x: 735, y: 18 });
     if (!buttonHit) throw new Error("Expected menu button hit.");
@@ -327,6 +341,7 @@ describe("AppMenuBarComponent", () => {
 
     component.onInputEnd(createActorInputEndEvent(hierarchyHit, { wasClick: true, timeStamp: 24 }));
 
+    expect(focusCalls).toEqual(["pending:hierarchy-panel:menu-restore"]);
     expect(commands).toMatchObject([{
       source: { id: "app-menu-bar", kind: "gizmo" },
       target: parameterPath<boolean>("hierarchyWindow.visible"),
@@ -366,7 +381,7 @@ describe("AppMenuBarComponent", () => {
   });
 
   it("does not submit commands for disabled window menu rows", () => {
-    const { commands, component, items, root } = createSubject();
+    const { commands, component, focusCalls, items, root } = createSubject();
     items[1] = {
       ...items[1],
       canToggle: false
@@ -385,6 +400,7 @@ describe("AppMenuBarComponent", () => {
     component.onInputEnd(createActorInputEndEvent(debugHit, { wasClick: true, timeStamp: 36 }));
 
     expect(commands).toEqual([]);
+    expect(focusCalls).toEqual([]);
     expect(menu(root).hidden).toBe(false);
     expect(menuButton(root).getAttribute("aria-expanded")).toBe("true");
   });

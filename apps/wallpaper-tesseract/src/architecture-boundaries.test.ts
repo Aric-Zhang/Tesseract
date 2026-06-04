@@ -219,6 +219,17 @@ describe("architecture boundaries", () => {
     expect(appMenuActorFactory).not.toMatch(/\bfloatingWindowComponentType\b/);
   });
 
+  it("composes the window workspace controller through app-level ports", () => {
+    const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
+    const appRuntimeSource = sourceFiles["./app-runtime/app-runtime-context.ts"] ?? "";
+
+    expect(appSource).toMatch(/\bcreateActorWindowFocusServiceProxy\b/);
+    expect(appSource).toMatch(/\bnew\s+WindowWorkspaceController\b/);
+    expect(appSource).toMatch(/actorWindowFocus\.bind\s*\(\s*windowWorkspaceController\s*\)/);
+    expect(appSource).toMatch(/actorWindowFocus\.dispose\s*\(\s*\)/);
+    expect(appRuntimeSource).toMatch(/\bactorWindowFocus:\s*options\.actorWindowFocus\b/);
+  });
+
   it("keeps feature definition installation owned by features and composed by app", () => {
     const coreSource = sourceFiles["./component-definitions.ts"] ?? "";
     const appInstallerSource = sourceFiles["./app/install-component-definitions.ts"] ?? "";
@@ -288,6 +299,16 @@ describe("architecture boundaries", () => {
     expect(windowRuntimeViolations).toEqual([]);
   });
 
+  it("keeps window runtime independent from feature implementations", () => {
+    const violations = Object.entries(sourceFiles)
+      .filter(([file]) => file.startsWith("./window-runtime/"))
+      .filter(([, source]) => /from\s+["'](?:\.\.\/)+features\//.test(source))
+      .map(([file]) => file)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
   it("keeps App Menu production code free of static business window ids", () => {
     const forbiddenBusinessWindowIds = /["'](?:scene-window|debug-log-window|hierarchy-panel)["']/;
     const violations = Object.entries(sourceFiles)
@@ -318,6 +339,20 @@ describe("architecture boundaries", () => {
       .sort();
 
     expect(violations).toEqual([]);
+  });
+
+  it("keeps actor-runtime focus service as a narrow port independent from window-runtime", () => {
+    const actorRuntimeWindowImports = Object.entries(sourceFiles)
+      .filter(([file]) => file.startsWith("./actor-runtime/"))
+      .filter(([, source]) => /from\s+["'](?:\.\.\/)+window-runtime/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const componentSource = sourceFiles["./actor-runtime/component.ts"] ?? "";
+
+    expect(actorRuntimeWindowImports).toEqual([]);
+    expect(componentSource).toMatch(/\binterface\s+ActorWindowFocusService\b/);
+    expect(componentSource).not.toMatch(/\bFloatingWindowComponent\b/);
+    expect(componentSource).not.toMatch(/\bWindowWorkspaceController\b/);
   });
 
   it("keeps test-support out of production modules", () => {

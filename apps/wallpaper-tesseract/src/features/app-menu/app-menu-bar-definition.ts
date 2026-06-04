@@ -26,7 +26,8 @@ export const appMenuBarComponentDefinition:
         throw new Error("AppMenuBarComponent requires options.windowSource.");
       }
       return new AppMenuBarComponent(actor, options, {
-        commandSink: context.services.commandSink
+        commandSink: context.services.commandSink,
+        actorWindowFocus: context.services.actorWindowFocus
       });
     }
   };

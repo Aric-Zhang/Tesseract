@@ -1,6 +1,7 @@
 import type { RuntimeRegistration, SceneCommandSink } from "../scene-runtime";
 import type { Actor, ActorImpl } from "./actor";
 import type {
+  ActorWindowFocusService,
   ActorSystemView,
   Component,
   ComponentContext,
@@ -19,6 +20,7 @@ export interface ComponentRegistryOptions {
   actorSystem: ActorSystem;
   bridge?: ComponentRuntimeBridge;
   commandSink?: SceneCommandSink;
+  actorWindowFocus?: ActorWindowFocusService;
   onRollbackError?: RollbackErrorHandler;
 }
 
@@ -52,6 +54,7 @@ export class ComponentRegistry {
   private readonly actorSystem: ActorSystem;
   private readonly bridge?: ComponentRuntimeBridge;
   private readonly commandSink: SceneCommandSink;
+  private readonly actorWindowFocus?: ActorWindowFocusService;
   private readonly onRollbackError?: RollbackErrorHandler;
   private readonly actorSystemView: ActorSystemView;
   private readonly componentRegistryView: ComponentRegistryView;
@@ -62,6 +65,7 @@ export class ComponentRegistry {
     this.actorSystem = options.actorSystem;
     this.bridge = options.bridge;
     this.commandSink = options.commandSink ?? noopCommandSink;
+    this.actorWindowFocus = options.actorWindowFocus;
     this.onRollbackError = options.onRollbackError;
     this.actorSystemView = {
       getActor: (id) => this.actorSystem.getActor(id),
@@ -333,7 +337,8 @@ export class ComponentRegistry {
       actorSystem: this.actorSystemView,
       componentRegistry: this.componentRegistryView,
       services: {
-        commandSink: this.commandSink
+        commandSink: this.commandSink,
+        actorWindowFocus: this.actorWindowFocus
       }
     };
   }

@@ -3,6 +3,7 @@ import type { RuntimeRegistration, SceneCommandSink } from "../scene-runtime";
 import { ActorSystem } from "./actor-system";
 import type { Actor } from "./actor";
 import type {
+  ActorWindowFocusService,
   Component,
   ComponentContext,
   ComponentDefinition,
@@ -219,7 +220,19 @@ describe("ComponentRegistry", () => {
         calls.push("command-submit");
       }
     };
-    const registry = new ComponentRegistry({ actorSystem, commandSink });
+    const actorWindowFocus: ActorWindowFocusService = {
+      getEffectiveStackPriorityForActor(windowActor) {
+        calls.push(`window-priority:${windowActor.id}`);
+        return 123;
+      },
+      focusActorWindow(windowActor, reason) {
+        calls.push(`window-focus:${windowActor.id}:${reason}`);
+      },
+      requestFocusOnVisible(windowActor, reason) {
+        calls.push(`window-pending:${windowActor.id}:${reason}`);
+      }
+    };
+    const registry = new ComponentRegistry({ actorSystem, commandSink, actorWindowFocus });
     let receivedContext: ComponentContext | null = null;
     registry.registerDefinition({
       type: testComponentType,
@@ -244,13 +257,23 @@ describe("ComponentRegistry", () => {
       operation: "set",
       value: true
     });
+    expect(context.services.actorWindowFocus?.getEffectiveStackPriorityForActor(actor)).toBe(123);
+    context.services.actorWindowFocus?.focusActorWindow(actor, "pointer-down");
+    context.services.actorWindowFocus?.requestFocusOnVisible(actor, "menu-restore");
     expect(context.componentRegistry.getComponent(actor, testComponentType)).toBe(component);
     expect(context.componentRegistry.getComponents(actor, testComponentType)).toEqual([component]);
     expect(context.componentRegistry.hasComponent(actor, testComponentType)).toBe(true);
     expect("addComponent" in (context.componentRegistry as unknown as Record<string, unknown>)).toBe(false);
     expect("removeComponent" in (context.componentRegistry as unknown as Record<string, unknown>)).toBe(false);
     expect("destroyActor" in (context.actorSystem as unknown as Record<string, unknown>)).toBe(false);
-    expect(calls).toEqual(["create", "attach", "command-submit"]);
+    expect(calls).toEqual([
+      "create",
+      "attach",
+      "command-submit",
+      "window-priority:actor",
+      "window-focus:actor:pointer-down",
+      "window-pending:actor:menu-restore"
+    ]);
   });
 
   it("does not expose external systems to binding component context", () => {

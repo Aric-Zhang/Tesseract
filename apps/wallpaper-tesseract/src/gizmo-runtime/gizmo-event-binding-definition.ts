@@ -16,7 +16,8 @@ export const gizmoEventBindingComponentDefinition: ComponentDefinition<GizmoEven
     return new GizmoEventBindingComponent({
       actor,
       id: `${actor.id}:${gizmoEventBindingComponentType}`,
-      isActorActive: () => context.actorSystem.isActorActive(actor)
+      isActorActive: () => context.actorSystem.isActorActive(actor),
+      actorWindowFocus: context.services.actorWindowFocus
     });
   }
 };

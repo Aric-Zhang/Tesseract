@@ -36,7 +36,9 @@ import {
 import type { SceneStateObserverRegistry } from "../runtime/ports";
 import { createTesseract4Actor } from "../tesseract4";
 import {
+  createActorWindowFocusServiceProxy,
   createWindowControlSource,
+  WindowWorkspaceController,
   WindowVisibilityActivationController
 } from "../window-runtime";
 import {
@@ -100,6 +102,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   };
 
   let debugLogWindow: ReturnType<typeof createDebugLogWindowActor> | null = null;
+  const actorWindowFocus = createActorWindowFocusServiceProxy();
   const gizmoEventSystem = new GizmoEventSystem({
     buttonsReleasedFallback: false,
     debug: true,
@@ -109,7 +112,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const runtimeContext = new AppRuntimeContext({
     sceneRuntime,
     frameStateController: frameStateBridge,
-    gizmoEventSystem
+    gizmoEventSystem,
+    actorWindowFocus
   });
 
   installWallpaperComponentDefinitions(runtimeContext.componentRegistry);
@@ -187,6 +191,12 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const windowControlSource = createWindowControlSource({
     actorSystem: runtimeContext.actorSystem
   });
+  const windowWorkspaceController = new WindowWorkspaceController({
+    actorSystem: runtimeContext.actorSystem,
+    source: windowControlSource
+  });
+  actorWindowFocus.bind(windowWorkspaceController);
+  runtimeContext.registerLegacyRuntimeObject(windowWorkspaceController);
   const windowActivationController = new WindowVisibilityActivationController({
     source: windowControlSource
   });
@@ -261,6 +271,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     workspaceModeController.dispose();
     unregisterSceneViewportResizeObserver.dispose();
     unregisterCamera3MotionObserver.dispose();
+    actorWindowFocus.dispose();
     runtimeContext.dispose();
   }
 

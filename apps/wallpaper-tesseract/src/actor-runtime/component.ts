@@ -44,11 +44,23 @@ export interface ComponentRegistryView {
   hasComponent(actor: Actor, type: ComponentType): boolean;
 }
 
+export type ActorWindowFocusReason =
+  | "pointer-down"
+  | "menu-restore"
+  | "programmatic";
+
+export interface ActorWindowFocusService {
+  getEffectiveStackPriorityForActor(actor: Actor): number | null;
+  focusActorWindow(actor: Actor, reason: ActorWindowFocusReason): void;
+  requestFocusOnVisible(actor: Actor, reason: ActorWindowFocusReason): void;
+}
+
 export interface BusinessComponentContext {
   readonly actorSystem: ActorSystemView;
   readonly componentRegistry: ComponentRegistryView;
   readonly services: {
     readonly commandSink: SceneCommandSink;
+    readonly actorWindowFocus?: ActorWindowFocusService;
   };
 }
 

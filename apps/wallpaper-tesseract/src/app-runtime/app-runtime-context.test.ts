@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { GizmoController, GizmoHit, ScreenPoint } from "gizmo-core";
 import type { RuntimeObject, RuntimeRegistration, SceneStateObserver, SceneUpdateCommand } from "../scene-runtime";
 import { AppRuntimeContext, createRegisteredObject } from "./app-runtime-context";
-import { componentType, createRegisteredActor, type Component } from "../actor-runtime";
+import {
+  componentType,
+  createRegisteredActor,
+  type ActorWindowFocusService,
+  type Component
+} from "../actor-runtime";
 
 type TestObject = RuntimeObject & GizmoController & SceneStateObserver;
 interface TestActorComponent extends Component {}
@@ -38,6 +43,7 @@ function createRegistration(label: string, calls: string[], failDispose?: Dispos
 function createSystems(options: {
   failAt?: FailurePoint;
   failDisposeAt?: DisposeFailurePoint;
+  actorWindowFocus?: ActorWindowFocusService;
   rollbackErrors?: unknown[][];
 } = {}) {
   const calls: string[] = [];
@@ -78,6 +84,7 @@ function createSystems(options: {
     sceneRuntime,
     gizmoEventSystem,
     frameStateController,
+    actorWindowFocus: options.actorWindowFocus,
     onRollbackError: (errors) => options.rollbackErrors?.push([...errors])
   });
   calls.length = 0;
@@ -234,6 +241,49 @@ describe("AppRuntimeContext", () => {
 
     expect(context.actorSystem.getActor("actor")).toBeNull();
     expect(calls).toEqual(["actor-component-dispose"]);
+  });
+
+  it("injects actor window focus service into component contexts", () => {
+    const calls: string[] = [];
+    const actorWindowFocus: ActorWindowFocusService = {
+      getEffectiveStackPriorityForActor(actor) {
+        calls.push(`priority:${actor.id}`);
+        return 700;
+      },
+      focusActorWindow(actor, reason) {
+        calls.push(`focus:${actor.id}:${reason}`);
+      },
+      requestFocusOnVisible(actor, reason) {
+        calls.push(`pending:${actor.id}:${reason}`);
+      }
+    };
+    const { context } = createSystems({ actorWindowFocus });
+    context.componentRegistry.registerDefinition({
+      type: testActorComponentType,
+      singleton: true,
+      createId: () => "test-actor-component",
+      create(actor, componentContext) {
+        expect(componentContext.services.actorWindowFocus).toBe(actorWindowFocus);
+        expect(componentContext.services.actorWindowFocus?.getEffectiveStackPriorityForActor(actor)).toBe(700);
+        componentContext.services.actorWindowFocus?.focusActorWindow(actor, "pointer-down");
+        componentContext.services.actorWindowFocus?.requestFocusOnVisible(actor, "menu-restore");
+        return {
+          id: "test-actor-component",
+          type: testActorComponentType,
+          actor,
+          enabled: true
+        };
+      }
+    });
+    const actor = context.actorSystem.createActor({ id: "actor" });
+
+    context.componentRegistry.addComponent(actor, testActorComponentType);
+
+    expect(calls).toEqual([
+      "priority:actor",
+      "focus:actor:pointer-down",
+      "pending:actor:menu-restore"
+    ]);
   });
 
   it("disposes tracked objects before runtime systems", () => {

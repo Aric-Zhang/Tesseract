@@ -175,6 +175,7 @@ function setWindowRects(root: FakeElement): void {
   findChildByClass(root, "floating-gizmo-window__resize--top-right").rect = createRect(320, 20, 10, 10);
   findChildByClass(root, "floating-gizmo-window__resize--bottom-left").rect = createRect(10, 190, 10, 10);
   findChildByClass(root, "floating-gizmo-window__resize--bottom-right").rect = createRect(320, 190, 10, 10);
+  findChildByClass(root, "floating-gizmo-window__content").rect = createRect(10, 52, 320, 148);
 }
 
 function createChangedEvent(changes: SceneStateChangedEvent["changes"]): SceneStateChangedEvent {
@@ -223,6 +224,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     const { component, paths } = createSubject();
 
     expect(component.parameterPaths).toBe(paths);
+    expect(component.basePriority).toBe(1200);
     expect(component.visiblePath).toBe(paths.visible);
     expect(component.menuDescriptor).toEqual({
       include: true,
@@ -231,6 +233,30 @@ describe("FloatingWindowComponent DOM shell", () => {
       group: null,
       activationMode: "visible"
     });
+  });
+
+  it("keeps base priority stable while effective priority updates input and z-index", () => {
+    const { component, paths, root } = createSubject();
+
+    component.setEffectivePriority(2400);
+
+    expect(component.basePriority).toBe(1200);
+    expect(component.inputStackPriority).toBe(2400);
+    expect(root.style.zIndex).toBe("2400");
+    expect(component.menuDescriptor.order).toBe(1200);
+
+    component.onSceneStateChanged(createChangedEvent([{
+      path: paths.position,
+      previousValue: vec2(12, 24),
+      nextValue: vec2(40, 50),
+      sources: [],
+      commands: []
+    }]));
+
+    expect(root.style.left).toBe("40px");
+    expect(root.style.top).toBe("50px");
+    expect(component.inputStackPriority).toBe(2400);
+    expect(root.style.zIndex).toBe("2400");
   });
 
   it("exposes explicit window menu metadata for source discovery", () => {
@@ -373,7 +399,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(root.style.height).toBe("260px");
   });
 
-  it("hit-tests chrome parts and keeps window content inert to gizmo input", () => {
+  it("hit-tests chrome parts and exposes a low-priority content focus surface", () => {
     const { component, root } = createSubject();
     setWindowRects(root);
 
@@ -394,7 +420,15 @@ describe("FloatingWindowComponent DOM shell", () => {
       partId: "titlebar",
       hitPriority: 20
     });
-    expect(component.hitTestInput({ x: 40, y: 90 })).toBeNull();
+    expect(component.hitTestInput({ x: 40, y: 90 })).toMatchObject({
+      componentId: "floating-window:test",
+      partId: "window-content",
+      kind: "content",
+      region: "window-content",
+      localRoutePriority: 100,
+      hitPriority: 1,
+      path: [{ componentId: "floating-window:test", role: "surface", partId: "window-content" }]
+    });
   });
 
   it("does not hit-test window chrome while fullscreen", () => {
@@ -479,6 +513,20 @@ describe("FloatingWindowComponent DOM shell", () => {
         timeStamp: 30
       }
     ]);
+  });
+
+  it("does not submit window state commands for content focus surface input", () => {
+    const commands: SceneUpdateCommand[] = [];
+    const { component, root } = createSubject({ commands });
+    setWindowRects(root);
+    const hit = component.hitTestInput({ x: 40, y: 90 });
+    if (!hit) throw new Error("Expected content hit.");
+
+    component.onInputStart(createActorInputStartEvent(hit));
+    component.onInputMove(createActorInputMoveEvent(hit, { totalDelta: { dx: 10, dy: 20 } }));
+    component.onInputEnd(createActorInputEndEvent(hit, { wasClick: true }));
+
+    expect(commands).toEqual([]);
   });
 
   it("keeps chrome input paths stable for titlebar, resize, and close interactions", () => {

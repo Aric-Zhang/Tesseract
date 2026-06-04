@@ -10,7 +10,7 @@ import type {
 } from "gizmo-core";
 import { GizmoEventSystem as RuntimeGizmoEventSystem } from "gizmo-core";
 import { ComponentRuntimeBridge, componentType } from "../actor-runtime";
-import type { Component, ComponentDefinition } from "../actor-runtime";
+import type { ActorWindowFocusService, Component, ComponentDefinition } from "../actor-runtime";
 import type { RuntimeRegistration, SceneStateObserver } from "../scene-runtime";
 import {
   createRecordingRuntimeRegistration,
@@ -22,7 +22,7 @@ import { gizmoEventBindingComponentType } from "./gizmo-event-binding-component"
 import { gizmoEventBindingComponentDefinition } from "./gizmo-event-binding-definition";
 import type { GizmoResponder } from "./gizmo-responder";
 
-function createRegistry() {
+function createRegistry(options: { actorWindowFocus?: ActorWindowFocusService } = {}) {
   const calls: string[] = [];
   const registered: GizmoController[] = [];
   const bridge = new ComponentRuntimeBridge({
@@ -49,7 +49,10 @@ function createRegistry() {
       }
     }
   });
-  const { actorSystem, registry } = createTestComponentRegistry({ bridge });
+  const { actorSystem, registry } = createTestComponentRegistry({
+    bridge,
+    actorWindowFocus: options.actorWindowFocus
+  });
   registry.registerDefinition(gizmoEventBindingComponentDefinition);
   return { actorSystem, calls, registered, registry };
 }
@@ -448,6 +451,122 @@ describe("GizmoEventBindingComponent", () => {
     });
   });
 
+  it("uses inherited owning window priority instead of local actor stack priority", () => {
+    const { actorSystem, calls, registered, registry } = createRegistry({
+      actorWindowFocus: {
+        getEffectiveStackPriorityForActor(actor) {
+          return actor.id === "scene-child" ? 300 : null;
+        },
+        focusActorWindow(): void {},
+        requestFocusOnVisible(): void {}
+      }
+    });
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "camera3", {
+      inputStackPriority: 5000,
+      inputPriority: 0,
+      localRoutePriority: 2000
+    }));
+    const actor = actorSystem.createActor({ id: "scene-child" });
+    registry.addComponent(actor, gizmoEventBindingComponentType);
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-camera3"));
+    const binding = getRegisteredBinding(registered);
+
+    const hit = binding.hitTest({ x: 0, y: 0 });
+
+    expect(binding.priority).toBe(300);
+    expect(hit?.partId).toBe("camera3");
+    expect(hit?.priority).toBeGreaterThan(5000);
+  });
+
+  it("does not let a high local-priority child actor beat a foreground window", () => {
+    const { actorSystem, calls, registered, registry } = createRegistry({
+      actorWindowFocus: {
+        getEffectiveStackPriorityForActor(actor) {
+          if (actor.id === "scene-child") return 300;
+          if (actor.id === "foreground-window") return 900;
+          return null;
+        },
+        focusActorWindow(): void {},
+        requestFocusOnVisible(): void {}
+      }
+    });
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "camera3", {
+      inputStackPriority: 5000,
+      localRoutePriority: 5000,
+      hitPriority: 1000
+    }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "foreground-titlebar", {
+      inputStackPriority: 10,
+      localRoutePriority: 100,
+      hitPriority: 1
+    }));
+    const sceneChild = actorSystem.createActor({ id: "scene-child" });
+    const foregroundWindow = actorSystem.createActor({ id: "foreground-window" });
+    registry.addComponent(sceneChild, gizmoEventBindingComponentType);
+    registry.addComponent(sceneChild, componentType<ActorInputParticipant>("input-participant-camera3"));
+    registry.addComponent(foregroundWindow, gizmoEventBindingComponentType);
+    registry.addComponent(
+      foregroundWindow,
+      componentType<ActorInputParticipant>("input-participant-foreground-titlebar")
+    );
+    const system = new RuntimeGizmoEventSystem({ target: new FakeEventTarget() as unknown as EventTarget });
+    const childBinding = findRegisteredBinding(registered, "scene-child:gizmo-event-binding");
+    const foregroundBinding = findRegisteredBinding(registered, "foreground-window:gizmo-event-binding");
+    system.register(childBinding);
+    system.register(foregroundBinding);
+
+    const selected = selectBestHit(system, { x: 0, y: 0 });
+
+    expect(childBinding.priority).toBe(300);
+    expect(foregroundBinding.priority).toBe(900);
+    expect(selected?.gizmo).toBe(foregroundBinding);
+    expect(selected?.hit.partId).toBe("foreground-titlebar");
+
+    system.dispose();
+  });
+
+  it("keeps non-window actors such as App Menu on their own stack priority", () => {
+    const { actorSystem, calls, registered, registry } = createRegistry({
+      actorWindowFocus: {
+        getEffectiveStackPriorityForActor(actor) {
+          return actor.id === "scene-child" ? 900 : null;
+        },
+        focusActorWindow(): void {},
+        requestFocusOnVisible(): void {}
+      }
+    });
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "camera3", {
+      inputStackPriority: 5000,
+      localRoutePriority: 5000,
+      hitPriority: 1000
+    }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "app-menu", {
+      inputStackPriority: 10_000,
+      localRoutePriority: 100,
+      hitPriority: 1
+    }));
+    const sceneChild = actorSystem.createActor({ id: "scene-child" });
+    const appMenu = actorSystem.createActor({ id: "app-menu" });
+    registry.addComponent(sceneChild, gizmoEventBindingComponentType);
+    registry.addComponent(sceneChild, componentType<ActorInputParticipant>("input-participant-camera3"));
+    registry.addComponent(appMenu, gizmoEventBindingComponentType);
+    registry.addComponent(appMenu, componentType<ActorInputParticipant>("input-participant-app-menu"));
+    const system = new RuntimeGizmoEventSystem({ target: new FakeEventTarget() as unknown as EventTarget });
+    const childBinding = findRegisteredBinding(registered, "scene-child:gizmo-event-binding");
+    const appMenuBinding = findRegisteredBinding(registered, "app-menu:gizmo-event-binding");
+    system.register(childBinding);
+    system.register(appMenuBinding);
+
+    const selected = selectBestHit(system, { x: 0, y: 0 });
+
+    expect(childBinding.priority).toBe(900);
+    expect(appMenuBinding.priority).toBe(10_000);
+    expect(selected?.gizmo).toBe(appMenuBinding);
+    expect(selected?.hit.partId).toBe("app-menu");
+
+    system.dispose();
+  });
+
   it("returns null for disabled actors and ignores disabled responders", () => {
     const { actorSystem, registered, registry } = createRegistry();
     registry.registerDefinition(createResponderDefinition([], "disabled", {
@@ -466,6 +585,64 @@ describe("GizmoEventBindingComponent", () => {
     expect(binding.hitTest({ x: 0, y: 0 })?.partId).toBe("enabled");
     actor.enabled = false;
     expect(binding.hitTest({ x: 0, y: 0 })).toBeNull();
+  });
+
+  it("focuses the owning window once when input starts", () => {
+    const focusCalls: string[] = [];
+    const { actorSystem, calls, registered, registry } = createRegistry({
+      actorWindowFocus: {
+        getEffectiveStackPriorityForActor() {
+          return null;
+        },
+        focusActorWindow(actor, reason): void {
+          focusCalls.push(`${actor.id}:${reason}`);
+        },
+        requestFocusOnVisible(): void {}
+      }
+    });
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "row"));
+    const actor = actorSystem.createActor({ id: "hierarchy-window" });
+    registry.addComponent(actor, gizmoEventBindingComponentType);
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-row"));
+    const binding = getRegisteredBinding(registered);
+    const hit = binding.hitTest({ x: 0, y: 0 });
+    if (!hit) throw new Error("Expected hit.");
+
+    binding.onGizmoStart?.(createStartEvent(binding, hit));
+    binding.onGizmoMove?.(createMoveEvent(binding, hit));
+    binding.onGizmoClick?.(createClickEvent(binding, hit, 1));
+    binding.onGizmoEnd?.({ ...createMoveEvent(binding, hit), wasClick: false });
+
+    expect(focusCalls).toEqual(["hierarchy-window:pointer-down"]);
+  });
+
+  it("does not focus or start input when actor becomes inactive before start", () => {
+    const focusCalls: string[] = [];
+    const { actorSystem, calls, registered, registry } = createRegistry({
+      actorWindowFocus: {
+        getEffectiveStackPriorityForActor() {
+          return null;
+        },
+        focusActorWindow(actor, reason): void {
+          focusCalls.push(`${actor.id}:${reason}`);
+        },
+        requestFocusOnVisible(): void {}
+      }
+    });
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "row"));
+    const actor = actorSystem.createActor({ id: "hierarchy-window" });
+    registry.addComponent(actor, gizmoEventBindingComponentType);
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-row"));
+    const binding = getRegisteredBinding(registered);
+    const hit = binding.hitTest({ x: 0, y: 0 });
+    if (!hit) throw new Error("Expected hit.");
+    calls.length = 0;
+    actor.enabled = false;
+
+    binding.onGizmoStart?.(createStartEvent(binding, hit));
+
+    expect(focusCalls).toEqual([]);
+    expect(calls).toEqual([]);
   });
 
   it("cancels the active responder before it is detached", () => {

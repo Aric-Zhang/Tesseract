@@ -14,6 +14,7 @@ import {
   ActorSystem,
   ComponentRegistry,
   ComponentRuntimeBridge,
+  type ActorWindowFocusService,
   type RegisteredActor
 } from "../actor-runtime";
 
@@ -30,6 +31,7 @@ export interface AppRuntimeContextOptions {
   sceneRuntime: RuntimeObjectRegistry;
   frameStateController: SceneStateObserverRegistry;
   gizmoEventSystem: GizmoControllerRegistry;
+  actorWindowFocus?: ActorWindowFocusService;
   onRollbackError?: (errors: readonly unknown[]) => void;
 }
 
@@ -63,6 +65,7 @@ export class AppRuntimeContext {
       actorSystem: this.actorSystem,
       bridge,
       commandSink: this.frameStateController,
+      actorWindowFocus: options.actorWindowFocus,
       onRollbackError: this.onRollbackError
     });
     this.actorSystemRegistration = this.sceneRuntime.register(this.actorSystem);

@@ -74,6 +74,7 @@ export const DEFAULT_FLOATING_WINDOW_PRIORITY = 1000;
 
 type FloatingWindowPartId =
   | "titlebar"
+  | "window-content"
   | "close"
   | "resize-left"
   | "resize-right"
@@ -104,7 +105,7 @@ export class FloatingWindowComponent
   readonly #paths: FloatingWindowParameterPaths;
   readonly #menuDescriptor: FloatingWindowMenuDescriptor;
   readonly #commandSink?: SceneCommandSink;
-  readonly #priority: number;
+  readonly #basePriority: number;
   readonly #minSize: Vec2;
   readonly #parentElement: HTMLElement;
   readonly #rootClassName: string;
@@ -117,6 +118,7 @@ export class FloatingWindowComponent
   #contentAttachment: FloatingWindowContentAttachment | null = null;
   #dragStartState: FloatingWindowState | null = null;
   #presentation: FloatingWindowPresentation;
+  #effectivePriority: number;
 
   constructor(
     actor: Actor,
@@ -127,8 +129,9 @@ export class FloatingWindowComponent
     this.id = options.id;
     this.#paths = options.paths;
     this.#commandSink = services.commandSink;
-    this.#priority = options.priority ?? DEFAULT_FLOATING_WINDOW_PRIORITY;
-    this.#menuDescriptor = createMenuDescriptor(options, this.#priority);
+    this.#basePriority = options.priority ?? DEFAULT_FLOATING_WINDOW_PRIORITY;
+    this.#effectivePriority = this.#basePriority;
+    this.#menuDescriptor = createMenuDescriptor(options, this.#basePriority);
     this.#minSize = cloneVec2(options.minSize ?? DEFAULT_FLOATING_WINDOW_MIN_SIZE);
     this.#parentElement = options.parent;
     this.#rootClassName = joinClassNames("floating-gizmo-window", options.className);
@@ -186,8 +189,17 @@ export class FloatingWindowComponent
 
   readonly id: string;
 
+  get basePriority(): number {
+    return this.#basePriority;
+  }
+
   get inputStackPriority(): number {
-    return this.#priority;
+    return this.#effectivePriority;
+  }
+
+  setEffectivePriority(priority: number): void {
+    this.#effectivePriority = priority;
+    this.applyEffectivePriority();
   }
 
   get parameterPaths(): FloatingWindowParameterPaths {
@@ -305,6 +317,9 @@ export class FloatingWindowComponent
     if (isPointInsideRect(point, this.#titlebar.getBoundingClientRect())) {
       return this.createHit("titlebar", 20);
     }
+    if (isPointInsideRect(point, this.#contentSlot.getBoundingClientRect())) {
+      return this.createContentHit();
+    }
     return null;
   }
 
@@ -365,7 +380,7 @@ export class FloatingWindowComponent
       this.#rootElement.style.width = `${this.state.size.x}px`;
       this.#rootElement.style.height = `${this.state.size.y}px`;
     }
-    this.#rootElement.style.zIndex = String(this.#priority);
+    this.applyEffectivePriority();
   }
 
   private submitPositionSet(event: ActorInputMoveEvent, position: Vec2): void {
@@ -402,6 +417,26 @@ export class FloatingWindowComponent
         partId
       }]
     };
+  }
+
+  private createContentHit(): ActorInputHit {
+    return {
+      componentId: this.id,
+      partId: "window-content",
+      kind: "content",
+      region: "window-content",
+      localRoutePriority: 100,
+      hitPriority: 1,
+      path: [{
+        componentId: this.id,
+        role: "surface",
+        partId: "window-content"
+      }]
+    };
+  }
+
+  private applyEffectivePriority(): void {
+    this.#rootElement.style.zIndex = String(this.#effectivePriority);
   }
 }
 

@@ -7,6 +7,7 @@ import {
   floatingWindowComponentType,
   type FloatingWindowComponent
 } from "./floating-window-component";
+import type { WindowContentHost } from "./floating-window-host";
 
 export function findOwningFloatingWindowHost(
   actorSystem: ActorSystemView,
@@ -18,6 +19,28 @@ export function findOwningFloatingWindowHost(
     const host = componentRegistry.getComponent(current, floatingWindowComponentType);
     if (host) return host;
     const parentId = actorSystem.getParentId(current);
+    current = parentId ? actorSystem.getActor(parentId) : null;
+  }
+  return null;
+}
+
+export function findOwningWindowContentHost(
+  actorSystem: ActorSystemView,
+  componentRegistry: ComponentRegistryView,
+  actor: Actor
+): WindowContentHost | null {
+  let current: Actor | null = actor;
+  let childOfWindow: Actor | null = null;
+  while (current) {
+    const host = componentRegistry.getComponent(current, floatingWindowComponentType);
+    if (host) {
+      if (childOfWindow && host.hasTab(childOfWindow.id)) {
+        return host.getContentHost(childOfWindow.id);
+      }
+      return host;
+    }
+    const parentId = actorSystem.getParentId(current);
+    childOfWindow = current;
     current = parentId ? actorSystem.getActor(parentId) : null;
   }
   return null;

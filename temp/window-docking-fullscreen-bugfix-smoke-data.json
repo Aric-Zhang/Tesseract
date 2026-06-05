@@ -1,0 +1,73 @@
+{
+  "data": {
+    "previewHidden": true,
+    "url": "http://127.0.0.1:5196/",
+    "windows": [
+      {
+        "className": "floating-gizmo-window scene-window",
+        "hidden": false,
+        "rect": {
+          "bottom": 566,
+          "height": 433,
+          "left": 95,
+          "right": 415,
+          "top": 133,
+          "width": 320
+        },
+        "sceneButtons": [
+          {
+            "hidden": false,
+            "label": "Expand Scene to fullscreen",
+            "rect": {
+              "bottom": 421.3999938964844,
+              "height": 40,
+              "left": 238.0124969482422,
+              "right": 278.0124969482422,
+              "top": 381.3999938964844,
+              "width": 40
+            }
+          }
+        ],
+        "tabs": [
+          {
+            "className": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 190.60000610351562,
+              "height": 24,
+              "left": 102.5999984741211,
+              "right": 252.5999984741211,
+              "top": 166.60000610351562,
+              "width": 150
+            },
+            "text": "Scene"
+          },
+          {
+            "className": "floating-gizmo-window__title floating-gizmo-window__tab",
+            "rect": {
+              "bottom": 190.60000610351562,
+              "height": 24,
+              "left": 314.6125183105469,
+              "right": 359.0125198364258,
+              "top": 166.60000610351562,
+              "width": 44.400001525878906
+            },
+            "text": "Hierarchy"
+          },
+          {
+            "className": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 190.60000610351562,
+              "height": 24,
+              "left": 363.01251220703125,
+              "right": 407.4000129699707,
+              "top": 166.60000610351562,
+              "width": 44.38750076293945
+            },
+            "text": "Debug Log"
+          }
+        ]
+      }
+    ]
+  },
+  "consoleErrors": []
+}

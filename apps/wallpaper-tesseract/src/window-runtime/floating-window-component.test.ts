@@ -113,6 +113,7 @@ interface CreateSubjectOptions {
   presentation?: "windowed" | "fullscreen";
   frameIntentSink?: WindowFrameIntentSink;
   tabDragSink?: WindowTabDragSink;
+  runtimeState?: boolean;
 }
 
 function createSubject(options: CreateSubjectOptions = {}) {
@@ -133,7 +134,8 @@ function createSubject(options: CreateSubjectOptions = {}) {
     parent: parent as unknown as HTMLElement,
     document: document as unknown as Document,
     title: "Test Window",
-    paths,
+    paths: options.runtimeState ? undefined : paths,
+    stateBinding: options.runtimeState ? { kind: "runtime" } : undefined,
     initialState: options.initialState ?? {
       position: vec2(12, 24),
       size: vec2(320, 180),
@@ -177,6 +179,17 @@ function findChildByClass(element: FakeElement, className: string): FakeElement 
     throw new Error(`Missing child with class: ${className}`);
   }
   return child;
+}
+
+function findDescendantsByClass(element: FakeElement, className: string): FakeElement[] {
+  const matches: FakeElement[] = [];
+  for (const child of element.children) {
+    if (child.className.split(" ").includes(className)) {
+      matches.push(child);
+    }
+    matches.push(...findDescendantsByClass(child, className));
+  }
+  return matches;
 }
 
 function setWindowRects(root: FakeElement): void {
@@ -252,6 +265,49 @@ describe("FloatingWindowComponent DOM shell", () => {
       group: null,
       activationMode: "visible"
     });
+  });
+
+  it("supports runtime-only state without parameter paths or scene visible commands", () => {
+    const commands: SceneUpdateCommand[] = [];
+    const { component, root } = createSubject({ commands, runtimeState: true });
+
+    expect(component.parameterPaths).toBeNull();
+    expect(component.visiblePath).toBeNull();
+
+    component.requestVisible(false, 123);
+
+    expect(commands).toEqual([]);
+    expect(component.state.visible).toBe(false);
+    expect(root.hidden).toBe(true);
+  });
+
+  it("ignores scene state changes for runtime-only state bindings", () => {
+    const { component, paths, root } = createSubject({ runtimeState: true });
+
+    component.onSceneStateChanged(createChangedEvent([
+      {
+        path: paths.position,
+        previousValue: vec2(12, 24),
+        nextValue: vec2(40, 50),
+        sources: [],
+        commands: []
+      },
+      {
+        path: paths.visible,
+        previousValue: true,
+        nextValue: false,
+        sources: [],
+        commands: []
+      }
+    ]));
+
+    expect(component.state).toEqual({
+      position: vec2(12, 24),
+      size: vec2(320, 180),
+      visible: true
+    });
+    expect(root.style.left).toBe("12px");
+    expect(root.hidden).toBe(false);
   });
 
   it("keeps base priority stable while effective priority updates input and z-index", () => {
@@ -730,6 +786,30 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(component.getActiveViewActorId()).toBe("debug-view");
   });
 
+  it("keeps the frame close button owned by the outer titlebar for merged tabs", () => {
+    const { component, root } = createSubject({
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" }
+      ]
+    });
+    const titlebar = findChildByClass(root, "floating-gizmo-window__titlebar");
+
+    component.addTab(
+      { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" },
+      { active: true }
+    );
+    component.activateTab("debug-view");
+
+    const closeButtons = findDescendantsByClass(root, "floating-gizmo-window__close");
+
+    expect(closeButtons).toHaveLength(1);
+    expect(closeButtons[0].parentElement).toBe(titlebar);
+    expect(titlebar.children.filter((child) => (
+      child.className.split(" ").includes("floating-gizmo-window__tab")
+    )).map((tab) => tab.textContent)).toEqual(["Debug", "Hierarchy"]);
+  });
+
   it("provides per-view content hosts that follow the active tab", () => {
     const { component, document } = createSubject({
       activeViewActorId: "debug-view",
@@ -742,6 +822,9 @@ describe("FloatingWindowComponent DOM shell", () => {
     const hierarchyContent = document.createElement("div");
     const debugHost = component.getContentHost("debug-view");
     const hierarchyHost = component.getContentHost("hierarchy-view");
+
+    expect(debugHost.inputStackPriority).toBe(component.inputStackPriority);
+    expect(hierarchyHost.inputStackPriority).toBe(component.inputStackPriority);
 
     debugHost.mountContent(debugContent as unknown as HTMLElement);
     hierarchyHost.mountContent(hierarchyContent as unknown as HTMLElement);
@@ -757,6 +840,272 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(hierarchyContent.hidden).toBe(false);
     expect(debugHost.isContentInteractable(debugContent as unknown as HTMLElement)).toBe(false);
     expect(hierarchyHost.isContentInteractable(hierarchyContent as unknown as HTMLElement)).toBe(true);
+  });
+
+  it("renders split panes with independent tabsets and content hosts", () => {
+    const { component, document, root } = createSubject({
+      activeViewActorId: "hierarchy-view",
+      tabs: [
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const hierarchyContent = document.createElement("div");
+    const debugContent = document.createElement("pre");
+    component.getContentHost("hierarchy-view").mountContent(hierarchyContent as unknown as HTMLElement);
+    const targetTabsetId = component.listDockTargetTabsets()[0]?.targetTabsetId;
+    if (!targetTabsetId) throw new Error("Expected target tabset.");
+
+    component.splitTab(
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      { targetTabsetId, placement: "left", active: true }
+    );
+    component.getContentHost("debug-view").mountContent(debugContent as unknown as HTMLElement);
+
+    const panes = findDescendantsByClass(root, "floating-gizmo-window__pane");
+    const paneTabs = findDescendantsByClass(root, "floating-gizmo-window__pane-tabs");
+    const splitters = findDescendantsByClass(root, "floating-gizmo-window__splitter");
+    expect(panes).toHaveLength(2);
+    expect(paneTabs).toHaveLength(2);
+    expect(splitters).toHaveLength(1);
+    expect(splitters[0].className).toContain("floating-gizmo-window__splitter--horizontal");
+    expect(findDescendantsByClass(panes[0], "floating-gizmo-window__tab").map((tab) => tab.textContent))
+      .toEqual(["Debug"]);
+    expect(findDescendantsByClass(panes[1], "floating-gizmo-window__tab").map((tab) => tab.textContent))
+      .toEqual(["Hierarchy"]);
+    expect(debugContent.hidden).toBe(false);
+    expect(hierarchyContent.hidden).toBe(false);
+    expect(component.getContentHost("debug-view").isContentInteractable(debugContent as unknown as HTMLElement))
+      .toBe(true);
+    expect(component.getContentHost("hierarchy-view").isContentInteractable(hierarchyContent as unknown as HTMLElement))
+      .toBe(true);
+  });
+
+  it("keeps one frame close button in the outer titlebar after split render cycles", () => {
+    const { component, root } = createSubject({
+      activeViewActorId: "hierarchy-view",
+      tabs: [
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const titlebar = findChildByClass(root, "floating-gizmo-window__titlebar");
+    const targetTabsetId = component.listDockTargetTabsets()[0]?.targetTabsetId;
+    if (!targetTabsetId) throw new Error("Expected target tabset.");
+
+    component.splitTab(
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      { targetTabsetId, placement: "left", active: true }
+    );
+    component.addTab(
+      { viewActorId: "inspector-view", viewKey: "inspector", title: "Inspector" },
+      { targetTabsetId: "frame-tabset:debug-view", active: false }
+    );
+    component.activateTab("inspector-view");
+    component.activateTab("debug-view");
+
+    const closeButtons = findDescendantsByClass(root, "floating-gizmo-window__close");
+    const paneTabbars = findDescendantsByClass(root, "floating-gizmo-window__pane-tabs");
+
+    expect(closeButtons).toHaveLength(1);
+    expect(closeButtons[0].parentElement).toBe(titlebar);
+    for (const tabbar of paneTabbars) {
+      expect(findDescendantsByClass(tabbar, "floating-gizmo-window__close")).toHaveLength(0);
+    }
+  });
+
+  it("hit-tests the frame close button after split docking", () => {
+    const { component, root } = createSubject({
+      activeViewActorId: "hierarchy-view",
+      tabs: [
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const targetTabsetId = component.listDockTargetTabsets()[0]?.targetTabsetId;
+    if (!targetTabsetId) throw new Error("Expected target tabset.");
+    component.splitTab(
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      { targetTabsetId, placement: "left", active: true }
+    );
+    const titlebar = findChildByClass(root, "floating-gizmo-window__titlebar");
+    const closeButton = findChildByClass(titlebar, "floating-gizmo-window__close");
+    root.rect = createRect(10, 20, 320, 180);
+    titlebar.rect = createRect(10, 20, 320, 32);
+    closeButton.rect = createRect(294, 24, 28, 24);
+
+    const hit = component.hitTestInput({ x: 300, y: 30 });
+
+    expect(hit).toMatchObject({
+      partId: "close",
+      kind: "chrome",
+      region: "window-frame"
+    });
+  });
+
+  it("hit-tests splitters above the content focus surface", () => {
+    const { component, root } = createSubject({
+      activeViewActorId: "hierarchy-view",
+      tabs: [
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const targetTabsetId = component.listDockTargetTabsets()[0]?.targetTabsetId;
+    if (!targetTabsetId) throw new Error("Expected target tabset.");
+    component.splitTab(
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      { targetTabsetId, placement: "left", active: true }
+    );
+    root.rect = createRect(10, 20, 320, 180);
+    findChildByClass(root, "floating-gizmo-window__content").rect = createRect(10, 52, 320, 148);
+    const splitter = findDescendantsByClass(root, "floating-gizmo-window__splitter")[0];
+    splitter.rect = createRect(110, 52, 7, 148);
+
+    const hit = component.hitTestInput({ x: 113, y: 90 });
+
+    expect(hit).toMatchObject({
+      partId: "splitter",
+      kind: "chrome",
+      region: "window-frame",
+      hitPriority: 15
+    });
+    expect(hit?.data).toMatchObject({
+      direction: "horizontal"
+    });
+  });
+
+  it("updates split ratio while dragging the splitter", () => {
+    const { component, root } = createSubject({
+      activeViewActorId: "hierarchy-view",
+      tabs: [
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const targetTabsetId = component.listDockTargetTabsets()[0]?.targetTabsetId;
+    if (!targetTabsetId) throw new Error("Expected target tabset.");
+    component.splitTab(
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      { targetTabsetId, placement: "left", active: true }
+    );
+    root.rect = createRect(10, 20, 320, 180);
+    findChildByClass(root, "floating-gizmo-window__content").rect = createRect(10, 52, 320, 148);
+    const split = findDescendantsByClass(root, "floating-gizmo-window__split")[0];
+    const splitter = findDescendantsByClass(root, "floating-gizmo-window__splitter")[0];
+    split.rect = createRect(10, 52, 300, 148);
+    splitter.rect = createRect(112, 52, 7, 148);
+    const hit = component.hitTestInput({ x: 115, y: 90 });
+    if (!hit) throw new Error("Expected splitter hit.");
+
+    component.onInputStart(createActorInputStartEvent(hit, { point: { x: 115, y: 90 } }));
+    component.onInputMove(createActorInputMoveEvent(hit, {
+      point: { x: 175, y: 90 },
+      totalDelta: { dx: 60, dy: 0 }
+    }));
+
+    const panes = findDescendantsByClass(root, "floating-gizmo-window__pane");
+    expect(Number.parseFloat(panes[0].style.flex)).toBeCloseTo(0.54);
+    expect(Number.parseFloat(panes[1].style.flex)).toBeCloseTo(0.46);
+  });
+
+  it("clamps splitter drag to the minimum pane size", () => {
+    const { component, root } = createSubject({
+      activeViewActorId: "hierarchy-view",
+      tabs: [
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const targetTabsetId = component.listDockTargetTabsets()[0]?.targetTabsetId;
+    if (!targetTabsetId) throw new Error("Expected target tabset.");
+    component.splitTab(
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      { targetTabsetId, placement: "left", active: true }
+    );
+    root.rect = createRect(10, 20, 320, 180);
+    findChildByClass(root, "floating-gizmo-window__content").rect = createRect(10, 52, 320, 148);
+    const split = findDescendantsByClass(root, "floating-gizmo-window__split")[0];
+    const splitter = findDescendantsByClass(root, "floating-gizmo-window__splitter")[0];
+    split.rect = createRect(10, 52, 200, 148);
+    splitter.rect = createRect(78, 52, 7, 148);
+    const hit = component.hitTestInput({ x: 80, y: 90 });
+    if (!hit) throw new Error("Expected splitter hit.");
+
+    component.onInputStart(createActorInputStartEvent(hit, { point: { x: 80, y: 90 } }));
+    component.onInputMove(createActorInputMoveEvent(hit, {
+      point: { x: -20, y: 90 },
+      totalDelta: { dx: -100, dy: 0 }
+    }));
+
+    const panes = findDescendantsByClass(root, "floating-gizmo-window__pane");
+    expect(panes[0].style.flex).toBe("0.4 1 0");
+    expect(panes[1].style.flex).toBe("0.6 1 0");
+  });
+
+  it("keeps inactive split-pane tabs hidden and non-interactable", () => {
+    const { component, document } = createSubject({
+      activeViewActorId: "hierarchy-view",
+      tabs: [
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const targetTabsetId = component.listDockTargetTabsets()[0]?.targetTabsetId;
+    if (!targetTabsetId) throw new Error("Expected target tabset.");
+    component.splitTab(
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      { targetTabsetId, placement: "left", active: true }
+    );
+    component.addTab(
+      { viewActorId: "inspector-view", viewKey: "inspector", title: "Inspector" },
+      { targetTabsetId: "frame-tabset:debug-view", active: false }
+    );
+    const debugContent = document.createElement("pre");
+    const inspectorContent = document.createElement("section");
+
+    component.getContentHost("debug-view").mountContent(debugContent as unknown as HTMLElement);
+    component.getContentHost("inspector-view").mountContent(inspectorContent as unknown as HTMLElement);
+
+    expect(debugContent.hidden).toBe(false);
+    expect(inspectorContent.hidden).toBe(true);
+    expect(component.getContentHost("debug-view").isContentInteractable(debugContent as unknown as HTMLElement))
+      .toBe(true);
+    expect(component.getContentHost("inspector-view").isContentInteractable(inspectorContent as unknown as HTMLElement))
+      .toBe(false);
+  });
+
+  it("restores a runtime dock root with split panes, tab order, and active view", () => {
+    const sceneTab: WindowFrameTab = { viewActorId: "scene-view", viewKey: "scene", title: "Scene" };
+    const debugTab: WindowFrameTab = { viewActorId: "debug-view", viewKey: "debug", title: "Debug" };
+    const hierarchyTab: WindowFrameTab = {
+      viewActorId: "hierarchy-view",
+      viewKey: "hierarchy",
+      title: "Hierarchy"
+    };
+    const { component } = createSubject({
+      tabs: [sceneTab],
+      activeViewActorId: "scene-view"
+    });
+    const targetTabsetId = component.listDockTargetTabsets()[0]?.targetTabsetId;
+    if (!targetTabsetId) throw new Error("Expected target tabset.");
+    component.splitTab(debugTab, {
+      targetTabsetId,
+      placement: "left",
+      active: true
+    });
+    const sceneTabsetId = component.listDockTargetTabsets()
+      .find((target) => target.targetTabsetId.includes("scene-view"))?.targetTabsetId;
+    if (!sceneTabsetId) throw new Error("Expected Scene tabset.");
+    component.addTab(hierarchyTab, {
+      targetTabsetId: sceneTabsetId,
+      active: true
+    });
+    component.activateTab("hierarchy-view");
+    const splitRoot = component.getRuntimeDockRoot();
+
+    component.removeTab("debug-view");
+    component.restoreRuntimeDockRoot(splitRoot, {
+      tabs: [sceneTab, debugTab, hierarchyTab],
+      activeViewActorId: "debug-view"
+    });
+
+    expect(component.getRuntimeDockRoot()).toEqual(splitRoot);
+    expect(component.getActiveViewActorId()).toBe("debug-view");
+    expect(component.listTabs()).toEqual([debugTab, sceneTab, hierarchyTab]);
   });
 
   it("returns a fullscreen frame to windowed presentation when adding a different active tab", () => {
@@ -890,6 +1239,7 @@ describe("FloatingWindowComponent DOM shell", () => {
           preview: {
             kind: "merge-tabs",
             targetFrameId: "target-frame",
+            targetTabsetId: "frame-tabset:target",
             rect: createRect(400, 20, 160, 32)
           }
         }),
@@ -911,6 +1261,57 @@ describe("FloatingWindowComponent DOM shell", () => {
 
     expect(frameIntents).toEqual([
       "merge:frame:test:hierarchy-view:target-frame:dock-drop"
+    ]);
+  });
+
+  it("submits a split dock intent after a completed tab drag over another frame content edge", () => {
+    const frameIntents: string[] = [];
+    const { component, root } = createSubject({
+      frameId: "frame:test",
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" }
+      ],
+      frameIntentSink: {
+        requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
+        requestCloseFrame: (frameId, reason) => frameIntents.push(`close:${frameId}:${reason}`),
+        requestCommitDock: (intent) => {
+          if (intent.kind === "split-tab") {
+            frameIntents.push(
+              `split:${intent.source.frameId}:${intent.source.viewActorId}:` +
+              `${intent.targetFrameId}:${intent.targetTabsetId}:${intent.placement}:${intent.reason}`
+            );
+          }
+        }
+      },
+      tabDragSink: {
+        beginTabDrag: () => {},
+        moveTabDrag: () => {},
+        endTabDrag: () => ({
+          source: {
+            frameId: "frame:test",
+            viewActorId: "debug-view",
+            viewKey: "debug"
+          },
+          preview: {
+            kind: "split",
+            targetFrameId: "target-frame",
+            targetTabsetId: "frame-tabset:target",
+            placement: "left",
+            rect: createRect(400, 52, 120, 200)
+          }
+        }),
+        cancelTabDrag: () => {}
+      }
+    });
+    setWindowRects(root);
+    const hit = component.hitTestInput({ x: 30, y: 36 });
+    if (!hit) throw new Error("Expected tab hit.");
+
+    component.onInputEnd(createActorInputEndEvent(hit, { wasClick: false }));
+
+    expect(frameIntents).toEqual([
+      "split:frame:test:debug-view:target-frame:frame-tabset:target:left:dock-drop"
     ]);
   });
 

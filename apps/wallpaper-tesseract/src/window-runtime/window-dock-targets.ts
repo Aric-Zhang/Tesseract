@@ -14,23 +14,30 @@ export interface WindowDockRect {
   readonly height: number;
 }
 
-export interface WindowDockTargetFrame {
+export interface WindowDockTargetRegion {
   readonly frameId: string;
+  readonly targetTabsetId: string;
   readonly stackPriority: number;
   readonly bounds: WindowDockRect;
   readonly tabBounds: WindowDockRect;
   readonly contentBounds: WindowDockRect;
 }
 
+// Compatibility alias while the docking code migrates from frame-level naming to
+// tabset-region naming.
+export type WindowDockTargetFrame = WindowDockTargetRegion;
+
 export type WindowDockPreview =
   | {
       readonly kind: "merge-tabs";
       readonly targetFrameId: string;
+      readonly targetTabsetId: string;
       readonly rect: WindowDockRect;
     }
   | {
       readonly kind: "split";
       readonly targetFrameId: string;
+      readonly targetTabsetId: string;
       readonly placement: WindowDockSplitPlacement;
       readonly rect: WindowDockRect;
     }
@@ -49,37 +56,14 @@ const DEFAULT_FLOATING_SIZE = { width: 260, height: 180 };
 
 export function resolveWindowDockPreview(
   point: WindowDockPoint,
-  frames: readonly WindowDockTargetFrame[],
+  regions: readonly WindowDockTargetRegion[],
   options: ResolveWindowDockPreviewOptions = {}
 ): WindowDockPreview {
-  const candidates = frames
-    .filter((frame) => frame.frameId !== options.sourceFrameId)
-    .filter((frame) => containsPoint(frame.bounds, point))
-    .sort((a, b) => b.stackPriority - a.stackPriority);
-  const target = candidates[0];
-  if (!target) {
-    return createFloatingPreview(point, options.floatingSize);
-  }
-  if (containsPoint(target.tabBounds, point)) {
-    return {
-      kind: "merge-tabs",
-      targetFrameId: target.frameId,
-      rect: target.tabBounds
-    };
-  }
-  if (!containsPoint(target.contentBounds, point)) {
-    return createFloatingPreview(point, options.floatingSize);
-  }
-  const placement = resolveContentPlacement(point, target.contentBounds);
-  if (!placement) {
-    return createFloatingPreview(point, options.floatingSize);
-  }
-  return {
-    kind: "split",
-    targetFrameId: target.frameId,
-    placement,
-    rect: createSplitPreviewRect(target.contentBounds, placement)
-  };
+  const candidates = regions
+    .map((region, sourceOrder) => createDockPreviewCandidate(point, region, sourceOrder, options.sourceFrameId))
+    .filter((candidate): candidate is WindowDockPreviewCandidate => candidate !== null)
+    .sort(compareDockPreviewCandidates);
+  return candidates[0]?.preview ?? createFloatingPreview(point, options.floatingSize);
 }
 
 export function rectFromDomRect(rect: DOMRectReadOnly): WindowDockRect {
@@ -114,6 +98,67 @@ function resolveContentPlacement(
   ].filter((candidate) => candidate.distance >= 0 && candidate.distance <= candidate.threshold)
     .sort((a, b) => a.distance - b.distance);
   return distances[0]?.placement ?? null;
+}
+
+interface WindowDockPreviewCandidate {
+  readonly preview: Exclude<WindowDockPreview, { readonly kind: "floating" }>;
+  readonly stackPriority: number;
+  readonly kindRank: number;
+  readonly area: number;
+  readonly sourceOrder: number;
+}
+
+function createDockPreviewCandidate(
+  point: WindowDockPoint,
+  region: WindowDockTargetRegion,
+  sourceOrder: number,
+  sourceFrameId: string | undefined
+): WindowDockPreviewCandidate | null {
+  if (region.frameId === sourceFrameId) return null;
+  if (containsPoint(region.tabBounds, point)) {
+    return {
+      preview: {
+        kind: "merge-tabs",
+        targetFrameId: region.frameId,
+        targetTabsetId: region.targetTabsetId,
+        rect: region.tabBounds
+      },
+      stackPriority: region.stackPriority,
+      kindRank: 1,
+      area: rectArea(region.tabBounds),
+      sourceOrder
+    };
+  }
+  if (!containsPoint(region.contentBounds, point)) return null;
+  const placement = resolveContentPlacement(point, region.contentBounds);
+  if (!placement) return null;
+  return {
+    preview: {
+      kind: "split",
+      targetFrameId: region.frameId,
+      targetTabsetId: region.targetTabsetId,
+      placement,
+      rect: createSplitPreviewRect(region.contentBounds, placement)
+    },
+    stackPriority: region.stackPriority,
+    kindRank: 0,
+    area: rectArea(region.contentBounds),
+    sourceOrder
+  };
+}
+
+function compareDockPreviewCandidates(
+  a: WindowDockPreviewCandidate,
+  b: WindowDockPreviewCandidate
+): number {
+  return b.stackPriority - a.stackPriority ||
+    b.kindRank - a.kindRank ||
+    a.area - b.area ||
+    a.sourceOrder - b.sourceOrder;
+}
+
+function rectArea(rect: WindowDockRect): number {
+  return rect.width * rect.height;
 }
 
 function createSplitPreviewRect(

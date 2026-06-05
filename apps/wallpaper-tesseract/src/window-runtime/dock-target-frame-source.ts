@@ -5,16 +5,24 @@ import {
 } from "./floating-window-component";
 import {
   rectFromDomRect,
-  type WindowDockTargetFrame
+  type WindowDockTargetRegion
 } from "./window-dock-targets";
 
-export interface DockTargetFrameSource {
+export interface DockTargetRegionSource {
+  listDockTargetRegions(): readonly WindowDockTargetRegion[];
+}
+
+// Compatibility alias while callers migrate to region terminology.
+export interface DockTargetFrameSource extends DockTargetRegionSource {
   listDockTargetFrames(): readonly WindowDockTargetFrame[];
 }
 
-export interface DockTargetFrameSourceOptions {
+export interface DockTargetRegionSourceOptions {
   readonly actorSystem: ActorSystemView;
 }
+
+export type DockTargetFrameSourceOptions = DockTargetRegionSourceOptions;
+export type WindowDockTargetFrame = WindowDockTargetRegion;
 
 interface IndexedFrame {
   readonly actor: Actor;
@@ -22,14 +30,19 @@ interface IndexedFrame {
   readonly index: number;
 }
 
-export function createDockTargetFrameSource(options: DockTargetFrameSourceOptions): DockTargetFrameSource {
+export function createDockTargetRegionSource(options: DockTargetRegionSourceOptions): DockTargetFrameSource {
   return {
-    listDockTargetFrames() {
+    listDockTargetRegions() {
       return listIndexedFrames(options.actorSystem)
-        .map((entry) => toDockTargetFrame(entry.actor.id, entry.component, entry.index));
+        .flatMap((entry) => toDockTargetRegions(entry.actor.id, entry.component, entry.index));
+    },
+    listDockTargetFrames() {
+      return this.listDockTargetRegions();
     }
   };
 }
+
+export const createDockTargetFrameSource = createDockTargetRegionSource;
 
 function listIndexedFrames(actorSystem: ActorSystemView): readonly IndexedFrame[] {
   return actorSystem.listActorsInTreeOrder()
@@ -47,16 +60,17 @@ function listIndexedFrames(actorSystem: ActorSystemView): readonly IndexedFrame[
     });
 }
 
-function toDockTargetFrame(
+function toDockTargetRegions(
   frameId: string,
   component: FloatingWindowComponent,
   index: number
-): WindowDockTargetFrame {
-  return {
+): readonly WindowDockTargetRegion[] {
+  return component.listDockTargetTabsets().map((target) => ({
     frameId,
+    targetTabsetId: target.targetTabsetId,
     stackPriority: component.inputStackPriority + index * 0.001,
     bounds: rectFromDomRect(component.getBounds()),
-    tabBounds: rectFromDomRect(component.getTabBounds()),
-    contentBounds: rectFromDomRect(component.getContentBounds())
-  };
+    tabBounds: target.tabBounds,
+    contentBounds: target.contentBounds
+  }));
 }

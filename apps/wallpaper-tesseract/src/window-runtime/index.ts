@@ -6,10 +6,15 @@ export {
 } from "./floating-window-state";
 export { createActorWindowFocusServiceProxy } from "./actor-window-focus-service";
 export type { ActorWindowFocusServiceProxy } from "./actor-window-focus-service";
-export { createDockTargetFrameSource } from "./dock-target-frame-source";
+export {
+  createDockTargetFrameSource,
+  createDockTargetRegionSource
+} from "./dock-target-frame-source";
 export type {
   DockTargetFrameSource,
-  DockTargetFrameSourceOptions
+  DockTargetFrameSourceOptions,
+  DockTargetRegionSource,
+  DockTargetRegionSourceOptions
 } from "./dock-target-frame-source";
 export type {
   FloatingWindowParameterPaths,
@@ -21,6 +26,10 @@ export { windowViewKey } from "./window-view-key";
 export type { WindowViewKey } from "./window-view-key";
 export type {
   WindowFramePort,
+  WindowFramePresentation,
+  WindowFrameRuntimeDockNode,
+  WindowFrameRuntimeSplitNode,
+  WindowFrameRuntimeTabsetNode,
   WindowFrameTab
 } from "./window-frame-port";
 export type {
@@ -29,7 +38,16 @@ export type {
   WindowFrameLifecycleReason,
   WindowFloatingFrameCreateOptions,
   WindowFloatingFrameCreateResult,
-  WindowFloatingFrameFactory
+  WindowFloatingFrameFactory,
+  WindowFrameLayoutRestorePort,
+  WindowFrameLayoutRestoreResult,
+  WindowFrameLayoutSnapshotSource,
+  WindowViewLocation,
+  WindowViewLocationSource,
+  WindowViewOwnerCommandPort,
+  WindowViewFullscreenReason,
+  WindowViewFullscreenSession,
+  WindowViewPresentationCommandPort
 } from "./window-frame-lifecycle";
 export { DefaultWindowFrameLifecycleController } from "./window-frame-lifecycle-controller";
 export type { WindowFrameLifecycleControllerOptions } from "./window-frame-lifecycle-controller";
@@ -45,7 +63,7 @@ export {
 } from "./floating-window-host";
 export {
   findOwningFloatingWindowHost,
-  findOwningFloatingWindowHost as findOwningWindowContentHost
+  findOwningWindowContentHost
 } from "./window-content-host-resolver";
 export {
   WindowDockPreviewComponent,
@@ -67,7 +85,8 @@ export type {
   WindowDockPoint,
   WindowDockRect,
   WindowDockSplitPlacement,
-  WindowDockTargetFrame
+  WindowDockTargetFrame,
+  WindowDockTargetRegion
 } from "./window-dock-targets";
 export { WindowTabDragSession } from "./window-tab-drag-session";
 export type {
@@ -116,7 +135,29 @@ export type {
   WindowMenuViewSourceOptions
 } from "./window-menu-view-source";
 export {
+  hydrateWindowWorkspaceFrameLayout,
+  parsePersistedWindowWorkspaceFrameLayout,
+  serializeWindowWorkspaceFrameLayout,
+  WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION
+} from "./window-workspace-layout-persistence";
+export type {
+  PersistedWindowWorkspaceFrameDescriptor,
+  PersistedWindowWorkspaceFrameLayout,
+  PersistedWindowWorkspaceViewDescriptor
+} from "./window-workspace-layout-persistence";
+export {
+  loadPersistedWindowWorkspaceFrameLayout,
+  WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_CONTROLLER_ID,
+  WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY,
+  WindowWorkspaceFrameLayoutPersistenceController
+} from "./window-workspace-layout-persistence-controller";
+export type {
+  WindowWorkspaceFrameLayoutPersistenceControllerOptions,
+  WindowWorkspaceFrameLayoutStorage
+} from "./window-workspace-layout-persistence-controller";
+export {
   closeFrameInWorkspaceFrameLayout,
+  collectFrameViewKeys,
   createSingleTabWindowFrame,
   createWindowWorkspaceFrameLayout,
   createWindowWorkspaceLayout,
@@ -129,6 +170,7 @@ export {
   removeWindowFromLayout,
   restoreViewAsSingleTabFrame,
   setActiveDockTab,
+  splitDockViewInFrameLayout,
   splitDockTab,
   undockWindow
 } from "./window-workspace-layout";
@@ -138,9 +180,12 @@ export type {
   CreateWindowWorkspaceLayoutOptions,
   RestoreViewAsSingleTabFrameOptions,
   SplitDockTabOptions,
+  WindowFrameSplitPlacement,
   WindowFrameDockNode,
   WindowFrameSplitNode,
   WindowFrameTabsetNode,
+  WindowSplitLayoutCommit,
+  WindowSplitLayoutCommitResult,
   WindowWorkspaceFrameDescriptor,
   WindowWorkspaceFrameLayout,
   WindowWorkspaceFramePresentation,

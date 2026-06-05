@@ -1,0 +1,6 @@
+{
+    "port":  5196,
+    "out":  "temp/window-docking-fullscreen-bugfix-vite-5196.out.log",
+    "pid":  16652,
+    "err":  "temp/window-docking-fullscreen-bugfix-vite-5196.err.log"
+}

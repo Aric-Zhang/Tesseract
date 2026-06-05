@@ -15,6 +15,7 @@ function rect(left: number, top: number, width: number, height: number) {
 
 const frames: WindowDockTargetFrame[] = [{
   frameId: "target",
+  targetTabsetId: "frame-tabset:target",
   stackPriority: 10,
   bounds: rect(100, 100, 300, 220),
   tabBounds: rect(110, 106, 80, 24),
@@ -38,7 +39,8 @@ describe("WindowTabDragSession", () => {
     expect(pending).toEqual({ state: "pending", preview: null, source });
     expect(dragging.preview).toMatchObject({
       kind: "merge-tabs",
-      targetFrameId: "target"
+      targetFrameId: "target",
+      targetTabsetId: "frame-tabset:target"
     });
     expect(dragging.source).toBe(source);
     expect(session.state).toBe("dragging");

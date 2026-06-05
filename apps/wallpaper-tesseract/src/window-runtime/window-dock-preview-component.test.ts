@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { DockTargetFrameSource } from "./dock-target-frame-source";
+import type { DockTargetRegionSource } from "./dock-target-frame-source";
 import {
   WindowDockPreviewComponent,
   WindowDockPreviewController
 } from "./window-dock-preview-component";
-import type { WindowDockTargetFrame } from "./window-dock-targets";
+import type { WindowDockTargetRegion } from "./window-dock-targets";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -66,9 +66,10 @@ function createTargetFrame(
   actorId: string,
   priority: number,
   left: number
-): WindowDockTargetFrame {
+): WindowDockTargetRegion {
   return {
     frameId: actorId,
+    targetTabsetId: `frame-tabset:${actorId}`,
     stackPriority: priority,
     bounds: rect(left, 100, 300, 220),
     tabBounds: rect(left + 10, 106, 80, 24),
@@ -76,9 +77,9 @@ function createTargetFrame(
   };
 }
 
-function createSource(items: readonly WindowDockTargetFrame[]): DockTargetFrameSource {
+function createSource(items: readonly WindowDockTargetRegion[]): DockTargetRegionSource {
   return {
-    listDockTargetFrames: () => items
+    listDockTargetRegions: () => items
   };
 }
 
@@ -94,6 +95,7 @@ describe("WindowDockPreviewComponent", () => {
     component.show({
       kind: "split",
       targetFrameId: "target",
+      targetTabsetId: "frame-tabset:target",
       placement: "left",
       rect: { left: 10, top: 20, right: 110, bottom: 220, width: 100, height: 200 }
     });
@@ -148,14 +150,16 @@ describe("WindowDockPreviewController", () => {
 
     expect(controller.preview).toMatchObject({
       kind: "merge-tabs",
-      targetFrameId: "target"
+      targetFrameId: "target",
+      targetTabsetId: "frame-tabset:target"
     });
     expect(controller.state).toMatchObject({
       sessionState: "dragging",
       source,
       preview: {
         kind: "merge-tabs",
-        targetFrameId: "target"
+        targetFrameId: "target",
+        targetTabsetId: "frame-tabset:target"
       }
     });
     expect(parent.children[0].hidden).toBe(false);
@@ -163,12 +167,12 @@ describe("WindowDockPreviewController", () => {
     const result = controller.endTabDrag();
     expect(result).toMatchObject({
       source,
-      preview: { kind: "merge-tabs", targetFrameId: "target" }
+      preview: { kind: "merge-tabs", targetFrameId: "target", targetTabsetId: "frame-tabset:target" }
     });
     expect(controller.preview).toBeNull();
     expect(controller.state.lastCompletedDrag).toMatchObject({
       source,
-      preview: { kind: "merge-tabs", targetFrameId: "target" }
+      preview: { kind: "merge-tabs", targetFrameId: "target", targetTabsetId: "frame-tabset:target" }
     });
     expect(parent.children[0].hidden).toBe(true);
   });

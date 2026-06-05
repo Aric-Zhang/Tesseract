@@ -23,6 +23,7 @@ import type {
   FloatingWindowComponent,
   FloatingWindowState,
   WindowFrameIntentSink,
+  WindowViewLocationSource,
   WindowTabDragSink
 } from "../window-runtime";
 
@@ -50,6 +51,7 @@ export interface SceneViewRuntimeOptions {
   readonly devicePixelRatio?: () => number;
   readonly frameIntentSink?: WindowFrameIntentSink;
   readonly tabDragSink?: WindowTabDragSink;
+  readonly viewLocationSource: WindowViewLocationSource;
 }
 
 export interface SceneViewRuntimeDisposeOptions {
@@ -78,6 +80,8 @@ export class SceneViewRuntime {
   readonly sceneWindow!: RegisteredSceneWindowActor;
   readonly camera3Motion!: Camera3MotionController;
   readonly #context: SceneViewRuntimeContext;
+  readonly #viewLocationSource: WindowViewLocationSource;
+  readonly #sceneViewActorId: string;
   #motionRegistration: RuntimeRegistration | null = null;
   #camera3MotionObserver: RuntimeRegistration | null = null;
   #sceneViewportResizeObserver: RuntimeRegistration | null = null;
@@ -86,6 +90,7 @@ export class SceneViewRuntime {
   constructor(options: SceneViewRuntimeOptions) {
     const { actorIds, context } = options;
     this.#context = context;
+    this.#viewLocationSource = options.viewLocationSource;
     let sceneWindow: RegisteredSceneWindowActor | null = null;
     let camera3Motion: Camera3MotionController | null = null;
     let camera3MotionObserver: RuntimeRegistration | null = null;
@@ -147,6 +152,7 @@ export class SceneViewRuntime {
       });
 
       this.sceneWindow = sceneWindow;
+      this.#sceneViewActorId = sceneWindow.viewport.actor.id;
       this.camera3Motion = camera3Motion;
       this.#camera3MotionObserver = camera3MotionObserver;
       this.#sceneViewportResizeObserver = sceneViewportResizeObserver;
@@ -177,9 +183,12 @@ export class SceneViewRuntime {
   }
 
   isRenderable(): boolean {
+    const location = this.#viewLocationSource.getLocationByViewActorId(this.#sceneViewActorId);
     return !this.#disposed &&
-      this.sceneWindow.window.state.visible &&
-      this.#context.actorSystem.hasActor(this.sceneWindow.actor) &&
+      location !== null &&
+      location.ownerFrameVisible &&
+      location.ownerFrameActiveInHierarchy &&
+      location.visibleInFrame &&
       this.#context.actorSystem.hasActor(this.sceneWindow.viewport.actor) &&
       this.#context.actorSystem.isActorActive(this.sceneWindow.viewport.actor);
   }
@@ -190,6 +199,13 @@ export class SceneViewRuntime {
   }
 
   dispose(options: SceneViewRuntimeDisposeOptions = {}): void {
+    this.disposeRuntimeResources();
+    if (options.destroyActorTree !== false) {
+      this.sceneWindow.dispose();
+    }
+  }
+
+  disposeRuntimeResources(): void {
     if (this.#disposed) return;
     this.#disposed = true;
     this.#sceneViewportResizeObserver?.dispose();
@@ -199,9 +215,6 @@ export class SceneViewRuntime {
     this.#motionRegistration?.dispose();
     this.#motionRegistration = null;
     this.camera3Motion.dispose();
-    if (options.destroyActorTree !== false) {
-      this.sceneWindow.dispose();
-    }
   }
 }
 

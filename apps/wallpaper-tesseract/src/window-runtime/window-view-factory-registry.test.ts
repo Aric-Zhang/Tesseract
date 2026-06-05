@@ -54,16 +54,34 @@ describe("WindowViewFactoryRegistry", () => {
 function createFramePort(frameId: string): WindowFramePort {
   return {
     frameId,
+    visiblePath: `${frameId}.visible` as WindowFramePort["visiblePath"],
+    visible: true,
+    presentation: "windowed",
     listTabs: () => [],
+    getRuntimeDockRoot: () => ({
+      kind: "tabset",
+      id: "frame-tabset:empty",
+      tabs: [],
+      activeViewActorId: null
+    }),
+    restoreRuntimeDockRoot() {},
+    listDockTargetTabsets: () => [],
     getActiveViewActorId: () => null,
+    isViewActiveInFrame: () => false,
+    isViewVisibleInFrame: () => false,
     addTab() {},
+    splitTab() {},
     removeTab() {},
     activateTab() {},
     hasTab: () => false,
+    hasTabset: () => false,
     getContentHost() {
       throw new Error("not used");
     },
-    getFloatingBounds: () => ({ left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 })
+    getFloatingBounds: () => ({ left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 }),
+    restoreFloatingState() {},
+    setPresentation() {},
+    requestVisible() {}
   };
 }
 

@@ -2,7 +2,6 @@ import * as THREE from "three";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import type { RuntimeRegistration } from "../../../scene-runtime";
 import type {
-  FloatingWindowComponent,
   WindowContentAttachment,
   WindowContentHost,
   WindowContentRehostable
@@ -63,12 +62,12 @@ export class SceneViewportComponent implements Component, WindowContentRehostabl
 
   constructor(
     actor: Actor,
-    floatingWindow: FloatingWindowComponent,
+    host: WindowContentHost,
     options: SceneViewportComponentOptions = {}
   ) {
     this.actor = actor;
     this.id = options.id ?? "scene-viewport";
-    const documentRef = resolveDocument(floatingWindow, options);
+    const documentRef = resolveDocument(options);
     this.#devicePixelRatio = options.devicePixelRatio ?? (() => (
       typeof window === "undefined" ? 1 : window.devicePixelRatio
     ));
@@ -82,7 +81,7 @@ export class SceneViewportComponent implements Component, WindowContentRehostabl
     this.overlayElement.className = "scene-window__overlay";
     this.canvasHostElement.append(this.renderer.domElement);
     this.viewportElement.append(this.canvasHostElement, this.overlayElement);
-    this.#attachment = floatingWindow.mountContent(this.viewportElement);
+    this.#attachment = host.mountContent(this.viewportElement);
     this.#resizeObserver = createResizeObserver(options.createResizeObserver, () => this.measureNow());
     this.#resizeObserver?.observe(this.viewportElement);
     this.measureNow();
@@ -162,10 +161,7 @@ function createResizeObserver(
   return new ResizeObserver(callback);
 }
 
-function resolveDocument(
-  _window: FloatingWindowComponent,
-  options: SceneViewportComponentOptions
-): Pick<Document, "createElement"> {
+function resolveDocument(options: SceneViewportComponentOptions): Pick<Document, "createElement"> {
   if (options.document) return options.document;
   if (typeof document !== "undefined") return document;
   throw new Error("SceneViewportComponent requires a document.");

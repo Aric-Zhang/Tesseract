@@ -1,6 +1,6 @@
 import type { ScreenPoint } from "gizmo-core";
-import type { DockTargetFrameSource } from "./dock-target-frame-source";
-import type { WindowDockPreview, WindowDockTargetFrame } from "./window-dock-targets";
+import type { DockTargetRegionSource } from "./dock-target-frame-source";
+import type { WindowDockPreview, WindowDockTargetRegion } from "./window-dock-targets";
 import { WindowTabDragSession } from "./window-tab-drag-session";
 import type {
   WindowTabDragSessionEndResult,
@@ -28,7 +28,7 @@ export interface WindowDockPreviewComponentOptions {
 }
 
 export interface WindowDockPreviewControllerOptions extends WindowDockPreviewComponentOptions {
-  readonly source: DockTargetFrameSource;
+  readonly source: DockTargetRegionSource;
 }
 
 export class WindowDockPreviewComponent {
@@ -74,7 +74,7 @@ export class WindowDockPreviewComponent {
 }
 
 export class WindowDockPreviewController implements WindowTabDragSink {
-  readonly #source: DockTargetFrameSource;
+  readonly #source: DockTargetRegionSource;
   readonly #session = new WindowTabDragSession();
   readonly #previewComponent: WindowDockPreviewComponent;
   #lastCompletedDrag: WindowTabDragSessionEndResult | null = null;
@@ -104,7 +104,7 @@ export class WindowDockPreviewController implements WindowTabDragSink {
   }
 
   moveTabDrag(point: ScreenPoint): void {
-    const result = this.#session.move(point, this.listTargetFrames());
+    const result = this.#session.move(point, this.listTargetRegions());
     if (result.preview) {
       this.#previewComponent.show(result.preview);
     } else {
@@ -130,7 +130,7 @@ export class WindowDockPreviewController implements WindowTabDragSink {
     this.#previewComponent.dispose();
   }
 
-  private listTargetFrames(): readonly WindowDockTargetFrame[] {
-    return this.#source.listDockTargetFrames();
+  private listTargetRegions(): readonly WindowDockTargetRegion[] {
+    return this.#source.listDockTargetRegions();
   }
 }

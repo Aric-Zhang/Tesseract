@@ -1,0 +1,303 @@
+{
+  "url": "http://127.0.0.1:5195/",
+  "mergeState": {
+    "tabs": [
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab",
+        "rect": {
+          "height": 24,
+          "left": 24.80000114440918,
+          "top": 447.3999938964844,
+          "width": 150
+        },
+        "text": "Debug Log"
+      },
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "height": 24,
+          "left": 180.8000030517578,
+          "top": 447.3999938964844,
+          "width": 150
+        },
+        "text": "Scene"
+      },
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "height": 24,
+          "left": 24.80000114440918,
+          "top": 17.399999618530273,
+          "width": 150
+        },
+        "text": "Hierarchy"
+      }
+    ],
+    "windows": [
+      {
+        "cls": "floating-gizmo-window debug-log-window",
+        "hidden": false,
+        "rect": {
+          "height": 240,
+          "left": 14,
+          "top": 444,
+          "width": 565.6000366210938
+        },
+        "text": "Debug LogScenex68349 pointerdown pid=1 type=mouse button=0 buttons=1 xy=180,148 68349 hit gizmo=hierarchy-panel:view:gizmo-event-binding par"
+      },
+      {
+        "cls": "floating-gizmo-window hierarchy-window",
+        "hidden": false,
+        "rect": {
+          "height": 360,
+          "left": 14,
+          "top": 14,
+          "width": 280
+        },
+        "text": "HierarchyxDebug Log WindowScene ViewTesseract4Camera3Debug Log ViewHierarchy PanelHierarchy ViewApp Menu"
+      }
+    ],
+    "z": [
+      {
+        "cls": "floating-gizmo-window debug-log-window",
+        "z": "2001"
+      },
+      {
+        "cls": "floating-gizmo-window hierarchy-window",
+        "z": "2000"
+      }
+    ]
+  },
+  "splitReloadState": {
+    "cameraOverlay": {
+      "height": 150,
+      "left": -47.212501525878906,
+      "top": 96.4000015258789,
+      "width": 132
+    },
+    "canvas": {
+      "height": 298,
+      "left": 15.600000381469727,
+      "top": 74.4000015258789,
+      "width": 91.1875
+    },
+    "splitters": [
+      {
+        "height": 328.3999938964844,
+        "left": 107.5875015258789,
+        "top": 44.79999923706055,
+        "width": 7
+      }
+    ],
+    "tabs": [
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "height": 24,
+          "left": 24.80000114440918,
+          "top": 447.3999938964844,
+          "width": 150
+        },
+        "text": "Debug Log"
+      },
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "height": 24,
+          "left": 21.600000381469727,
+          "top": 47.60000228881836,
+          "width": 49.1875
+        },
+        "text": "Scene"
+      },
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "height": 24,
+          "left": 121.38750457763672,
+          "top": 47.60000228881836,
+          "width": 135.0124969482422
+        },
+        "text": "Hierarchy"
+      }
+    ],
+    "windows": [
+      {
+        "cls": "floating-gizmo-window debug-log-window",
+        "hidden": false,
+        "rect": {
+          "height": 240,
+          "left": 14,
+          "top": 444,
+          "width": 565.6000366210938
+        },
+        "text": "Debug LogxGizmo debug log enabled"
+      },
+      {
+        "cls": "floating-gizmo-window scene-window",
+        "hidden": false,
+        "rect": {
+          "height": 360,
+          "left": 14,
+          "top": 14,
+          "width": 280
+        },
+        "text": "xScene< PerspHierarchySceneScene ViewTesseract4Camera3Hierarchy ViewDebug Log WindowDebug Log ViewApp Menu"
+      }
+    ]
+  },
+  "fullscreenState": {
+    "cameraOverlay": {
+      "height": 150,
+      "left": 439.6000061035156,
+      "top": 22,
+      "width": 132
+    },
+    "canvas": {
+      "height": 697.6000366210938,
+      "left": 0,
+      "top": 0,
+      "width": 593.6000366210938
+    },
+    "restoreButton": {
+      "aria": "Shrink Scene to window",
+      "height": 40,
+      "left": 531.6000366210938,
+      "top": 188,
+      "width": 40
+    },
+    "splitters": 0,
+    "tabs": [
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "text": "Debug Log"
+      },
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "text": "Hierarchy"
+      },
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "text": "Scene"
+      }
+    ],
+    "windows": [
+      {
+        "cls": "floating-gizmo-window debug-log-window",
+        "hidden": true,
+        "rect": {
+          "height": 0,
+          "left": 0,
+          "top": 0,
+          "width": 0
+        },
+        "text": "Debug Logx43211 pointerdown pid=1 type=mouse button=0 buttons=1 xy=65,282 43211 hit gizmo=scene-window:view:gizmo-event-binding part=scene-mode-toggle pid=1 typ"
+      },
+      {
+        "cls": "floating-gizmo-window scene-window",
+        "hidden": false,
+        "rect": {
+          "height": 360,
+          "left": 14,
+          "top": 14,
+          "width": 280
+        },
+        "text": "HierarchyxSceneHierarchy ViewDebug Log WindowDebug Log ViewApp MenuScene WindowScene ViewTesseract4Camera3"
+      },
+      {
+        "cls": "floating-gizmo-window scene-window floating-gizmo-window--fullscreen",
+        "hidden": false,
+        "rect": {
+          "height": 697.6000366210938,
+          "left": 0,
+          "top": 0,
+          "width": 593.6000366210938
+        },
+        "text": "Scenex< Persp"
+      }
+    ]
+  },
+  "restoreState": {
+    "cameraOverlay": {
+      "height": 150,
+      "left": -47.212501525878906,
+      "top": 96.4000015258789,
+      "width": 132
+    },
+    "canvas": {
+      "height": 298,
+      "left": 15.600000381469727,
+      "top": 74.4000015258789,
+      "width": 91.1875
+    },
+    "splitters": [
+      {
+        "height": 328.3999938964844,
+        "left": 107.5875015258789,
+        "top": 44.79999923706055,
+        "width": 7
+      }
+    ],
+    "tabs": [
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "height": 24,
+          "left": 24.80000114440918,
+          "top": 447.3999938964844,
+          "width": 150
+        },
+        "text": "Debug Log"
+      },
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "height": 24,
+          "left": 21.600000381469727,
+          "top": 47.60000228881836,
+          "width": 49.1875
+        },
+        "text": "Scene"
+      },
+      {
+        "cls": "floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "height": 24,
+          "left": 121.38750457763672,
+          "top": 47.60000228881836,
+          "width": 135.0124969482422
+        },
+        "text": "Hierarchy"
+      }
+    ],
+    "windows": [
+      {
+        "cls": "floating-gizmo-window debug-log-window",
+        "hidden": false,
+        "rect": {
+          "height": 240,
+          "left": 14,
+          "top": 444,
+          "width": 565.6000366210938
+        },
+        "text": "Debug Logx43211 pointerdown pid=1 type=mouse button=0 buttons=1 xy=65,282 43211 hit gizmo=scene-window:view:gizmo-event-binding part=scene-mode-toggle pid=1 type=mouse button=0 buttons=1 xy=65,282 cap"
+      },
+      {
+        "cls": "floating-gizmo-window scene-window",
+        "hidden": false,
+        "rect": {
+          "height": 360,
+          "left": 14,
+          "top": 14,
+          "width": 280
+        },
+        "text": "xScene< PerspHierarchySceneScene ViewTesseract4Camera3Hierarchy ViewDebug Log WindowDebug Log ViewApp Menu"
+      }
+    ]
+  },
+  "consoleErrors": [],
+  "notes": {
+    "localStorageReadableFromEvaluate": false,
+    "persistenceEvidence": "layout survived full page reload after merge and after split on the same dev origin"
+  }
+}

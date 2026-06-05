@@ -13,6 +13,7 @@ import {
   removeWindowFromLayout,
   restoreViewAsSingleTabFrame,
   setActiveDockTab,
+  splitDockViewInFrameLayout,
   splitDockTab,
   undockWindow,
   type WindowFrameSplitNode,
@@ -531,5 +532,181 @@ describe("WindowWorkspaceFrameLayout", () => {
         { viewKey: "debug", actorId: "debug-view-actor-2" }
       ]
     })).toThrow(/Duplicate window view key/);
+  });
+
+  it("splits a source view into the left or right side of a target frame", () => {
+    const layout = createFrameSubject();
+    const targetTabsetId = expectFrameTabset(layout.frames[2]?.root).id;
+
+    const left = splitDockViewInFrameLayout(layout, {
+      sourceViewActorId: "debug-view-actor",
+      targetFrameId: "frame:hierarchy",
+      targetTabsetId,
+      placement: "left"
+    });
+    const right = splitDockViewInFrameLayout(layout, {
+      sourceViewActorId: "debug-view-actor",
+      targetFrameId: "frame:hierarchy",
+      targetTabsetId,
+      placement: "right"
+    });
+
+    expect(left.committed).toBe(true);
+    expect(right.committed).toBe(true);
+    if (!left.committed || !right.committed) return;
+
+    const leftTarget = left.layout.frames.find((frame) => frame.frameId === "frame:hierarchy");
+    const leftSplit = expectFrameSplit(leftTarget?.root);
+    expectValidFrameLayout(left.layout);
+    expect(left.emptySourceFrameId).toBe("frame:debug");
+    expect(leftSplit.direction).toBe("horizontal");
+    expect(leftSplit.ratio).toBe(0.34);
+    expect(expectFrameTabset(leftSplit.first).tabs).toEqual(["debug"]);
+    expect(expectFrameTabset(leftSplit.second).tabs).toEqual(["hierarchy"]);
+
+    const rightTarget = right.layout.frames.find((frame) => frame.frameId === "frame:hierarchy");
+    const rightSplit = expectFrameSplit(rightTarget?.root);
+    expectValidFrameLayout(right.layout);
+    expect(right.emptySourceFrameId).toBe("frame:debug");
+    expect(rightSplit.direction).toBe("horizontal");
+    expect(rightSplit.ratio).toBeCloseTo(0.66);
+    expect(expectFrameTabset(rightSplit.first).tabs).toEqual(["hierarchy"]);
+    expect(expectFrameTabset(rightSplit.second).tabs).toEqual(["debug"]);
+  });
+
+  it("splits a source view into the top or bottom side of a target frame", () => {
+    const layout = createFrameSubject();
+    const targetTabsetId = expectFrameTabset(layout.frames[2]?.root).id;
+
+    const top = splitDockViewInFrameLayout(layout, {
+      sourceViewActorId: "debug-view-actor",
+      targetFrameId: "frame:hierarchy",
+      targetTabsetId,
+      placement: "top"
+    });
+    const bottom = splitDockViewInFrameLayout(layout, {
+      sourceViewActorId: "debug-view-actor",
+      targetFrameId: "frame:hierarchy",
+      targetTabsetId,
+      placement: "bottom"
+    });
+
+    expect(top.committed).toBe(true);
+    expect(bottom.committed).toBe(true);
+    if (!top.committed || !bottom.committed) return;
+
+    const topSplit = expectFrameSplit(top.layout.frames.find((frame) => frame.frameId === "frame:hierarchy")?.root);
+    expectValidFrameLayout(top.layout);
+    expect(topSplit.direction).toBe("vertical");
+    expect(topSplit.ratio).toBe(0.34);
+    expect(expectFrameTabset(topSplit.first).tabs).toEqual(["debug"]);
+    expect(expectFrameTabset(topSplit.second).tabs).toEqual(["hierarchy"]);
+
+    const bottomSplit = expectFrameSplit(bottom.layout.frames.find((frame) => frame.frameId === "frame:hierarchy")?.root);
+    expectValidFrameLayout(bottom.layout);
+    expect(bottomSplit.direction).toBe("vertical");
+    expect(bottomSplit.ratio).toBeCloseTo(0.66);
+    expect(expectFrameTabset(bottomSplit.first).tabs).toEqual(["hierarchy"]);
+    expect(expectFrameTabset(bottomSplit.second).tabs).toEqual(["debug"]);
+  });
+
+  it("splits one tab out of an existing frame tabset without actor mutation", () => {
+    const raw = createWindowWorkspaceFrameLayout({
+      views: [
+        { viewKey: "debug", actorId: "debug-view-actor" },
+        { viewKey: "hierarchy", actorId: "hierarchy-view-actor" }
+      ],
+      frames: [{
+        frameId: "frame:tools",
+        bounds: { position: { x: 0, y: 0 }, size: { x: 100, y: 100 }, visible: true },
+        presentation: "windowed",
+        root: {
+          kind: "tabset",
+          id: "persisted-tools",
+          tabs: ["debug", "hierarchy"],
+          activeTabId: "hierarchy"
+        }
+      }]
+    });
+    const tabsetId = expectFrameTabset(raw.frames[0]?.root).id;
+
+    const result = splitDockViewInFrameLayout(raw, {
+      sourceViewActorId: "debug-view-actor",
+      targetFrameId: "frame:tools",
+      targetTabsetId: tabsetId,
+      placement: "left"
+    });
+
+    expect(result.committed).toBe(true);
+    if (!result.committed) return;
+    const split = expectFrameSplit(result.layout.frames[0]?.root);
+    expectValidFrameLayout(result.layout);
+    expect(result.emptySourceFrameId).toBeNull();
+    expect(expectFrameTabset(split.first).tabs).toEqual(["debug"]);
+    expect(expectFrameTabset(split.second).tabs).toEqual(["hierarchy"]);
+    expect(expectFrameTabset(split.second).activeTabId).toBe("hierarchy");
+  });
+
+  it("returns unchanged layout for invalid split commits", () => {
+    const layout = createFrameSubject();
+    const targetTabsetId = expectFrameTabset(layout.frames[2]?.root).id;
+
+    const unknownSource = splitDockViewInFrameLayout(layout, {
+      sourceViewActorId: "missing-view-actor",
+      targetFrameId: "frame:hierarchy",
+      targetTabsetId,
+      placement: "left"
+    });
+    const missingTarget = splitDockViewInFrameLayout(layout, {
+      sourceViewActorId: "debug-view-actor",
+      targetFrameId: "missing-frame",
+      targetTabsetId,
+      placement: "left"
+    });
+    const missingTabset = splitDockViewInFrameLayout(layout, {
+      sourceViewActorId: "debug-view-actor",
+      targetFrameId: "frame:hierarchy",
+      targetTabsetId: "missing-tabset",
+      placement: "left"
+    });
+
+    expect(unknownSource).toEqual({
+      committed: false,
+      layout,
+      reason: "source view is not live"
+    });
+    expect(missingTarget).toEqual({
+      committed: false,
+      layout,
+      reason: "target frame is missing"
+    });
+    expect(missingTabset).toEqual({
+      committed: false,
+      layout,
+      reason: "target tabset is missing"
+    });
+  });
+
+  it("rejects non-dockable views in split commits", () => {
+    const layout = createWindowWorkspaceFrameLayout({
+      views: [
+        { viewKey: "scene", actorId: "scene-view-actor", canDock: false },
+        { viewKey: "debug", actorId: "debug-view-actor" }
+      ]
+    });
+    const targetTabsetId = expectFrameTabset(layout.frames[1]?.root).id;
+
+    const result = splitDockViewInFrameLayout(layout, {
+      sourceViewActorId: "scene-view-actor",
+      targetFrameId: "frame:debug",
+      targetTabsetId,
+      placement: "left"
+    });
+
+    expect(result).toEqual({
+      committed: false,
+      layout,
+      reason: "source view cannot be docked"
+    });
   });
 });

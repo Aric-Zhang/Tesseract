@@ -15,6 +15,7 @@ import type {
   SceneStateObserverRegistry
 } from "../runtime/ports";
 import { CurrentSceneViewSource, SceneViewRuntime } from "./scene-view-runtime";
+import type { WindowViewLocationSource } from "../window-runtime";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -186,6 +187,7 @@ function createRegistration(dispose: () => void): RuntimeRegistration {
 interface CreateSubjectOptions {
   readonly actorIds?: Partial<ConstructorParameters<typeof SceneViewRuntime>[0]["actorIds"]>;
   readonly createCamera3Gizmo?: Camera3GizmoViewFactory;
+  readonly viewLocationSource?: WindowViewLocationSource;
 }
 
 function createSubject(options: CreateSubjectOptions = {}) {
@@ -196,6 +198,8 @@ function createSubject(options: CreateSubjectOptions = {}) {
   const resizeObserverCalls: string[] = [];
   const resizeCallbacks: Array<() => void> = [];
   const { runtimeContext } = createRuntimeContext(calls);
+  const sceneWindowActorId = options.actorIds?.sceneWindowActorId ?? "scene-window";
+  const sceneViewActorId = `${sceneWindowActorId}:view`;
   const runtime = new SceneViewRuntime({
     context: runtimeContext,
     mount: mount as unknown as HTMLElement,
@@ -222,7 +226,12 @@ function createSubject(options: CreateSubjectOptions = {}) {
         }
       };
     },
-    devicePixelRatio: () => 2
+    devicePixelRatio: () => 2,
+    viewLocationSource: options.viewLocationSource ?? createSceneLocationSource(
+      runtimeContext,
+      sceneWindowActorId,
+      sceneViewActorId
+    )
   });
   return {
     calls,
@@ -233,6 +242,61 @@ function createSubject(options: CreateSubjectOptions = {}) {
     resizeObserverCalls,
     runtime,
     runtimeContext
+  };
+}
+
+function createSceneLocationSource(
+  context: AppRuntimeContext,
+  ownerFrameActorId: string,
+  viewActorId: string,
+  options: {
+    readonly ownerFrameVisible?: boolean;
+    readonly activeInFrame?: boolean;
+    readonly visibleInFrame?: boolean;
+  } = {}
+): WindowViewLocationSource {
+  return {
+    getLocationByViewKey: (viewKey) => (
+      viewKey === "scene"
+        ? thisLocation(context, ownerFrameActorId, viewActorId, options)
+        : null
+    ),
+    getLocationByViewActorId: (candidateViewActorId) => (
+      candidateViewActorId === viewActorId
+        ? thisLocation(context, ownerFrameActorId, viewActorId, options)
+        : null
+    ),
+    listLocations: () => {
+      const location = thisLocation(context, ownerFrameActorId, viewActorId, options);
+      return location ? [location] : [];
+    }
+  };
+}
+
+function thisLocation(
+  context: AppRuntimeContext,
+  ownerFrameActorId: string,
+  viewActorId: string,
+  options: {
+    readonly ownerFrameVisible?: boolean;
+    readonly activeInFrame?: boolean;
+    readonly visibleInFrame?: boolean;
+  }
+): ReturnType<WindowViewLocationSource["getLocationByViewActorId"]> {
+  const ownerFrame = context.actorSystem.getActor(ownerFrameActorId);
+  if (!ownerFrame || !context.actorSystem.getActor(viewActorId)) return null;
+  const ownerFrameVisible = options.ownerFrameVisible ?? true;
+  const activeInFrame = options.activeInFrame ?? true;
+  return {
+    viewKey: "scene",
+    viewActorId,
+    ownerFrameActorId,
+    ownerFrameVisiblePath: `${ownerFrameActorId}.visible` as never,
+    ownerFrameVisible,
+    ownerFrameActiveInHierarchy: context.actorSystem.isActorActive(ownerFrame),
+    activeInFrame,
+    visibleInFrame: options.visibleInFrame ?? (ownerFrameVisible && activeInFrame),
+    presentation: "windowed"
   };
 }
 
@@ -281,6 +345,93 @@ describe("SceneViewRuntime", () => {
     subject.runtimeContext.dispose();
   });
 
+  it("renders through the current owner after the original Scene frame is destroyed", () => {
+    let subjectContext!: AppRuntimeContext;
+    let ownerFrameActorId = "scene-window";
+    const subject = createSubject({
+      viewLocationSource: {
+        getLocationByViewKey: (viewKey) => (
+          viewKey === "scene"
+            ? thisLocation(subjectContext, ownerFrameActorId, "scene-window:view", {})
+            : null
+        ),
+        getLocationByViewActorId: (viewActorId) => (
+          viewActorId === "scene-window:view"
+            ? thisLocation(subjectContext, ownerFrameActorId, "scene-window:view", {})
+            : null
+        ),
+        listLocations: () => {
+          const location = thisLocation(subjectContext, ownerFrameActorId, "scene-window:view", {});
+          return location ? [location] : [];
+        }
+      }
+    });
+    subjectContext = subject.runtimeContext;
+    const newOwner = subject.runtimeContext.actorSystem.createActor({ id: "debug-frame" });
+    subject.runtimeContext.actorSystem.setParent(subject.runtime.sceneWindow.viewport.actor, newOwner);
+    subject.runtimeContext.actorSystem.destroyActor(subject.runtime.sceneWindow.actor);
+    ownerFrameActorId = "debug-frame";
+
+    subject.runtime.render();
+
+    expect(subject.runtimeContext.actorSystem.getActor("scene-window")).toBeNull();
+    expect(subject.runtimeContext.actorSystem.getActor("scene-window:view")).toBeTruthy();
+    expect(subject.rendererCalls).toContain("render");
+
+    subject.runtime.dispose({ destroyActorTree: false });
+    subject.runtimeContext.actorSystem.destroyActor(newOwner);
+    subject.runtimeContext.dispose();
+  });
+
+  it("does not render while the Scene view is hidden in its current frame", () => {
+    let activeInFrame = false;
+    const document = new FakeDocument();
+    const mount = document.createElement("div");
+    const calls: string[] = [];
+    const rendererCalls: string[] = [];
+    const { runtimeContext } = createRuntimeContext(calls);
+    const runtime = new SceneViewRuntime({
+      context: runtimeContext,
+      mount: mount as unknown as HTMLElement,
+      initialState: createDefaultSceneWindowState({ viewportWidth: 800, viewportHeight: 600 }),
+      actorIds: {
+        sceneWindowActorId: "scene-window",
+        sceneWindowActorName: "Scene",
+        camera3GizmoActorId: "camera-3",
+        camera3GizmoActorName: "Camera3",
+        tesseract4ActorId: "tesseract-4",
+        tesseract4ActorName: "Tesseract4"
+      },
+      createRenderer: () => createFakeRenderer(document, rendererCalls),
+      createCamera3Gizmo: createFakeCamera3Gizmo(document, calls),
+      viewLocationSource: {
+        getLocationByViewKey: (viewKey) => (
+          viewKey === "scene"
+            ? thisLocation(runtimeContext, "scene-window", "scene-window:view", { activeInFrame })
+            : null
+        ),
+        getLocationByViewActorId: (viewActorId) => (
+          viewActorId === "scene-window:view"
+            ? thisLocation(runtimeContext, "scene-window", "scene-window:view", { activeInFrame })
+            : null
+        ),
+        listLocations: () => {
+          const location = thisLocation(runtimeContext, "scene-window", "scene-window:view", { activeInFrame });
+          return location ? [location] : [];
+        }
+      }
+    });
+
+    runtime.render();
+    activeInFrame = true;
+    runtime.render();
+
+    expect(rendererCalls.filter((call) => call === "render")).toHaveLength(1);
+
+    runtime.dispose();
+    runtimeContext.dispose();
+  });
+
   it("allows the same scene actor ids to be recreated after dispose", () => {
     const first = createSubject();
     first.runtime.dispose();
@@ -325,7 +476,8 @@ describe("SceneViewRuntime", () => {
         disconnect(): void {
           resizeObserverCalls.push("disconnect");
         }
-      })
+      }),
+      viewLocationSource: createSceneLocationSource(runtimeContext, "scene-window", "scene-window:view")
     })).toThrow(/camera3 failed/);
 
     expect(runtimeContext.actorSystem.getActor("scene-window")).toBeNull();
@@ -360,7 +512,8 @@ describe("SceneViewRuntime", () => {
         tesseract4ActorName: "Tesseract4"
       },
       createRenderer: () => createFakeRenderer(document, rendererCalls),
-      createCamera3Gizmo: createFakeCamera3Gizmo(document, calls)
+      createCamera3Gizmo: createFakeCamera3Gizmo(document, calls),
+      viewLocationSource: createSceneLocationSource(runtimeContext, "scene-window", "scene-window:view")
     })).toThrow(/already exists|already registered/i);
 
     expect(runtimeContext.actorSystem.getActor("scene-window")).toBeNull();

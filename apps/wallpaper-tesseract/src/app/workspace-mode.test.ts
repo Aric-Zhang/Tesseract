@@ -8,14 +8,15 @@ import {
   type SceneStateChangedEvent,
   type SceneUpdateCommand
 } from "../scene-runtime";
-import type { FloatingWindowComponent } from "../window-runtime";
 import {
   registerWorkspaceModeParameters,
   WORKSPACE_MODE_COMMAND_PRIORITY,
   WORKSPACE_MODE_SOURCE,
   WorkspaceModeController,
+  type WorkspaceSceneViewPort,
   type WorkspaceMode
 } from "./workspace-mode";
+import type { WindowFramePresentation, WindowViewLocation } from "../window-runtime";
 
 function createChangedEvent(changes: SceneStateChangedEvent["changes"]): SceneStateChangedEvent {
   return {
@@ -24,15 +25,84 @@ function createChangedEvent(changes: SceneStateChangedEvent["changes"]): SceneSt
   };
 }
 
-function createWindow() {
+function createSceneViewPort(options: {
+  readonly visiblePath?: ParameterPath<boolean>;
+  readonly ownerFrameActorId?: string;
+  readonly viewActorId?: string;
+  readonly live?: boolean;
+} = {}) {
   const presentations: string[] = [];
-  const window = {
-    visiblePath: sceneParameterPaths.sceneWindow.visible,
-    setPresentation(presentation: string): void {
-      presentations.push(presentation);
+  const activations: string[] = [];
+  const opens: string[] = [];
+  const presentationCalls: string[] = [];
+  const rawOwnerPresentationCalls: string[] = [];
+  const viewActorId = options.viewActorId ?? "scene-view";
+  const location = (): WindowViewLocation | null => options.live === false
+    ? null
+    : {
+        viewKey: "scene",
+        viewActorId,
+        ownerFrameActorId: options.ownerFrameActorId ?? "scene-frame",
+        ownerFrameVisiblePath: options.visiblePath ?? sceneParameterPaths.sceneWindow.visible,
+        ownerFrameVisible: true,
+        ownerFrameActiveInHierarchy: true,
+        activeInFrame: true,
+        visibleInFrame: true,
+        presentation: (presentations.at(-1)?.split(":").at(-1) as WindowFramePresentation | undefined) ?? "windowed"
+      };
+  const sceneView: WorkspaceSceneViewPort = {
+    viewKey: "scene",
+    locations: {
+      getLocationByViewKey: (viewKey) => viewKey === "scene" ? location() : null,
+      getLocationByViewActorId: (candidateViewActorId) => candidateViewActorId === viewActorId ? location() : null,
+      listLocations: () => {
+        const current = location();
+        return current ? [current] : [];
+      }
+    },
+    commands: {
+      activateView(candidateViewActorId, reason): void {
+        activations.push(`activate:${candidateViewActorId}:${reason}`);
+      },
+      focusOwner(candidateViewActorId, reason): void {
+        activations.push(`focus:${candidateViewActorId}:${reason}`);
+      },
+      setOwnerPresentation(candidateViewActorId, presentation): void {
+        rawOwnerPresentationCalls.push(`${candidateViewActorId}:${presentation}`);
+        presentations.push(`${candidateViewActorId}:${presentation}`);
+      },
+      requestOwnerVisible(candidateViewActorId, visible): void {
+        activations.push(`visible:${candidateViewActorId}:${visible}`);
+      }
+    },
+    presentation: {
+      enterViewFullscreen(candidateViewActorId, reason): void {
+        presentationCalls.push(`enter:${candidateViewActorId}:${reason}`);
+        presentations.push(`${candidateViewActorId}:fullscreen`);
+      },
+      exitViewFullscreen(candidateViewActorId, reason): void {
+        presentationCalls.push(`exit:${candidateViewActorId}:${reason}`);
+        presentations.push(`${candidateViewActorId}:windowed`);
+      },
+      getViewFullscreenSession: () => null,
+      isViewFullscreenIsolated: () => false
+    },
+    open(reason): void {
+      opens.push(`open:${reason}`);
     }
-  } as unknown as FloatingWindowComponent;
-  return { presentations, window };
+  };
+  return {
+    activations,
+    opens,
+    presentationCalls,
+    rawOwnerPresentationCalls,
+    presentations,
+    sceneView
+  };
+}
+
+function presentationValues(presentations: readonly string[]): readonly string[] {
+  return presentations.map((entry) => entry.split(":").at(-1) ?? entry);
 }
 
 describe("workspace mode parameters", () => {
@@ -81,12 +151,12 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.hierarchyWindow.visible, false]
     ]);
     const commands: SceneUpdateCommand[] = [];
-    const { presentations, window } = createWindow();
+    const { presentations, sceneView } = createSceneViewPort();
     const presentationMeasurements: string[] = [];
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
-      getSceneWindow: () => window,
+      sceneView,
       toolWindows: [
         { id: "debug", paths: sceneParameterPaths.debugWindow },
         { id: "hierarchy", paths: sceneParameterPaths.hierarchyWindow }
@@ -103,7 +173,7 @@ describe("WorkspaceModeController", () => {
       commands: []
     }]));
 
-    expect(presentations).toEqual(["windowed", "fullscreen"]);
+    expect(presentationValues(presentations)).toEqual(["windowed", "fullscreen"]);
     expect(presentationMeasurements).toEqual(["measure", "measure"]);
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
@@ -143,7 +213,7 @@ describe("WorkspaceModeController", () => {
       commands: []
     }]));
 
-    expect(presentations).toEqual(["windowed", "fullscreen", "windowed"]);
+    expect(presentationValues(presentations)).toEqual(["windowed", "fullscreen", "windowed"]);
     expect(commands).toEqual([
       {
         source: WORKSPACE_MODE_SOURCE,
@@ -171,11 +241,11 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.debugWindow.visible, true]
     ]);
     const commands: SceneUpdateCommand[] = [];
-    const { window } = createWindow();
+    const { sceneView } = createSceneViewPort();
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
-      getSceneWindow: () => window,
+      sceneView,
       toolWindows: [{ id: "debug", paths: sceneParameterPaths.debugWindow }]
     });
 
@@ -222,11 +292,11 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.sceneWindow.visible, false]
     ]);
     const commands: SceneUpdateCommand[] = [];
-    const { presentations, window } = createWindow();
+    const { presentations, sceneView } = createSceneViewPort();
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
-      getSceneWindow: () => window,
+      sceneView,
       toolWindows: []
     });
 
@@ -239,7 +309,7 @@ describe("WorkspaceModeController", () => {
       commands: []
     }]));
 
-    expect(presentations).toEqual(["windowed", "fullscreen"]);
+    expect(presentationValues(presentations)).toEqual(["windowed", "fullscreen"]);
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
       target: sceneParameterPaths.sceneWindow.visible,
@@ -260,7 +330,7 @@ describe("WorkspaceModeController", () => {
       commands: []
     }]));
 
-    expect(presentations).toEqual(["windowed", "fullscreen", "windowed"]);
+    expect(presentationValues(presentations)).toEqual(["windowed", "fullscreen", "windowed"]);
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
       target: sceneParameterPaths.sceneWindow.visible,
@@ -277,11 +347,11 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.sceneWindow.visible, true]
     ]);
     const commands: SceneUpdateCommand[] = [];
-    const { window } = createWindow();
+    const { sceneView } = createSceneViewPort();
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
-      getSceneWindow: () => window,
+      sceneView,
       toolWindows: []
     });
 
@@ -304,6 +374,195 @@ describe("WorkspaceModeController", () => {
     }]);
   });
 
+  it("does not hide the tool frame that currently owns the Scene view in run mode", () => {
+    const values = new Map<ParameterPath, unknown>([
+      [sceneParameterPaths.workspace.mode, "develop"],
+      [sceneParameterPaths.debugWindow.visible, true],
+      [sceneParameterPaths.hierarchyWindow.visible, true]
+    ]);
+    const commands: SceneUpdateCommand[] = [];
+    const { presentations, sceneView } = createSceneViewPort({
+      visiblePath: sceneParameterPaths.debugWindow.visible,
+      ownerFrameActorId: "debug-frame"
+    });
+    const controller = new WorkspaceModeController({
+      commandSink: { submit: (command) => commands.push(command) },
+      getValue: (path) => values.get(path) as never,
+      sceneView,
+      toolWindows: [
+        { id: "debug", paths: sceneParameterPaths.debugWindow },
+        { id: "hierarchy", paths: sceneParameterPaths.hierarchyWindow }
+      ]
+    });
+
+    values.set(sceneParameterPaths.workspace.mode, "run");
+    controller.onSceneStateChanged(createChangedEvent([{
+      path: sceneParameterPaths.workspace.mode,
+      previousValue: "develop",
+      nextValue: "run",
+      sources: [{ id: "shortcut", kind: "keyboard" }],
+      commands: []
+    }]));
+
+    expect(presentationValues(presentations)).toEqual(["windowed", "fullscreen"]);
+    expect(commands).toEqual([{
+      source: WORKSPACE_MODE_SOURCE,
+      target: sceneParameterPaths.hierarchyWindow.visible,
+      operation: "set",
+      value: false,
+      priority: WORKSPACE_MODE_COMMAND_PRIORITY,
+      timeStamp: undefined
+    }]);
+  });
+
+  it("hides the old Scene source frame after isolation moves fullscreen ownership to a runtime frame", () => {
+    const values = new Map<ParameterPath, unknown>([
+      [sceneParameterPaths.workspace.mode, "develop"],
+      [sceneParameterPaths.sceneWindow.visible, true],
+      [sceneParameterPaths.debugWindow.visible, true]
+    ]);
+    const commands: SceneUpdateCommand[] = [];
+    let isolated = false;
+    const sceneView: WorkspaceSceneViewPort = {
+      viewKey: "scene",
+      locations: {
+        getLocationByViewKey: (viewKey) => viewKey === "scene"
+          ? {
+              viewKey: "scene",
+              viewActorId: "scene-view",
+              ownerFrameActorId: isolated ? "floating-scene-view" : "scene-frame",
+              ownerFrameVisiblePath: isolated ? null : sceneParameterPaths.sceneWindow.visible,
+              ownerFrameVisible: true,
+              ownerFrameActiveInHierarchy: true,
+              activeInFrame: true,
+              visibleInFrame: true,
+              presentation: isolated ? "fullscreen" : "windowed"
+            }
+          : null,
+        getLocationByViewActorId: () => null,
+        listLocations: () => []
+      },
+      commands: {
+        activateView: () => undefined,
+        focusOwner: () => undefined,
+        setOwnerPresentation: () => undefined,
+        requestOwnerVisible: () => undefined
+      },
+      presentation: {
+        enterViewFullscreen: () => {
+          isolated = true;
+        },
+        exitViewFullscreen: () => {
+          isolated = false;
+        },
+        getViewFullscreenSession: () => isolated
+          ? {
+              viewActorId: "scene-view",
+              viewKey: "scene",
+              mode: "isolated-frame",
+              fullscreenFrameId: "floating-scene-view"
+            }
+          : null,
+        isViewFullscreenIsolated: () => isolated
+      },
+      open: () => undefined
+    };
+    const controller = new WorkspaceModeController({
+      commandSink: { submit: (command) => commands.push(command) },
+      getValue: (path) => values.get(path) as never,
+      sceneView,
+      toolWindows: [
+        { id: "debug", paths: sceneParameterPaths.debugWindow }
+      ]
+    });
+
+    values.set(sceneParameterPaths.workspace.mode, "run");
+    controller.onSceneStateChanged(createChangedEvent([{
+      path: sceneParameterPaths.workspace.mode,
+      previousValue: "develop",
+      nextValue: "run",
+      sources: [{ id: "shortcut", kind: "keyboard" }],
+      commands: []
+    }]));
+
+    expect(commands).toEqual([
+      {
+        source: WORKSPACE_MODE_SOURCE,
+        target: sceneParameterPaths.sceneWindow.visible,
+        operation: "set",
+        value: false,
+        priority: WORKSPACE_MODE_COMMAND_PRIORITY,
+        timeStamp: undefined
+      },
+      {
+        source: WORKSPACE_MODE_SOURCE,
+        target: sceneParameterPaths.debugWindow.visible,
+        operation: "set",
+        value: false,
+        priority: WORKSPACE_MODE_COMMAND_PRIORITY,
+        timeStamp: undefined
+      }
+    ]);
+
+    commands.length = 0;
+    values.set(sceneParameterPaths.sceneWindow.visible, true);
+    controller.onSceneStateChanged(createChangedEvent([{
+      path: sceneParameterPaths.sceneWindow.visible,
+      previousValue: false,
+      nextValue: true,
+      sources: [{ id: "menu", kind: "gizmo" }],
+      commands: []
+    }]));
+
+    expect(commands).toEqual([{
+      source: WORKSPACE_MODE_SOURCE,
+      target: sceneParameterPaths.sceneWindow.visible,
+      operation: "set",
+      value: false,
+      priority: WORKSPACE_MODE_COMMAND_PRIORITY,
+      timeStamp: 100
+    }]);
+  });
+
+  it("uses the Scene view fullscreen presentation port instead of raw owner presentation", () => {
+    const values = new Map<ParameterPath, unknown>([
+      [sceneParameterPaths.workspace.mode, "develop"],
+      [sceneParameterPaths.sceneWindow.visible, true]
+    ]);
+    const commands: SceneUpdateCommand[] = [];
+    const { presentationCalls, rawOwnerPresentationCalls, sceneView } = createSceneViewPort();
+    const controller = new WorkspaceModeController({
+      commandSink: { submit: (command) => commands.push(command) },
+      getValue: (path) => values.get(path) as never,
+      sceneView,
+      toolWindows: []
+    });
+
+    values.set(sceneParameterPaths.workspace.mode, "run");
+    controller.onSceneStateChanged(createChangedEvent([{
+      path: sceneParameterPaths.workspace.mode,
+      previousValue: "develop",
+      nextValue: "run",
+      sources: [{ id: "shortcut", kind: "keyboard" }],
+      commands: []
+    }]));
+    values.set(sceneParameterPaths.workspace.mode, "develop");
+    controller.onSceneStateChanged(createChangedEvent([{
+      path: sceneParameterPaths.workspace.mode,
+      previousValue: "run",
+      nextValue: "develop",
+      sources: [{ id: "scene-mode-toggle", kind: "gizmo" }],
+      commands: []
+    }]));
+
+    expect(presentationCalls).toEqual([
+      "exit:scene-view:programmatic",
+      "enter:scene-view:programmatic",
+      "exit:scene-view:programmatic"
+    ]);
+    expect(rawOwnerPresentationCalls).toEqual([]);
+  });
+
   it("allows workspace mode changes while the Scene view is not live", () => {
     const values = new Map<ParameterPath, unknown>([
       [sceneParameterPaths.workspace.mode, "develop"],
@@ -313,7 +572,7 @@ describe("WorkspaceModeController", () => {
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
-      getSceneWindow: () => null,
+      sceneView: createSceneViewPort({ live: false }).sceneView,
       toolWindows: [{ id: "debug", paths: sceneParameterPaths.debugWindow }]
     });
 

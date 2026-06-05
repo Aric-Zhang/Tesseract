@@ -8,6 +8,7 @@ export interface WindowContentAttachmentRequest {
 
 export interface WindowContentHost {
   readonly id: string;
+  readonly inputStackPriority?: number;
 
   mountContent(request: HTMLElement | WindowContentAttachmentRequest): WindowContentAttachment;
   isContentInteractable(element: HTMLElement): boolean;

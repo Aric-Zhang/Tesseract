@@ -2,7 +2,7 @@ import {
   resolveWindowDockPreview,
   type WindowDockPreview,
   type WindowDockPoint,
-  type WindowDockTargetFrame
+  type WindowDockTargetRegion
 } from "./window-dock-targets";
 import type { WindowViewKey } from "./window-view-key";
 
@@ -66,7 +66,7 @@ export class WindowTabDragSession {
 
   move(
     point: WindowDockPoint,
-    frames: readonly WindowDockTargetFrame[]
+    regions: readonly WindowDockTargetRegion[]
   ): WindowTabDragSessionMoveResult {
     if (!this.#startPoint || !this.#source || this.#state === "idle") {
       return { state: "idle", preview: null, source: null };
@@ -75,7 +75,7 @@ export class WindowTabDragSession {
       return { state: "pending", preview: null, source: this.#source };
     }
     this.#state = "dragging";
-    this.#preview = resolveWindowDockPreview(point, frames, {
+    this.#preview = resolveWindowDockPreview(point, regions, {
       sourceFrameId: this.#source.frameId
     });
     return { state: this.#state, preview: this.#preview, source: this.#source };

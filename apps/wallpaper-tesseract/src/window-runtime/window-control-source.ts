@@ -64,13 +64,17 @@ function listIndexedWindows(actorSystem: ActorSystemView): readonly IndexedWindo
     }))
     .filter((entry): entry is IndexedWindow => {
       if (!entry.component) return false;
-      return entry.component.menuDescriptor.include;
+      return entry.component.menuDescriptor.include && entry.component.visiblePath !== null;
     });
 }
 
 function toWindowControlItem(actorSystem: ActorSystemView, entry: IndexedWindow): WindowControlItem {
   const { actor, component } = entry;
   const descriptor = component.menuDescriptor;
+  const visiblePath = component.visiblePath;
+  if (!visiblePath) {
+    throw new Error(`Window control source cannot expose a runtime-only frame: ${actor.id}.`);
+  }
   return {
     actor,
     viewKey: descriptor.viewKey ?? windowViewKey(actor.id),
@@ -84,7 +88,7 @@ function toWindowControlItem(actorSystem: ActorSystemView, entry: IndexedWindow)
     activeInHierarchy: actorSystem.isActorActive(actor),
     activationMode: descriptor.activationMode,
     canToggle: descriptor.activationMode === "visible",
-    visiblePath: component.visiblePath
+    visiblePath
   };
 }
 

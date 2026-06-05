@@ -35,7 +35,7 @@ import {
 import type { SceneStateObserverRegistry } from "../runtime/ports";
 import {
   createActorWindowFocusServiceProxy,
-  createDockTargetFrameSource,
+  createDockTargetRegionSource,
   DefaultWindowFrameLifecycleController,
   floatingWindowComponentType,
   type FloatingWindowParameterPaths,
@@ -50,6 +50,11 @@ import {
   type WindowFrameTab,
   type WindowViewKey,
   WindowViewFactoryRegistry,
+  hydrateWindowWorkspaceFrameLayout,
+  loadPersistedWindowWorkspaceFrameLayout,
+  type PersistedWindowWorkspaceFrameLayout,
+  WindowWorkspaceFrameLayoutPersistenceController,
+  type WindowWorkspaceFrameLayoutStorage,
   WindowWorkspaceController,
   WindowVisibilityActivationController
 } from "../window-runtime";
@@ -147,7 +152,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const windowControlSource = createWindowControlSource({
     actorSystem: runtimeContext.actorSystem
   });
-  const dockTargetFrameSource = createDockTargetFrameSource({
+  const dockTargetFrameSource = createDockTargetRegionSource({
     actorSystem: runtimeContext.actorSystem
   });
   const windowMenuViewSource = createWindowMenuViewSource({
@@ -208,7 +213,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
         id: ids.componentId,
         parent: mount,
         title: options.tab.title,
-        paths: frameOptions.paths,
+        paths: options.runtimeOnly ? undefined : frameOptions.paths,
+        stateBinding: options.runtimeOnly ? { kind: "runtime" } : undefined,
         initialState: frameOptions.initialState,
         minSize: frameOptions.minSize,
         className: frameOptions.className,
@@ -219,7 +225,9 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
         tabs: [options.tab],
         frameIntentSink: windowFrameIntents,
         tabDragSink: windowDockPreview,
-        windowMenu: frameOptions.windowMenu
+        windowMenu: options.runtimeOnly
+          ? { ...frameOptions.windowMenu, include: false }
+          : frameOptions.windowMenu
       });
       return {
         frameActor: actor,
@@ -253,12 +261,10 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
           tesseract4ActorName: TESSERACT4_ACTOR_NAME
         },
         frameIntentSink: windowFrameIntents,
-        tabDragSink: windowDockPreview
+        tabDragSink: windowDockPreview,
+        viewLocationSource: requireWindowFrameLifecycleController()
       });
       currentSceneView.setCurrent(runtime);
-      if (sceneStore.get(sceneParameterPaths.workspace.mode) === "run") {
-        runtime.window.setPresentation("fullscreen");
-      }
       return {
         frameActor: runtime.sceneWindow.actor,
         framePort: runtime.sceneWindow.window,
@@ -266,7 +272,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
         content: runtime.sceneWindow.viewport,
         dispose: () => {
           currentSceneView.clear(runtime);
-          runtime.dispose();
+          runtime.dispose({ destroyActorTree: false });
         }
       };
     }
@@ -335,9 +341,25 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     cancelActiveInput: () => runtimeContext.cancelActiveActorInput(),
     createFloatingFrame: createFloatingFrameForView
   });
-  windowFrameLifecycleController.openView("scene", "programmatic");
-  windowFrameLifecycleController.openView("debug", "programmatic");
-  windowFrameLifecycleController.openView("hierarchy", "programmatic");
+  const layoutStorage = resolveWindowWorkspaceLayoutStorage();
+  const persistedFrameLayout = loadPersistedWindowWorkspaceFrameLayout(layoutStorage);
+  let restoredInitialLayout = false;
+  if (persistedFrameLayout) {
+    const restoreResult = windowFrameLifecycleController.restoreFrameLayout(
+      createHydratableFrameLayout(persistedFrameLayout),
+      "programmatic"
+    );
+    restoredInitialLayout = restoreResult.restoredViewKeys.length > 0;
+  }
+  if (!restoredInitialLayout) {
+    windowFrameLifecycleController.openView("scene", "programmatic");
+    windowFrameLifecycleController.openView("debug", "programmatic");
+    windowFrameLifecycleController.openView("hierarchy", "programmatic");
+  }
+  runtimeContext.registerLegacyRuntimeObject(new WindowWorkspaceFrameLayoutPersistenceController({
+    source: windowFrameLifecycleController,
+    storage: layoutStorage
+  }));
   const windowActivationController = new WindowVisibilityActivationController({
     source: windowControlSource
   });
@@ -355,7 +377,13 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const workspaceModeController = new WorkspaceModeController({
     commandSink: frameStateBridge,
     getValue: (path) => sceneStore.get(path),
-    getSceneWindow: () => currentSceneView.current?.window ?? null,
+    sceneView: {
+      viewKey: "scene",
+      locations: requireWindowFrameLifecycleController(),
+      commands: requireWindowFrameLifecycleController(),
+      presentation: requireWindowFrameLifecycleController(),
+      open: () => requireWindowFrameLifecycleController().openView("scene", "programmatic")
+    },
     toolWindows: [
       { id: DEBUG_LOG_WINDOW_ACTOR_ID, paths: sceneParameterPaths.debugWindow },
       { id: HIERARCHY_PANEL_ACTOR_ID, paths: sceneParameterPaths.hierarchyWindow }
@@ -427,6 +455,26 @@ function closeLiveWindowFrames(controller: DefaultWindowFrameLifecycleController
   for (const frameId of frameIds) {
     controller.closeFrame(frameId, "programmatic");
   }
+}
+
+function resolveWindowWorkspaceLayoutStorage(): WindowWorkspaceFrameLayoutStorage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function createHydratableFrameLayout(persisted: PersistedWindowWorkspaceFrameLayout) {
+  return hydrateWindowWorkspaceFrameLayout(
+    persisted,
+    persisted.views.map((view) => ({
+      viewKey: view.viewKey,
+      actorId: `persisted:${view.viewKey}`,
+      title: view.title,
+      canDock: view.canDock
+    }))
+  );
 }
 
 interface FloatingFrameShellOptions {

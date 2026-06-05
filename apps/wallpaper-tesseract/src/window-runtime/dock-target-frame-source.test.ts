@@ -117,6 +117,7 @@ describe("DockTargetFrameSource", () => {
     expect(frames).toHaveLength(1);
     expect(frames[0]).toMatchObject({
       frameId: "merged-frame",
+      targetTabsetId: "frame-tabset:debug-view+hierarchy-view",
       stackPriority: 1500,
       bounds: {
         left: 20,
@@ -125,6 +126,52 @@ describe("DockTargetFrameSource", () => {
         height: 260
       }
     });
+  });
+
+  it("lists each split pane tabset as a separate dock target for the same frame", () => {
+    const actorSystem = new ActorSystem();
+    const registry = createRegistry(actorSystem);
+    const document = new FakeDocument();
+    const parent = document.createElement("div");
+    const frameActor = actorSystem.createActor({ id: "split-frame" });
+    const component = registry.addComponent(frameActor, floatingWindowComponentType, {
+      id: "floating-window:split",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      title: "Hierarchy",
+      paths: {
+        position: parameterPath("split.position"),
+        size: parameterPath("split.size"),
+        visible: parameterPath("split.visible")
+      },
+      initialState: {
+        position: vec2(20, 30),
+        size: vec2(420, 260),
+        visible: true
+      },
+      tabs: [
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ],
+      activeViewActorId: "hierarchy-view"
+    });
+    component.splitTab(
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      {
+        targetTabsetId: component.listDockTargetTabsets()[0]?.targetTabsetId ?? "missing",
+        placement: "left",
+        active: true
+      }
+    );
+    parent.children[0].rect = createRect(20, 30, 420, 260);
+    const source = createDockTargetFrameSource({ actorSystem });
+
+    const frames = source.listDockTargetFrames();
+
+    expect(frames.map((frame) => frame.frameId)).toEqual(["split-frame", "split-frame"]);
+    expect(frames.map((frame) => frame.targetTabsetId)).toEqual([
+      "frame-tabset:debug-view",
+      "frame-tabset:hierarchy-view"
+    ]);
   });
 
   it("skips hidden and inactive frames", () => {

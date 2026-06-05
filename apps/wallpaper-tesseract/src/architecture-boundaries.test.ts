@@ -194,11 +194,14 @@ describe("architecture boundaries", () => {
     expect(sceneViewRuntimeSource).toMatch(/sceneWindow\.viewport\.render/);
   });
 
-  it("guards Scene viewport rendering behind visible and active state", () => {
+  it("guards Scene viewport rendering behind current view ownership and active state", () => {
     const sceneViewRuntimeSource = sourceFiles["./app/scene-view-runtime.ts"] ?? "";
 
     expect(sceneViewRuntimeSource).toMatch(/\bisRenderable\s*\(\)\s*:\s*boolean/);
-    expect(sceneViewRuntimeSource).toMatch(/sceneWindow\.window\.state\.visible/);
+    expect(sceneViewRuntimeSource).not.toMatch(/sceneWindow\.window\.state\.visible/);
+    expect(sceneViewRuntimeSource).toMatch(/viewLocationSource\.getLocationByViewActorId/);
+    expect(sceneViewRuntimeSource).toMatch(/location\.ownerFrameVisible/);
+    expect(sceneViewRuntimeSource).toMatch(/location\.visibleInFrame/);
     expect(sceneViewRuntimeSource).toMatch(/actorSystem\.isActorActive\s*\(\s*this\.sceneWindow\.viewport\.actor\s*\)/);
     expect(sceneViewRuntimeSource).toMatch(/if\s*\(\s*!\s*this\.isRenderable\(\)\s*\)\s*return;\s*\n\s*this\.sceneWindow\.viewport\.render/);
   });
@@ -372,6 +375,24 @@ describe("architecture boundaries", () => {
     expect(factoryRegistrySource).not.toMatch(/from\s+["'](?:\.\.\/)+(?:debug|hierarchy|features\/scene)/);
     expect(floatingWindowSource).not.toMatch(/\.(?:createActor|destroyActor|setParent)\s*\(/);
     expect(floatingWindowSource).not.toMatch(/\bActorSystem\b/);
+  });
+
+  it("keeps persisted window frame layout keyed by logical view identity", () => {
+    const persistenceSource = sourceFiles["./window-runtime/window-workspace-layout-persistence.ts"] ?? "";
+    const persistenceControllerSource =
+      sourceFiles["./window-runtime/window-workspace-layout-persistence-controller.ts"] ?? "";
+    const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
+
+    expect(persistenceSource).toMatch(/\bviewKey:\s*WindowViewKey\b/);
+    expect(persistenceSource).not.toMatch(/\bviewActorId\b/);
+    expect(persistenceSource).not.toMatch(/\bframeActorId\b/);
+    expect(persistenceSource).not.toMatch(/\bFloatingWindowComponent\b/);
+    expect(persistenceSource).not.toMatch(/\bSceneViewRuntime\b/);
+    expect(persistenceControllerSource).toMatch(/\bWindowFrameLayoutSnapshotSource\b/);
+    expect(persistenceControllerSource).not.toMatch(/\bActorSystem\b/);
+    expect(persistenceControllerSource).not.toMatch(/\bFloatingWindowComponent\b/);
+    expect(appSource).toMatch(/\bloadPersistedWindowWorkspaceFrameLayout\b/);
+    expect(appSource).toMatch(/\brestoreFrameLayout\b/);
   });
 
   it("keeps feature window content components on the narrow WindowContentHost port", () => {

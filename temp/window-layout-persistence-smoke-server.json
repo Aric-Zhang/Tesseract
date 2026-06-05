@@ -1,0 +1,6 @@
+{
+    "port":  5195,
+    "out":  "temp/window-layout-persistence-vite-5195.out.log",
+    "pid":  43160,
+    "err":  "temp/window-layout-persistence-vite-5195.err.log"
+}

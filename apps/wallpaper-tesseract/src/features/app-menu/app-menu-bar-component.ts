@@ -15,6 +15,7 @@ import type { StateObserverResponder } from "../../state-runtime";
 import type {
   WindowControlSource,
   WindowFrameIntentSink,
+  WindowMenuViewSource,
   WindowViewFactoryRegistry,
   WindowViewKey
 } from "../../window-runtime";
@@ -39,6 +40,7 @@ export interface AppMenuBarComponentOptions {
   readonly id?: string;
   readonly parent: HTMLElement;
   readonly windowSource: WindowControlSource;
+  readonly windowMenuViewSource?: WindowMenuViewSource;
   readonly windowViewFactories?: WindowViewFactoryRegistry;
   readonly windowFrameIntents?: WindowFrameIntentSink;
   readonly initialMode?: AppMenuWorkspaceMode;
@@ -73,6 +75,7 @@ export class AppMenuBarComponent
   readonly #commandSink: SceneCommandSink;
   readonly #actorWindowFocus?: ActorWindowFocusService;
   readonly #windowSource: WindowControlSource;
+  readonly #windowMenuViewSource?: WindowMenuViewSource;
   readonly #windowViewFactories?: WindowViewFactoryRegistry;
   readonly #windowFrameIntents?: WindowFrameIntentSink;
   readonly #root: HTMLDivElement;
@@ -92,6 +95,7 @@ export class AppMenuBarComponent
     this.id = options.id ?? DEFAULT_APP_MENU_BAR_COMPONENT_ID;
     this.#mode = options.initialMode ?? "develop";
     this.#windowSource = options.windowSource;
+    this.#windowMenuViewSource = options.windowMenuViewSource;
     this.#windowViewFactories = options.windowViewFactories;
     this.#windowFrameIntents = options.windowFrameIntents;
     this.#commandSink = services.commandSink;
@@ -207,7 +211,7 @@ export class AppMenuBarComponent
   }
 
   private renderIfChanged(): void {
-    const items = this.#windowSource.listWindows();
+    const items = this.#windowMenuViewSource?.listMenuViews() ?? this.#windowSource.listWindows();
     const viewModels = createWindowMenuItems(items, {
       factories: this.#windowViewFactories?.list()
     });

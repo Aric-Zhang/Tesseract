@@ -104,6 +104,10 @@ export class GizmoEventBindingComponent implements ComponentLifecycleObserver, G
     this.router.beforeComponentDetach(component);
   }
 
+  cancelActiveInput(reason: GizmoCancelEvent["reason"] = "gizmo-disabled"): void {
+    this.router.cancelActiveInteraction(reason);
+  }
+
   dispose(): void {
     this.router.dispose();
   }

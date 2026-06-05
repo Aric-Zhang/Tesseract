@@ -1,4 +1,4 @@
-import type { WindowControlItem, WindowViewFactory, WindowViewKey } from "../../window-runtime";
+import type { WindowControlItem, WindowMenuViewItem, WindowViewFactory, WindowViewKey } from "../../window-runtime";
 
 export type AppMenuLeadingAccessory =
   | { readonly kind: "none" }
@@ -42,6 +42,11 @@ export interface CreateWindowMenuItemsOptions {
   readonly factories?: readonly WindowViewFactory[];
 }
 
+type WindowMenuSourceItem = Pick<
+  WindowControlItem | WindowMenuViewItem,
+  "actorId" | "canToggle" | "label" | "order" | "viewKey"
+>;
+
 interface WindowMenuEntry {
   readonly viewKey: WindowViewKey;
   readonly actorId: string | null;
@@ -52,7 +57,7 @@ interface WindowMenuEntry {
   readonly live: boolean;
 }
 
-export function createWindowMenuItem(item: WindowControlItem): AppMenuOpenViewItemViewModel {
+export function createWindowMenuItem(item: WindowMenuSourceItem): AppMenuOpenViewItemViewModel {
   return createWindowMenuItemFromEntry(createEntryFromWindow(item));
 }
 
@@ -70,7 +75,7 @@ function createWindowMenuItemFromEntry(entry: WindowMenuEntry): AppMenuOpenViewI
 }
 
 export function createWindowMenuItems(
-  items: readonly WindowControlItem[],
+  items: readonly WindowMenuSourceItem[],
   options: CreateWindowMenuItemsOptions = {}
 ): readonly AppMenuOpenViewItemViewModel[] {
   return createWindowMenuEntries(items, options)
@@ -78,7 +83,7 @@ export function createWindowMenuItems(
 }
 
 function createWindowMenuEntries(
-  items: readonly WindowControlItem[],
+  items: readonly WindowMenuSourceItem[],
   options: CreateWindowMenuItemsOptions
 ): readonly WindowMenuEntry[] {
   const liveByViewKey = new Map(items.map((item) => [item.viewKey, item]));
@@ -111,7 +116,7 @@ function createWindowMenuEntries(
 }
 
 function createEntryFromWindow(
-  item: WindowControlItem,
+  item: WindowMenuSourceItem,
   factory?: WindowViewFactory,
   sourceIndex = 0
 ): WindowMenuEntry {

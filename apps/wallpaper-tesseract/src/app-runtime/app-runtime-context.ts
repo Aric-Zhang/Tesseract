@@ -44,6 +44,7 @@ export class AppRuntimeContext {
   readonly actorSystem: ActorSystem;
   readonly componentRegistry: ComponentRegistry;
   private readonly onRollbackError?: (errors: readonly unknown[]) => void;
+  private readonly componentRuntimeBridge: ComponentRuntimeBridge;
   private readonly actorSystemRegistration: RuntimeRegistration;
   private readonly registeredObjects = new Set<object>();
   private readonly registeredIds = new Map<string, object>();
@@ -56,14 +57,14 @@ export class AppRuntimeContext {
     this.gizmoEventSystem = options.gizmoEventSystem;
     this.onRollbackError = options.onRollbackError;
     this.actorSystem = new ActorSystem();
-    const bridge = new ComponentRuntimeBridge({
+    this.componentRuntimeBridge = new ComponentRuntimeBridge({
       gizmoEventSystem: this.gizmoEventSystem,
       frameStateController: this.frameStateController,
       isActorActive: (actor) => this.actorSystem.isActorActive(actor)
     });
     this.componentRegistry = new ComponentRegistry({
       actorSystem: this.actorSystem,
-      bridge,
+      bridge: this.componentRuntimeBridge,
       commandSink: this.frameStateController,
       actorWindowFocus: options.actorWindowFocus,
       onRollbackError: this.onRollbackError
@@ -73,6 +74,10 @@ export class AppRuntimeContext {
 
   get commandSink(): SceneCommandSink {
     return this.frameStateController;
+  }
+
+  cancelActiveActorInput(): void {
+    this.componentRuntimeBridge.cancelActiveActorInput();
   }
 
   /**

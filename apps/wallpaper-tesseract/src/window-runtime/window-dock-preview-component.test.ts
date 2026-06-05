@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Actor } from "../actor-runtime";
-import {
-  floatingWindowComponentType,
-  type FloatingWindowComponent
-} from "./floating-window-component";
+import type { DockTargetFrameSource } from "./dock-target-frame-source";
 import {
   WindowDockPreviewComponent,
   WindowDockPreviewController
 } from "./window-dock-preview-component";
-import type { WindowControlItem, WindowControlSource } from "./window-control-source";
+import type { WindowDockTargetFrame } from "./window-dock-targets";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -66,43 +62,23 @@ function rect(left: number, top: number, width: number, height: number): DOMRect
   };
 }
 
-function createWindowItem(
+function createTargetFrame(
   actorId: string,
   priority: number,
   left: number
-): WindowControlItem {
-  const component = {
-    inputStackPriority: priority,
-    getBounds: () => rect(left, 100, 300, 220),
-    getTabBounds: () => rect(left + 10, 106, 80, 24),
-    getContentBounds: () => rect(left, 132, 300, 188)
-  } as unknown as FloatingWindowComponent;
-  const actor = {
-    id: actorId,
-    getComponent: (type: string) => type === floatingWindowComponentType ? component : null
-  } as unknown as Actor;
+): WindowDockTargetFrame {
   return {
-    actor,
-    actorId,
-    viewKey: actorId,
-    componentId: `floating-window:${actorId}`,
-    label: actorId,
-    order: 0,
-    group: null,
-    visible: true,
-    activeSelf: true,
-    activeInHierarchy: true,
-    activationMode: "visible",
-    canToggle: true,
-    visiblePath: `window.${actorId}.visible` as never
+    frameId: actorId,
+    stackPriority: priority,
+    bounds: rect(left, 100, 300, 220),
+    tabBounds: rect(left + 10, 106, 80, 24),
+    contentBounds: rect(left, 132, 300, 188)
   };
 }
 
-function createSource(items: readonly WindowControlItem[]): WindowControlSource {
+function createSource(items: readonly WindowDockTargetFrame[]): DockTargetFrameSource {
   return {
-    listWindows: () => items,
-    findWindowByViewKey: () => null,
-    findWindowByVisiblePath: () => null
+    listDockTargetFrames: () => items
   };
 }
 
@@ -148,8 +124,8 @@ describe("WindowDockPreviewController", () => {
       parent: parent as unknown as HTMLElement,
       document: document as unknown as Document,
       source: createSource([
-        createWindowItem("source", 10, 10),
-        createWindowItem("target", 20, 100)
+        createTargetFrame("source", 10, 10),
+        createTargetFrame("target", 20, 100)
       ])
     });
 

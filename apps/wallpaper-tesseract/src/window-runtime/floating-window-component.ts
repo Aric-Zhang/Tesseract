@@ -26,7 +26,8 @@ import {
   createWindowContentAttachment,
   type FloatingWindowContentAttachment,
   type FloatingWindowHost,
-  type WindowContentAttachmentRequest
+  type WindowContentAttachmentRequest,
+  type WindowContentHost
 } from "./floating-window-host";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
 import {
@@ -35,7 +36,10 @@ import {
   type FloatingWindowParameterPaths,
   type FloatingWindowState
 } from "./floating-window-state";
+import type { WindowFramePort, WindowFrameTab } from "./window-frame-port";
 import type { WindowViewKey } from "./window-view-key";
+import { windowViewKey } from "./window-view-key";
+import { rectFromDomRect } from "./window-dock-targets";
 
 export const floatingWindowComponentType =
   "floating-window-component" as ComponentType<FloatingWindowComponent>;
@@ -75,6 +79,7 @@ export interface FloatingWindowComponentOptions {
   presentation?: FloatingWindowPresentation;
   closeMode?: FloatingWindowCloseMode;
   frameId?: string;
+  tabs?: readonly WindowFrameTab[];
   activeViewActorId?: string;
   activeViewKey?: WindowViewKey;
   frameIntentSink?: WindowFrameIntentSink;
@@ -114,7 +119,7 @@ type ResizeHandleClass =
   | "bottom-right";
 
 export class FloatingWindowComponent
-  implements Component, FloatingWindowHost, ActorInputParticipant, StateObserverResponder {
+  implements Component, FloatingWindowHost, WindowFramePort, ActorInputParticipant, StateObserverResponder {
   readonly type = floatingWindowComponentType;
   readonly actor: Actor;
   readonly state: FloatingWindowState;
@@ -126,18 +131,23 @@ export class FloatingWindowComponent
   readonly #basePriority: number;
   readonly #minSize: Vec2;
   readonly #parentElement: HTMLElement;
+  readonly #documentRef: Pick<Document, "createElement">;
   readonly #rootClassName: string;
   readonly #rootElement: HTMLDivElement;
   readonly #titlebar: HTMLDivElement;
   readonly #closeButton: HTMLButtonElement;
   readonly #resizeHandles: Record<ResizeHandleClass, HTMLDivElement>;
-  readonly #tabElement: HTMLDivElement;
+  readonly #tabElementsByViewActorId = new Map<string, HTMLDivElement>();
   readonly #contentSlot: HTMLDivElement;
   readonly #frameId: string;
-  readonly #tabDragSource: WindowTabDragSource | null;
   readonly #frameIntentSink?: WindowFrameIntentSink;
   readonly #tabDragSink?: WindowTabDragSink;
-  #contentAttachment: FloatingWindowContentAttachment | null = null;
+  readonly #contentAttachments = new Set<FloatingWindowContentAttachment>();
+  readonly #contentAttachmentsByViewActorId = new Map<string, FloatingWindowContentAttachment>();
+  readonly #contentViewActorIdsByAttachment = new WeakMap<FloatingWindowContentAttachment, string>();
+  readonly #contentHostsByViewActorId = new Map<string, WindowContentHost>();
+  #tabs: WindowFrameTab[];
+  #activeViewActorId: string | null;
   #dragStartState: FloatingWindowState | null = null;
   #presentation: FloatingWindowPresentation;
   #effectivePriority: number;
@@ -150,7 +160,6 @@ export class FloatingWindowComponent
     this.actor = actor;
     this.id = options.id;
     this.#frameId = options.frameId ?? actor.id;
-    this.#tabDragSource = createTabDragSource(this.#frameId, options);
     this.#frameIntentSink = options.frameIntentSink;
     this.#tabDragSink = options.tabDragSink;
     this.#paths = options.paths;
@@ -163,17 +172,16 @@ export class FloatingWindowComponent
     this.#rootClassName = joinClassNames("floating-gizmo-window", options.className);
     this.#presentation = options.presentation ?? "windowed";
     this.state = cloneFloatingWindowState(options.initialState);
+    this.#tabs = createInitialTabs(options);
+    this.#activeViewActorId = resolveInitialActiveViewActorId(this.#tabs, options.activeViewActorId);
 
     const documentRef = resolveDocument(options);
+    this.#documentRef = documentRef;
     this.#rootElement = documentRef.createElement("div");
     this.#rootElement.className = this.#rootClassName;
 
     this.#titlebar = documentRef.createElement("div");
     this.#titlebar.className = "floating-gizmo-window__titlebar";
-
-    this.#tabElement = documentRef.createElement("div");
-    this.#tabElement.className = "floating-gizmo-window__title floating-gizmo-window__tab";
-    this.#tabElement.textContent = options.title;
 
     this.#closeButton = documentRef.createElement("button");
     this.#closeButton.className = "floating-gizmo-window__close";
@@ -181,7 +189,7 @@ export class FloatingWindowComponent
     this.#closeButton.tabIndex = -1;
     this.#closeButton.ariaLabel = `Close ${options.title}`;
     this.#closeButton.textContent = "x";
-    this.#titlebar.append(this.#tabElement, this.#closeButton);
+    this.renderTabs();
 
     this.#contentSlot = documentRef.createElement("div");
     this.#contentSlot.className = joinClassNames("floating-gizmo-window__content", options.contentClassName);
@@ -248,6 +256,82 @@ export class FloatingWindowComponent
     return this.#frameId;
   }
 
+  listTabs(): readonly WindowFrameTab[] {
+    return this.#tabs.map((tab) => ({ ...tab }));
+  }
+
+  getActiveViewActorId(): string | null {
+    return this.#activeViewActorId;
+  }
+
+  addTab(tab: WindowFrameTab, options: { readonly active?: boolean } = {}): void {
+    const previousActiveViewActorId = this.#activeViewActorId;
+    const existingIndex = this.#tabs.findIndex((candidate) => candidate.viewActorId === tab.viewActorId);
+    if (existingIndex >= 0) {
+      this.#tabs[existingIndex] = tab;
+    } else {
+      this.#tabs = [...this.#tabs, tab];
+    }
+    if (options.active || !this.#activeViewActorId) {
+      this.#activeViewActorId = tab.viewActorId;
+    }
+    if (
+      this.#presentation === "fullscreen" &&
+      previousActiveViewActorId !== this.#activeViewActorId
+    ) {
+      this.setPresentation("windowed");
+    }
+    this.renderTabs();
+    this.applyActiveContentState();
+  }
+
+  removeTab(viewActorId: string): void {
+    const nextTabs = this.#tabs.filter((tab) => tab.viewActorId !== viewActorId);
+    if (nextTabs.length === this.#tabs.length) return;
+    this.#tabs = nextTabs;
+    this.#tabElementsByViewActorId.get(viewActorId)?.remove();
+    this.#tabElementsByViewActorId.delete(viewActorId);
+    this.#contentAttachmentsByViewActorId.get(viewActorId)?.setInteractable(false);
+    if (this.#activeViewActorId === viewActorId) {
+      this.#activeViewActorId = this.#tabs[0]?.viewActorId ?? null;
+    }
+    this.renderTabs();
+    this.applyActiveContentState();
+  }
+
+  activateTab(viewActorId: string): void {
+    if (!this.hasTab(viewActorId) || this.#activeViewActorId === viewActorId) return;
+    this.#activeViewActorId = viewActorId;
+    if (this.#presentation === "fullscreen") {
+      this.setPresentation("windowed");
+    }
+    this.renderTabs();
+    this.applyActiveContentState();
+  }
+
+  hasTab(viewActorId: string): boolean {
+    return this.#tabs.some((tab) => tab.viewActorId === viewActorId);
+  }
+
+  getContentHost(viewActorId: string): WindowContentHost {
+    const existing = this.#contentHostsByViewActorId.get(viewActorId);
+    if (existing) return existing;
+    const host: WindowContentHost = {
+      id: this.id,
+      mountContent: (request) => this.mountContent(withWindowContentViewActorId(request, viewActorId)),
+      isContentInteractable: (element) => (
+        this.#activeViewActorId === viewActorId &&
+        this.isContentInteractable(element)
+      )
+    };
+    this.#contentHostsByViewActorId.set(viewActorId, host);
+    return host;
+  }
+
+  getFloatingBounds() {
+    return rectFromDomRect(this.getBounds());
+  }
+
   setPresentation(presentation: FloatingWindowPresentation): void {
     if (this.#presentation === presentation) return;
     this.#presentation = presentation;
@@ -256,7 +340,12 @@ export class FloatingWindowComponent
   }
 
   setTitle(title: string): void {
-    this.#tabElement.textContent = title;
+    const targetViewActorId = this.#activeViewActorId ?? this.#tabs[0]?.viewActorId;
+    if (!targetViewActorId) return;
+    this.#tabs = this.#tabs.map((tab) => (
+      tab.viewActorId === targetViewActorId ? { ...tab, title } : tab
+    ));
+    this.renderTabs();
   }
 
   getBounds(): DOMRectReadOnly {
@@ -264,7 +353,11 @@ export class FloatingWindowComponent
   }
 
   getTabBounds(): DOMRectReadOnly {
-    return this.#tabElement.getBoundingClientRect();
+    const activeTab = this.#activeViewActorId
+      ? this.#tabElementsByViewActorId.get(this.#activeViewActorId)
+      : null;
+    const firstTab = activeTab ?? this.#tabElementsByViewActorId.values().next().value as HTMLDivElement | undefined;
+    return (firstTab ?? this.#titlebar).getBoundingClientRect();
   }
 
   getContentBounds(): DOMRectReadOnly {
@@ -272,8 +365,9 @@ export class FloatingWindowComponent
   }
 
   mountContent(requestOrElement: HTMLElement | WindowContentAttachmentRequest): FloatingWindowContentAttachment {
-    if (this.#contentAttachment) {
-      throw new Error(`FloatingWindowComponent already has mounted content: ${this.id}`);
+    const viewActorId = readWindowContentViewActorId(requestOrElement);
+    if (viewActorId) {
+      this.#contentAttachmentsByViewActorId.get(viewActorId)?.dispose();
     }
     const attachment = createWindowContentAttachment(
       this,
@@ -281,21 +375,30 @@ export class FloatingWindowComponent
       (element) => this.#contentSlot.append(element),
       (disposedAttachment) => {
         disposedAttachment.element.remove();
-        if (this.#contentAttachment === disposedAttachment) {
-          this.#contentAttachment = null;
+        this.#contentAttachments.delete(disposedAttachment);
+        if (viewActorId && this.#contentAttachmentsByViewActorId.get(viewActorId) === disposedAttachment) {
+          this.#contentAttachmentsByViewActorId.delete(viewActorId);
         }
       }
     );
-    this.#contentAttachment = attachment;
+    this.#contentAttachments.add(attachment);
+    if (viewActorId) {
+      this.#contentAttachmentsByViewActorId.set(viewActorId, attachment);
+      this.#contentViewActorIdsByAttachment.set(attachment, viewActorId);
+      this.applyActiveContentState();
+    }
     return attachment;
   }
 
   isContentInteractable(element: HTMLElement): boolean {
-    return (
-      this.#contentAttachment?.element === element &&
-      this.#contentAttachment.interactable &&
-      this.state.visible
-    );
+    if (!this.state.visible) return false;
+    for (const attachment of this.#contentAttachments) {
+      if (attachment.element !== element) continue;
+      const viewActorId = this.#contentViewActorIdsByAttachment.get(attachment);
+      if (viewActorId && viewActorId !== this.#activeViewActorId) return false;
+      return attachment.interactable;
+    }
+    return false;
   }
 
   requestVisible(visible: boolean, timeStamp?: number): void {
@@ -358,15 +461,16 @@ export class FloatingWindowComponent
     if (isPointInsideRect(point, this.#resizeHandles.bottom.getBoundingClientRect())) {
       return this.createHit("resize-bottom", 30);
     }
-    if (isPointInsideRect(point, this.#tabElement.getBoundingClientRect())) {
-      return this.createHit("window-tab", 20);
+    const hitTab = this.findTabAtPoint(point);
+    if (hitTab) {
+      return this.createHit("window-tab", 20, { tab: hitTab });
     }
     if (isPointInsideRect(point, this.#titlebar.getBoundingClientRect())) {
       return this.createHit("titlebar-empty", 20);
     }
     if (
       isPointInsideRect(point, this.#contentSlot.getBoundingClientRect()) &&
-      (!this.#contentAttachment || this.#contentAttachment.interactable)
+      this.hasInteractableContent()
     ) {
       return this.createContentHit();
     }
@@ -376,8 +480,9 @@ export class FloatingWindowComponent
   onInputStart(_event: ActorInputStartEvent): void {
     this.#dragStartState = cloneFloatingWindowState(this.state);
     if (_event.hit.partId === "window-tab") {
-      if (this.#tabDragSource) {
-        this.#tabDragSink?.beginTabDrag(this.#tabDragSource, _event.point);
+      const source = readWindowTabDragSource(this.#frameId, _event.hit);
+      if (source) {
+        this.#tabDragSink?.beginTabDrag(source, _event.point);
       }
     }
   }
@@ -405,7 +510,32 @@ export class FloatingWindowComponent
   onInputEnd(event: ActorInputEndEvent): void {
     this.#dragStartState = null;
     if (event.hit.partId === "window-tab") {
-      this.#tabDragSink?.endTabDrag();
+      if (event.wasClick) {
+        const source = readWindowTabDragSource(this.#frameId, event.hit);
+        if (source) {
+          if (this.#frameIntentSink?.requestActivateFrameTab) {
+            this.#frameIntentSink.requestActivateFrameTab(this.#frameId, source.viewActorId, "tab-click");
+          } else {
+            this.activateTab(source.viewActorId);
+          }
+        }
+      }
+      const dragResult = this.#tabDragSink?.endTabDrag() ?? null;
+      if (!event.wasClick && dragResult?.preview.kind === "merge-tabs") {
+        this.#frameIntentSink?.requestCommitDock?.({
+          kind: "merge-tabs",
+          source: dragResult.source,
+          targetFrameId: dragResult.preview.targetFrameId,
+          reason: "dock-drop"
+        });
+      } else if (!event.wasClick && dragResult?.preview.kind === "floating") {
+        this.#frameIntentSink?.requestCommitDock?.({
+          kind: "float-tab",
+          source: dragResult.source,
+          bounds: dragResult.preview.rect,
+          reason: "dock-drop"
+        });
+      }
       return;
     }
     if (event.hit.partId === "close" && event.wasClick) {
@@ -426,7 +556,9 @@ export class FloatingWindowComponent
 
   dispose(): void {
     this.enabled = false;
-    this.#contentAttachment?.dispose();
+    for (const attachment of [...this.#contentAttachments]) {
+      attachment.dispose();
+    }
     this.#rootElement.remove();
   }
 
@@ -471,7 +603,7 @@ export class FloatingWindowComponent
     });
   }
 
-  private createHit(partId: FloatingWindowPartId, priority: number): ActorInputHit {
+  private createHit(partId: FloatingWindowPartId, priority: number, data?: unknown): ActorInputHit {
     return {
       componentId: this.id,
       partId,
@@ -484,7 +616,8 @@ export class FloatingWindowComponent
         componentId: this.id,
         role: "surface",
         partId
-      }]
+      }],
+      data
     };
   }
 
@@ -508,6 +641,52 @@ export class FloatingWindowComponent
   private applyEffectivePriority(): void {
     this.#rootElement.style.zIndex = String(this.#effectivePriority);
   }
+
+  private findTabAtPoint(point: ScreenPoint): WindowFrameTab | null {
+    for (const tab of this.#tabs) {
+      const element = this.#tabElementsByViewActorId.get(tab.viewActorId);
+      if (element && isPointInsideRect(point, element.getBoundingClientRect())) {
+        return tab;
+      }
+    }
+    return null;
+  }
+
+  private hasInteractableContent(): boolean {
+    if (this.#contentAttachments.size === 0) return true;
+    for (const attachment of this.#contentAttachments) {
+      if (this.isContentInteractable(attachment.element)) return true;
+    }
+    return false;
+  }
+
+  private renderTabs(): void {
+    for (const element of this.#tabElementsByViewActorId.values()) {
+      element.remove();
+    }
+    this.#tabElementsByViewActorId.clear();
+    this.#closeButton.remove();
+    for (const tab of this.#tabs) {
+      const element = this.#documentRef.createElement("div");
+      element.className = joinClassNames(
+        "floating-gizmo-window__title",
+        "floating-gizmo-window__tab",
+        tab.viewActorId === this.#activeViewActorId ? "is-active" : undefined
+      );
+      element.textContent = tab.title;
+      this.#tabElementsByViewActorId.set(tab.viewActorId, element);
+      this.#titlebar.append(element);
+    }
+    this.#titlebar.append(this.#closeButton);
+  }
+
+  private applyActiveContentState(): void {
+    for (const [viewActorId, attachment] of this.#contentAttachmentsByViewActorId) {
+      const active = viewActorId === this.#activeViewActorId;
+      attachment.setInteractable(active);
+      attachment.element.hidden = !active;
+    }
+  }
 }
 
 function resolveDocument(options: FloatingWindowComponentOptions): Pick<Document, "createElement"> {
@@ -515,6 +694,20 @@ function resolveDocument(options: FloatingWindowComponentOptions): Pick<Document
   if (options.parent.ownerDocument) return options.parent.ownerDocument;
   if (typeof document !== "undefined") return document;
   throw new Error("FloatingWindowComponent requires a document.");
+}
+
+function readWindowContentViewActorId(
+  requestOrElement: HTMLElement | WindowContentAttachmentRequest
+): string | null {
+  if (
+    typeof requestOrElement === "object" &&
+    requestOrElement !== null &&
+    "element" in requestOrElement &&
+    typeof requestOrElement.viewActorId === "string"
+  ) {
+    return requestOrElement.viewActorId;
+  }
+  return null;
 }
 
 function resolveParentRect(parent: HTMLElement, fallbackState: FloatingWindowState): DOMRectReadOnly {
@@ -561,21 +754,61 @@ function createMenuDescriptor(
   };
 }
 
-function createTabDragSource(
-  frameId: string,
-  options: FloatingWindowComponentOptions
-): WindowTabDragSource | null {
-  const viewKey = options.activeViewKey ?? options.windowMenu?.viewKey ?? null;
-  if (!viewKey || !options.activeViewActorId) return null;
+function joinClassNames(...classNames: Array<string | undefined>): string {
+  return classNames.filter(Boolean).join(" ");
+}
+
+function createInitialTabs(options: FloatingWindowComponentOptions): WindowFrameTab[] {
+  if (options.tabs && options.tabs.length > 0) {
+    return options.tabs.map((tab) => ({ ...tab }));
+  }
+  return [{
+    viewActorId: options.activeViewActorId ?? `${options.id}:view`,
+    viewKey: options.activeViewKey ?? options.windowMenu?.viewKey ?? windowViewKey(options.id),
+    title: options.title
+  }];
+}
+
+function resolveInitialActiveViewActorId(
+  tabs: readonly WindowFrameTab[],
+  preferredViewActorId: string | undefined
+): string | null {
+  if (preferredViewActorId && tabs.some((tab) => tab.viewActorId === preferredViewActorId)) {
+    return preferredViewActorId;
+  }
+  return tabs[0]?.viewActorId ?? null;
+}
+
+function readWindowTabDragSource(frameId: string, hit: ActorInputHit): WindowTabDragSource | null {
+  const data = hit.data;
+  if (typeof data !== "object" || data === null || !("tab" in data)) return null;
+  const tab = (data as { tab?: Partial<WindowFrameTab> }).tab;
+  if (
+    !tab ||
+    typeof tab.viewActorId !== "string" ||
+    typeof tab.viewKey !== "string"
+  ) {
+    return null;
+  }
   return {
     frameId,
-    viewActorId: options.activeViewActorId,
-    viewKey
+    viewActorId: tab.viewActorId,
+    viewKey: tab.viewKey
   };
 }
 
-function joinClassNames(...classNames: Array<string | undefined>): string {
-  return classNames.filter(Boolean).join(" ");
+function withWindowContentViewActorId(
+  requestOrElement: HTMLElement | WindowContentAttachmentRequest,
+  viewActorId: string
+): WindowContentAttachmentRequest {
+  if (
+    typeof requestOrElement === "object" &&
+    requestOrElement !== null &&
+    "element" in requestOrElement
+  ) {
+    return { ...requestOrElement, viewActorId };
+  }
+  return { element: requestOrElement, viewActorId };
 }
 
 function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {

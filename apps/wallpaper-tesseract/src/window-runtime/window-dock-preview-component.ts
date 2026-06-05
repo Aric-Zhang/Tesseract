@@ -1,20 +1,12 @@
 import type { ScreenPoint } from "gizmo-core";
-import {
-  floatingWindowComponentType,
-  type FloatingWindowComponent
-} from "./floating-window-component";
-import {
-  rectFromDomRect,
-  type WindowDockPreview,
-  type WindowDockTargetFrame
-} from "./window-dock-targets";
+import type { DockTargetFrameSource } from "./dock-target-frame-source";
+import type { WindowDockPreview, WindowDockTargetFrame } from "./window-dock-targets";
 import { WindowTabDragSession } from "./window-tab-drag-session";
 import type {
   WindowTabDragSessionEndResult,
   WindowTabDragSessionState,
   WindowTabDragSource
 } from "./window-tab-drag-session";
-import type { WindowControlSource } from "./window-control-source";
 
 export interface WindowTabDragSink {
   beginTabDrag(source: WindowTabDragSource, point: ScreenPoint): void;
@@ -36,7 +28,7 @@ export interface WindowDockPreviewComponentOptions {
 }
 
 export interface WindowDockPreviewControllerOptions extends WindowDockPreviewComponentOptions {
-  readonly source: WindowControlSource;
+  readonly source: DockTargetFrameSource;
 }
 
 export class WindowDockPreviewComponent {
@@ -82,7 +74,7 @@ export class WindowDockPreviewComponent {
 }
 
 export class WindowDockPreviewController implements WindowTabDragSink {
-  readonly #source: WindowControlSource;
+  readonly #source: DockTargetFrameSource;
   readonly #session = new WindowTabDragSession();
   readonly #previewComponent: WindowDockPreviewComponent;
   #lastCompletedDrag: WindowTabDragSessionEndResult | null = null;
@@ -139,26 +131,6 @@ export class WindowDockPreviewController implements WindowTabDragSink {
   }
 
   private listTargetFrames(): readonly WindowDockTargetFrame[] {
-    return this.#source.listWindows()
-      .map((item, index) => {
-        const component = item.actor.getComponent(floatingWindowComponentType);
-        if (!component || !item.visible || !item.activeInHierarchy) return null;
-        return toDockTargetFrame(item.actorId, component, index);
-      })
-      .filter((frame): frame is WindowDockTargetFrame => Boolean(frame));
+    return this.#source.listDockTargetFrames();
   }
-}
-
-function toDockTargetFrame(
-  frameId: string,
-  component: FloatingWindowComponent,
-  index: number
-): WindowDockTargetFrame {
-  return {
-    frameId,
-    stackPriority: component.inputStackPriority + index * 0.001,
-    bounds: rectFromDomRect(component.getBounds()),
-    tabBounds: rectFromDomRect(component.getTabBounds()),
-    contentBounds: rectFromDomRect(component.getContentBounds())
-  };
 }

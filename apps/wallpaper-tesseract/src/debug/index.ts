@@ -2,6 +2,8 @@ export { createDebugLogWindowActor } from "./components";
 export type { DebugLogWindowActorOptions } from "./components";
 export {
   createDefaultDebugWindowState,
+  DEBUG_WINDOW_MIN_HEIGHT,
+  DEBUG_WINDOW_MIN_WIDTH,
   registerDebugWindowParameters
 } from "./debug-window-parameters";
 export type { DebugWindowState, DebugWindowStateOptions } from "./debug-window-parameters";

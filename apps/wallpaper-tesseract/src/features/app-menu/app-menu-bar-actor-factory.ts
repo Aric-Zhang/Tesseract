@@ -3,6 +3,7 @@ import type { FeatureActorContext } from "../../runtime/ports";
 import type {
   WindowControlSource,
   WindowFrameIntentSink,
+  WindowMenuViewSource,
   WindowViewFactoryRegistry
 } from "../../window-runtime";
 import {
@@ -16,6 +17,7 @@ export interface AppMenuBarActorOptions {
   readonly actorName?: string;
   readonly parent: HTMLElement;
   readonly windowSource: WindowControlSource;
+  readonly windowMenuViewSource?: WindowMenuViewSource;
   readonly windowViewFactories?: WindowViewFactoryRegistry;
   readonly windowFrameIntents?: WindowFrameIntentSink;
   readonly initialMode?: AppMenuWorkspaceMode;
@@ -36,6 +38,7 @@ export function createAppMenuBarActor(
       parent: options.parent,
       document: options.document ?? options.parent.ownerDocument ?? undefined,
       windowSource: options.windowSource,
+      windowMenuViewSource: options.windowMenuViewSource,
       windowViewFactories: options.windowViewFactories,
       windowFrameIntents: options.windowFrameIntents,
       initialMode: options.initialMode

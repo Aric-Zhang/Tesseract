@@ -435,6 +435,25 @@ describe("HierarchyPanelComponent", () => {
     expect(component.hitTestInput({ x: 10, y: 10 })).toBeNull();
   });
 
+  it("rehosts the hierarchy root and routes hit testing through the new host", () => {
+    const { component, host, root } = createSubject();
+    const nextHost = new FakeWindowHost();
+    const [firstRow] = rows(root);
+    root.rect = createRect(0, 0, 200, 60);
+    firstRow.rect = createRect(0, 0, 200, 24);
+
+    component.rehostWindowContent(nextHost);
+
+    expect(component.currentWindowContentHost).toBe(nextHost);
+    expect(host.mounted).toEqual([]);
+    expect(nextHost.mounted).toEqual([root]);
+    expect(component.hitTestInput({ x: 10, y: 10 })?.partId).toBe("row");
+
+    nextHost.contentInteractable = false;
+
+    expect(component.hitTestInput({ x: 10, y: 10 })).toBeNull();
+  });
+
   it("submits selection commands through gizmo click and keyboard activation", () => {
     const commands: SceneUpdateCommand[] = [];
     const { component, root } = createSubject({ commands });

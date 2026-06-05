@@ -27,6 +27,7 @@ export class ComponentRuntimeBridge {
   private readonly gizmoEventSystem: GizmoControllerRegistry;
   private readonly frameStateController: SceneStateObserverRegistry;
   private readonly isActorActive: (actor: Actor) => boolean;
+  private readonly activeInputCancellers = new Set<ActorInputCanceller>();
 
   constructor(options: ComponentRuntimeBridgeOptions) {
     this.gizmoEventSystem = options.gizmoEventSystem;
@@ -36,6 +37,7 @@ export class ComponentRuntimeBridge {
 
   attach(actor: Actor, component: Component, definition: ComponentDefinition): RuntimeRegistration {
     const registrations: RuntimeRegistration[] = [];
+    const activeInputCanceller = isActorInputCanceller(component) ? component : null;
     try {
       const capabilities = definition.capabilities ?? [];
       if (capabilities.includes("gizmo-controller-binding")) {
@@ -48,14 +50,34 @@ export class ComponentRuntimeBridge {
       } else if (capabilities.includes("state-observer")) {
         registrations.push(this.frameStateController.subscribe(createStateObserverAdapter(component)));
       }
+      if (activeInputCanceller) {
+        this.activeInputCancellers.add(activeInputCanceller);
+      }
     } catch (error) {
       disposeRegistrations(registrations);
       throw error;
     }
     return createBridgeRegistration(() => {
+      if (activeInputCanceller) {
+        this.activeInputCancellers.delete(activeInputCanceller);
+      }
       disposeRegistrations(registrations);
     });
   }
+
+  cancelActiveActorInput(reason: GizmoCancelEvent["reason"] = "gizmo-disabled"): void {
+    for (const canceller of [...this.activeInputCancellers]) {
+      canceller.cancelActiveInput(reason);
+    }
+  }
+}
+
+interface ActorInputCanceller {
+  cancelActiveInput(reason?: GizmoCancelEvent["reason"]): void;
+}
+
+function isActorInputCanceller(component: Component): component is Component & ActorInputCanceller {
+  return typeof (component as Partial<ActorInputCanceller>).cancelActiveInput === "function";
 }
 
 function createBridgeRegistration(dispose: () => void): RuntimeRegistration {

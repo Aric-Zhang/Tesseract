@@ -14,6 +14,8 @@ import {
   type WindowControlItem,
   type WindowControlSource,
   type WindowFrameIntentSink,
+  type WindowMenuViewItem,
+  type WindowMenuViewSource,
   type WindowViewFactory
 } from "../../window-runtime";
 import { APP_MENU_PRIORITY, AppMenuBarComponent } from "./app-menu-bar-component";
@@ -99,6 +101,7 @@ interface CreateSubjectOptions {
   readonly debug?: Partial<WindowItemFixtureOptions>;
   readonly hierarchy?: Partial<WindowItemFixtureOptions>;
   readonly factories?: readonly WindowViewFactory[];
+  readonly menuViewItems?: readonly WindowMenuViewItem[];
   readonly includeHierarchy?: boolean;
   readonly lifecycleMode?: boolean;
 }
@@ -168,6 +171,14 @@ function createSubject(options: CreateSubjectOptions = {}): Subject {
     findWindowByViewKey: (viewKey) => source.listWindows().find((item) => item.viewKey === viewKey) ?? null,
     findWindowByVisiblePath: (path) => source.listWindows().find((item) => item.visiblePath === path) ?? null
   };
+  const menuViewSource: WindowMenuViewSource | undefined = options.menuViewItems
+    ? {
+        listMenuViews: () => options.menuViewItems ?? [],
+        findMenuViewByViewKey: (viewKey) => (
+          options.menuViewItems?.find((item) => item.viewKey === viewKey) ?? null
+        )
+      }
+    : undefined;
   const document = new FakeDocument();
   const parent = document.createElement("div");
   const commands: SceneUpdateCommand[] = [];
@@ -187,6 +198,7 @@ function createSubject(options: CreateSubjectOptions = {}): Subject {
     parent: parent as unknown as HTMLElement,
     document: document as unknown as Document,
     windowSource: source,
+    windowMenuViewSource: menuViewSource,
     windowViewFactories,
     windowFrameIntents,
     initialMode: options.initialMode
@@ -232,6 +244,33 @@ function createWindowItem(
     activationMode: "visible",
     canToggle: options.canToggle ?? true,
     visiblePath
+  };
+}
+
+function createMenuViewItem(
+  actor: Actor,
+  options: {
+    viewActorId: string;
+    viewKey: string;
+    label: string;
+    activeTab: boolean;
+  }
+): WindowMenuViewItem {
+  return {
+    actor,
+    actorId: actor.id,
+    frameActor: actor,
+    frameActorId: actor.id,
+    viewActorId: options.viewActorId,
+    viewKey: options.viewKey,
+    label: options.label,
+    order: 0,
+    group: null,
+    activeTab: options.activeTab,
+    activeSelf: actor.enabled,
+    activeInHierarchy: actor.enabled,
+    activationMode: "visible",
+    canToggle: true
   };
 }
 
@@ -345,6 +384,32 @@ describe("AppMenuBarComponent", () => {
     expect(rows(root)[2].getAttribute("aria-disabled")).toBe("false");
     expect(hasClass(rows(root)[2], "is-disabled")).toBe(false);
     expect(component.inputStackPriority).toBe(APP_MENU_PRIORITY);
+  });
+
+  it("renders menu rows from view source instead of collapsing to one row per frame", () => {
+    const actorSystem = new ActorSystem();
+    const frameActor = actorSystem.createActor({ id: "merged-frame" });
+    const { root } = createSubject({
+      includeHierarchy: false,
+      menuViewItems: [
+        createMenuViewItem(frameActor, {
+          viewActorId: "debug-view",
+          viewKey: "debug",
+          label: "Debug Log",
+          activeTab: true
+        }),
+        createMenuViewItem(frameActor, {
+          viewActorId: "hierarchy-view",
+          viewKey: "hierarchy",
+          label: "Hierarchy",
+          activeTab: false
+        })
+      ]
+    });
+
+    expect(rows(root).map(labelText)).toEqual(["Debug Log", "Hierarchy"]);
+    expect(rows(root).map((row) => row.dataset.viewKey)).toEqual(["debug", "hierarchy"]);
+    expect(rows(root).map((row) => row.dataset.actorId)).toEqual(["merged-frame", "merged-frame"]);
   });
 
   it("routes input to a visible Scene menu row and focuses it without hiding", () => {

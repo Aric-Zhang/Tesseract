@@ -364,7 +364,7 @@ describe("architecture boundaries", () => {
     expect(lifecycleSource).toMatch(/\binterface\s+WindowFrameLifecycleController\b/);
     expect(lifecycleSource).toMatch(/\binterface\s+WindowFrameIntentSink\b/);
     expect(controllerSource).toMatch(/\bdestroyActor\b/);
-    expect(controllerSource).not.toMatch(/\bsetParent\b/);
+    expect(controllerSource).toMatch(/\bsetParent\b/);
     expect(lifecycleSource).not.toMatch(/\bmoveViewToFrame\b/);
     expect(lifecycleSource).not.toMatch(/\bfloatView\b/);
     expect(controllerSource).not.toMatch(/debug-log-window|hierarchy-panel|scene-window|createSceneWindowActor/);

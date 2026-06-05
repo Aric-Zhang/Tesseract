@@ -23,6 +23,7 @@ import {
 } from "./floating-window-component";
 import type { FloatingWindowParameterPaths } from "./floating-window-state";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
+import type { WindowFrameTab } from "./window-frame-port";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
 
 class FakeDocument {
@@ -107,7 +108,9 @@ interface CreateSubjectOptions {
   priority?: number;
   windowMenu?: FloatingWindowMenuOptions;
   frameId?: string;
+  tabs?: readonly WindowFrameTab[];
   activeViewActorId?: string;
+  presentation?: "windowed" | "fullscreen";
   frameIntentSink?: WindowFrameIntentSink;
   tabDragSink?: WindowTabDragSink;
 }
@@ -141,6 +144,8 @@ function createSubject(options: CreateSubjectOptions = {}) {
     contentClassName: "test-window__content",
     priority: options.priority ?? 1200,
     frameId: options.frameId,
+    presentation: options.presentation,
+    tabs: options.tabs,
     activeViewActorId: options.activeViewActorId,
     frameIntentSink: options.frameIntentSink,
     tabDragSink: options.tabDragSink,
@@ -680,11 +685,281 @@ describe("FloatingWindowComponent DOM shell", () => {
   it("updates the title", () => {
     const { component, root } = createSubject();
     const titlebar = findChildByClass(root, "floating-gizmo-window__titlebar");
-    const title = findChildByClass(titlebar, "floating-gizmo-window__title");
 
     component.setTitle("Hierarchy");
 
+    const title = findChildByClass(titlebar, "floating-gizmo-window__title");
     expect(title.textContent).toBe("Hierarchy");
+  });
+
+  it("renders multiple tabs and maintains frame port tab state", () => {
+    const { component, root } = createSubject({
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const titlebar = findChildByClass(root, "floating-gizmo-window__titlebar");
+    const tabElements = titlebar.children.filter((child) => (
+      child.className.split(" ").includes("floating-gizmo-window__tab")
+    ));
+
+    expect(component.listTabs()).toEqual([
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+    ]);
+    expect(component.getActiveViewActorId()).toBe("debug-view");
+    expect(component.hasTab("hierarchy-view")).toBe(true);
+    expect(tabElements.map((tab) => tab.textContent)).toEqual(["Debug", "Hierarchy"]);
+    expect(tabElements.map((tab) => tab.className.includes("is-active"))).toEqual([true, false]);
+
+    component.activateTab("hierarchy-view");
+
+    expect(component.getActiveViewActorId()).toBe("hierarchy-view");
+    const nextTabElements = titlebar.children.filter((child) => (
+      child.className.split(" ").includes("floating-gizmo-window__tab")
+    ));
+    expect(nextTabElements.map((tab) => tab.className.includes("is-active"))).toEqual([false, true]);
+
+    component.removeTab("hierarchy-view");
+
+    expect(component.listTabs()).toEqual([
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" }
+    ]);
+    expect(component.getActiveViewActorId()).toBe("debug-view");
+  });
+
+  it("provides per-view content hosts that follow the active tab", () => {
+    const { component, document } = createSubject({
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const debugContent = document.createElement("pre");
+    const hierarchyContent = document.createElement("div");
+    const debugHost = component.getContentHost("debug-view");
+    const hierarchyHost = component.getContentHost("hierarchy-view");
+
+    debugHost.mountContent(debugContent as unknown as HTMLElement);
+    hierarchyHost.mountContent(hierarchyContent as unknown as HTMLElement);
+
+    expect(debugContent.hidden).toBe(false);
+    expect(hierarchyContent.hidden).toBe(true);
+    expect(debugHost.isContentInteractable(debugContent as unknown as HTMLElement)).toBe(true);
+    expect(hierarchyHost.isContentInteractable(hierarchyContent as unknown as HTMLElement)).toBe(false);
+
+    component.activateTab("hierarchy-view");
+
+    expect(debugContent.hidden).toBe(true);
+    expect(hierarchyContent.hidden).toBe(false);
+    expect(debugHost.isContentInteractable(debugContent as unknown as HTMLElement)).toBe(false);
+    expect(hierarchyHost.isContentInteractable(hierarchyContent as unknown as HTMLElement)).toBe(true);
+  });
+
+  it("returns a fullscreen frame to windowed presentation when adding a different active tab", () => {
+    const { component, root } = createSubject({
+      presentation: "fullscreen",
+      activeViewActorId: "scene-view",
+      tabs: [
+        { viewActorId: "scene-view", viewKey: "scene", title: "Scene" }
+      ]
+    });
+
+    component.addTab({ viewActorId: "debug-view", viewKey: "debug", title: "Debug" }, { active: true });
+
+    expect(component.presentation).toBe("windowed");
+    expect(root.className).not.toContain("floating-gizmo-window--fullscreen");
+    expect(component.getActiveViewActorId()).toBe("debug-view");
+  });
+
+  it("sends tab activation intent when clicking an inactive tab", () => {
+    const frameIntents: string[] = [];
+    const { component, root } = createSubject({
+      frameId: "frame:test",
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ],
+      frameIntentSink: {
+        requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
+        requestCloseFrame: (frameId, reason) => frameIntents.push(`close:${frameId}:${reason}`),
+        requestActivateFrameTab: (frameId, viewActorId, reason) => (
+          frameIntents.push(`activate:${frameId}:${viewActorId}:${reason}`)
+        )
+      }
+    });
+    const titlebar = findChildByClass(root, "floating-gizmo-window__titlebar");
+    const [debugTab, hierarchyTab] = titlebar.children.filter((child) => (
+      child.className.split(" ").includes("floating-gizmo-window__tab")
+    ));
+    debugTab.rect = createRect(18, 24, 80, 24);
+    hierarchyTab.rect = createRect(104, 24, 120, 24);
+    findChildByClass(titlebar, "floating-gizmo-window__close").rect = createRect(294, 24, 28, 24);
+    root.rect = createRect(10, 20, 320, 180);
+    titlebar.rect = createRect(10, 20, 320, 32);
+    const hit = component.hitTestInput({ x: 120, y: 36 });
+    if (!hit) throw new Error("Expected hierarchy tab hit.");
+
+    component.onInputEnd(createActorInputEndEvent(hit, { wasClick: true }));
+
+    expect(hit.partId).toBe("window-tab");
+    expect(frameIntents).toEqual(["activate:frame:test:hierarchy-view:tab-click"]);
+    expect(component.getActiveViewActorId()).toBe("debug-view");
+  });
+
+  it("starts tab drag with the concrete dragged tab identity", () => {
+    const tabDragCalls: string[] = [];
+    const { component, root } = createSubject({
+      frameId: "frame:test",
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ],
+      tabDragSink: {
+        beginTabDrag: (source, point) => {
+          tabDragCalls.push(`begin:${source.frameId}:${source.viewActorId}:${source.viewKey}:${point.x}:${point.y}`);
+        },
+        moveTabDrag: (point) => tabDragCalls.push(`move:${point.x}:${point.y}`),
+        endTabDrag: () => {
+          tabDragCalls.push("end");
+          return null;
+        },
+        cancelTabDrag: () => tabDragCalls.push("cancel")
+      }
+    });
+    const titlebar = findChildByClass(root, "floating-gizmo-window__titlebar");
+    const [debugTab, hierarchyTab] = titlebar.children.filter((child) => (
+      child.className.split(" ").includes("floating-gizmo-window__tab")
+    ));
+    debugTab.rect = createRect(18, 24, 80, 24);
+    hierarchyTab.rect = createRect(104, 24, 120, 24);
+    findChildByClass(titlebar, "floating-gizmo-window__close").rect = createRect(294, 24, 28, 24);
+    root.rect = createRect(10, 20, 320, 180);
+    titlebar.rect = createRect(10, 20, 320, 32);
+    const hit = component.hitTestInput({ x: 120, y: 36 });
+    if (!hit) throw new Error("Expected hierarchy tab hit.");
+
+    component.onInputStart(createActorInputStartEvent(hit, { point: { x: 120, y: 36 } }));
+    component.onInputMove(createActorInputMoveEvent(hit, {
+      point: { x: 180, y: 80 },
+      totalDelta: { dx: 60, dy: 44 }
+    }));
+    component.onInputEnd(createActorInputEndEvent(hit));
+
+    expect(tabDragCalls).toEqual([
+      "begin:frame:test:hierarchy-view:hierarchy:120:36",
+      "move:180:80",
+      "end"
+    ]);
+  });
+
+  it("submits a merge dock intent after a completed tab drag over another frame tab area", () => {
+    const frameIntents: string[] = [];
+    const { component, root } = createSubject({
+      frameId: "frame:test",
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ],
+      frameIntentSink: {
+        requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
+        requestCloseFrame: (frameId, reason) => frameIntents.push(`close:${frameId}:${reason}`),
+        requestCommitDock: (intent) => {
+          if (intent.kind === "merge-tabs") {
+            frameIntents.push(
+              `merge:${intent.source.frameId}:${intent.source.viewActorId}:${intent.targetFrameId}:${intent.reason}`
+            );
+          }
+        }
+      },
+      tabDragSink: {
+        beginTabDrag: () => {},
+        moveTabDrag: () => {},
+        endTabDrag: () => ({
+          source: {
+            frameId: "frame:test",
+            viewActorId: "hierarchy-view",
+            viewKey: "hierarchy"
+          },
+          preview: {
+            kind: "merge-tabs",
+            targetFrameId: "target-frame",
+            rect: createRect(400, 20, 160, 32)
+          }
+        }),
+        cancelTabDrag: () => {}
+      }
+    });
+    const titlebar = findChildByClass(root, "floating-gizmo-window__titlebar");
+    const [, hierarchyTab] = titlebar.children.filter((child) => (
+      child.className.split(" ").includes("floating-gizmo-window__tab")
+    ));
+    hierarchyTab.rect = createRect(104, 24, 120, 24);
+    findChildByClass(titlebar, "floating-gizmo-window__close").rect = createRect(294, 24, 28, 24);
+    root.rect = createRect(10, 20, 320, 180);
+    titlebar.rect = createRect(10, 20, 320, 32);
+    const hit = component.hitTestInput({ x: 120, y: 36 });
+    if (!hit) throw new Error("Expected hierarchy tab hit.");
+
+    component.onInputEnd(createActorInputEndEvent(hit, { wasClick: false }));
+
+    expect(frameIntents).toEqual([
+      "merge:frame:test:hierarchy-view:target-frame:dock-drop"
+    ]);
+  });
+
+  it("submits a floating dock intent after a completed tab drag over empty space", () => {
+    const frameIntents: string[] = [];
+    const { component, root } = createSubject({
+      frameId: "frame:test",
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" }
+      ],
+      frameIntentSink: {
+        requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
+        requestCloseFrame: (frameId, reason) => frameIntents.push(`close:${frameId}:${reason}`),
+        requestCommitDock: (intent) => {
+          if (intent.kind === "float-tab") {
+            frameIntents.push(
+              `float:${intent.source.frameId}:${intent.source.viewActorId}:` +
+              `${intent.bounds.left}:${intent.bounds.top}:${intent.bounds.width}:${intent.bounds.height}:${intent.reason}`
+            );
+          }
+        }
+      },
+      tabDragSink: {
+        beginTabDrag: () => {},
+        moveTabDrag: () => {},
+        endTabDrag: () => ({
+          source: {
+            frameId: "frame:test",
+            viewActorId: "debug-view",
+            viewKey: "debug"
+          },
+          preview: {
+            kind: "floating",
+            rect: createRect(440, 80, 260, 180)
+          }
+        }),
+        cancelTabDrag: () => {}
+      }
+    });
+    setWindowRects(root);
+    const hit = component.hitTestInput({ x: 30, y: 36 });
+    if (!hit) throw new Error("Expected tab hit.");
+
+    component.onInputEnd(createActorInputEndEvent(hit, { wasClick: false }));
+
+    expect(frameIntents).toEqual([
+      "float:frame:test:debug-view:440:80:260:180:dock-drop"
+    ]);
   });
 
   it("returns the window bounds without exposing the root element", () => {
@@ -737,13 +1012,77 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(second.component.isContentInteractable(content as unknown as HTMLElement)).toBe(true);
   });
 
-  it("rejects duplicate mounted content", () => {
-    const { component, document } = createSubject();
-    component.mountContent(document.createElement("pre") as unknown as HTMLElement);
+  it("mounts multiple content roots in one window content deck", () => {
+    const { component, document, root } = createSubject({
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const contentSlot = findChildByClass(root, "floating-gizmo-window__content");
+    const first = document.createElement("pre");
+    const second = document.createElement("div");
 
-    expect(() => component.mountContent(document.createElement("div") as unknown as HTMLElement)).toThrow(
-      /already has mounted content/
-    );
+    const firstAttachment = component.mountContent({
+      element: first as unknown as HTMLElement,
+      viewActorId: "debug-view"
+    });
+    const secondAttachment = component.mountContent({
+      element: second as unknown as HTMLElement,
+      viewActorId: "hierarchy-view",
+      interactable: false
+    });
+
+    expect(contentSlot.children).toEqual([first, second]);
+    expect(component.isContentInteractable(first as unknown as HTMLElement)).toBe(true);
+    expect(component.isContentInteractable(second as unknown as HTMLElement)).toBe(false);
+
+    firstAttachment.setInteractable(false);
+    secondAttachment.setInteractable(true);
+
+    expect(component.isContentInteractable(first as unknown as HTMLElement)).toBe(false);
+    expect(component.isContentInteractable(second as unknown as HTMLElement)).toBe(false);
+
+    component.activateTab("hierarchy-view");
+
+    expect(component.isContentInteractable(first as unknown as HTMLElement)).toBe(false);
+    expect(component.isContentInteractable(second as unknown as HTMLElement)).toBe(true);
+  });
+
+  it("replaces content for the same view without disposing other deck entries", () => {
+    const { component, document, root } = createSubject({
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const contentSlot = findChildByClass(root, "floating-gizmo-window__content");
+    const oldDebugContent = document.createElement("pre");
+    const hierarchyContent = document.createElement("div");
+    const newDebugContent = document.createElement("section");
+    const oldDebugAttachment = component.mountContent({
+      element: oldDebugContent as unknown as HTMLElement,
+      viewActorId: "debug-view"
+    });
+    const hierarchyAttachment = component.mountContent({
+      element: hierarchyContent as unknown as HTMLElement,
+      viewActorId: "hierarchy-view"
+    });
+
+    const newDebugAttachment = component.mountContent({
+      element: newDebugContent as unknown as HTMLElement,
+      viewActorId: "debug-view"
+    });
+
+    expect(oldDebugAttachment.interactable).toBe(false);
+    expect(hierarchyAttachment.interactable).toBe(false);
+    expect(newDebugAttachment.interactable).toBe(true);
+    expect(contentSlot.children).toEqual([hierarchyContent, newDebugContent]);
+    expect(component.isContentInteractable(oldDebugContent as unknown as HTMLElement)).toBe(false);
+    expect(component.isContentInteractable(hierarchyContent as unknown as HTMLElement)).toBe(false);
+    expect(component.isContentInteractable(newDebugContent as unknown as HTMLElement)).toBe(true);
   });
 
   it("does not hit-test inactive mounted content", () => {

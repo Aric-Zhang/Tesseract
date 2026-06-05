@@ -192,6 +192,27 @@ describe("DebugLogContentComponent", () => {
     expect(host.mounted).toEqual([]);
   });
 
+  it("rehosts existing log content without recreating the element or losing text", () => {
+    const actor = new ActorSystem().createActor({ id: "debug-actor" });
+    const document = new FakeDocument();
+    const firstHost = new FakeWindowHost();
+    const secondHost = new FakeWindowHost();
+    const component = new DebugLogContentComponent(actor, {
+      document: document as unknown as Document
+    }, { host: firstHost });
+    component.append({ type: "hit", message: "preserved", timeStamp: 7 });
+    component.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
+    const content = component.content;
+
+    component.rehostWindowContent(secondHost);
+
+    expect(component.content).toBe(content);
+    expect(component.currentWindowContentHost).toBe(secondHost);
+    expect(component.content.textContent).toBe("    7 preserved");
+    expect(firstHost.mounted).toEqual([]);
+    expect(secondHost.mounted).toEqual([content]);
+  });
+
   it("requires an owning FloatingWindowComponent when added through the registry", () => {
     const { actorSystem, registry } = createRegistry();
     const actor = actorSystem.createActor({ id: "debug-actor" });

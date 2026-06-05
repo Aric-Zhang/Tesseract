@@ -136,6 +136,10 @@ export class ActorInputRouter {
     active.selection.target.onInputCancel?.(toActorInputCancelEvent(event, active.selection.hit));
   }
 
+  cancelActiveInteraction(reason: GizmoCancelEvent["reason"] = "gizmo-disabled"): void {
+    this.cancelActive(reason);
+  }
+
   click(selection: ActorInputSelection, event: GizmoClickEvent): void {
     selection.target.onInputClick?.(toActorInputClickEvent(event, selection.hit));
   }

@@ -3,7 +3,7 @@ import type { Actor, Component, ComponentType } from "../actor-runtime";
 import { sceneParameterPaths, type SceneCommandSink, type SceneStateChangedEvent } from "../scene-runtime";
 import type { ActorInputEndEvent, ActorInputHit, ActorInputParticipant } from "../gizmo-runtime";
 import type { StateObserverResponder } from "../state-runtime";
-import type { WindowContentAttachment, WindowContentHost } from "../window-runtime";
+import type { WindowContentAttachment, WindowContentHost, WindowContentRehostable } from "../window-runtime";
 import type { HierarchyObjectItem, HierarchyObjectSource } from "./hierarchy-object-source";
 
 export const hierarchyPanelComponentType =
@@ -31,7 +31,8 @@ const DEFAULT_HIERARCHY_PANEL_ID = "hierarchy-panel";
 const DEFAULT_EMPTY_LABEL = "No objects";
 const DEFAULT_HIERARCHY_PANEL_PRIORITY = 900;
 
-export class HierarchyPanelComponent implements Component, ActorInputParticipant, StateObserverResponder {
+export class HierarchyPanelComponent
+  implements Component, ActorInputParticipant, StateObserverResponder, WindowContentRehostable {
   readonly id: string;
   readonly type = hierarchyPanelComponentType;
   readonly actor: Actor;
@@ -40,9 +41,9 @@ export class HierarchyPanelComponent implements Component, ActorInputParticipant
   readonly #objectSource: HierarchyObjectSource;
   readonly #commandSink: SceneCommandSink;
   readonly #priority: number;
-  readonly #host: WindowContentHost & { readonly inputStackPriority?: number };
+  #host: WindowContentHost & { readonly inputStackPriority?: number };
   readonly #root: HTMLDivElement;
-  readonly #attachment: WindowContentAttachment;
+  #attachment: WindowContentAttachment;
   readonly #emptyLabel: string;
   #rows: RowEntry[] = [];
   #activeObject: string | null = null;
@@ -67,6 +68,21 @@ export class HierarchyPanelComponent implements Component, ActorInputParticipant
     this.#root.tabIndex = -1;
     this.renderIfItemsChanged();
     this.#attachment = services.host.mountContent(this.#root);
+  }
+
+  get currentWindowContentHost(): WindowContentHost | null {
+    return this.enabled ? this.#attachment.host : null;
+  }
+
+  rehostWindowContent(host: WindowContentHost): void {
+    const previous = this.#attachment;
+    this.#host = host;
+    this.#attachment = host.mountContent(this.#root);
+    previous.dispose();
+  }
+
+  setWindowContentInteractable(interactable: boolean): void {
+    this.#attachment.setInteractable(interactable);
   }
 
   get inputStackPriority(): number {

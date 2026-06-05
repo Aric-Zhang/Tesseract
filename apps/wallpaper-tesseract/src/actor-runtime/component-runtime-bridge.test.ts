@@ -143,6 +143,35 @@ describe("ComponentRuntimeBridge", () => {
     expect(calls).toEqual([]);
   });
 
+  it("broadcasts active actor input cancellation to registered binding components", () => {
+    const actorSystem = new ActorSystem();
+    const calls: string[] = [];
+    const actor = actorSystem.createActor({ id: "actor" });
+    const component = {
+      ...createBridgeComponent(actor, calls),
+      cancelActiveInput(reason = "gizmo-disabled") {
+        calls.push(`cancel:${reason}`);
+      }
+    };
+    const definition: ComponentDefinition = {
+      type: componentType("bridge-component"),
+      capabilities: ["gizmo-controller-binding"],
+      create: () => component
+    };
+    const { bridge } = createBridge(calls);
+    const registration = bridge.attach(actor, component, definition);
+    calls.length = 0;
+
+    bridge.cancelActiveActorInput("system-dispose");
+    registration.dispose();
+    bridge.cancelActiveActorInput("gizmo-disabled");
+
+    expect(calls).toEqual([
+      "cancel:system-dispose",
+      "gizmo-dispose"
+    ]);
+  });
+
   it("uses injected actor active state for legacy gizmo adapters", () => {
     const actorSystem = new ActorSystem();
     const calls: string[] = [];

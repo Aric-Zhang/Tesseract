@@ -6,6 +6,11 @@ export {
 } from "./floating-window-state";
 export { createActorWindowFocusServiceProxy } from "./actor-window-focus-service";
 export type { ActorWindowFocusServiceProxy } from "./actor-window-focus-service";
+export { createDockTargetFrameSource } from "./dock-target-frame-source";
+export type {
+  DockTargetFrameSource,
+  DockTargetFrameSourceOptions
+} from "./dock-target-frame-source";
 export type {
   FloatingWindowParameterPaths,
   FloatingWindowState,
@@ -15,9 +20,16 @@ export type {
 export { windowViewKey } from "./window-view-key";
 export type { WindowViewKey } from "./window-view-key";
 export type {
+  WindowFramePort,
+  WindowFrameTab
+} from "./window-frame-port";
+export type {
   WindowFrameIntentSink,
   WindowFrameLifecycleController,
-  WindowFrameLifecycleReason
+  WindowFrameLifecycleReason,
+  WindowFloatingFrameCreateOptions,
+  WindowFloatingFrameCreateResult,
+  WindowFloatingFrameFactory
 } from "./window-frame-lifecycle";
 export { DefaultWindowFrameLifecycleController } from "./window-frame-lifecycle-controller";
 export type { WindowFrameLifecycleControllerOptions } from "./window-frame-lifecycle-controller";
@@ -71,7 +83,8 @@ export type {
   FloatingWindowHost,
   WindowContentAttachment,
   WindowContentAttachmentRequest,
-  WindowContentHost
+  WindowContentHost,
+  WindowContentRehostable
 } from "./floating-window-host";
 export {
   DEFAULT_FLOATING_WINDOW_PRIORITY,
@@ -96,6 +109,12 @@ export type {
   WindowControlSource,
   WindowControlSourceOptions
 } from "./window-control-source";
+export { createWindowMenuViewSource } from "./window-menu-view-source";
+export type {
+  WindowMenuViewItem,
+  WindowMenuViewSource,
+  WindowMenuViewSourceOptions
+} from "./window-menu-view-source";
 export {
   closeFrameInWorkspaceFrameLayout,
   createSingleTabWindowFrame,

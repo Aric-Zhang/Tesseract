@@ -243,6 +243,46 @@ describe("createSceneWindowActor", () => {
     expect(sizes).toEqual([{ width: 640, height: 360 }]);
   });
 
+  it("rehosts the Scene viewport into another window content host and measures the new host", () => {
+    const context = createContext();
+    const document = new FakeDocument();
+    const parent = document.createElement("div");
+    const rendererCalls: string[] = [];
+    const handle = createSceneWindowActor(context, {
+      actorId: "scene-actor",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      initialState: createDefaultSceneWindowState({ viewportWidth: 1000, viewportHeight: 800 }),
+      createRenderer: () => createFakeRenderer(document, rendererCalls),
+      devicePixelRatio: () => 1
+    });
+    const targetFrame = context.actorSystem.createActor({ id: "target-frame" });
+    const targetWindow = context.componentRegistry.addComponent(targetFrame, floatingWindowComponentType, {
+      id: "floating-window:target",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      title: "Target",
+      paths: sceneParameterPaths.debugWindow,
+      initialState: createDefaultSceneWindowState({ viewportWidth: 500, viewportHeight: 280 })
+    });
+    const sourceRoot = parent.children[0];
+    const targetRoot = parent.children[1];
+    const sourceContent = findChildByClass(sourceRoot, "floating-gizmo-window__content");
+    const targetContent = findChildByClass(targetRoot, "floating-gizmo-window__content");
+    (handle.viewport.viewportElement as unknown as FakeElement).rect = createRect(0, 0, 500, 280);
+
+    handle.viewport.rehostWindowContent(targetWindow);
+
+    expect(handle.viewport.currentWindowContentHost).toBe(targetWindow);
+    expect(sourceContent.children).toEqual([]);
+    expect(targetContent.children).toEqual([handle.viewport.viewportElement as unknown as FakeElement]);
+    expect(rendererCalls).toEqual([
+      "setClearColor:461069:1",
+      "setPixelRatio:1",
+      "setSize:500:280:false"
+    ]);
+  });
+
   it("submits workspace mode commands from the Scene mode toggle", () => {
     const commands: SceneUpdateCommand[] = [];
     const context = createContext(commands);

@@ -3,6 +3,7 @@ import type { FloatingWindowState } from "./floating-window-state";
 export interface WindowContentAttachmentRequest {
   readonly element: HTMLElement;
   readonly interactable?: boolean;
+  readonly viewActorId?: string;
 }
 
 export interface WindowContentHost {
@@ -29,6 +30,13 @@ export interface WindowContentAttachment {
 }
 
 export type FloatingWindowContentAttachment = WindowContentAttachment;
+
+export interface WindowContentRehostable {
+  readonly currentWindowContentHost: WindowContentHost | null;
+
+  rehostWindowContent(host: WindowContentHost): void;
+  setWindowContentInteractable?(interactable: boolean): void;
+}
 
 type AttachWindowContent = (element: HTMLElement) => void;
 type DisposeWindowContentAttachment = (attachment: WindowContentAttachment) => void;

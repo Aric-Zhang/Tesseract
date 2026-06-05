@@ -1,7 +1,12 @@
 import * as THREE from "three";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import type { RuntimeRegistration } from "../../../scene-runtime";
-import type { FloatingWindowComponent } from "../../../window-runtime";
+import type {
+  FloatingWindowComponent,
+  WindowContentAttachment,
+  WindowContentHost,
+  WindowContentRehostable
+} from "../../../window-runtime";
 
 export const sceneViewportComponentType =
   "scene-viewport-component" as ComponentType<SceneViewportComponent>;
@@ -39,7 +44,7 @@ export type SceneViewportResizeObserverFactory = (
   callback: () => void
 ) => SceneViewportResizeObserver;
 
-export class SceneViewportComponent implements Component {
+export class SceneViewportComponent implements Component, WindowContentRehostable {
   readonly type = sceneViewportComponentType;
   readonly actor: Actor;
   readonly id: string;
@@ -50,7 +55,7 @@ export class SceneViewportComponent implements Component {
   readonly renderer: SceneViewportRenderer;
   enabled = true;
 
-  readonly #attachment: { dispose(): void };
+  #attachment: WindowContentAttachment;
   readonly #devicePixelRatio: () => number;
   readonly #resizeSubscribers: Array<(size: SceneViewportSize) => void> = [];
   readonly #resizeObserver: SceneViewportResizeObserver | null;
@@ -81,6 +86,21 @@ export class SceneViewportComponent implements Component {
     this.#resizeObserver = createResizeObserver(options.createResizeObserver, () => this.measureNow());
     this.#resizeObserver?.observe(this.viewportElement);
     this.measureNow();
+  }
+
+  get currentWindowContentHost(): WindowContentHost | null {
+    return this.enabled ? this.#attachment.host : null;
+  }
+
+  rehostWindowContent(host: WindowContentHost): void {
+    const previous = this.#attachment;
+    this.#attachment = host.mountContent(this.viewportElement);
+    previous.dispose();
+    this.measureNow();
+  }
+
+  setWindowContentInteractable(interactable: boolean): void {
+    this.#attachment.setInteractable(interactable);
   }
 
   getSize(): SceneViewportSize | null {

@@ -3,17 +3,24 @@ import { AppRuntimeContext } from "../app-runtime";
 import {
   createDebugLogWindowActor,
   createDefaultDebugWindowState,
+  DEBUG_WINDOW_MIN_HEIGHT,
+  DEBUG_WINDOW_MIN_WIDTH,
   registerDebugWindowParameters
 } from "../debug";
 import {
   createDefaultSceneWindowState,
-  registerSceneWindowParameters
+  registerSceneWindowParameters,
+  SCENE_WINDOW_MIN_HEIGHT,
+  SCENE_WINDOW_MIN_WIDTH,
+  SCENE_WINDOW_PRIORITY_DEVELOP
 } from "../features/scene";
 import { createAppMenuBarActor } from "../features/app-menu";
 import {
   createActorHierarchyObjectSource,
   createDefaultHierarchyPanelState,
   createHierarchyPanelActor,
+  HIERARCHY_WINDOW_MIN_HEIGHT,
+  HIERARCHY_WINDOW_MIN_WIDTH,
   registerHierarchyPanelParameters
 } from "../hierarchy";
 import {
@@ -28,12 +35,20 @@ import {
 import type { SceneStateObserverRegistry } from "../runtime/ports";
 import {
   createActorWindowFocusServiceProxy,
+  createDockTargetFrameSource,
   DefaultWindowFrameLifecycleController,
+  floatingWindowComponentType,
   type FloatingWindowParameterPaths,
   type FloatingWindowState,
   createWindowControlSource,
+  createWindowMenuViewSource,
   WindowDockPreviewController,
+  type WindowDockRect,
+  type WindowFloatingFrameCreateOptions,
   type WindowFrameIntentSink,
+  type WindowFramePort,
+  type WindowFrameTab,
+  type WindowViewKey,
   WindowViewFactoryRegistry,
   WindowWorkspaceController,
   WindowVisibilityActivationController
@@ -132,8 +147,14 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const windowControlSource = createWindowControlSource({
     actorSystem: runtimeContext.actorSystem
   });
+  const dockTargetFrameSource = createDockTargetFrameSource({
+    actorSystem: runtimeContext.actorSystem
+  });
+  const windowMenuViewSource = createWindowMenuViewSource({
+    actorSystem: runtimeContext.actorSystem
+  });
   const windowDockPreview = new WindowDockPreviewController({
-    source: windowControlSource,
+    source: dockTargetFrameSource,
     parent: mount
   });
   const windowWorkspaceController = new WindowWorkspaceController({
@@ -157,6 +178,58 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     },
     requestCloseFrame(frameId, reason) {
       requireWindowFrameLifecycleController().closeFrame(frameId, reason);
+    },
+    requestActivateFrameTab(frameId, viewActorId, reason) {
+      requireWindowFrameLifecycleController().activateFrameTab(frameId, viewActorId, reason);
+    },
+    requestCommitDock(intent) {
+      requireWindowFrameLifecycleController().commitDock(intent);
+    }
+  };
+  const floatingFrameCounters = new Map<WindowViewKey, number>();
+  const createFloatingFrameForView = (options: WindowFloatingFrameCreateOptions): {
+    frameActor: ReturnType<typeof runtimeContext.actorSystem.createActor>;
+    framePort: WindowFramePort;
+  } => {
+    const frameOptions = getFloatingFrameOptions(options.source.viewKey, options.tab, options.bounds);
+    const ids = allocateFloatingFrameIds(
+      runtimeContext.actorSystem,
+      floatingFrameCounters,
+      options.source.viewKey,
+      frameOptions.preferredActorId,
+      frameOptions.preferredComponentId
+    );
+    const actor = runtimeContext.actorSystem.createActor({
+      id: ids.actorId,
+      name: `${options.tab.title} Window`
+    });
+    try {
+      const window = runtimeContext.componentRegistry.addComponent(actor, floatingWindowComponentType, {
+        id: ids.componentId,
+        parent: mount,
+        title: options.tab.title,
+        paths: frameOptions.paths,
+        initialState: frameOptions.initialState,
+        minSize: frameOptions.minSize,
+        className: frameOptions.className,
+        contentClassName: frameOptions.contentClassName,
+        priority: frameOptions.priority,
+        activeViewActorId: options.tab.viewActorId,
+        activeViewKey: options.tab.viewKey,
+        tabs: [options.tab],
+        frameIntentSink: windowFrameIntents,
+        tabDragSink: windowDockPreview,
+        windowMenu: frameOptions.windowMenu
+      });
+      return {
+        frameActor: actor,
+        framePort: window as WindowFramePort
+      };
+    } catch (error) {
+      if (runtimeContext.actorSystem.hasActor(actor)) {
+        runtimeContext.actorSystem.destroyActor(actor);
+      }
+      throw error;
     }
   };
   windowViewFactories.register({
@@ -188,7 +261,9 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       }
       return {
         frameActor: runtime.sceneWindow.actor,
+        framePort: runtime.sceneWindow.window,
         viewActor: runtime.sceneWindow.viewport.actor,
+        content: runtime.sceneWindow.viewport,
         dispose: () => {
           currentSceneView.clear(runtime);
           runtime.dispose();
@@ -215,7 +290,9 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       debugLogWindow = handle;
       return {
         frameActor: handle.actor,
+        framePort: handle.window,
         viewActor: handle.component.actor,
+        content: handle.component,
         dispose: () => {
           if (debugLogWindow === handle) {
             debugLogWindow = null;
@@ -244,7 +321,9 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       });
       return {
         frameActor: handle.actor,
+        framePort: handle.window,
         viewActor: handle.component.actor,
+        content: handle.component,
         dispose: () => handle.dispose()
       };
     }
@@ -252,7 +331,9 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   windowFrameLifecycleController = new DefaultWindowFrameLifecycleController({
     actorSystem: runtimeContext.actorSystem,
     factories: windowViewFactories,
-    actorWindowFocus
+    actorWindowFocus,
+    cancelActiveInput: () => runtimeContext.cancelActiveActorInput(),
+    createFloatingFrame: createFloatingFrameForView
   });
   windowFrameLifecycleController.openView("scene", "programmatic");
   windowFrameLifecycleController.openView("debug", "programmatic");
@@ -267,6 +348,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     actorName: APP_MENU_BAR_ACTOR_NAME,
     parent: mount,
     windowSource: windowControlSource,
+    windowMenuViewSource,
     windowViewFactories,
     windowFrameIntents
   });
@@ -344,6 +426,114 @@ function closeLiveWindowFrames(controller: DefaultWindowFrameLifecycleController
   const frameIds = new Set(controller.listLiveViews().map((view) => view.frameActor.id));
   for (const frameId of frameIds) {
     controller.closeFrame(frameId, "programmatic");
+  }
+}
+
+interface FloatingFrameShellOptions {
+  readonly preferredActorId: string;
+  readonly preferredComponentId: string;
+  readonly paths: FloatingWindowParameterPaths;
+  readonly initialState: FloatingWindowState;
+  readonly minSize: Vec2;
+  readonly className: string;
+  readonly contentClassName?: string;
+  readonly priority: number;
+  readonly windowMenu: {
+    readonly include?: boolean;
+    readonly viewKey: WindowViewKey;
+    readonly label?: string;
+    readonly order?: number;
+    readonly activationMode?: "visible";
+  };
+}
+
+function getFloatingFrameOptions(
+  viewKey: WindowViewKey,
+  tab: WindowFrameTab,
+  bounds: WindowDockRect
+): FloatingFrameShellOptions {
+  switch (viewKey) {
+    case "scene": {
+      const minSize = vec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT);
+      return {
+        preferredActorId: SCENE_WINDOW_ACTOR_ID,
+        preferredComponentId: "floating-window:scene",
+        paths: sceneParameterPaths.sceneWindow,
+        initialState: createFloatingStateFromBounds(bounds, minSize),
+        minSize,
+        className: "scene-window",
+        contentClassName: "scene-window__content",
+        priority: SCENE_WINDOW_PRIORITY_DEVELOP,
+        windowMenu: {
+          include: true,
+          viewKey,
+          label: tab.title,
+          order: 0,
+          activationMode: "visible"
+        }
+      };
+    }
+    case "debug": {
+      const minSize = vec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT);
+      return {
+        preferredActorId: DEBUG_LOG_WINDOW_ACTOR_ID,
+        preferredComponentId: "floating-window:debug-log",
+        paths: sceneParameterPaths.debugWindow,
+        initialState: createFloatingStateFromBounds(bounds, minSize),
+        minSize,
+        className: "debug-log-window",
+        priority: 1000,
+        windowMenu: { viewKey, label: tab.title, activationMode: "visible" }
+      };
+    }
+    case "hierarchy": {
+      const minSize = vec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT);
+      return {
+        preferredActorId: HIERARCHY_PANEL_ACTOR_ID,
+        preferredComponentId: "floating-window:hierarchy",
+        paths: sceneParameterPaths.hierarchyWindow,
+        initialState: createFloatingStateFromBounds(bounds, minSize),
+        minSize,
+        className: "hierarchy-window",
+        priority: 1100,
+        windowMenu: { viewKey, label: tab.title, activationMode: "visible" }
+      };
+    }
+    default:
+      throw new Error(`No floating frame shell is registered for view: ${viewKey}`);
+  }
+}
+
+function createFloatingStateFromBounds(bounds: WindowDockRect, minSize: Vec2): FloatingWindowState {
+  return {
+    position: vec2(Math.max(0, Math.round(bounds.left)), Math.max(0, Math.round(bounds.top))),
+    size: vec2(
+      Math.max(minSize.x, Math.round(bounds.width)),
+      Math.max(minSize.y, Math.round(bounds.height))
+    ),
+    visible: true
+  };
+}
+
+function allocateFloatingFrameIds(
+  actorSystem: { getActor(id: string): unknown },
+  counters: Map<WindowViewKey, number>,
+  viewKey: WindowViewKey,
+  preferredActorId: string,
+  preferredComponentId: string
+): { readonly actorId: string; readonly componentId: string } {
+  if (!actorSystem.getActor(preferredActorId)) {
+    return { actorId: preferredActorId, componentId: preferredComponentId };
+  }
+  let counter = counters.get(viewKey) ?? 1;
+  while (true) {
+    const actorId = `${preferredActorId}:floating-${counter}`;
+    const componentId = `${preferredComponentId}:floating-${counter}`;
+    counters.set(viewKey, counter + 1);
+    counter += 1;
+    if (!actorSystem.getActor(actorId)) {
+      return { actorId, componentId };
+    }
   }
 }
 

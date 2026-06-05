@@ -1,4 +1,6 @@
 import type { Actor } from "../actor-runtime";
+import type { WindowContentRehostable } from "./floating-window-host";
+import type { WindowFramePort } from "./window-frame-port";
 import type { WindowViewKey } from "./window-view-key";
 
 export interface WindowViewFactoryCreateOptions {
@@ -7,7 +9,9 @@ export interface WindowViewFactoryCreateOptions {
 
 export interface WindowViewFactoryResult {
   readonly frameActor: Actor;
+  readonly framePort: WindowFramePort;
   readonly viewActor: Actor;
+  readonly content: WindowContentRehostable;
   dispose?(): void;
 }
 

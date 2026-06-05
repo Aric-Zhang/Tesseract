@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../actor-runtime";
+import type { WindowContentRehostable } from "./floating-window-host";
+import type { WindowFramePort } from "./window-frame-port";
 import { WindowViewFactoryRegistry } from "./window-view-factory-registry";
 
 describe("WindowViewFactoryRegistry", () => {
@@ -12,7 +14,12 @@ describe("WindowViewFactoryRegistry", () => {
       create: () => {
         const frameActor = actorSystem.createActor({ id: "debug-frame" });
         const viewActor = actorSystem.createActor({ id: "debug-view", parent: frameActor });
-        return { frameActor, viewActor };
+        return {
+          frameActor,
+          framePort: createFramePort(frameActor.id),
+          viewActor,
+          content: createContent()
+        };
       }
     });
 
@@ -20,7 +27,9 @@ describe("WindowViewFactoryRegistry", () => {
 
     expect(registry.list().map((factory) => factory.viewKey)).toEqual(["debug"]);
     expect(created.frameActor.id).toBe("debug-frame");
+    expect(created.framePort.frameId).toBe("debug-frame");
     expect(created.viewActor.id).toBe("debug-view");
+    expect(created.content.currentWindowContentHost).toBeNull();
     registration.dispose();
     expect(registry.get("debug")).toBeNull();
   });
@@ -41,3 +50,26 @@ describe("WindowViewFactoryRegistry", () => {
     expect(() => registry.create("hierarchy", { reason: "menu" })).toThrow(/not registered/);
   });
 });
+
+function createFramePort(frameId: string): WindowFramePort {
+  return {
+    frameId,
+    listTabs: () => [],
+    getActiveViewActorId: () => null,
+    addTab() {},
+    removeTab() {},
+    activateTab() {},
+    hasTab: () => false,
+    getContentHost() {
+      throw new Error("not used");
+    },
+    getFloatingBounds: () => ({ left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 })
+  };
+}
+
+function createContent(): WindowContentRehostable {
+  return {
+    currentWindowContentHost: null,
+    rehostWindowContent() {}
+  };
+}

@@ -9,7 +9,13 @@ import {
   type SceneUpdateCommand
 } from "../../scene-runtime";
 import { createActorInputEndEvent } from "../../test-support";
-import type { WindowControlItem, WindowControlSource } from "../../window-runtime";
+import {
+  WindowViewFactoryRegistry,
+  type WindowControlItem,
+  type WindowControlSource,
+  type WindowFrameIntentSink,
+  type WindowViewFactory
+} from "../../window-runtime";
 import { APP_MENU_PRIORITY, AppMenuBarComponent } from "./app-menu-bar-component";
 
 class FakeDocument {
@@ -79,6 +85,7 @@ interface Subject {
   readonly commands: SceneUpdateCommand[];
   readonly component: AppMenuBarComponent;
   readonly focusCalls: string[];
+  readonly frameIntents: string[];
   readonly sceneActor: Actor;
   readonly debugActor: Actor;
   readonly hierarchyActor: Actor;
@@ -91,9 +98,13 @@ interface CreateSubjectOptions {
   readonly scene?: Partial<WindowItemFixtureOptions>;
   readonly debug?: Partial<WindowItemFixtureOptions>;
   readonly hierarchy?: Partial<WindowItemFixtureOptions>;
+  readonly factories?: readonly WindowViewFactory[];
+  readonly includeHierarchy?: boolean;
+  readonly lifecycleMode?: boolean;
 }
 
 interface WindowItemFixtureOptions {
+  viewKey?: string;
   actorId: string;
   label: string;
   visible: boolean;
@@ -143,27 +154,41 @@ function createSubject(options: CreateSubjectOptions = {}): Subject {
       activeInHierarchy: true,
       ...options.debug
     }),
-    createWindowItem(hierarchyActor, hierarchyPath, {
+    ...(options.includeHierarchy === false ? [] : [createWindowItem(hierarchyActor, hierarchyPath, {
       actorId: "hierarchy-panel",
       label: "Hierarchy",
       visible: false,
       activeSelf: false,
       activeInHierarchy: false,
       ...options.hierarchy
-    })
+    })])
   ];
   const source: WindowControlSource = {
     listWindows: () => items.map((item) => ({ ...item })),
+    findWindowByViewKey: (viewKey) => source.listWindows().find((item) => item.viewKey === viewKey) ?? null,
     findWindowByVisiblePath: (path) => source.listWindows().find((item) => item.visiblePath === path) ?? null
   };
   const document = new FakeDocument();
   const parent = document.createElement("div");
   const commands: SceneUpdateCommand[] = [];
   const focusCalls: string[] = [];
+  const frameIntents: string[] = [];
+  const windowViewFactories = options.factories ? new WindowViewFactoryRegistry() : undefined;
+  for (const factory of options.factories ?? []) {
+    windowViewFactories?.register(factory);
+  }
+  const windowFrameIntents: WindowFrameIntentSink | undefined = options.lifecycleMode
+    ? {
+        requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
+        requestCloseFrame: (frameId, reason) => frameIntents.push(`close:${frameId}:${reason}`)
+      }
+    : undefined;
   const component = new AppMenuBarComponent(menuActor, {
     parent: parent as unknown as HTMLElement,
     document: document as unknown as Document,
     windowSource: source,
+    windowViewFactories,
+    windowFrameIntents,
     initialMode: options.initialMode
   }, {
     commandSink: {
@@ -185,7 +210,7 @@ function createSubject(options: CreateSubjectOptions = {}): Subject {
   });
   const root = parent.children[0];
   if (!root) throw new Error("Expected menu root.");
-  return { commands, component, focusCalls, sceneActor, debugActor, hierarchyActor, items, root };
+  return { commands, component, focusCalls, frameIntents, sceneActor, debugActor, hierarchyActor, items, root };
 }
 
 function createWindowItem(
@@ -195,6 +220,7 @@ function createWindowItem(
 ): WindowControlItem {
   return {
     actor,
+    viewKey: options.viewKey ?? options.actorId,
     actorId: options.actorId,
     componentId: `floating-window:${options.actorId}`,
     label: options.label,
@@ -221,6 +247,22 @@ function rows(root: FakeElement): FakeElement[] {
   return menu(root).children;
 }
 
+function rowByViewKey(root: FakeElement, viewKey: string): FakeElement {
+  const row = rows(root).find((candidate) => candidate.dataset.viewKey === viewKey);
+  if (!row) {
+    throw new Error(`Expected menu row for view key: ${viewKey}`);
+  }
+  return row;
+}
+
+function centerOf(element: FakeElement): { x: number; y: number } {
+  const rect = element.getBoundingClientRect();
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2
+  };
+}
+
 function hasClass(element: FakeElement, className: string): boolean {
   return element.className.split(" ").includes(className);
 }
@@ -235,10 +277,6 @@ function childByClass(element: FakeElement, className: string): FakeElement {
 
 function labelText(row: FakeElement): string {
   return childByClass(row, "app-menu-bar__menu-item-label").textContent;
-}
-
-function checkbox(row: FakeElement): FakeElement {
-  return childByClass(childByClass(row, "app-menu-bar__menu-item-leading"), "app-menu-bar__checkbox");
 }
 
 function setMenuRects(root: FakeElement): void {
@@ -263,7 +301,7 @@ function createWorkspaceModeEvent(mode: "develop" | "run"): SceneStateChangedEve
 }
 
 describe("AppMenuBarComponent", () => {
-  it("renders a develop-mode Window menu with high input priority", () => {
+  it("renders ordinary window menu rows as open-view commands with high input priority", () => {
     const { component, root } = createSubject();
 
     expect(root.className).toBe("app-menu-bar");
@@ -275,37 +313,41 @@ describe("AppMenuBarComponent", () => {
     expect(rows(root).map(labelText)).toEqual(["Scene", "Debug Log", "Hierarchy"]);
     expect(rows(root)[0].dataset).toMatchObject({
       menuItemId: "scene-window",
-      itemKind: "window-toggle",
+      itemKind: "open-view",
+      viewKey: "scene-window",
       actorId: "scene-window",
-      checked: "true",
+      live: "true",
       enabled: "true"
     });
-    expect(rows(root)[0].getAttribute("aria-checked")).toBe("true");
-    expect(hasClass(checkbox(rows(root)[0]), "app-menu-bar__checkbox--checked")).toBe(true);
+    expect(rows(root)[0].getAttribute("role")).toBe("menuitem");
+    expect(rows(root)[0].getAttribute("aria-checked")).toBeNull();
+    expect(childByClass(rows(root)[0], "app-menu-bar__menu-item-leading").children).toEqual([]);
     expect(rows(root)[1].dataset).toMatchObject({
       menuItemId: "debug-log-window",
-      itemKind: "window-toggle",
+      itemKind: "open-view",
+      viewKey: "debug-log-window",
       actorId: "debug-log-window",
-      checked: "true",
+      live: "true",
       enabled: "true"
     });
-    expect(rows(root)[1].getAttribute("aria-checked")).toBe("true");
-    expect(hasClass(checkbox(rows(root)[1]), "app-menu-bar__checkbox--checked")).toBe(true);
+    expect(rows(root)[1].getAttribute("role")).toBe("menuitem");
+    expect(rows(root)[1].getAttribute("aria-checked")).toBeNull();
     expect(rows(root)[2].dataset).toMatchObject({
       menuItemId: "hierarchy-panel",
-      itemKind: "window-toggle",
+      itemKind: "open-view",
+      viewKey: "hierarchy-panel",
       actorId: "hierarchy-panel",
-      checked: "false",
+      live: "true",
       enabled: "true"
     });
-    expect(rows(root)[2].getAttribute("aria-checked")).toBe("false");
+    expect(rows(root)[2].getAttribute("role")).toBe("menuitem");
+    expect(rows(root)[2].getAttribute("aria-checked")).toBeNull();
     expect(rows(root)[2].getAttribute("aria-disabled")).toBe("false");
     expect(hasClass(rows(root)[2], "is-disabled")).toBe(false);
-    expect(hasClass(checkbox(rows(root)[2]), "app-menu-bar__checkbox--checked")).toBe(false);
     expect(component.inputStackPriority).toBe(APP_MENU_PRIORITY);
   });
 
-  it("routes input to the Scene menu row and submits a visibility command", () => {
+  it("routes input to a visible Scene menu row and focuses it without hiding", () => {
     const { commands, component, focusCalls, root } = createSubject();
     setMenuRects(root);
     const buttonHit = component.hitTestInput({ x: 735, y: 18 });
@@ -318,18 +360,15 @@ describe("AppMenuBarComponent", () => {
     if (!sceneHit) throw new Error("Expected Scene row hit.");
     expect(buttonHit.scopeRoutePriority).toBe(actorInputScopeRoutePriority.appOverlay);
     expect(sceneHit.scopeRoutePriority).toBe(actorInputScopeRoutePriority.appOverlay);
-    expect(sceneHit.data).toEqual({ kind: "window-toggle", actorId: "scene-window" });
+    expect(sceneHit.data).toEqual({
+      kind: "open-view",
+      viewKey: "scene-window"
+    });
 
     component.onInputEnd(createActorInputEndEvent(sceneHit, { wasClick: true, timeStamp: 20 }));
 
-    expect(commands).toMatchObject([{
-      source: { id: "app-menu-bar", kind: "gizmo" },
-      target: sceneParameterPaths.sceneWindow.visible,
-      operation: "set",
-      value: false,
-      timeStamp: 20
-    }]);
-    expect(focusCalls).toEqual([]);
+    expect(commands).toEqual([]);
+    expect(focusCalls).toEqual(["focus:scene-window:menu-restore"]);
     expect(menu(root).hidden).toBe(true);
   });
 
@@ -362,15 +401,15 @@ describe("AppMenuBarComponent", () => {
         activeInHierarchy: false
       }
     });
-    expect(rows(root)[1].getAttribute("aria-checked")).toBe("true");
+    expect(rows(root)[1].getAttribute("role")).toBe("menuitem");
+    expect(rows(root)[1].getAttribute("aria-checked")).toBeNull();
     expect(rows(root)[1].getAttribute("aria-disabled")).toBe("false");
     expect(hasClass(rows(root)[1], "is-disabled")).toBe(false);
-    expect(hasClass(checkbox(rows(root)[1]), "app-menu-bar__checkbox--checked")).toBe(true);
     setMenuRects(root);
     const buttonHit = component.hitTestInput({ x: 735, y: 18 });
     if (!buttonHit) throw new Error("Expected menu button hit.");
     component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
-    const debugHit = component.hitTestInput({ x: 640, y: 78 });
+    const debugHit = component.hitTestInput(centerOf(rowByViewKey(root, "debug-log-window")));
     if (!debugHit) throw new Error("Expected debug row hit.");
 
     component.onInputEnd(createActorInputEndEvent(debugHit, { wasClick: true, timeStamp: 30 }));
@@ -397,7 +436,7 @@ describe("AppMenuBarComponent", () => {
     const buttonHit = component.hitTestInput({ x: 735, y: 18 });
     if (!buttonHit) throw new Error("Expected menu button hit.");
     component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
-    const debugHit = component.hitTestInput({ x: 640, y: 78 });
+    const debugHit = component.hitTestInput(centerOf(rowByViewKey(root, "debug-log-window")));
     if (!debugHit) throw new Error("Expected debug row hit.");
 
     component.onInputEnd(createActorInputEndEvent(debugHit, { wasClick: true, timeStamp: 36 }));
@@ -408,15 +447,180 @@ describe("AppMenuBarComponent", () => {
     expect(menuButton(root).getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("renders missing registered factories as not-live lifecycle open-view rows", () => {
+    const { root } = createSubject({
+      includeHierarchy: false,
+      lifecycleMode: true,
+      factories: [
+        createWindowFactory("scene-window", "Scene", 0),
+        createWindowFactory("debug-log-window", "Debug Log", 10),
+        createWindowFactory("hierarchy-panel", "Hierarchy", 20)
+      ]
+    });
+
+    expect(rows(root).map(labelText)).toEqual(["Scene", "Debug Log", "Hierarchy"]);
+    expect(rows(root)[2].dataset).toMatchObject({
+      menuItemId: "hierarchy-panel",
+      itemKind: "open-view",
+      viewKey: "hierarchy-panel",
+      live: "false",
+      enabled: "true"
+    });
+    expect(rows(root)[2].dataset.actorId).toBeUndefined();
+    expect(rows(root)[2].getAttribute("role")).toBe("menuitem");
+    expect(rows(root)[2].getAttribute("aria-checked")).toBeNull();
+  });
+
+  it("dispatches lifecycle open intents by view key without submitting visible commands", () => {
+    const { commands, component, frameIntents, focusCalls, root } = createSubject({
+      includeHierarchy: false,
+      lifecycleMode: true,
+      factories: [
+        createWindowFactory("scene-window", "Scene", 0),
+        createWindowFactory("debug-log-window", "Debug Log", 10),
+        createWindowFactory("hierarchy-panel", "Hierarchy", 20)
+      ]
+    });
+    setMenuRects(root);
+    const buttonHit = component.hitTestInput({ x: 735, y: 18 });
+    if (!buttonHit) throw new Error("Expected menu button hit.");
+    component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
+    const hierarchyHit = component.hitTestInput({ x: 640, y: 104 });
+    if (!hierarchyHit) throw new Error("Expected hierarchy row hit.");
+
+    expect(hierarchyHit.data).toEqual({
+      kind: "open-view",
+      viewKey: "hierarchy-panel"
+    });
+
+    component.onInputEnd(createActorInputEndEvent(hierarchyHit, { wasClick: true, timeStamp: 42 }));
+
+    expect(frameIntents).toEqual(["open:hierarchy-panel:menu"]);
+    expect(commands).toEqual([]);
+    expect(focusCalls).toEqual([]);
+    expect(menu(root).hidden).toBe(true);
+  });
+
+  it("focuses live lifecycle rows without closing or recreating them", () => {
+    const { commands, component, frameIntents, root } = createSubject({
+      lifecycleMode: true,
+      factories: [
+        createWindowFactory("debug-log-window", "Debug Log", 10)
+      ]
+    });
+    setMenuRects(root);
+    const buttonHit = component.hitTestInput({ x: 735, y: 18 });
+    if (!buttonHit) throw new Error("Expected menu button hit.");
+    component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
+    const debugHit = component.hitTestInput(centerOf(rowByViewKey(root, "debug-log-window")));
+    if (!debugHit) throw new Error("Expected debug row hit.");
+
+    component.onInputEnd(createActorInputEndEvent(debugHit, { wasClick: true, timeStamp: 46 }));
+
+    expect(frameIntents).toEqual(["open:debug-log-window:menu"]);
+    expect(commands).toEqual([]);
+    expect(menu(root).hidden).toBe(true);
+  });
+
+  it("uses live open-view semantics in lifecycle mode without checkbox aria", () => {
+    const { root } = createSubject({
+      lifecycleMode: true,
+      debug: {
+        visible: false,
+        activeSelf: true,
+        activeInHierarchy: true
+      },
+      factories: [
+        createWindowFactory("debug-log-window", "Debug Log", 10)
+      ]
+    });
+
+    const debugRow = rowByViewKey(root, "debug-log-window");
+    expect(debugRow.dataset.live).toBe("true");
+    expect(debugRow.dataset.checked).toBeUndefined();
+    expect(debugRow.getAttribute("role")).toBe("menuitem");
+    expect(debugRow.getAttribute("aria-checked")).toBeNull();
+  });
+
+  it("closes the menu through an actor-input dismiss hit outside the menu", () => {
+    const { commands, component, frameIntents, root } = createSubject({
+      lifecycleMode: true,
+      factories: [
+        createWindowFactory("debug-log-window", "Debug Log", 10)
+      ]
+    });
+    setMenuRects(root);
+    const buttonHit = component.hitTestInput({ x: 735, y: 18 });
+    if (!buttonHit) throw new Error("Expected menu button hit.");
+    component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
+
+    const dismissHit = component.hitTestInput({ x: 120, y: 150 });
+    if (!dismissHit) throw new Error("Expected menu dismiss hit.");
+
+    expect(dismissHit.partId).toBe("menu-dismiss");
+    expect(dismissHit.hitPriority).toBeLessThan(60);
+
+    component.onInputEnd(createActorInputEndEvent(dismissHit, { wasClick: true, timeStamp: 50 }));
+
+    expect(menu(root).hidden).toBe(true);
+    expect(menuButton(root).getAttribute("aria-expanded")).toBe("false");
+    expect(commands).toEqual([]);
+    expect(frameIntents).toEqual([]);
+    expect(component.hitTestInput({ x: 120, y: 150 })).toBeNull();
+  });
+
+  it("keeps the menu open for menu-surface hits and prioritizes rows over dismiss", () => {
+    const { component, root } = createSubject();
+    setMenuRects(root);
+    const buttonHit = component.hitTestInput({ x: 735, y: 18 });
+    if (!buttonHit) throw new Error("Expected menu button hit.");
+    component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
+
+    const rowHit = component.hitTestInput({ x: 640, y: 78 });
+    const surfaceHit = component.hitTestInput({ x: 784, y: 128 });
+    if (!rowHit || !surfaceHit) throw new Error("Expected menu row and surface hits.");
+    if (rowHit.hitPriority === undefined || surfaceHit.hitPriority === undefined) {
+      throw new Error("Expected menu hit priorities.");
+    }
+
+    expect(rowHit.partId).toBe("open-view-item");
+    expect(rowHit.hitPriority).toBeGreaterThan(surfaceHit.hitPriority);
+    expect(surfaceHit.partId).toBe("menu-surface");
+
+    component.onInputEnd(createActorInputEndEvent(surfaceHit, { wasClick: true, timeStamp: 54 }));
+
+    expect(menu(root).hidden).toBe(false);
+    expect(menuButton(root).getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("hides and stops hit-testing in run mode", () => {
     const { component, root } = createSubject();
     setMenuRects(root);
+    const buttonHit = component.hitTestInput({ x: 735, y: 18 });
+    if (!buttonHit) throw new Error("Expected menu button hit.");
+    component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
+    expect(menu(root).hidden).toBe(false);
+
     component.onSceneStateChanged(createWorkspaceModeEvent("run"));
 
     expect(root.hidden).toBe(true);
     expect(component.hitTestInput({ x: 735, y: 18 })).toBeNull();
+    expect(component.hitTestInput({ x: 120, y: 150 })).toBeNull();
 
     component.onSceneStateChanged(createWorkspaceModeEvent("develop"));
     expect(root.hidden).toBe(false);
+    expect(menu(root).hidden).toBe(true);
+    expect(menuButton(root).getAttribute("aria-expanded")).toBe("false");
   });
 });
+
+function createWindowFactory(viewKey: string, label: string, order: number): WindowViewFactory {
+  return {
+    viewKey,
+    label,
+    order,
+    create: () => {
+      throw new Error("not used");
+    }
+  };
+}

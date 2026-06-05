@@ -128,7 +128,7 @@ describe("WindowControlSource", () => {
       actorId: "scene-window",
       title: "Scene",
       priority: 500,
-      windowMenu: { label: "Scene", order: 0 }
+      windowMenu: { viewKey: "scene", label: "Scene", order: 0 }
     });
     createWindowFixture(actorSystem, document, {
       actorId: "internal-window",
@@ -140,12 +140,13 @@ describe("WindowControlSource", () => {
       actorId: "hierarchy-panel",
       title: "Hierarchy",
       priority: 1100,
-      windowMenu: { label: "Hierarchy Panel", order: 10, group: "tools" }
+      windowMenu: { viewKey: "hierarchy", label: "Hierarchy Panel", order: 10, group: "tools" }
     });
     const source = createWindowControlSource({ actorSystem });
 
     expect(source.listWindows().map((item) => ({
       actorId: item.actorId,
+      viewKey: item.viewKey,
       componentId: item.componentId,
       label: item.label,
       order: item.order,
@@ -158,6 +159,7 @@ describe("WindowControlSource", () => {
     }))).toEqual([
       {
         actorId: "scene-window",
+        viewKey: "scene",
         componentId: "floating-window:scene-window",
         label: "Scene",
         order: 0,
@@ -170,6 +172,7 @@ describe("WindowControlSource", () => {
       },
       {
         actorId: "hierarchy-panel",
+        viewKey: "hierarchy",
         componentId: "floating-window:hierarchy-panel",
         label: "Hierarchy Panel",
         order: 10,
@@ -182,6 +185,7 @@ describe("WindowControlSource", () => {
       },
       {
         actorId: "debug-log-window",
+        viewKey: "debug-log-window",
         componentId: "floating-window:debug-log-window",
         label: "Debug Log",
         order: 1000,
@@ -194,6 +198,10 @@ describe("WindowControlSource", () => {
       }
     ]);
     expect(source.findWindowByVisiblePath(scenePaths.visible)?.actorId).toBe("scene-window");
+    expect(source.findWindowByViewKey("scene")?.actorId).toBe("scene-window");
+    expect(source.findWindowByViewKey("hierarchy")?.actorId).toBe("hierarchy-panel");
+    expect(source.findWindowByViewKey("debug-log-window")?.actorId).toBe("debug-log-window");
+    expect(source.findWindowByViewKey("missing")).toBeNull();
     expect(source.findWindowByVisiblePath(debugPaths.visible)?.actorId).toBe("debug-log-window");
     expect(source.findWindowByVisiblePath(hierarchyPaths.visible)?.actorId).toBe("hierarchy-panel");
     expect(source.findWindowByVisiblePath(createPaths("unknown").visible)).toBeNull();

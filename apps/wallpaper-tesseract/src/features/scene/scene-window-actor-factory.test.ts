@@ -143,14 +143,20 @@ describe("createSceneWindowActor", () => {
       createRenderer: () => createFakeRenderer(document, rendererCalls)
     });
 
+    const viewActor = handle.viewport.actor;
     expect(handle.actor.id).toBe("scene-actor");
+    expect(viewActor.id).toBe("scene-actor:view");
+    expect(context.actorSystem.getParentId(viewActor)).toBe("scene-actor");
     expect(handle.component).toBe(handle.viewport);
     expect(handle.actor.getComponent(floatingWindowComponentType)).toBe(handle.window);
-    expect(handle.actor.getComponent(sceneViewportComponentType)).toBe(handle.viewport);
-    expect(handle.actor.getComponent(sceneModeToggleComponentType)).toBe(handle.modeToggle);
+    expect(handle.actor.getComponent(sceneViewportComponentType)).toBeNull();
+    expect(handle.actor.getComponent(sceneModeToggleComponentType)).toBeNull();
+    expect(viewActor.getComponent(sceneViewportComponentType)).toBe(handle.viewport);
+    expect(viewActor.getComponent(sceneModeToggleComponentType)).toBe(handle.modeToggle);
     expect(handle.window.inputStackPriority).toBe(SCENE_WINDOW_PRIORITY_DEVELOP);
     expect(handle.window.menuDescriptor).toEqual({
       include: true,
+      viewKey: "scene",
       label: "Scene",
       order: 0,
       group: null,
@@ -173,7 +179,7 @@ describe("createSceneWindowActor", () => {
     ]);
   });
 
-  it("requires a FloatingWindowComponent on the same actor", () => {
+  it("requires an owning FloatingWindowComponent", () => {
     const context = createContext();
     const document = new FakeDocument();
     const actor = context.actorSystem.createActor({ id: "scene-actor" });
@@ -181,7 +187,7 @@ describe("createSceneWindowActor", () => {
     expect(() => context.componentRegistry.addComponent(actor, sceneViewportComponentType, {
       document: document as unknown as Document,
       createRenderer: () => createFakeRenderer(document)
-    })).toThrow(/Required component is missing/);
+    })).toThrow(/requires an owning FloatingWindowComponent/);
   });
 
   it("measures, renders, and disposes the viewport renderer", () => {

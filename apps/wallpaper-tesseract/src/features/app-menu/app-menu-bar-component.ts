@@ -12,7 +12,12 @@ import type {
   ActorInputParticipant
 } from "../../gizmo-runtime";
 import type { StateObserverResponder } from "../../state-runtime";
-import type { WindowControlItem, WindowControlSource } from "../../window-runtime";
+import type {
+  WindowControlSource,
+  WindowFrameIntentSink,
+  WindowViewFactoryRegistry,
+  WindowViewKey
+} from "../../window-runtime";
 import {
   createWindowMenuItems,
   type AppMenuItemViewModel,
@@ -34,6 +39,8 @@ export interface AppMenuBarComponentOptions {
   readonly id?: string;
   readonly parent: HTMLElement;
   readonly windowSource: WindowControlSource;
+  readonly windowViewFactories?: WindowViewFactoryRegistry;
+  readonly windowFrameIntents?: WindowFrameIntentSink;
   readonly initialMode?: AppMenuWorkspaceMode;
   readonly document?: Pick<Document, "createElement">;
 }
@@ -44,12 +51,15 @@ export interface AppMenuBarComponentServices {
 }
 
 interface MenuRow {
-  readonly actorId: string;
+  readonly kind: "open-view";
+  readonly viewKey: WindowViewKey;
+  readonly actorId: string | null;
+  readonly enabled: boolean;
   readonly element: HTMLButtonElement;
 }
 
 type AppMenuHitData =
-  | { readonly kind: "window-toggle"; readonly actorId: string };
+  | { readonly kind: "open-view"; readonly viewKey: WindowViewKey };
 
 const DEFAULT_APP_MENU_BAR_COMPONENT_ID = "app-menu-bar";
 
@@ -63,6 +73,8 @@ export class AppMenuBarComponent
   readonly #commandSink: SceneCommandSink;
   readonly #actorWindowFocus?: ActorWindowFocusService;
   readonly #windowSource: WindowControlSource;
+  readonly #windowViewFactories?: WindowViewFactoryRegistry;
+  readonly #windowFrameIntents?: WindowFrameIntentSink;
   readonly #root: HTMLDivElement;
   readonly #windowButton: HTMLButtonElement;
   readonly #menu: HTMLDivElement;
@@ -80,6 +92,8 @@ export class AppMenuBarComponent
     this.id = options.id ?? DEFAULT_APP_MENU_BAR_COMPONENT_ID;
     this.#mode = options.initialMode ?? "develop";
     this.#windowSource = options.windowSource;
+    this.#windowViewFactories = options.windowViewFactories;
+    this.#windowFrameIntents = options.windowFrameIntents;
     this.#commandSink = services.commandSink;
     this.#actorWindowFocus = services.actorWindowFocus;
 
@@ -135,11 +149,15 @@ export class AppMenuBarComponent
     if (this.#menuOpen) {
       for (const row of this.#rows) {
         if (!isPointInsideRect(point, row.element.getBoundingClientRect())) continue;
-        return this.createHit("window-item", 70, { kind: "window-toggle", actorId: row.actorId });
+        return this.createHit("open-view-item", 70, {
+          kind: "open-view",
+          viewKey: row.viewKey
+        });
       }
       if (isPointInsideRect(point, this.#menu.getBoundingClientRect())) {
         return this.createHit("menu-surface", 60);
       }
+      return this.createHit("menu-dismiss", 50);
     }
     return null;
   }
@@ -150,22 +168,35 @@ export class AppMenuBarComponent
       this.setMenuOpen(!this.#menuOpen);
       return;
     }
-    if (event.hit.partId !== "window-item") return;
-    const hitData = readWindowToggleHitData(event.hit);
-    if (!hitData) return;
-    const item = this.#windowSource.listWindows().find((candidate) => candidate.actorId === hitData.actorId);
-    if (!item?.canToggle) return;
-    const nextVisible = getNextVisibleValue(item);
-    if (nextVisible && !item.visible) {
-      this.#actorWindowFocus?.requestFocusOnVisible(item.actor, "menu-restore");
+    if (event.hit.partId === "menu-dismiss") {
+      this.setMenuOpen(false);
+      return;
     }
-    this.#commandSink.submit({
-      source: APP_MENU_SOURCE,
-      target: item.visiblePath,
-      operation: "set",
-      value: nextVisible,
-      timeStamp: event.timeStamp
-    });
+    if (event.hit.partId !== "open-view-item") return;
+    const hitData = readOpenViewHitData(event.hit);
+    if (!hitData) return;
+    const row = this.#rows.find((candidate) => candidate.viewKey === hitData.viewKey);
+    if (!row?.enabled) return;
+    if (this.#windowFrameIntents) {
+      this.#windowFrameIntents.requestOpenView(hitData.viewKey, "menu");
+      this.setMenuOpen(false);
+      return;
+    }
+    const item = this.#windowSource.findWindowByViewKey(hitData.viewKey) ??
+      (row.actorId ? this.#windowSource.listWindows().find((candidate) => candidate.actorId === row.actorId) : null);
+    if (!item?.canToggle) return;
+    if (!item.visible || !item.activeSelf || !item.activeInHierarchy) {
+      this.#actorWindowFocus?.requestFocusOnVisible(item.actor, "menu-restore");
+      this.#commandSink.submit({
+        source: APP_MENU_SOURCE,
+        target: item.visiblePath,
+        operation: "set",
+        value: true,
+        timeStamp: event.timeStamp
+      });
+    } else {
+      this.#actorWindowFocus?.focusActorWindow(item.actor, "menu-restore");
+    }
     this.setMenuOpen(false);
   }
 
@@ -177,7 +208,9 @@ export class AppMenuBarComponent
 
   private renderIfChanged(): void {
     const items = this.#windowSource.listWindows();
-    const viewModels = createWindowMenuItems(items);
+    const viewModels = createWindowMenuItems(items, {
+      factories: this.#windowViewFactories?.list()
+    });
     const signature = createMenuItemsSignature(viewModels);
     if (signature === this.#lastSignature) return;
     this.#lastSignature = signature;
@@ -190,7 +223,15 @@ export class AppMenuBarComponent
     for (const item of items) {
       const row = this.createMenuItemElement(item);
       this.#menu.append(row);
-      this.#rows.push({ actorId: item.actorId, element: row });
+      if (item.kind === "open-view") {
+        this.#rows.push({
+          kind: item.kind,
+          viewKey: item.viewKey,
+          actorId: item.actorId,
+          enabled: item.enabled,
+          element: row
+        });
+      }
     }
     this.applyOpenState();
   }
@@ -227,14 +268,33 @@ export class AppMenuBarComponent
     row.type = "button";
     row.dataset.menuItemId = item.id;
     row.dataset.itemKind = item.kind;
-    row.dataset.actorId = item.actorId;
-    row.dataset.checked = String(item.checked);
+    if (item.kind === "open-view") {
+      row.dataset.viewKey = item.viewKey;
+      row.dataset.live = String(item.live);
+    } else {
+      delete row.dataset.viewKey;
+      delete row.dataset.live;
+    }
+    if (item.kind === "open-view" && item.actorId) {
+      row.dataset.actorId = item.actorId;
+    } else {
+      delete row.dataset.actorId;
+    }
+    if (item.kind === "checkable-command") {
+      row.dataset.commandId = item.commandId;
+      row.dataset.checked = String(item.checked);
+    } else {
+      delete row.dataset.commandId;
+      delete row.dataset.checked;
+    }
     row.dataset.enabled = String(item.enabled);
-    row.setAttribute("role", "menuitemcheckbox");
-    row.setAttribute("aria-checked", String(item.checked));
+    row.setAttribute("role", getMenuItemRole(item));
+    if (item.kind === "checkable-command") {
+      row.setAttribute("aria-checked", String(item.checked));
+    }
     row.setAttribute("aria-disabled", String(!item.enabled));
 
-    const leading = this.createLeadingAccessory(item.leading, item.checked);
+    const leading = this.createLeadingAccessory(item.leading, isCheckableCommandChecked(item));
     const label = this.#menu.ownerDocument.createElement("span");
     label.className = "app-menu-bar__menu-item-label";
     label.textContent = item.label;
@@ -276,7 +336,7 @@ export class AppMenuBarComponent
       hitPriority,
       path: [{
         componentId: this.id,
-        role: partId === "window-item" ? "control" : "container",
+        role: partId === "open-view-item" || partId === "menu-dismiss" ? "control" : "container",
         partId
       }],
       data
@@ -284,34 +344,45 @@ export class AppMenuBarComponent
   }
 }
 
-function getNextVisibleValue(item: WindowControlItem): boolean {
-  if (!item.visible) return true;
-  if (!item.activeSelf || !item.activeInHierarchy) return true;
-  return false;
-}
-
 function createMenuItemsSignature(items: readonly AppMenuItemViewModel[]): string {
   return JSON.stringify(items.map((item) => [
     item.kind,
     item.id,
+    item.kind === "open-view" ? item.viewKey : item.commandId,
     item.label,
     item.enabled,
-    item.checked,
+    item.kind === "open-view" ? item.live : item.checked,
     item.leading.kind,
     item.leading.kind === "icon" ? item.leading.name : null,
     item.shortcutLabel ?? null
   ]));
 }
 
-function readWindowToggleHitData(hit: ActorInputHit): AppMenuHitData | null {
+function readOpenViewHitData(hit: ActorInputHit): AppMenuHitData | null {
   const data = hit.data;
-  if (typeof data !== "object" || data === null || !("kind" in data) || !("actorId" in data)) return null;
-  const candidate = data as { kind?: unknown; actorId?: unknown };
-  if (candidate.kind !== "window-toggle" || typeof candidate.actorId !== "string") return null;
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("kind" in data) ||
+    !("viewKey" in data)
+  ) return null;
+  const candidate = data as { kind?: unknown; viewKey?: unknown };
+  if (
+    candidate.kind !== "open-view" ||
+    typeof candidate.viewKey !== "string"
+  ) return null;
   return {
-    kind: "window-toggle",
-    actorId: candidate.actorId
+    kind: "open-view",
+    viewKey: candidate.viewKey as WindowViewKey
   };
+}
+
+function getMenuItemRole(item: AppMenuItemViewModel): string {
+  return item.kind === "checkable-command" ? "menuitemcheckbox" : "menuitem";
+}
+
+function isCheckableCommandChecked(item: AppMenuItemViewModel): boolean {
+  return item.kind === "checkable-command" ? item.checked : false;
 }
 
 function resolveDocument(options: AppMenuBarComponentOptions): Pick<Document, "createElement"> {

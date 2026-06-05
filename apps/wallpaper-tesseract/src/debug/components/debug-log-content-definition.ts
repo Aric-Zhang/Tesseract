@@ -1,5 +1,5 @@
 import type { ComponentDefinition } from "../../actor-runtime";
-import { floatingWindowComponentType } from "../../window-runtime";
+import { findOwningWindowContentHost } from "../../window-runtime";
 import {
   DebugLogContentComponent,
   debugLogContentComponentType,
@@ -10,16 +10,14 @@ export const debugLogContentComponentDefinition:
   ComponentDefinition<DebugLogContentComponent, DebugLogContentComponentOptions> = {
     type: debugLogContentComponentType,
     singleton: true,
-    requires: [
-      { type: floatingWindowComponentType, autoAdd: false }
-    ],
+    requires: [],
     createId(_actor, options) {
       return options?.id ?? "debug-log-content";
     },
     create(actor, context, options = {}) {
-      const host = context.componentRegistry.getComponent(actor, floatingWindowComponentType);
+      const host = findOwningWindowContentHost(context.actorSystem, context.componentRegistry, actor);
       if (!host) {
-        throw new Error("DebugLogContentComponent requires FloatingWindowComponent on the same actor.");
+        throw new Error("DebugLogContentComponent requires an owning FloatingWindowComponent.");
       }
       return new DebugLogContentComponent(actor, options, { host });
     }

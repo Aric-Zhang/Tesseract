@@ -19,7 +19,7 @@ export const WORKSPACE_MODE_COMMAND_PRIORITY = 1000;
 export interface WorkspaceModeControllerOptions {
   commandSink: SceneCommandSink;
   getValue<TValue>(path: ParameterPath<TValue>): TValue;
-  sceneWindow: FloatingWindowComponent;
+  getSceneWindow(): FloatingWindowComponent | null;
   toolWindows: readonly WorkspaceToolWindow[];
   onScenePresentationChanged?: () => void;
 }
@@ -58,7 +58,7 @@ export class WorkspaceModeController {
 
   readonly #commandSink: SceneCommandSink;
   readonly #getValue: WorkspaceModeControllerOptions["getValue"];
-  readonly #sceneWindow: FloatingWindowComponent;
+  readonly #getSceneWindow: WorkspaceModeControllerOptions["getSceneWindow"];
   readonly #toolWindows: readonly WorkspaceToolWindow[];
   readonly #onScenePresentationChanged?: () => void;
   #mode: WorkspaceMode;
@@ -69,7 +69,7 @@ export class WorkspaceModeController {
   constructor(options: WorkspaceModeControllerOptions) {
     this.#commandSink = options.commandSink;
     this.#getValue = options.getValue;
-    this.#sceneWindow = options.sceneWindow;
+    this.#getSceneWindow = options.getSceneWindow;
     this.#toolWindows = options.toolWindows;
     this.#onScenePresentationChanged = options.onScenePresentationChanged;
     this.#mode = options.getValue(sceneParameterPaths.workspace.mode);
@@ -83,7 +83,8 @@ export class WorkspaceModeController {
     }
     if (this.#mode !== "run") return;
     for (const change of event.changes) {
-      if (change.path === this.#sceneWindow.visiblePath) {
+      const sceneWindow = this.#getSceneWindow();
+      if (sceneWindow && change.path === sceneWindow.visiblePath) {
         if (!isWorkspaceModeSource(change.sources) && change.nextValue === false) {
           this.submitSceneWindowVisible(true, event.frame.timeMs);
         }
@@ -124,10 +125,12 @@ export class WorkspaceModeController {
           this.#getValue(toolWindow.paths.visible)
         ])
       );
-      this.#developSceneVisibleSnapshot = this.#getValue(this.#sceneWindow.visiblePath);
+      const sceneWindow = this.#getSceneWindow();
+      this.#developSceneVisibleSnapshot = sceneWindow ? this.#getValue(sceneWindow.visiblePath) : null;
     }
     this.applyPresentation("run");
-    if (!this.#getValue(this.#sceneWindow.visiblePath)) {
+    const sceneWindow = this.#getSceneWindow();
+    if (sceneWindow && !this.#getValue(sceneWindow.visiblePath)) {
       this.submitSceneWindowVisible(true);
     }
     for (const toolWindow of this.#toolWindows) {
@@ -146,9 +149,11 @@ export class WorkspaceModeController {
         this.submitToolWindowVisible(toolWindow, visible);
       }
     }
+    const sceneWindow = this.#getSceneWindow();
     if (
+      sceneWindow &&
       typeof this.#developSceneVisibleSnapshot === "boolean" &&
-      this.#getValue(this.#sceneWindow.visiblePath) !== this.#developSceneVisibleSnapshot
+      this.#getValue(sceneWindow.visiblePath) !== this.#developSceneVisibleSnapshot
     ) {
       this.submitSceneWindowVisible(this.#developSceneVisibleSnapshot);
     }
@@ -158,7 +163,7 @@ export class WorkspaceModeController {
   }
 
   private applyPresentation(mode: WorkspaceMode): void {
-    this.#sceneWindow.setPresentation(mode === "run" ? "fullscreen" : "windowed");
+    this.#getSceneWindow()?.setPresentation(mode === "run" ? "fullscreen" : "windowed");
     this.#onScenePresentationChanged?.();
   }
 
@@ -178,9 +183,11 @@ export class WorkspaceModeController {
   }
 
   private submitSceneWindowVisible(visible: boolean, timeStamp?: number): void {
+    const sceneWindow = this.#getSceneWindow();
+    if (!sceneWindow) return;
     this.#commandSink.submit({
       source: WORKSPACE_MODE_SOURCE,
-      target: this.#sceneWindow.visiblePath,
+      target: sceneWindow.visiblePath,
       operation: "set",
       value: visible,
       priority: WORKSPACE_MODE_COMMAND_PRIORITY,

@@ -5,9 +5,11 @@ import {
   type FloatingWindowActivationMode,
   type FloatingWindowComponent
 } from "./floating-window-component";
+import { windowViewKey, type WindowViewKey } from "./window-view-key";
 
 export interface WindowControlItem {
   readonly actor: Actor;
+  readonly viewKey: WindowViewKey;
   readonly actorId: string;
   readonly componentId: string;
   readonly label: string;
@@ -23,6 +25,7 @@ export interface WindowControlItem {
 
 export interface WindowControlSource {
   listWindows(): readonly WindowControlItem[];
+  findWindowByViewKey(viewKey: WindowViewKey): WindowControlItem | null;
   findWindowByVisiblePath(path: ParameterPath<boolean>): WindowControlItem | null;
 }
 
@@ -42,6 +45,9 @@ export function createWindowControlSource(options: WindowControlSourceOptions): 
       return [...listIndexedWindows(options.actorSystem)]
         .sort(compareIndexedWindows)
         .map((entry) => toWindowControlItem(options.actorSystem, entry));
+    },
+    findWindowByViewKey(viewKey) {
+      return this.listWindows().find((item) => item.viewKey === viewKey) ?? null;
     },
     findWindowByVisiblePath(path) {
       return this.listWindows().find((item) => item.visiblePath === path) ?? null;
@@ -67,6 +73,7 @@ function toWindowControlItem(actorSystem: ActorSystemView, entry: IndexedWindow)
   const descriptor = component.menuDescriptor;
   return {
     actor,
+    viewKey: descriptor.viewKey ?? windowViewKey(actor.id),
     actorId: actor.id,
     componentId: component.id,
     label: descriptor.label,

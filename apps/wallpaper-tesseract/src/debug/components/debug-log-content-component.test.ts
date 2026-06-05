@@ -192,13 +192,13 @@ describe("DebugLogContentComponent", () => {
     expect(host.mounted).toEqual([]);
   });
 
-  it("requires an existing FloatingWindowComponent when added through the registry", () => {
+  it("requires an owning FloatingWindowComponent when added through the registry", () => {
     const { actorSystem, registry } = createRegistry();
     const actor = actorSystem.createActor({ id: "debug-actor" });
 
     expect(() => registry.addComponent(actor, debugLogContentComponentType, {
       document: new FakeDocument() as unknown as Document
-    })).toThrow(/Required component is missing/);
+    })).toThrow(/owning FloatingWindowComponent/);
   });
 
   it("mounts content into the actor-local FloatingWindowComponent through its definition", () => {

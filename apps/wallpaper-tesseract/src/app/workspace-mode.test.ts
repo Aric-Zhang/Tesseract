@@ -86,7 +86,7 @@ describe("WorkspaceModeController", () => {
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
-      sceneWindow: window,
+      getSceneWindow: () => window,
       toolWindows: [
         { id: "debug", paths: sceneParameterPaths.debugWindow },
         { id: "hierarchy", paths: sceneParameterPaths.hierarchyWindow }
@@ -175,7 +175,7 @@ describe("WorkspaceModeController", () => {
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
-      sceneWindow: window,
+      getSceneWindow: () => window,
       toolWindows: [{ id: "debug", paths: sceneParameterPaths.debugWindow }]
     });
 
@@ -226,7 +226,7 @@ describe("WorkspaceModeController", () => {
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
-      sceneWindow: window,
+      getSceneWindow: () => window,
       toolWindows: []
     });
 
@@ -281,7 +281,7 @@ describe("WorkspaceModeController", () => {
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
-      sceneWindow: window,
+      getSceneWindow: () => window,
       toolWindows: []
     });
 
@@ -302,5 +302,55 @@ describe("WorkspaceModeController", () => {
       priority: WORKSPACE_MODE_COMMAND_PRIORITY,
       timeStamp: 100
     }]);
+  });
+
+  it("allows workspace mode changes while the Scene view is not live", () => {
+    const values = new Map<ParameterPath, unknown>([
+      [sceneParameterPaths.workspace.mode, "develop"],
+      [sceneParameterPaths.debugWindow.visible, true]
+    ]);
+    const commands: SceneUpdateCommand[] = [];
+    const controller = new WorkspaceModeController({
+      commandSink: { submit: (command) => commands.push(command) },
+      getValue: (path) => values.get(path) as never,
+      getSceneWindow: () => null,
+      toolWindows: [{ id: "debug", paths: sceneParameterPaths.debugWindow }]
+    });
+
+    values.set(sceneParameterPaths.workspace.mode, "run");
+    controller.onSceneStateChanged(createChangedEvent([{
+      path: sceneParameterPaths.workspace.mode,
+      previousValue: "develop",
+      nextValue: "run",
+      sources: [{ id: "shortcut", kind: "keyboard" }],
+      commands: []
+    }]));
+    values.set(sceneParameterPaths.workspace.mode, "develop");
+    controller.onSceneStateChanged(createChangedEvent([{
+      path: sceneParameterPaths.workspace.mode,
+      previousValue: "run",
+      nextValue: "develop",
+      sources: [{ id: "shortcut", kind: "keyboard" }],
+      commands: []
+    }]));
+
+    expect(commands).toEqual([
+      {
+        source: WORKSPACE_MODE_SOURCE,
+        target: sceneParameterPaths.debugWindow.visible,
+        operation: "set",
+        value: false,
+        priority: WORKSPACE_MODE_COMMAND_PRIORITY,
+        timeStamp: undefined
+      },
+      {
+        source: WORKSPACE_MODE_SOURCE,
+        target: sceneParameterPaths.debugWindow.visible,
+        operation: "set",
+        value: true,
+        priority: WORKSPACE_MODE_COMMAND_PRIORITY,
+        timeStamp: undefined
+      }
+    ]);
   });
 });

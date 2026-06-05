@@ -5,7 +5,9 @@ import {
   floatingWindowComponentType,
   type FloatingWindowComponent,
   type FloatingWindowState,
-  type RegisteredWindowActor
+  type RegisteredWindowActor,
+  type WindowFrameIntentSink,
+  type WindowTabDragSink
 } from "../../window-runtime";
 import {
   DEBUG_WINDOW_MIN_HEIGHT,
@@ -25,6 +27,8 @@ export interface DebugLogWindowActorOptions {
   title?: string;
   priority?: number;
   document?: Pick<Document, "createElement">;
+  frameIntentSink?: WindowFrameIntentSink;
+  tabDragSink?: WindowTabDragSink;
 }
 
 export function createDebugLogWindowActor(
@@ -36,6 +40,7 @@ export function createDebugLogWindowActor(
     name: options.actorName ?? options.actorId
   });
   try {
+    const viewActorId = `${actor.id}:view`;
     const window = context.componentRegistry.addComponent(actor, floatingWindowComponentType, {
       id: "floating-window:debug-log",
       parent: options.parent,
@@ -45,9 +50,21 @@ export function createDebugLogWindowActor(
       initialState: options.initialState,
       minSize: vec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
       className: "debug-log-window",
-      priority: options.priority ?? 1000
+      priority: options.priority ?? 1000,
+      activeViewActorId: viewActorId,
+      activeViewKey: "debug",
+      frameIntentSink: options.frameIntentSink,
+      tabDragSink: options.tabDragSink,
+      windowMenu: {
+        viewKey: "debug"
+      }
     });
-    const component = context.componentRegistry.addComponent(actor, debugLogContentComponentType, {
+    const viewActor = context.actorSystem.createActor({
+      id: viewActorId,
+      name: `${options.title ?? "Debug Log"} View`,
+      parent: actor
+    });
+    const component = context.componentRegistry.addComponent(viewActor, debugLogContentComponentType, {
       id: "debug-log-content",
       maxLines: options.maxLines,
       document: options.document ?? options.parent.ownerDocument ?? undefined

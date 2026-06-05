@@ -5,7 +5,9 @@ import {
   floatingWindowComponentType,
   type FloatingWindowComponent,
   type FloatingWindowState,
-  type RegisteredWindowActor
+  type RegisteredWindowActor,
+  type WindowFrameIntentSink,
+  type WindowTabDragSink
 } from "../window-runtime";
 import {
   HIERARCHY_WINDOW_MIN_HEIGHT,
@@ -26,6 +28,8 @@ export interface HierarchyPanelActorOptions {
   priority?: number;
   title?: string;
   document?: Pick<Document, "createElement">;
+  frameIntentSink?: WindowFrameIntentSink;
+  tabDragSink?: WindowTabDragSink;
 }
 
 export function createHierarchyPanelActor(
@@ -37,6 +41,7 @@ export function createHierarchyPanelActor(
     name: options.actorName ?? options.actorId
   });
   try {
+    const viewActorId = `${actor.id}:view`;
     const windowComponent = context.componentRegistry.addComponent(actor, floatingWindowComponentType, {
       id: "floating-window:hierarchy",
       parent: options.parent,
@@ -46,9 +51,21 @@ export function createHierarchyPanelActor(
       initialState: options.initialWindowState,
       minSize: vec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT),
       className: "hierarchy-window",
-      priority: options.priority ?? 1100
+      priority: options.priority ?? 1100,
+      activeViewActorId: viewActorId,
+      activeViewKey: "hierarchy",
+      frameIntentSink: options.frameIntentSink,
+      tabDragSink: options.tabDragSink,
+      windowMenu: {
+        viewKey: "hierarchy"
+      }
     });
-    const component = context.componentRegistry.addComponent(actor, hierarchyPanelComponentType, {
+    const viewActor = context.actorSystem.createActor({
+      id: viewActorId,
+      name: `${options.title ?? "Hierarchy"} View`,
+      parent: actor
+    });
+    const component = context.componentRegistry.addComponent(viewActor, hierarchyPanelComponentType, {
       id: "hierarchy-panel",
       objectSource: options.objectSource,
       document: options.document ?? options.parent.ownerDocument ?? undefined

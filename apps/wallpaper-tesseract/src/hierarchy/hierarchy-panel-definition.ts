@@ -1,6 +1,6 @@
 import type { ComponentDefinition } from "../actor-runtime";
 import { gizmoEventBindingComponentType } from "../gizmo-runtime";
-import { floatingWindowComponentType } from "../window-runtime";
+import { findOwningWindowContentHost } from "../window-runtime";
 import {
   HierarchyPanelComponent,
   hierarchyPanelComponentType,
@@ -12,7 +12,6 @@ export const hierarchyPanelComponentDefinition:
     type: hierarchyPanelComponentType,
     singleton: true,
     requires: [
-      { type: floatingWindowComponentType, autoAdd: false },
       { type: gizmoEventBindingComponentType }
     ],
     createId(_actor, options) {
@@ -22,9 +21,9 @@ export const hierarchyPanelComponentDefinition:
       if (!options) {
         throw new Error("HierarchyPanelComponent options are required.");
       }
-      const host = context.componentRegistry.getComponent(actor, floatingWindowComponentType);
+      const host = findOwningWindowContentHost(context.actorSystem, context.componentRegistry, actor);
       if (!host) {
-        throw new Error("HierarchyPanelComponent requires FloatingWindowComponent on the same actor.");
+        throw new Error("HierarchyPanelComponent requires an owning FloatingWindowComponent.");
       }
       return new HierarchyPanelComponent(actor, options, {
         host,

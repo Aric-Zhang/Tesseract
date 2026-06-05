@@ -4,7 +4,9 @@ import { sceneParameterPaths, vec2 } from "../../scene-runtime";
 import {
   floatingWindowComponentType,
   type FloatingWindowComponent,
-  type FloatingWindowState
+  type FloatingWindowState,
+  type WindowFrameIntentSink,
+  type WindowTabDragSink
 } from "../../window-runtime";
 import {
   SCENE_WINDOW_MIN_HEIGHT,
@@ -31,6 +33,8 @@ export interface SceneWindowActorOptions {
   createRenderer?: SceneViewportRendererFactory;
   createResizeObserver?: SceneViewportResizeObserverFactory;
   devicePixelRatio?: () => number;
+  frameIntentSink?: WindowFrameIntentSink;
+  tabDragSink?: WindowTabDragSink;
 }
 
 export interface RegisteredSceneWindowActor extends RegisteredActor<SceneViewportComponent> {
@@ -48,6 +52,7 @@ export function createSceneWindowActor(
     name: options.actorName ?? options.actorId
   });
   try {
+    const viewActorId = `${actor.id}:view`;
     const window = context.componentRegistry.addComponent(actor, floatingWindowComponentType, {
       id: "floating-window:scene",
       parent: options.parent,
@@ -59,21 +64,31 @@ export function createSceneWindowActor(
       className: "scene-window",
       contentClassName: "scene-window__content",
       priority: options.priority ?? SCENE_WINDOW_PRIORITY_DEVELOP,
+      activeViewActorId: viewActorId,
+      activeViewKey: "scene",
+      frameIntentSink: options.frameIntentSink,
+      tabDragSink: options.tabDragSink,
       windowMenu: {
         include: true,
+        viewKey: "scene",
         label: "Scene",
         order: 0,
         activationMode: "visible"
       }
     });
-    const viewport = context.componentRegistry.addComponent(actor, sceneViewportComponentType, {
+    const viewActor = context.actorSystem.createActor({
+      id: viewActorId,
+      name: `${options.title ?? "Scene"} View`,
+      parent: actor
+    });
+    const viewport = context.componentRegistry.addComponent(viewActor, sceneViewportComponentType, {
       id: "scene-viewport",
       document: options.document ?? options.parent.ownerDocument ?? undefined,
       createRenderer: options.createRenderer,
       createResizeObserver: options.createResizeObserver,
       devicePixelRatio: options.devicePixelRatio
     });
-    const modeToggle = context.componentRegistry.addComponent(actor, sceneModeToggleComponentType, {
+    const modeToggle = context.componentRegistry.addComponent(viewActor, sceneModeToggleComponentType, {
       id: "scene-mode-toggle",
       document: options.document ?? options.parent.ownerDocument ?? undefined
     });

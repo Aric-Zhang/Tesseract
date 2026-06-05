@@ -12,10 +12,60 @@ export type {
   FloatingWindowStateOptions,
   RegisterFloatingWindowParametersOptions
 } from "./floating-window-state";
+export { windowViewKey } from "./window-view-key";
+export type { WindowViewKey } from "./window-view-key";
+export type {
+  WindowFrameIntentSink,
+  WindowFrameLifecycleController,
+  WindowFrameLifecycleReason
+} from "./window-frame-lifecycle";
+export { DefaultWindowFrameLifecycleController } from "./window-frame-lifecycle-controller";
+export type { WindowFrameLifecycleControllerOptions } from "./window-frame-lifecycle-controller";
+export { WindowViewFactoryRegistry } from "./window-view-factory-registry";
+export type {
+  WindowViewFactory,
+  WindowViewFactoryCreateOptions,
+  WindowViewFactoryResult
+} from "./window-view-factory-registry";
 export {
   createWindowContentAttachment,
   getWindowContentAttachment
 } from "./floating-window-host";
+export {
+  findOwningFloatingWindowHost,
+  findOwningFloatingWindowHost as findOwningWindowContentHost
+} from "./window-content-host-resolver";
+export {
+  WindowDockPreviewComponent,
+  WindowDockPreviewController
+} from "./window-dock-preview-component";
+export type {
+  WindowDockPreviewControllerState,
+  WindowDockPreviewComponentOptions,
+  WindowDockPreviewControllerOptions,
+  WindowTabDragSink
+} from "./window-dock-preview-component";
+export {
+  rectFromDomRect,
+  resolveWindowDockPreview
+} from "./window-dock-targets";
+export type {
+  ResolveWindowDockPreviewOptions,
+  WindowDockPreview,
+  WindowDockPoint,
+  WindowDockRect,
+  WindowDockSplitPlacement,
+  WindowDockTargetFrame
+} from "./window-dock-targets";
+export { WindowTabDragSession } from "./window-tab-drag-session";
+export type {
+  WindowTabDragSessionEndResult,
+  WindowTabDragSessionMoveResult,
+  WindowTabDragSessionOptions,
+  WindowTabDragSessionStart,
+  WindowTabDragSessionState,
+  WindowTabDragSource
+} from "./window-tab-drag-session";
 export type {
   FloatingWindowContentAttachment,
   FloatingWindowHost,
@@ -47,19 +97,35 @@ export type {
   WindowControlSourceOptions
 } from "./window-control-source";
 export {
+  closeFrameInWorkspaceFrameLayout,
+  createSingleTabWindowFrame,
+  createWindowWorkspaceFrameLayout,
   createWindowWorkspaceLayout,
   dockWindowAsTab,
   findDockTabsetContaining,
+  findFrameContainingView,
+  normalizeWindowWorkspaceFrameLayout,
   normalizeWindowWorkspaceLayout,
   removeWindowFromDock,
   removeWindowFromLayout,
+  restoreViewAsSingleTabFrame,
   setActiveDockTab,
   splitDockTab,
   undockWindow
 } from "./window-workspace-layout";
 export type {
+  CreateSingleTabWindowFrameOptions,
+  CreateWindowWorkspaceFrameLayoutOptions,
   CreateWindowWorkspaceLayoutOptions,
+  RestoreViewAsSingleTabFrameOptions,
   SplitDockTabOptions,
+  WindowFrameDockNode,
+  WindowFrameSplitNode,
+  WindowFrameTabsetNode,
+  WindowWorkspaceFrameDescriptor,
+  WindowWorkspaceFrameLayout,
+  WindowWorkspaceFramePresentation,
+  WindowWorkspaceViewDescriptor,
   WindowWorkspaceDockNode,
   WindowWorkspaceFloatingWindow,
   WindowWorkspaceLayout,

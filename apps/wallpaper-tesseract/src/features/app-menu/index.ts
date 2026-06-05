@@ -17,6 +17,7 @@ export type {
   AppMenuIconName,
   AppMenuItemViewModel,
   AppMenuLeadingAccessory,
-  AppMenuWindowToggleItemViewModel
+  AppMenuCheckableCommandItemViewModel,
+  AppMenuOpenViewItemViewModel
 } from "./app-menu-model";
 export { installAppMenuComponentDefinitions } from "./install-component-definitions";

@@ -509,7 +509,7 @@ describe("HierarchyPanelComponent", () => {
 });
 
 describe("HierarchyPanelComponent definition", () => {
-  it("requires an existing FloatingWindowComponent", () => {
+  it("requires an owning FloatingWindowComponent", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
     installCoreComponentDefinitions(registry);
@@ -520,7 +520,7 @@ describe("HierarchyPanelComponent definition", () => {
     expect(() => registry.addComponent(actor, hierarchyPanelComponentType, {
       document: new FakeDocument() as unknown as Document,
       objectSource: createStaticHierarchyObjectSource([])
-    })).toThrow(/Required component is missing/);
+    })).toThrow(/owning FloatingWindowComponent/);
   });
 
   it("creates and mounts when the actor has a FloatingWindowComponent", () => {

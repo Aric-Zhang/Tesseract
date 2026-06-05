@@ -98,6 +98,7 @@ function createContext() {
 function createEmptyWindowSource(): WindowControlSource {
   return {
     listWindows: () => [],
+    findWindowByViewKey: () => null,
     findWindowByVisiblePath: () => null
   };
 }

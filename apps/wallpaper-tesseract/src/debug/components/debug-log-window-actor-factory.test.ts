@@ -203,6 +203,8 @@ describe("createDebugLogWindowActor", () => {
     });
 
     expect(handle.actor.id).toBe("debug-actor");
+    expect(handle.component.actor.id).toBe("debug-actor:view");
+    expect(context.actorSystem.getParent(handle.component.actor)).toBe(handle.actor);
     expect(handle.window.type).toBe(floatingWindowComponentType);
     expect(handle.component.type).toBe(debugLogContentComponentType);
     expect(context.actorSystem.getActor("debug-actor")).toBe(handle.actor);

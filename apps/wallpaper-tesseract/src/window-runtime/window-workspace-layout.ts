@@ -1,3 +1,14 @@
+import { cloneFloatingWindowState, type FloatingWindowState } from "./floating-window-state";
+import type { WindowViewKey } from "./window-view-key";
+
+/**
+ * Transitional note:
+ * The actor-id based WindowWorkspaceLayout below is retained for existing pure
+ * layout tests and should not receive new docking behavior. The frame/view
+ * layout types in the second half of this file are the target model for
+ * Step24+ tab merge, floating, and split docking work.
+ */
+
 export type WindowWorkspaceSplitDirection = "horizontal" | "vertical";
 export type WindowWorkspaceSplitPlacement = "before" | "after";
 
@@ -53,6 +64,75 @@ export interface SplitDockTabOptions {
   readonly direction: WindowWorkspaceSplitDirection;
   readonly placement?: WindowWorkspaceSplitPlacement;
   readonly ratio?: number;
+}
+
+export type WindowWorkspaceFramePresentation = "windowed" | "fullscreen";
+
+export interface WindowWorkspaceViewDescriptor {
+  readonly viewKey: WindowViewKey;
+  readonly actorId: string;
+  readonly title?: string;
+  readonly canDock?: boolean;
+}
+
+export interface WindowFrameTabsetNode {
+  readonly kind: "tabset";
+  /**
+   * Derived from current node content for deterministic tests and debugging.
+   * Treat it as volatile: UI and persistence must not cache it as a stable identity.
+   */
+  readonly id: string;
+  readonly tabs: readonly WindowViewKey[];
+  readonly activeTabId: WindowViewKey;
+}
+
+export interface WindowFrameSplitNode {
+  readonly kind: "split";
+  /**
+   * Derived from current node content for deterministic tests and debugging.
+   * Treat it as volatile: UI and persistence must not cache it as a stable identity.
+   */
+  readonly id: string;
+  readonly direction: WindowWorkspaceSplitDirection;
+  readonly ratio: number;
+  readonly first: WindowFrameDockNode;
+  readonly second: WindowFrameDockNode;
+}
+
+export type WindowFrameDockNode = WindowFrameTabsetNode | WindowFrameSplitNode;
+
+export interface WindowWorkspaceFrameDescriptor {
+  readonly frameId: string;
+  readonly bounds: FloatingWindowState;
+  readonly presentation: WindowWorkspaceFramePresentation;
+  readonly root: WindowFrameDockNode;
+}
+
+export interface WindowWorkspaceFrameLayout {
+  readonly views: Readonly<Record<string, WindowWorkspaceViewDescriptor>>;
+  readonly frames: readonly WindowWorkspaceFrameDescriptor[];
+  readonly hiddenViewKeys: readonly WindowViewKey[];
+}
+
+export interface CreateWindowWorkspaceFrameLayoutOptions {
+  readonly views?: readonly WindowWorkspaceViewDescriptor[];
+  readonly frames?: readonly WindowWorkspaceFrameDescriptor[];
+  readonly hiddenViewKeys?: readonly WindowViewKey[];
+  readonly defaultBounds?: FloatingWindowState;
+}
+
+export interface CreateSingleTabWindowFrameOptions {
+  readonly viewKey: WindowViewKey;
+  readonly frameId?: string;
+  readonly bounds?: FloatingWindowState;
+  readonly presentation?: WindowWorkspaceFramePresentation;
+}
+
+export interface RestoreViewAsSingleTabFrameOptions {
+  readonly view: WindowWorkspaceViewDescriptor;
+  readonly frameId?: string;
+  readonly bounds?: FloatingWindowState;
+  readonly presentation?: WindowWorkspaceFramePresentation;
 }
 
 interface RemoveFromDockResult {
@@ -188,6 +268,119 @@ export function findDockTabsetContaining(
   actorId: string
 ): WindowWorkspaceTabsetNode | null {
   return findTabsetContaining(layout.dockRoot, actorId);
+}
+
+export function createWindowWorkspaceFrameLayout(
+  options: CreateWindowWorkspaceFrameLayoutOptions = {}
+): WindowWorkspaceFrameLayout {
+  const views = createViewDescriptorMap(options.views ?? []);
+  const hiddenViewKeys = uniqueViewKeys(options.hiddenViewKeys ?? []);
+  const frames = options.frames
+    ? options.frames.map(cloneFrameDescriptor)
+    : Object.keys(views)
+      .filter((viewKey) => !hiddenViewKeys.includes(viewKey))
+      .map((viewKey) => createSingleTabWindowFrame({
+        viewKey,
+        bounds: options.defaultBounds
+      }));
+  return normalizeWindowWorkspaceFrameLayout({
+    views,
+    frames,
+    hiddenViewKeys
+  });
+}
+
+export function normalizeWindowWorkspaceFrameLayout(
+  layout: WindowWorkspaceFrameLayout
+): WindowWorkspaceFrameLayout {
+  const views = cloneViewDescriptors(layout.views);
+  const framedViewKeys = new Set<WindowViewKey>();
+  const frames: WindowWorkspaceFrameDescriptor[] = [];
+  for (const frame of layout.frames) {
+    const root = normalizeFrameDockNode(frame.root, views, framedViewKeys);
+    if (!root) continue;
+    frames.push({
+      frameId: frame.frameId,
+      bounds: cloneFloatingWindowState(frame.bounds),
+      presentation: frame.presentation,
+      root
+    });
+  }
+
+  const visibleViewKeys = new Set(frames.flatMap((frame) => collectFrameViewKeys(frame.root)));
+  const normalizedViews = Object.fromEntries(
+    Object.entries(views).filter(([viewKey]) => visibleViewKeys.has(viewKey))
+  );
+  const hiddenViewKeys = uniqueViewKeys(layout.hiddenViewKeys)
+    .filter((viewKey) => !visibleViewKeys.has(viewKey));
+
+  return {
+    views: normalizedViews,
+    frames,
+    hiddenViewKeys
+  };
+}
+
+export function createSingleTabWindowFrame(
+  options: CreateSingleTabWindowFrameOptions
+): WindowWorkspaceFrameDescriptor {
+  const bounds = options.bounds ?? createDefaultFrameBounds();
+  return {
+    frameId: options.frameId ?? createFrameId(options.viewKey),
+    bounds: cloneFloatingWindowState(bounds),
+    presentation: options.presentation ?? "windowed",
+    root: createFrameTabset([options.viewKey], options.viewKey)
+  };
+}
+
+export function closeFrameInWorkspaceFrameLayout(
+  layout: WindowWorkspaceFrameLayout,
+  frameId: string
+): WindowWorkspaceFrameLayout {
+  const targetFrame = layout.frames.find((frame) => frame.frameId === frameId);
+  if (!targetFrame) return layout;
+  const closedViewKeys = collectFrameViewKeys(targetFrame.root);
+  const closedViewKeySet = new Set(closedViewKeys);
+  const views = Object.fromEntries(
+    Object.entries(layout.views).filter(([viewKey]) => !closedViewKeySet.has(viewKey))
+  );
+  return normalizeWindowWorkspaceFrameLayout({
+    views,
+    frames: layout.frames.filter((frame) => frame.frameId !== frameId),
+    hiddenViewKeys: uniqueViewKeys([...layout.hiddenViewKeys, ...closedViewKeys])
+  });
+}
+
+export function restoreViewAsSingleTabFrame(
+  layout: WindowWorkspaceFrameLayout,
+  options: RestoreViewAsSingleTabFrameOptions
+): WindowWorkspaceFrameLayout {
+  if (layout.views[options.view.viewKey] || findFrameContainingView(layout, options.view.viewKey)) {
+    throw new Error(`Window view is already live: ${options.view.viewKey}.`);
+  }
+  return normalizeWindowWorkspaceFrameLayout({
+    views: {
+      ...layout.views,
+      [options.view.viewKey]: { ...options.view }
+    },
+    frames: [
+      ...layout.frames,
+      createSingleTabWindowFrame({
+        viewKey: options.view.viewKey,
+        frameId: options.frameId,
+        bounds: options.bounds,
+        presentation: options.presentation
+      })
+    ],
+    hiddenViewKeys: layout.hiddenViewKeys.filter((viewKey) => viewKey !== options.view.viewKey)
+  });
+}
+
+export function findFrameContainingView(
+  layout: WindowWorkspaceFrameLayout,
+  viewKey: WindowViewKey
+): WindowWorkspaceFrameDescriptor | null {
+  return layout.frames.find((frame) => collectFrameViewKeys(frame.root).includes(viewKey)) ?? null;
 }
 
 function assertKnownWindow(layout: WindowWorkspaceLayout, actorId: string): void {
@@ -453,6 +646,152 @@ function findTabsetContaining(
     return node.tabs.includes(actorId) ? node : null;
   }
   return findTabsetContaining(node.first, actorId) ?? findTabsetContaining(node.second, actorId);
+}
+
+function createViewDescriptorMap(
+  views: readonly WindowWorkspaceViewDescriptor[]
+): Record<string, WindowWorkspaceViewDescriptor> {
+  const descriptors: Record<string, WindowWorkspaceViewDescriptor> = {};
+  for (const view of views) {
+    if (descriptors[view.viewKey]) {
+      throw new Error(`Duplicate window view key: ${view.viewKey}.`);
+    }
+    descriptors[view.viewKey] = { ...view };
+  }
+  return descriptors;
+}
+
+function cloneViewDescriptors(
+  views: Readonly<Record<string, WindowWorkspaceViewDescriptor>>
+): Record<string, WindowWorkspaceViewDescriptor> {
+  return Object.fromEntries(
+    Object.entries(views).map(([viewKey, descriptor]) => [viewKey, { ...descriptor }])
+  );
+}
+
+function uniqueViewKeys(viewKeys: readonly WindowViewKey[]): WindowViewKey[] {
+  const seen = new Set<WindowViewKey>();
+  const normalized: WindowViewKey[] = [];
+  for (const viewKey of viewKeys) {
+    if (seen.has(viewKey)) continue;
+    seen.add(viewKey);
+    normalized.push(viewKey);
+  }
+  return normalized;
+}
+
+function normalizeFrameDockNode(
+  node: WindowFrameDockNode,
+  views: Readonly<Record<string, WindowWorkspaceViewDescriptor>>,
+  framedViewKeys: Set<WindowViewKey>
+): WindowFrameDockNode | null {
+  if (node.kind === "tabset") {
+    const tabs: WindowViewKey[] = [];
+    const localTabs = new Set<WindowViewKey>();
+    for (const viewKey of node.tabs) {
+      if (!views[viewKey]) continue;
+      if (framedViewKeys.has(viewKey) || localTabs.has(viewKey)) continue;
+      framedViewKeys.add(viewKey);
+      localTabs.add(viewKey);
+      tabs.push(viewKey);
+    }
+    if (tabs.length === 0) return null;
+    const activeTabId = tabs.includes(node.activeTabId) ? node.activeTabId : tabs[0];
+    return createFrameTabset(tabs, activeTabId);
+  }
+
+  const first = normalizeFrameDockNode(node.first, views, framedViewKeys);
+  const second = normalizeFrameDockNode(node.second, views, framedViewKeys);
+  if (!first && !second) return null;
+  if (!first) return second;
+  if (!second) return first;
+  return createFrameSplitNode(node.direction, first, second, node.ratio);
+}
+
+function cloneFrameDescriptor(frame: WindowWorkspaceFrameDescriptor): WindowWorkspaceFrameDescriptor {
+  return {
+    frameId: frame.frameId,
+    bounds: cloneFloatingWindowState(frame.bounds),
+    presentation: frame.presentation,
+    root: cloneFrameDockNode(frame.root)
+  };
+}
+
+function cloneFrameDockNode(node: WindowFrameDockNode): WindowFrameDockNode {
+  if (node.kind === "tabset") {
+    return {
+      ...node,
+      tabs: [...node.tabs]
+    };
+  }
+  return {
+    ...node,
+    first: cloneFrameDockNode(node.first),
+    second: cloneFrameDockNode(node.second)
+  };
+}
+
+function createFrameTabset(
+  tabs: readonly WindowViewKey[],
+  activeTabId: WindowViewKey
+): WindowFrameTabsetNode {
+  return {
+    kind: "tabset",
+    id: createFrameTabsetId(tabs),
+    tabs: [...tabs],
+    activeTabId
+  };
+}
+
+function createFrameSplitNode(
+  direction: WindowWorkspaceSplitDirection,
+  first: WindowFrameDockNode,
+  second: WindowFrameDockNode,
+  ratio = 0.5
+): WindowFrameSplitNode {
+  const clampedRatio = Math.min(0.9, Math.max(0.1, ratio));
+  return {
+    kind: "split",
+    id: createFrameSplitId(direction, first, second),
+    direction,
+    ratio: clampedRatio,
+    first,
+    second
+  };
+}
+
+function collectFrameViewKeys(node: WindowFrameDockNode): WindowViewKey[] {
+  if (node.kind === "tabset") {
+    return [...node.tabs];
+  }
+  return [
+    ...collectFrameViewKeys(node.first),
+    ...collectFrameViewKeys(node.second)
+  ];
+}
+
+function createDefaultFrameBounds(): FloatingWindowState {
+  return {
+    position: { x: 40, y: 40 },
+    size: { x: 360, y: 240 },
+    visible: true
+  };
+}
+
+function createFrameId(viewKey: WindowViewKey): string {
+  return `frame:${viewKey}`;
+}
+
+function createFrameTabsetId(tabs: readonly WindowViewKey[]): string {
+  return `frame-tabset:${tabs.join("+")}`;
+}
+
+function createFrameSplitId(
+  direction: WindowWorkspaceSplitDirection,
+  first: WindowFrameDockNode,
+  second: WindowFrameDockNode
+): string {
+  return `frame-split:${direction}:${first.id}|${second.id}`;
 }
 
 function createTabset(tabs: readonly string[], activeTabId: string | null): WindowWorkspaceTabsetNode {

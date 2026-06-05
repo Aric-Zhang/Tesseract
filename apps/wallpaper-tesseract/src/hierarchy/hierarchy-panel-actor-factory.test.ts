@@ -204,6 +204,8 @@ describe("createHierarchyPanelActor", () => {
     });
 
     expect(handle.actor.id).toBe("hierarchy-actor");
+    expect(handle.component.actor.id).toBe("hierarchy-actor:view");
+    expect(context.actorSystem.getParent(handle.component.actor)).toBe(handle.actor);
     expect(handle.window.type).toBe(floatingWindowComponentType);
     expect(handle.component.type).toBe(hierarchyPanelComponentType);
     expect(context.actorSystem.getActor("hierarchy-actor")).toBe(handle.actor);
@@ -224,10 +226,12 @@ describe("createHierarchyPanelActor", () => {
 
     expect(handle.actor.hasComponent(gizmoEventBindingComponentType)).toBe(true);
     expect(handle.actor.hasComponent(stateObserverBindingComponentType)).toBe(true);
-    expect(registeredGizmos).toHaveLength(1);
+    expect(handle.component.actor.hasComponent(gizmoEventBindingComponentType)).toBe(true);
+    expect(registeredGizmos).toHaveLength(2);
     expect(observers).toHaveLength(1);
     expect(calls.filter((call) => call.startsWith("gizmo-register:"))).toEqual([
-      "gizmo-register:hierarchy-actor:gizmo-event-binding"
+      "gizmo-register:hierarchy-actor:gizmo-event-binding",
+      "gizmo-register:hierarchy-actor:view:gizmo-event-binding"
     ]);
     expect(calls.filter((call) => call === "observer-subscribe")).toHaveLength(1);
   });
@@ -298,7 +302,8 @@ describe("createHierarchyPanelActor", () => {
       "Tesseract4",
       "Camera3",
       "Debug Log Window",
-      "Hierarchy Panel"
+      "Hierarchy Panel",
+      "Hierarchy View"
     ]);
   });
 
@@ -319,8 +324,10 @@ describe("createHierarchyPanelActor", () => {
     handle.dispose();
 
     expect(context.actorSystem.getActor("hierarchy-actor")).toBeNull();
+    expect(context.actorSystem.getActor("hierarchy-actor:view")).toBeNull();
     expect(parent.children).toEqual([]);
     expect(calls).toEqual([
+      "gizmo-dispose:hierarchy-actor:view:gizmo-event-binding",
       "observer-dispose",
       "gizmo-dispose:hierarchy-actor:gizmo-event-binding"
     ]);

@@ -22,6 +22,8 @@ import {
   type FloatingWindowMenuOptions
 } from "./floating-window-component";
 import type { FloatingWindowParameterPaths } from "./floating-window-state";
+import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
+import type { WindowTabDragSink } from "./window-dock-preview-component";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -104,6 +106,10 @@ interface CreateSubjectOptions {
   minSize?: Vec2;
   priority?: number;
   windowMenu?: FloatingWindowMenuOptions;
+  frameId?: string;
+  activeViewActorId?: string;
+  frameIntentSink?: WindowFrameIntentSink;
+  tabDragSink?: WindowTabDragSink;
 }
 
 function createSubject(options: CreateSubjectOptions = {}) {
@@ -134,6 +140,10 @@ function createSubject(options: CreateSubjectOptions = {}) {
     className: "test-window",
     contentClassName: "test-window__content",
     priority: options.priority ?? 1200,
+    frameId: options.frameId,
+    activeViewActorId: options.activeViewActorId,
+    frameIntentSink: options.frameIntentSink,
+    tabDragSink: options.tabDragSink,
     windowMenu: options.windowMenu
   }, commandSink ? { commandSink } : undefined);
   const root = parent.children[0];
@@ -168,6 +178,7 @@ function setWindowRects(root: FakeElement): void {
   root.rect = createRect(10, 20, 320, 180);
   const titlebar = findChildByClass(root, "floating-gizmo-window__titlebar");
   titlebar.rect = createRect(10, 20, 320, 32);
+  findChildByClass(titlebar, "floating-gizmo-window__tab").rect = createRect(18, 24, 110, 24);
   findChildByClass(titlebar, "floating-gizmo-window__close").rect = createRect(294, 24, 28, 24);
   findChildByClass(root, "floating-gizmo-window__resize--left").rect = createRect(10, 20, 6, 180);
   findChildByClass(root, "floating-gizmo-window__resize--right").rect = createRect(324, 20, 6, 180);
@@ -230,6 +241,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(component.visiblePath).toBe(paths.visible);
     expect(component.menuDescriptor).toEqual({
       include: true,
+      viewKey: null,
       label: "Test Window",
       order: 1200,
       group: null,
@@ -265,6 +277,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     const { component } = createSubject({
       windowMenu: {
         include: false,
+        viewKey: "scene",
         label: "Internal Scene",
         order: 10,
         group: "scene",
@@ -274,6 +287,7 @@ describe("FloatingWindowComponent DOM shell", () => {
 
     expect(component.menuDescriptor).toEqual({
       include: false,
+      viewKey: "scene",
       label: "Internal Scene",
       order: 10,
       group: "scene",
@@ -420,7 +434,11 @@ describe("FloatingWindowComponent DOM shell", () => {
       hitPriority: 40
     });
     expect(component.hitTestInput({ x: 20, y: 36 })).toMatchObject({
-      partId: "titlebar",
+      partId: "window-tab",
+      hitPriority: 20
+    });
+    expect(component.hitTestInput({ x: 150, y: 36 })).toMatchObject({
+      partId: "titlebar-empty",
       hitPriority: 20
     });
     expect(component.hitTestInput({ x: 40, y: 90 })).toMatchObject({
@@ -447,12 +465,12 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(component.hitTestInput({ x: 12, y: 22 })).toBeNull();
   });
 
-  it("submits position commands while dragging the titlebar", () => {
+  it("submits position commands while dragging the empty titlebar area", () => {
     const commands: SceneUpdateCommand[] = [];
     const { component, paths, root } = createSubject({ commands });
     setWindowRects(root);
-    const hit = component.hitTestInput({ x: 20, y: 36 });
-    if (!hit) throw new Error("Expected titlebar hit.");
+    const hit = component.hitTestInput({ x: 150, y: 36 });
+    if (!hit) throw new Error("Expected titlebar empty hit.");
 
     component.onInputStart(createActorInputStartEvent(hit));
     component.onInputMove(createActorInputMoveEvent(hit, { totalDelta: { dx: 10, dy: -5 } }));
@@ -466,6 +484,20 @@ describe("FloatingWindowComponent DOM shell", () => {
         timeStamp: 20
       }
     ]);
+  });
+
+  it("does not move the frame while dragging the tab itself", () => {
+    const commands: SceneUpdateCommand[] = [];
+    const { component, root } = createSubject({ commands });
+    setWindowRects(root);
+    const hit = component.hitTestInput({ x: 20, y: 36 });
+    if (!hit) throw new Error("Expected tab hit.");
+
+    component.onInputStart(createActorInputStartEvent(hit));
+    component.onInputMove(createActorInputMoveEvent(hit, { totalDelta: { dx: 10, dy: -5 } }));
+
+    expect(hit.partId).toBe("window-tab");
+    expect(commands).toEqual([]);
   });
 
   it("submits constrained position and size commands while resizing from the top-left handle", () => {
@@ -499,7 +531,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     ]);
   });
 
-  it("submits a visibility command when the close button is clicked", () => {
+  it("submits a visibility command when the close button is clicked without a frame intent sink", () => {
     const commands: SceneUpdateCommand[] = [];
     const { component, paths, root } = createSubject({ commands });
     setWindowRects(root);
@@ -519,6 +551,100 @@ describe("FloatingWindowComponent DOM shell", () => {
     ]);
   });
 
+  it("submits a close-frame intent when a frame intent sink is configured", () => {
+    const commands: SceneUpdateCommand[] = [];
+    const frameIntents: string[] = [];
+    const { component, root } = createSubject({
+      commands,
+      frameId: "frame:test",
+      frameIntentSink: {
+        requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
+        requestCloseFrame: (frameId, reason) => frameIntents.push(`close:${frameId}:${reason}`)
+      }
+    });
+    setWindowRects(root);
+    const hit = component.hitTestInput({ x: 300, y: 30 });
+    if (!hit) throw new Error("Expected close hit.");
+
+    component.onInputEnd(createActorInputEndEvent(hit, { wasClick: true }));
+
+    expect(frameIntents).toEqual(["close:frame:test:close-button"]);
+    expect(commands).toEqual([]);
+  });
+
+  it("routes tab drags to the tab drag sink without moving the window", () => {
+    const commands: SceneUpdateCommand[] = [];
+    const tabDragCalls: string[] = [];
+    const { component, root } = createSubject({
+      commands,
+      frameId: "frame:test",
+      activeViewActorId: "view:test",
+      windowMenu: { viewKey: "test-view" },
+      tabDragSink: {
+        beginTabDrag: (source, point) => {
+          tabDragCalls.push(`begin:${source.frameId}:${source.viewActorId}:${source.viewKey}:${point.x}:${point.y}`);
+        },
+        moveTabDrag: (point) => tabDragCalls.push(`move:${point.x}:${point.y}`),
+        endTabDrag: () => {
+          tabDragCalls.push("end");
+          return null;
+        },
+        cancelTabDrag: () => tabDragCalls.push("cancel")
+      }
+    });
+    setWindowRects(root);
+    const hit = component.hitTestInput({ x: 30, y: 36 });
+    if (!hit) throw new Error("Expected tab hit.");
+
+    component.onInputStart(createActorInputStartEvent(hit, { point: { x: 30, y: 36 } }));
+    component.onInputMove(createActorInputMoveEvent(hit, {
+      point: { x: 80, y: 70 },
+      totalDelta: { dx: 50, dy: 34 }
+    }));
+    component.onInputEnd(createActorInputEndEvent(hit, { wasClick: false }));
+
+    expect(hit.partId).toBe("window-tab");
+    expect(tabDragCalls).toEqual([
+      "begin:frame:test:view:test:test-view:30:36",
+      "move:80:70",
+      "end"
+    ]);
+    expect(commands).toEqual([]);
+  });
+
+  it("does not start tab drag preview from the titlebar empty drag path", () => {
+    const commands: SceneUpdateCommand[] = [];
+    const tabDragCalls: string[] = [];
+    const { component, paths, root } = createSubject({
+      commands,
+      tabDragSink: {
+        beginTabDrag: () => tabDragCalls.push("begin"),
+        moveTabDrag: () => tabDragCalls.push("move"),
+        endTabDrag: () => {
+          tabDragCalls.push("end");
+          return null;
+        },
+        cancelTabDrag: () => tabDragCalls.push("cancel")
+      }
+    });
+    setWindowRects(root);
+    const hit = component.hitTestInput({ x: 150, y: 36 });
+    if (!hit) throw new Error("Expected titlebar hit.");
+
+    component.onInputStart(createActorInputStartEvent(hit));
+    component.onInputMove(createActorInputMoveEvent(hit, { totalDelta: { dx: 15, dy: 20 } }));
+
+    expect(hit.partId).toBe("titlebar-empty");
+    expect(tabDragCalls).toEqual([]);
+    expect(commands).toEqual([{
+      source: { id: "floating-window:test", kind: "gizmo" },
+      target: paths.position,
+      operation: "set",
+      value: vec2(27, 44),
+      timeStamp: 20
+    }]);
+  });
+
   it("does not submit window state commands for content focus surface input", () => {
     const commands: SceneUpdateCommand[] = [];
     const { component, root } = createSubject({ commands });
@@ -533,12 +659,15 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(commands).toEqual([]);
   });
 
-  it("keeps chrome input paths stable for titlebar, resize, and close interactions", () => {
+  it("keeps chrome input paths stable for tab, titlebar, resize, and close interactions", () => {
     const { component, root } = createSubject();
     setWindowRects(root);
 
     expect(component.hitTestInput({ x: 20, y: 36 })?.path).toEqual([
-      { componentId: "floating-window:test", role: "surface", partId: "titlebar" }
+      { componentId: "floating-window:test", role: "surface", partId: "window-tab" }
+    ]);
+    expect(component.hitTestInput({ x: 150, y: 36 })?.path).toEqual([
+      { componentId: "floating-window:test", role: "surface", partId: "titlebar-empty" }
     ]);
     expect(component.hitTestInput({ x: 12, y: 22 })?.path).toEqual([
       { componentId: "floating-window:test", role: "surface", partId: "resize-top-left" }
@@ -696,14 +825,14 @@ describe("FloatingWindowComponent definition", () => {
     system.register(lowBinding);
     system.register(highBinding);
 
-    const selected = selectBestHit(system, { x: 20, y: 36 });
+    const selected = selectBestHit(system, { x: 150, y: 36 });
 
     expect(lowRoot.style.zIndex).toBe("100");
     expect(highRoot.style.zIndex).toBe("900");
     expect(lowBinding.priority).toBe(100);
     expect(highBinding.priority).toBe(900);
     expect(selected?.gizmo).toBe(highBinding);
-    expect(selected?.hit.partId).toBe("titlebar");
+    expect(selected?.hit.partId).toBe("titlebar-empty");
 
     system.dispose();
   });

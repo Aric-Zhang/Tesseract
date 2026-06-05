@@ -23,7 +23,7 @@
 .floating-gizmo-window__titlebar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
   height: 30px;
   padding: 0 7px 0 10px;
   border-bottom: 1px solid rgba(118, 199, 255, 0.18);
@@ -44,6 +44,18 @@
   white-space: nowrap;
 }
 
+.floating-gizmo-window__tab {
+  display: inline-flex;
+  align-items: center;
+  max-width: calc(100% - 30px);
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid rgba(118, 199, 255, 0.2);
+  border-bottom-color: rgba(118, 199, 255, 0.3);
+  background: rgba(24, 39, 54, 0.78);
+  cursor: default;
+}
+
 .floating-gizmo-window__content {
   width: 100%;
   height: calc(100% - 30px);
@@ -57,6 +69,7 @@
 .floating-gizmo-window__close {
   position: relative;
   display: grid;
+  margin-left: auto;
   z-index: 3;
   width: 22px;
   height: 22px;
@@ -156,4 +169,22 @@
   border-right: 1px solid rgba(180, 222, 255, 0.45);
   border-bottom: 1px solid rgba(180, 222, 255, 0.45);
   content: "";
+}
+
+.window-dock-preview {
+  position: fixed;
+  z-index: 9998;
+  border: 1px solid rgba(120, 190, 255, 0.78);
+  background: rgba(52, 132, 224, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(230, 246, 255, 0.16);
+  pointer-events: none;
+}
+
+.window-dock-preview--merge-tabs {
+  background: rgba(95, 156, 232, 0.22);
+}
+
+.window-dock-preview--floating {
+  border-style: dashed;
+  background: rgba(190, 207, 225, 0.12);
 }

@@ -1,5 +1,5 @@
 import type { ComponentDefinition } from "../../../actor-runtime";
-import { floatingWindowComponentType } from "../../../window-runtime";
+import { findOwningWindowContentHost } from "../../../window-runtime";
 import {
   SceneViewportComponent,
   sceneViewportComponentType,
@@ -10,17 +10,14 @@ export const sceneViewportComponentDefinition:
   ComponentDefinition<SceneViewportComponent, SceneViewportComponentOptions> = {
     type: sceneViewportComponentType,
     singleton: true,
-    requires: [{
-      type: floatingWindowComponentType,
-      autoAdd: false
-    }],
+    requires: [],
     createId(_actor, options) {
       return options?.id ?? "scene-viewport";
     },
     create(actor, context, options) {
-      const window = context.componentRegistry.getComponent(actor, floatingWindowComponentType);
+      const window = findOwningWindowContentHost(context.actorSystem, context.componentRegistry, actor);
       if (!window) {
-        throw new Error("SceneViewportComponent requires FloatingWindowComponent on the same actor.");
+        throw new Error("SceneViewportComponent requires an owning FloatingWindowComponent.");
       }
       return new SceneViewportComponent(actor, window, options);
     }

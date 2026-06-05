@@ -1,6 +1,10 @@
 import { createRegisteredActor, type RegisteredActor } from "../../actor-runtime";
 import type { FeatureActorContext } from "../../runtime/ports";
-import type { WindowControlSource } from "../../window-runtime";
+import type {
+  WindowControlSource,
+  WindowFrameIntentSink,
+  WindowViewFactoryRegistry
+} from "../../window-runtime";
 import {
   appMenuBarComponentType,
   type AppMenuBarComponent,
@@ -12,6 +16,8 @@ export interface AppMenuBarActorOptions {
   readonly actorName?: string;
   readonly parent: HTMLElement;
   readonly windowSource: WindowControlSource;
+  readonly windowViewFactories?: WindowViewFactoryRegistry;
+  readonly windowFrameIntents?: WindowFrameIntentSink;
   readonly initialMode?: AppMenuWorkspaceMode;
   readonly document?: Pick<Document, "createElement">;
 }
@@ -30,6 +36,8 @@ export function createAppMenuBarActor(
       parent: options.parent,
       document: options.document ?? options.parent.ownerDocument ?? undefined,
       windowSource: options.windowSource,
+      windowViewFactories: options.windowViewFactories,
+      windowFrameIntents: options.windowFrameIntents,
       initialMode: options.initialMode
     });
     let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;

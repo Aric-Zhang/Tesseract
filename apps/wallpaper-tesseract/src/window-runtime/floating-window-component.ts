@@ -20,18 +20,22 @@ import type {
   ActorInputStartEvent
 } from "../gizmo-runtime";
 import type { StateObserverResponder } from "../state-runtime";
+import type { WindowTabDragSink } from "./window-dock-preview-component";
+import type { WindowTabDragSource } from "./window-tab-drag-session";
 import {
   createWindowContentAttachment,
   type FloatingWindowContentAttachment,
   type FloatingWindowHost,
   type WindowContentAttachmentRequest
 } from "./floating-window-host";
+import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
 import {
   cloneFloatingWindowState,
   DEFAULT_FLOATING_WINDOW_MIN_SIZE,
   type FloatingWindowParameterPaths,
   type FloatingWindowState
 } from "./floating-window-state";
+import type { WindowViewKey } from "./window-view-key";
 
 export const floatingWindowComponentType =
   "floating-window-component" as ComponentType<FloatingWindowComponent>;
@@ -42,6 +46,7 @@ export type FloatingWindowActivationMode = "visible" | "none";
 
 export interface FloatingWindowMenuOptions {
   readonly include?: boolean;
+  readonly viewKey?: WindowViewKey;
   readonly label?: string;
   readonly order?: number;
   readonly group?: string;
@@ -50,6 +55,7 @@ export interface FloatingWindowMenuOptions {
 
 export interface FloatingWindowMenuDescriptor {
   readonly include: boolean;
+  readonly viewKey: WindowViewKey | null;
   readonly label: string;
   readonly order: number;
   readonly group: string | null;
@@ -68,6 +74,11 @@ export interface FloatingWindowComponentOptions {
   priority?: number;
   presentation?: FloatingWindowPresentation;
   closeMode?: FloatingWindowCloseMode;
+  frameId?: string;
+  activeViewActorId?: string;
+  activeViewKey?: WindowViewKey;
+  frameIntentSink?: WindowFrameIntentSink;
+  tabDragSink?: WindowTabDragSink;
   windowMenu?: FloatingWindowMenuOptions;
   document?: Pick<Document, "createElement">;
 }
@@ -79,7 +90,8 @@ export interface FloatingWindowComponentServices {
 export const DEFAULT_FLOATING_WINDOW_PRIORITY = 1000;
 
 type FloatingWindowPartId =
-  | "titlebar"
+  | "window-tab"
+  | "titlebar-empty"
   | "window-content"
   | "close"
   | "resize-left"
@@ -119,8 +131,12 @@ export class FloatingWindowComponent
   readonly #titlebar: HTMLDivElement;
   readonly #closeButton: HTMLButtonElement;
   readonly #resizeHandles: Record<ResizeHandleClass, HTMLDivElement>;
-  readonly #titleElement: HTMLDivElement;
+  readonly #tabElement: HTMLDivElement;
   readonly #contentSlot: HTMLDivElement;
+  readonly #frameId: string;
+  readonly #tabDragSource: WindowTabDragSource | null;
+  readonly #frameIntentSink?: WindowFrameIntentSink;
+  readonly #tabDragSink?: WindowTabDragSink;
   #contentAttachment: FloatingWindowContentAttachment | null = null;
   #dragStartState: FloatingWindowState | null = null;
   #presentation: FloatingWindowPresentation;
@@ -133,6 +149,10 @@ export class FloatingWindowComponent
   ) {
     this.actor = actor;
     this.id = options.id;
+    this.#frameId = options.frameId ?? actor.id;
+    this.#tabDragSource = createTabDragSource(this.#frameId, options);
+    this.#frameIntentSink = options.frameIntentSink;
+    this.#tabDragSink = options.tabDragSink;
     this.#paths = options.paths;
     this.#commandSink = services.commandSink;
     this.#basePriority = options.priority ?? DEFAULT_FLOATING_WINDOW_PRIORITY;
@@ -151,9 +171,9 @@ export class FloatingWindowComponent
     this.#titlebar = documentRef.createElement("div");
     this.#titlebar.className = "floating-gizmo-window__titlebar";
 
-    this.#titleElement = documentRef.createElement("div");
-    this.#titleElement.className = "floating-gizmo-window__title";
-    this.#titleElement.textContent = options.title;
+    this.#tabElement = documentRef.createElement("div");
+    this.#tabElement.className = "floating-gizmo-window__title floating-gizmo-window__tab";
+    this.#tabElement.textContent = options.title;
 
     this.#closeButton = documentRef.createElement("button");
     this.#closeButton.className = "floating-gizmo-window__close";
@@ -161,7 +181,7 @@ export class FloatingWindowComponent
     this.#closeButton.tabIndex = -1;
     this.#closeButton.ariaLabel = `Close ${options.title}`;
     this.#closeButton.textContent = "x";
-    this.#titlebar.append(this.#titleElement, this.#closeButton);
+    this.#titlebar.append(this.#tabElement, this.#closeButton);
 
     this.#contentSlot = documentRef.createElement("div");
     this.#contentSlot.className = joinClassNames("floating-gizmo-window__content", options.contentClassName);
@@ -224,6 +244,10 @@ export class FloatingWindowComponent
     return this.#presentation;
   }
 
+  get frameId(): string {
+    return this.#frameId;
+  }
+
   setPresentation(presentation: FloatingWindowPresentation): void {
     if (this.#presentation === presentation) return;
     this.#presentation = presentation;
@@ -232,11 +256,19 @@ export class FloatingWindowComponent
   }
 
   setTitle(title: string): void {
-    this.#titleElement.textContent = title;
+    this.#tabElement.textContent = title;
   }
 
   getBounds(): DOMRectReadOnly {
     return this.#rootElement.getBoundingClientRect();
+  }
+
+  getTabBounds(): DOMRectReadOnly {
+    return this.#tabElement.getBoundingClientRect();
+  }
+
+  getContentBounds(): DOMRectReadOnly {
+    return this.#contentSlot.getBoundingClientRect();
   }
 
   mountContent(requestOrElement: HTMLElement | WindowContentAttachmentRequest): FloatingWindowContentAttachment {
@@ -326,8 +358,11 @@ export class FloatingWindowComponent
     if (isPointInsideRect(point, this.#resizeHandles.bottom.getBoundingClientRect())) {
       return this.createHit("resize-bottom", 30);
     }
+    if (isPointInsideRect(point, this.#tabElement.getBoundingClientRect())) {
+      return this.createHit("window-tab", 20);
+    }
     if (isPointInsideRect(point, this.#titlebar.getBoundingClientRect())) {
-      return this.createHit("titlebar", 20);
+      return this.createHit("titlebar-empty", 20);
     }
     if (
       isPointInsideRect(point, this.#contentSlot.getBoundingClientRect()) &&
@@ -340,17 +375,24 @@ export class FloatingWindowComponent
 
   onInputStart(_event: ActorInputStartEvent): void {
     this.#dragStartState = cloneFloatingWindowState(this.state);
+    if (_event.hit.partId === "window-tab") {
+      if (this.#tabDragSource) {
+        this.#tabDragSink?.beginTabDrag(this.#tabDragSource, _event.point);
+      }
+    }
   }
 
   onInputMove(event: ActorInputMoveEvent): void {
     if (!event.isDragging) return;
     const dragStartState = this.#dragStartState ?? this.state;
     const partId = event.hit.partId as FloatingWindowPartId;
-    if (partId === "titlebar") {
+    if (partId === "titlebar-empty") {
       this.submitPositionSet(event, vec2(
         dragStartState.position.x + event.totalDelta.dx,
         dragStartState.position.y + event.totalDelta.dy
       ));
+    } else if (partId === "window-tab") {
+      this.#tabDragSink?.moveTabDrag(event.point);
     } else if (isResizePart(partId)) {
       const next = getResizeState(partId, dragStartState, event.totalDelta.dx, event.totalDelta.dy, this.#minSize);
       if (next.position) {
@@ -362,13 +404,24 @@ export class FloatingWindowComponent
 
   onInputEnd(event: ActorInputEndEvent): void {
     this.#dragStartState = null;
+    if (event.hit.partId === "window-tab") {
+      this.#tabDragSink?.endTabDrag();
+      return;
+    }
     if (event.hit.partId === "close" && event.wasClick) {
-      this.requestVisible(false, event.timeStamp);
+      if (this.#frameIntentSink) {
+        this.#frameIntentSink.requestCloseFrame(this.#frameId, "close-button");
+      } else {
+        this.requestVisible(false, event.timeStamp);
+      }
     }
   }
 
   onInputCancel(_event: ActorInputCancelEvent): void {
     this.#dragStartState = null;
+    if (_event.hit.partId === "window-tab") {
+      this.#tabDragSink?.cancelTabDrag();
+    }
   }
 
   dispose(): void {
@@ -500,10 +553,24 @@ function createMenuDescriptor(
   const menuOptions = options.windowMenu;
   return {
     include: menuOptions?.include ?? true,
+    viewKey: menuOptions?.viewKey ?? null,
     label: menuOptions?.label ?? options.title,
     order: menuOptions?.order ?? priority,
     group: menuOptions?.group ?? null,
     activationMode: menuOptions?.activationMode ?? "visible"
+  };
+}
+
+function createTabDragSource(
+  frameId: string,
+  options: FloatingWindowComponentOptions
+): WindowTabDragSource | null {
+  const viewKey = options.activeViewKey ?? options.windowMenu?.viewKey ?? null;
+  if (!viewKey || !options.activeViewActorId) return null;
+  return {
+    frameId,
+    viewActorId: options.activeViewActorId,
+    viewKey
   };
 }
 
@@ -515,12 +582,15 @@ function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {
   return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
 }
 
-function isResizePart(partId: FloatingWindowPartId): partId is Exclude<FloatingWindowPartId, "titlebar" | "close"> {
+function isResizePart(partId: FloatingWindowPartId): partId is Exclude<
+  FloatingWindowPartId,
+  "window-tab" | "titlebar-empty" | "close" | "window-content"
+> {
   return partId.startsWith("resize-");
 }
 
 function getResizeState(
-  partId: Exclude<FloatingWindowPartId, "titlebar" | "close">,
+  partId: Exclude<FloatingWindowPartId, "window-tab" | "titlebar-empty" | "close" | "window-content">,
   start: FloatingWindowState,
   dx: number,
   dy: number,

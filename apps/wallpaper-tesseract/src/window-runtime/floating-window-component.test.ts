@@ -23,7 +23,11 @@ import {
 } from "./floating-window-component";
 import type { FloatingWindowParameterPaths } from "./floating-window-state";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
-import type { WindowFrameTab } from "./window-frame-port";
+import type {
+  WindowFrameRuntimeDockNode,
+  WindowFrameRuntimeTabsetNode,
+  WindowFrameTab
+} from "./window-frame-port";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
 
 class FakeDocument {
@@ -179,6 +183,28 @@ function findChildByClass(element: FakeElement, className: string): FakeElement 
     throw new Error(`Missing child with class: ${className}`);
   }
   return child;
+}
+
+function expectRuntimeTabsetContaining(
+  node: WindowFrameRuntimeDockNode,
+  viewActorId: string
+): WindowFrameRuntimeTabsetNode {
+  const tabset = findRuntimeTabsetContaining(node, viewActorId);
+  if (!tabset) {
+    throw new Error(`Runtime tabset containing ${viewActorId} not found.`);
+  }
+  return tabset;
+}
+
+function findRuntimeTabsetContaining(
+  node: WindowFrameRuntimeDockNode,
+  viewActorId: string
+): WindowFrameRuntimeTabsetNode | null {
+  if (node.kind === "tabset") {
+    return node.tabs.includes(viewActorId) ? node : null;
+  }
+  return findRuntimeTabsetContaining(node.first, viewActorId) ??
+    findRuntimeTabsetContaining(node.second, viewActorId);
 }
 
 function findDescendantsByClass(element: FakeElement, className: string): FakeElement[] {
@@ -766,6 +792,10 @@ describe("FloatingWindowComponent DOM shell", () => {
       { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
     ]);
     expect(component.getActiveViewActorId()).toBe("debug-view");
+    const initialTabsetId = expectRuntimeTabsetContaining(
+      component.getRuntimeDockRoot(),
+      "debug-view"
+    ).id;
     expect(component.hasTab("hierarchy-view")).toBe(true);
     expect(tabElements.map((tab) => tab.textContent)).toEqual(["Debug", "Hierarchy"]);
     expect(tabElements.map((tab) => tab.className.includes("is-active"))).toEqual([true, false]);
@@ -773,6 +803,8 @@ describe("FloatingWindowComponent DOM shell", () => {
     component.activateTab("hierarchy-view");
 
     expect(component.getActiveViewActorId()).toBe("hierarchy-view");
+    expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "hierarchy-view").id)
+      .toBe(initialTabsetId);
     const nextTabElements = titlebar.children.filter((child) => (
       child.className.split(" ").includes("floating-gizmo-window__tab")
     ));
@@ -784,6 +816,8 @@ describe("FloatingWindowComponent DOM shell", () => {
       { viewActorId: "debug-view", viewKey: "debug", title: "Debug" }
     ]);
     expect(component.getActiveViewActorId()).toBe("debug-view");
+    expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "debug-view").id)
+      .toBe(initialTabsetId);
   });
 
   it("keeps the frame close button owned by the outer titlebar for merged tabs", () => {
@@ -859,6 +893,10 @@ describe("FloatingWindowComponent DOM shell", () => {
       { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
       { targetTabsetId, placement: "left", active: true }
     );
+    expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "hierarchy-view").id)
+      .toBe(targetTabsetId);
+    expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "debug-view").id)
+      .not.toBe(targetTabsetId);
     component.getContentHost("debug-view").mountContent(debugContent as unknown as HTMLElement);
 
     const panes = findDescendantsByClass(root, "floating-gizmo-window__pane");
@@ -895,12 +933,17 @@ describe("FloatingWindowComponent DOM shell", () => {
       { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
       { targetTabsetId, placement: "left", active: true }
     );
+    const debugTabsetId = expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "debug-view").id;
     component.addTab(
       { viewActorId: "inspector-view", viewKey: "inspector", title: "Inspector" },
-      { targetTabsetId: "frame-tabset:debug-view", active: false }
+      { targetTabsetId: debugTabsetId, active: false }
     );
     component.activateTab("inspector-view");
+    expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "inspector-view").id)
+      .toBe(debugTabsetId);
     component.activateTab("debug-view");
+    expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "debug-view").id)
+      .toBe(debugTabsetId);
 
     const closeButtons = findDescendantsByClass(root, "floating-gizmo-window__close");
     const paneTabbars = findDescendantsByClass(root, "floating-gizmo-window__pane-tabs");
@@ -1050,9 +1093,10 @@ describe("FloatingWindowComponent DOM shell", () => {
       { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
       { targetTabsetId, placement: "left", active: true }
     );
+    const debugTabsetId = expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "debug-view").id;
     component.addTab(
       { viewActorId: "inspector-view", viewKey: "inspector", title: "Inspector" },
-      { targetTabsetId: "frame-tabset:debug-view", active: false }
+      { targetTabsetId: debugTabsetId, active: false }
     );
     const debugContent = document.createElement("pre");
     const inspectorContent = document.createElement("section");
@@ -1066,6 +1110,40 @@ describe("FloatingWindowComponent DOM shell", () => {
       .toBe(true);
     expect(component.getContentHost("inspector-view").isContentInteractable(inspectorContent as unknown as HTMLElement))
       .toBe(false);
+  });
+
+  it("preserves runtime tabset ids across add, activate, remove, and split collapse", () => {
+    const { component } = createSubject({
+      activeViewActorId: "hierarchy-view",
+      tabs: [
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ]
+    });
+    const originalTabsetId = expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "hierarchy-view").id;
+
+    component.addTab(
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      { active: true }
+    );
+    expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "debug-view").id)
+      .toBe(originalTabsetId);
+    component.activateTab("hierarchy-view");
+    expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "hierarchy-view").id)
+      .toBe(originalTabsetId);
+
+    component.splitTab(
+      { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+      { targetTabsetId: originalTabsetId, placement: "left", active: true }
+    );
+    const splitRoot = component.getRuntimeDockRoot();
+    expect(splitRoot.kind).toBe("split");
+    expect(expectRuntimeTabsetContaining(splitRoot, "debug-view").id).not.toBe(originalTabsetId);
+    expect(expectRuntimeTabsetContaining(splitRoot, "hierarchy-view").id).toBe(originalTabsetId);
+
+    component.removeTab("debug-view");
+
+    expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "hierarchy-view").id)
+      .toBe(originalTabsetId);
   });
 
   it("restores a runtime dock root with split panes, tab order, and active view", () => {
@@ -1087,9 +1165,7 @@ describe("FloatingWindowComponent DOM shell", () => {
       placement: "left",
       active: true
     });
-    const sceneTabsetId = component.listDockTargetTabsets()
-      .find((target) => target.targetTabsetId.includes("scene-view"))?.targetTabsetId;
-    if (!sceneTabsetId) throw new Error("Expected Scene tabset.");
+    const sceneTabsetId = expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "scene-view").id;
     component.addTab(hierarchyTab, {
       targetTabsetId: sceneTabsetId,
       active: true

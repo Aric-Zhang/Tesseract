@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../actor-runtime";
 import type { WindowContentRehostable } from "./floating-window-host";
 import type { WindowFramePort } from "./window-frame-port";
-import { WindowViewFactoryRegistry } from "./window-view-factory-registry";
+import { getWindowViewFactoryIdentity, WindowViewFactoryRegistry } from "./window-view-factory-registry";
 
 describe("WindowViewFactoryRegistry", () => {
   it("registers factories by stable view key and disposes registrations", () => {
@@ -48,6 +48,30 @@ describe("WindowViewFactoryRegistry", () => {
 
     expect(() => registry.register(factory)).toThrow(/already registered/);
     expect(() => registry.create("hierarchy", { reason: "menu" })).toThrow(/not registered/);
+  });
+
+  it("keeps menu creation keyed by viewKey while carrying future identity metadata", () => {
+    const registry = new WindowViewFactoryRegistry();
+    const factory = {
+      viewKey: "scene:preview",
+      typeKey: "scene",
+      multiplicity: "multi-instance" as const,
+      label: "Scene Preview",
+      create: () => {
+        throw new Error("not used");
+      }
+    };
+
+    registry.register(factory);
+
+    expect(registry.get("scene:preview")).toBe(factory);
+    expect(registry.get("scene")).toBeNull();
+    expect(getWindowViewFactoryIdentity(factory)).toEqual({
+      viewKey: "scene:preview",
+      typeKey: "scene",
+      instanceId: null,
+      multiplicity: "multi-instance"
+    });
   });
 });
 

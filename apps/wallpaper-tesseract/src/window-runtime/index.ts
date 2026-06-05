@@ -6,13 +6,8 @@ export {
 } from "./floating-window-state";
 export { createActorWindowFocusServiceProxy } from "./actor-window-focus-service";
 export type { ActorWindowFocusServiceProxy } from "./actor-window-focus-service";
-export {
-  createDockTargetFrameSource,
-  createDockTargetRegionSource
-} from "./dock-target-frame-source";
+export { createDockTargetRegionSource } from "./dock-target-frame-source";
 export type {
-  DockTargetFrameSource,
-  DockTargetFrameSourceOptions,
   DockTargetRegionSource,
   DockTargetRegionSourceOptions
 } from "./dock-target-frame-source";
@@ -24,6 +19,18 @@ export type {
 } from "./floating-window-state";
 export { windowViewKey } from "./window-view-key";
 export type { WindowViewKey } from "./window-view-key";
+export {
+  createSingletonWindowViewIdentity,
+  createWindowViewKeyFromTypeAndInstance,
+  windowViewInstanceId,
+  windowViewTypeKey
+} from "./window-view-identity";
+export type {
+  WindowViewIdentity,
+  WindowViewInstanceId,
+  WindowViewMultiplicity,
+  WindowViewTypeKey
+} from "./window-view-identity";
 export type {
   WindowFramePort,
   WindowFramePresentation,
@@ -51,7 +58,7 @@ export type {
 } from "./window-frame-lifecycle";
 export { DefaultWindowFrameLifecycleController } from "./window-frame-lifecycle-controller";
 export type { WindowFrameLifecycleControllerOptions } from "./window-frame-lifecycle-controller";
-export { WindowViewFactoryRegistry } from "./window-view-factory-registry";
+export { getWindowViewFactoryIdentity, WindowViewFactoryRegistry } from "./window-view-factory-registry";
 export type {
   WindowViewFactory,
   WindowViewFactoryCreateOptions,
@@ -85,7 +92,6 @@ export type {
   WindowDockPoint,
   WindowDockRect,
   WindowDockSplitPlacement,
-  WindowDockTargetFrame,
   WindowDockTargetRegion
 } from "./window-dock-targets";
 export { WindowTabDragSession } from "./window-tab-drag-session";

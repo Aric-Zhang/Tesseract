@@ -16,6 +16,7 @@ class FakeElement {
   readonly ownerDocument: FakeDocument;
   readonly tagName: string;
   readonly style: Record<string, string> = {};
+  readonly dataset: Record<string, string> = {};
   readonly attributes = new Map<string, string>();
   readonly children: FakeElement[] = [];
   className = "";
@@ -104,6 +105,12 @@ describe("WindowDockPreviewComponent", () => {
     expect(component.element.hidden).toBe(false);
     expect(component.element.className).toContain("window-dock-preview--split");
     expect(component.element.className).toContain("window-dock-preview--left");
+    expect(component.element.dataset).toMatchObject({
+      dockKind: "split",
+      dockPlacement: "left",
+      targetFrameId: "target",
+      targetTabsetId: "frame-tabset:target"
+    });
     expect(component.element.style).toMatchObject({
       left: "10px",
       top: "20px",
@@ -115,6 +122,7 @@ describe("WindowDockPreviewComponent", () => {
     component.clear();
     expect(component.element.hidden).toBe(true);
     expect(component.preview).toBeNull();
+    expect(component.element.dataset).toEqual({});
   });
 });
 

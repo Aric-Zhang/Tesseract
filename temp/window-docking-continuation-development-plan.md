@@ -608,7 +608,181 @@ The future menu rule:
 - `app-menu-model.test.ts`
 - `architecture-boundaries.test.ts`
 
-## Step 9: Add Optional Tab-Level Actions
+## Step 8.5: Current Work Cleanup Gate
+
+### Goal
+
+Close out the already implemented Step 6-8 work before starting lifecycle
+contract changes.
+
+### Boundary
+
+- Do not start tab close implementation in this step.
+- Do not rewrite already-passing Step 6-8 implementation just for style.
+- Do not treat failed/partial browser smoke artifacts as current evidence.
+
+### Effect
+
+The next batch starts from a clean, explainable baseline:
+
+- Step 6-8 source/test files are intentionally kept.
+- Step 7 smoke artifacts are clearly labeled.
+- Any obsolete dev-server artifacts are not used as QA proof.
+- A git checkpoint may be made before lifecycle work if the worktree policy
+  calls for it.
+
+### Tests
+
+```text
+npm run test -w wallpaper-tesseract
+npm run typecheck -w wallpaper-tesseract
+npm run build -w wallpaper-tesseract
+```
+
+## Step 8.6: Real Pointer Path Docking Smoke
+
+### Goal
+
+Fill the remaining QA gap from Step 7. Static/browser read checks plus unit
+tests are enough for architecture confidence, but final docking UX needs one
+native pointer-path smoke.
+
+### Boundary
+
+- Do not change implementation while running this smoke unless a real bug is
+  found.
+- If the browser tool cannot synthesize native pointer events, use another
+  available desktop/browser automation path and record that choice.
+
+### Tests
+
+- Drag tab to tabbar: merge preview and merge commit.
+- Drag tab to left/right/top/bottom content edges: split preview and split
+  commit.
+- Drag tab to content center: floating/no-dock behavior follows the documented
+  rule.
+- Drag titlebar empty area: moves frame and never starts dock preview.
+- Console errors: 0.
+- Save report/screenshots/state dump under `temp/`.
+
+## Step 9: View-Level Lifecycle Contract
+
+### Goal
+
+Add a first-class "close one view" lifecycle operation before adding tab close
+UI.
+
+### Boundary
+
+- Do not add visible tab close buttons yet.
+- Do not reuse `closeFrame(...)` as tab close.
+- Do not let components directly destroy actor trees.
+- Do not change frame close behavior.
+
+### Design
+
+Detailed contract: `temp/window-view-lifecycle-tab-actions-plan.md`.
+
+Add lifecycle API:
+
+```text
+closeView(viewActorId, reason)
+```
+
+Add future intent API:
+
+```text
+requestCloseView(viewActorId, reason)
+```
+
+Clarify factory cleanup:
+
+```text
+disposeViewRuntime?()
+```
+
+Rules:
+
+- `disposeViewRuntime` is idempotent.
+- It cleans runtime resources and app-level tracking only.
+- It must not destroy the owner frame actor.
+- Actor tree mutation remains owned by `WindowFrameLifecycleController`.
+- The old generic `WindowViewFactoryResult.dispose` is transitional and must
+  not be used for public tab close.
+- `closeView(...)` must not fall back to old `dispose`; missing
+  `disposeViewRuntime` should return `closed: false` with a clear reason.
+- Debug/Hierarchy factories must expose cleanup by retaining the
+  `trackRegisteredActor(...)` registration and disposing only that registration,
+  not the original frame handle.
+
+### Close Sequence
+
+`closeView(...)` should:
+
+1. resolve live view;
+2. cancel active actor input;
+3. exit that view's fullscreen session;
+4. run view runtime cleanup;
+5. remove the tab from the frame port;
+6. destroy the view actor subtree;
+7. remove live registry entry;
+8. destroy empty owner frame if needed;
+9. focus remaining owner frame and ensure active tab is valid.
+
+### Fullscreen And Error Rules
+
+- Closing a view must first clear or exit any fullscreen session owned by that
+  view.
+- Direct fullscreen, isolated fullscreen from a mixed tab frame, and isolated
+  fullscreen from a split frame each need tests.
+- `disposeViewRuntime`, fullscreen restore, tab removal, and actor destruction
+  failures must return an explicit `error` or `warning`; the controller should
+  preserve actor tree, dock tree, and live registry consistency over optimistic
+  progress.
+- Repeated `closeView` after a successful close should return `closed: false`
+  with a stable "view is not live" reason.
+
+### Tests
+
+- `window-frame-lifecycle-controller.test.ts`
+  - close inactive tab;
+  - close active tab;
+  - close tab in split pane and collapse empty branch;
+  - close last tab and destroy frame;
+  - close Scene tab and recreate via Window menu;
+  - close Scene from direct fullscreen;
+  - close Scene from isolated fullscreen in mixed tab and split frames;
+  - close view then save/refresh layout without stale entries;
+  - repeated closeView is idempotent;
+  - no stale live locations/snapshots;
+  - active input cancel is called.
+- Scene/Debug/Hierarchy factory tests for view-runtime cleanup semantics.
+- Typecheck after API changes.
+
+## Step 9.5: Refactor Frame Close Onto Safe Per-View Cleanup
+
+### Goal
+
+Keep frame close behavior intact while removing the duplicate ambiguous disposer
+path.
+
+This step is mandatory before visible tab close. Frame close and tab close must
+share the same internal per-view cleanup helper while preserving distinct public
+semantics.
+
+### Boundary
+
+- `closeFrame(...)` remains a whole-frame operation.
+- Do not recursively call public `closeView(...)` in a way that races empty
+  frame destruction after each tab.
+
+### Tests
+
+- Existing frame close tests remain green.
+- Mixed frame close still closes all contained views and destroys one frame.
+- Repeated frame close remains idempotent.
+
+## Step 10: Tab Action Model Without Visual Buttons
 
 ### Goal
 
@@ -617,7 +791,8 @@ frame-level close.
 
 ### Boundary
 
-- Do not add the visual close button to every tab until the model is tested.
+- Do not add the visual close button to every tab until the model and lifecycle
+  contract are tested.
 - Do not make tab close a DOM click shortcut.
 - Do not alter frame close behavior.
 
@@ -634,26 +809,49 @@ WindowTabAction
 
 Rules:
 
-- Tab close closes/removes one view.
-- If it was the last view in a frame, the frame closes.
+- Tab close intent closes/removes one view through `requestCloseView`.
+- If it was the last view in a frame, lifecycle destroys the frame.
 - If a split tabset becomes empty, split collapses.
 - Scene tab close destroys Scene runtime but Window menu can recreate it.
 
 ### Tests
 
-- Pure lifecycle tests:
-  - close inactive tab;
-  - close active tab;
-  - close tab in split pane;
-  - close last tab destroys frame;
-  - menu recreate after tab close.
 - Component tests:
   - tab action hit path uses actor input;
+  - tab action calls `requestCloseView(viewActorId, "tab-action")`;
   - frame close remains one per outer frame;
-  - tab action does not trigger titlebar drag.
-- Browser smoke after implementation.
+  - tab action does not trigger titlebar drag or tab drag.
+- Architecture boundary:
+  - tab action code has no DOM `click`/`.onclick` shortcut;
+  - tab action code does not call `requestCloseFrame` or `closeFrame`.
+- Lifecycle tests from Step 9 remain green.
 
-## Step 10: Responsive Tab Strip And Mobile Viewport
+## Step 11: Visual Tab Close UI
+
+### Goal
+
+Add actual per-tab close controls after lifecycle and action model are stable.
+
+### Boundary
+
+- The outer frame close button remains one per frame.
+- Tab close button closes only one view.
+- Hit-test priority must distinguish tab close, tab drag/activate, titlebar
+  drag, and frame close.
+- On narrow tabs, close control may appear only on active/hovered tab if needed
+  for layout stability.
+
+### Tests
+
+- Component tests for tab close hit priority.
+- Browser smoke:
+  - close inactive tab;
+  - close active tab;
+  - close split-pane tab;
+  - close Scene tab and recreate via Window menu;
+  - outer frame close still closes all contained tabs.
+
+## Step 12: Responsive Tab Strip And Mobile Viewport
 
 ### Goal
 
@@ -680,7 +878,7 @@ Make tabbed/split frames usable in narrow viewports.
   the browser tool supports it.
 - Screenshots under `temp/`.
 
-## Step 11: Keyboard And Accessibility Pass
+## Step 13: Keyboard And Accessibility Pass
 
 ### Goal
 
@@ -708,7 +906,7 @@ the actor-input pointer architecture.
 - `app-menu-model.test.ts`
 - Browser smoke for menu keyboard basics.
 
-## Step 12: Hierarchy Tree Follow-Up
+## Step 14: Hierarchy Tree Follow-Up
 
 ### Goal
 
@@ -738,11 +936,12 @@ fullscreen isolation.
   - fullscreen Scene and confirm transient frame behavior is understandable;
   - restore and confirm tree returns.
 
-## Step 13: True Multi-Instance Pilot
+## Step 15: True Multi-Instance Pilot
 
 ### Goal
 
-Only after Steps 1-12 are stable, implement one small multi-instance pilot to
+Only after lifecycle, tab close, responsive tab strip, accessibility, and
+Hierarchy follow-up are stable, implement one small multi-instance pilot to
 validate the identity model.
 
 ### Boundary

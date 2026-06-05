@@ -458,6 +458,119 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.controller.listLiveViews()).toEqual([]);
   });
 
+  it("treats frame close as destroy-and-menu-recreate instead of persisted hidden state", () => {
+    const subject = createSubject();
+    subject.controller.openView("scene", "programmatic");
+    subject.controller.openView("debug", "programmatic");
+    subject.controller.openView("hierarchy", "programmatic");
+    subject.controller.commitDock({
+      kind: "merge-tabs",
+      source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
+      targetFrameId: "debug-frame-1",
+      targetTabsetId: "frame-tabset:target",
+      reason: "dock-drop"
+    });
+    subject.controller.commitDock({
+      kind: "merge-tabs",
+      source: { frameId: "hierarchy-frame", viewActorId: "hierarchy-view", viewKey: "hierarchy" },
+      targetFrameId: "debug-frame-1",
+      targetTabsetId: "frame-tabset:target",
+      reason: "dock-drop"
+    });
+    expect(subject.controller.createFrameLayoutSnapshot()).toMatchObject({
+      hiddenViewKeys: [],
+      frames: [{ frameId: "debug-frame-1" }]
+    });
+
+    subject.controller.closeFrame("debug-frame-1", "close-button");
+    const closedSnapshot = subject.controller.createFrameLayoutSnapshot();
+
+    expect(subject.controller.listLiveViews()).toEqual([]);
+    expect(closedSnapshot.frames).toEqual([]);
+    expect(closedSnapshot.views).toEqual({});
+    expect(closedSnapshot.hiddenViewKeys).toEqual([]);
+    expect(subject.actorSystem.listActors().map((actor) => actor.id)).toEqual([]);
+
+    subject.controller.openView("scene", "menu");
+    subject.controller.openView("debug", "menu");
+    subject.controller.openView("hierarchy", "menu");
+
+    expect(subject.controller.getLocationByViewKey("scene")).toMatchObject({
+      ownerFrameActorId: "scene-frame",
+      viewActorId: "scene-view"
+    });
+    expect(subject.controller.getLocationByViewKey("debug")).toMatchObject({
+      ownerFrameActorId: "debug-frame-2",
+      viewActorId: "debug-view-2"
+    });
+    expect(subject.controller.getLocationByViewKey("hierarchy")).toMatchObject({
+      ownerFrameActorId: "hierarchy-frame",
+      viewActorId: "hierarchy-view"
+    });
+    expect(subject.controller.createFrameLayoutSnapshot().hiddenViewKeys).toEqual([]);
+  });
+
+  it("repeats merge, float, close, and menu recreate without stale live actors", () => {
+    const floatingCalls: string[] = [];
+    const subject = createSubject({
+      createFloatingFrameFactory: (actorSystem) => createFloatingFrameFactory(actorSystem, floatingCalls)
+    });
+
+    for (let cycle = 1; cycle <= 3; cycle += 1) {
+      subject.controller.openView("debug", "menu");
+      subject.controller.openView("hierarchy", "menu");
+      const debugLocation = subject.controller.getLocationByViewKey("debug");
+      const hierarchyLocation = subject.controller.getLocationByViewKey("hierarchy");
+      expect(debugLocation).not.toBeNull();
+      expect(hierarchyLocation).not.toBeNull();
+
+      expect(subject.controller.commitDock({
+        kind: "merge-tabs",
+        source: {
+          frameId: debugLocation!.ownerFrameActorId,
+          viewActorId: debugLocation!.viewActorId,
+          viewKey: "debug"
+        },
+        targetFrameId: hierarchyLocation!.ownerFrameActorId,
+        targetTabsetId: "frame-tabset:target",
+        reason: "dock-drop"
+      })).toEqual({ committed: true, sourceFrameDestroyed: true });
+      expect(subject.actorSystem.getActor(`debug-frame-${cycle}`)).toBeNull();
+      expect(subject.actorSystem.getParentId(subject.actorSystem.getActor(`debug-view-${cycle}`)!))
+        .toBe("hierarchy-frame");
+
+      expect(subject.controller.commitDock({
+        kind: "float-tab",
+        source: {
+          frameId: "hierarchy-frame",
+          viewActorId: `debug-view-${cycle}`,
+          viewKey: "debug"
+        },
+        bounds: { left: 100 + cycle, top: 120, right: 360 + cycle, bottom: 300, width: 260, height: 180 },
+        reason: "dock-drop"
+      })).toEqual({ committed: true, sourceFrameDestroyed: false });
+      expect(subject.controller.getLocationByViewKey("debug")).toMatchObject({
+        ownerFrameActorId: `floating-debug-view-${cycle}`,
+        visibleInFrame: true
+      });
+      expect(subject.controller.getLocationByViewKey("hierarchy")).toMatchObject({
+        ownerFrameActorId: "hierarchy-frame",
+        visibleInFrame: true
+      });
+
+      subject.controller.closeFrame(`floating-debug-view-${cycle}`, "close-button");
+      expect(subject.controller.getLocationByViewKey("debug")).toBeNull();
+      expect(subject.actorSystem.getActor(`floating-debug-view-${cycle}`)).toBeNull();
+      expect(subject.actorSystem.getActor(`debug-view-${cycle}`)).toBeNull();
+
+      subject.controller.closeFrame("hierarchy-frame", "close-button");
+      expect(subject.controller.listLiveViews()).toEqual([]);
+      expect(subject.actorSystem.listActors().map((actor) => actor.id)).toEqual([]);
+    }
+
+    expect(floatingCalls.filter((call) => call.includes(":persistent"))).toHaveLength(3);
+  });
+
   it("rolls back a tab merge when content rehost throws", () => {
     const subject = createSubject();
     subject.controller.openView("debug", "programmatic");
@@ -860,6 +973,77 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(liveScene?.content.currentWindowContentHost?.id).toBe("debug-frame-1:host:scene-view");
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("scene-view")!)).toBe("debug-frame-1");
     expect(subject.controller.getViewFullscreenSession("scene-view")).toBeNull();
+  });
+
+  it("repeats Scene dock, fullscreen restore, float, and direct fullscreen restore", () => {
+    const floatingCalls: string[] = [];
+    const subject = createSubject({
+      createFloatingFrameFactory: (actorSystem) => createFloatingFrameFactory(actorSystem, floatingCalls)
+    });
+
+    for (let cycle = 1; cycle <= 3; cycle += 1) {
+      subject.controller.openView("scene", "programmatic");
+      subject.controller.openView("debug", "programmatic");
+      const debugFrameId = `debug-frame-${cycle}`;
+      expect(subject.controller.commitDock({
+        kind: "merge-tabs",
+        source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
+        targetFrameId: debugFrameId,
+        targetTabsetId: "frame-tabset:target",
+        reason: "dock-drop"
+      })).toEqual({ committed: true, sourceFrameDestroyed: true });
+
+      subject.controller.enterViewFullscreen("scene-view", "programmatic");
+      expect(subject.controller.getViewFullscreenSession("scene-view")).toMatchObject({
+        mode: "isolated-frame",
+        fullscreenFrameId: "floating-scene-view"
+      });
+      expect(subject.controller.getLocationByViewKey("scene")).toMatchObject({
+        ownerFrameActorId: "floating-scene-view",
+        presentation: "fullscreen",
+        visibleInFrame: true
+      });
+      expect(subject.controller.createFrameLayoutSnapshot().frames.map((frame) => frame.frameId))
+        .toEqual([debugFrameId]);
+
+      subject.controller.exitViewFullscreen("scene-view", "programmatic");
+      expect(subject.actorSystem.getActor("floating-scene-view")).toBeNull();
+      expect(subject.controller.getLocationByViewKey("scene")).toMatchObject({
+        ownerFrameActorId: debugFrameId,
+        presentation: "windowed"
+      });
+
+      expect(subject.controller.commitDock({
+        kind: "float-tab",
+        source: { frameId: debugFrameId, viewActorId: "scene-view", viewKey: "scene" },
+        bounds: { left: 80, top: 90 + cycle, right: 420, bottom: 290 + cycle, width: 340, height: 200 },
+        reason: "dock-drop"
+      })).toEqual({ committed: true, sourceFrameDestroyed: false });
+      expect(subject.controller.getLocationByViewKey("scene")).toMatchObject({
+        ownerFrameActorId: "floating-scene-view",
+        visibleInFrame: true
+      });
+
+      subject.controller.enterViewFullscreen("scene-view", "programmatic");
+      expect(subject.controller.getViewFullscreenSession("scene-view")).toMatchObject({
+        mode: "direct-frame",
+        fullscreenFrameId: "floating-scene-view"
+      });
+      subject.controller.exitViewFullscreen("scene-view", "programmatic");
+      expect(subject.controller.getViewFullscreenSession("scene-view")).toBeNull();
+      expect(subject.controller.getLocationByViewKey("scene")).toMatchObject({
+        ownerFrameActorId: "floating-scene-view",
+        presentation: "windowed"
+      });
+
+      subject.controller.closeFrame("floating-scene-view", "close-button");
+      subject.controller.closeFrame(debugFrameId, "close-button");
+      expect(subject.controller.listLiveViews()).toEqual([]);
+      expect(subject.actorSystem.listActors().map((actor) => actor.id)).toEqual([]);
+    }
+
+    expect(floatingCalls.filter((call) => call.includes(":runtime"))).toHaveLength(3);
+    expect(floatingCalls.filter((call) => call.includes(":persistent"))).toHaveLength(3);
   });
 
   it("omits temporary fullscreen isolation frames from layout snapshots", () => {

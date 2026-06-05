@@ -95,6 +95,14 @@ describe("resolveWindowDockPreview", () => {
     });
   });
 
+  it("treats drops over the source frame as floating so self-drops do not re-dock", () => {
+    expect(resolveWindowDockPreview({ x: 130, y: 116 }, [frame("source", 10)], {
+      sourceFrameId: "source"
+    })).toMatchObject({
+      kind: "floating"
+    });
+  });
+
   it("chooses the highest stack priority overlapped target and excludes the source frame", () => {
     const preview = resolveWindowDockPreview({ x: 130, y: 116 }, [
       frame("source", 100),

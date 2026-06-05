@@ -1,6 +1,12 @@
 import type { Actor } from "../actor-runtime";
 import type { WindowContentRehostable } from "./floating-window-host";
 import type { WindowFramePort } from "./window-frame-port";
+import {
+  createSingletonWindowViewIdentity,
+  type WindowViewIdentity,
+  type WindowViewMultiplicity,
+  type WindowViewTypeKey
+} from "./window-view-identity";
 import type { WindowViewKey } from "./window-view-key";
 
 export interface WindowViewFactoryCreateOptions {
@@ -17,11 +23,20 @@ export interface WindowViewFactoryResult {
 
 export interface WindowViewFactory {
   readonly viewKey: WindowViewKey;
+  readonly typeKey?: WindowViewTypeKey;
+  readonly multiplicity?: WindowViewMultiplicity;
   readonly label: string;
   readonly order?: number;
   readonly group?: string | null;
   readonly enabled?: boolean;
   create(options: WindowViewFactoryCreateOptions): WindowViewFactoryResult;
+}
+
+export function getWindowViewFactoryIdentity(factory: WindowViewFactory): WindowViewIdentity {
+  return {
+    ...createSingletonWindowViewIdentity(factory.viewKey, factory.typeKey),
+    multiplicity: factory.multiplicity ?? "singleton"
+  };
 }
 
 export class WindowViewFactoryRegistry {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { WindowTabDragSession } from "./window-tab-drag-session";
-import type { WindowDockTargetFrame } from "./window-dock-targets";
+import type { WindowDockTargetRegion } from "./window-dock-targets";
 
 function rect(left: number, top: number, width: number, height: number) {
   return {
@@ -13,7 +13,7 @@ function rect(left: number, top: number, width: number, height: number) {
   };
 }
 
-const frames: WindowDockTargetFrame[] = [{
+const regions: WindowDockTargetRegion[] = [{
   frameId: "target",
   targetTabsetId: "frame-tabset:target",
   stackPriority: 10,
@@ -33,8 +33,8 @@ describe("WindowTabDragSession", () => {
     const session = new WindowTabDragSession({ thresholdPx: 8 });
 
     session.start({ source, startPoint: { x: 10, y: 10 } });
-    const pending = session.move({ x: 14, y: 13 }, frames);
-    const dragging = session.move({ x: 120, y: 116 }, frames);
+    const pending = session.move({ x: 14, y: 13 }, regions);
+    const dragging = session.move({ x: 120, y: 116 }, regions);
 
     expect(pending).toEqual({ state: "pending", preview: null, source });
     expect(dragging.preview).toMatchObject({
@@ -50,7 +50,7 @@ describe("WindowTabDragSession", () => {
     const session = new WindowTabDragSession({ thresholdPx: 1 });
 
     session.start({ source, startPoint: { x: 10, y: 10 } });
-    session.move({ x: 120, y: 116 }, frames);
+    session.move({ x: 120, y: 116 }, regions);
     expect(session.preview).toMatchObject({ kind: "merge-tabs" });
     const result = session.end();
 
@@ -63,7 +63,7 @@ describe("WindowTabDragSession", () => {
     expect(session.source).toBeNull();
 
     session.start({ source, startPoint: { x: 10, y: 10 } });
-    session.move({ x: 120, y: 116 }, frames);
+    session.move({ x: 120, y: 116 }, regions);
     session.cancel();
     expect(session.state).toBe("idle");
     expect(session.preview).toBeNull();

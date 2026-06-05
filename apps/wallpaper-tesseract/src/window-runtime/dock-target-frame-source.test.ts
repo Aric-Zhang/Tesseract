@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry } from "../actor-runtime";
 import { installCoreComponentDefinitions } from "../component-definitions";
 import { parameterPath, vec2 } from "../scene-runtime";
-import { createDockTargetFrameSource } from "./dock-target-frame-source";
+import {
+  createDockTargetFrameSource,
+  createDockTargetRegionSource
+} from "./dock-target-frame-source";
 import { floatingWindowComponentType } from "./floating-window-component";
 import { installWindowComponentDefinitions } from "./install-component-definitions";
 
@@ -79,8 +82,8 @@ function createRegistry(actorSystem: ActorSystem): ComponentRegistry {
   return registry;
 }
 
-describe("DockTargetFrameSource", () => {
-  it("lists each floating frame once even when the frame has multiple tabs", () => {
+describe("DockTargetRegionSource", () => {
+  it("lists each floating frame region once even when the frame has multiple tabs", () => {
     const actorSystem = new ActorSystem();
     const registry = createRegistry(actorSystem);
     const document = new FakeDocument();
@@ -110,14 +113,15 @@ describe("DockTargetFrameSource", () => {
     const root = parent.children[0];
     root.rect = createRect(20, 30, 420, 260);
     component.setEffectivePriority(1500);
-    const source = createDockTargetFrameSource({ actorSystem });
+    const targetTabsetId = component.getRuntimeDockRoot().id;
+    const source = createDockTargetRegionSource({ actorSystem });
 
-    const frames = source.listDockTargetFrames();
+    const regions = source.listDockTargetRegions();
 
-    expect(frames).toHaveLength(1);
-    expect(frames[0]).toMatchObject({
+    expect(regions).toHaveLength(1);
+    expect(regions[0]).toMatchObject({
       frameId: "merged-frame",
-      targetTabsetId: "frame-tabset:debug-view+hierarchy-view",
+      targetTabsetId,
       stackPriority: 1500,
       bounds: {
         left: 20,
@@ -128,7 +132,7 @@ describe("DockTargetFrameSource", () => {
     });
   });
 
-  it("lists each split pane tabset as a separate dock target for the same frame", () => {
+  it("lists each split pane tabset as a separate dock target region for the same frame", () => {
     const actorSystem = new ActorSystem();
     const registry = createRegistry(actorSystem);
     const document = new FakeDocument();
@@ -163,14 +167,16 @@ describe("DockTargetFrameSource", () => {
       }
     );
     parent.children[0].rect = createRect(20, 30, 420, 260);
-    const source = createDockTargetFrameSource({ actorSystem });
+    const runtimeRoot = component.getRuntimeDockRoot();
+    if (runtimeRoot.kind !== "split") throw new Error("Expected split runtime root.");
+    const source = createDockTargetRegionSource({ actorSystem });
 
-    const frames = source.listDockTargetFrames();
+    const regions = source.listDockTargetRegions();
 
-    expect(frames.map((frame) => frame.frameId)).toEqual(["split-frame", "split-frame"]);
-    expect(frames.map((frame) => frame.targetTabsetId)).toEqual([
-      "frame-tabset:debug-view",
-      "frame-tabset:hierarchy-view"
+    expect(regions.map((region) => region.frameId)).toEqual(["split-frame", "split-frame"]);
+    expect(regions.map((region) => region.targetTabsetId)).toEqual([
+      runtimeRoot.first.id,
+      runtimeRoot.second.id
     ]);
   });
 
@@ -205,8 +211,35 @@ describe("DockTargetFrameSource", () => {
         }
       });
     }
+    const source = createDockTargetRegionSource({ actorSystem });
+
+    expect(source.listDockTargetRegions().map((region) => region.frameId)).toEqual(["visible-frame"]);
+  });
+
+  it("keeps the old frame-named source as a compatibility alias", () => {
+    const actorSystem = new ActorSystem();
+    const registry = createRegistry(actorSystem);
+    const document = new FakeDocument();
+    const parent = document.createElement("div");
+    const frameActor = actorSystem.createActor({ id: "compat-frame" });
+    registry.addComponent(frameActor, floatingWindowComponentType, {
+      id: "floating-window:compat",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      title: "Compat",
+      paths: {
+        position: parameterPath("compat.position"),
+        size: parameterPath("compat.size"),
+        visible: parameterPath("compat.visible")
+      },
+      initialState: {
+        position: vec2(0, 0),
+        size: vec2(320, 180),
+        visible: true
+      }
+    });
     const source = createDockTargetFrameSource({ actorSystem });
 
-    expect(source.listDockTargetFrames().map((frame) => frame.frameId)).toEqual(["visible-frame"]);
+    expect(source.listDockTargetFrames()).toEqual(source.listDockTargetRegions());
   });
 });

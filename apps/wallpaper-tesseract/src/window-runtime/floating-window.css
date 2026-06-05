@@ -259,16 +259,66 @@
   position: fixed;
   z-index: 9998;
   border: 1px solid rgba(120, 190, 255, 0.78);
+  border-radius: 6px;
   background: rgba(52, 132, 224, 0.24);
-  box-shadow: inset 0 0 0 1px rgba(230, 246, 255, 0.16);
+  box-shadow:
+    inset 0 0 0 1px rgba(230, 246, 255, 0.18),
+    0 8px 22px rgba(0, 0, 0, 0.28);
   pointer-events: none;
 }
 
 .window-dock-preview--merge-tabs {
-  background: rgba(95, 156, 232, 0.22);
+  border-color: rgba(165, 216, 255, 0.92);
+  background: rgba(95, 156, 232, 0.34);
+  box-shadow:
+    inset 0 -2px 0 rgba(215, 241, 255, 0.68),
+    0 8px 22px rgba(0, 0, 0, 0.28);
+}
+
+.window-dock-preview--split {
+  background: rgba(52, 132, 224, 0.18);
+}
+
+.window-dock-preview--split::after {
+  position: absolute;
+  border-radius: 4px;
+  background: rgba(214, 241, 255, 0.86);
+  content: "";
+}
+
+.window-dock-preview--left::after,
+.window-dock-preview--right::after {
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+}
+
+.window-dock-preview--left::after {
+  left: 8px;
+}
+
+.window-dock-preview--right::after {
+  right: 8px;
+}
+
+.window-dock-preview--top::after,
+.window-dock-preview--bottom::after {
+  right: 8px;
+  left: 8px;
+  height: 4px;
+}
+
+.window-dock-preview--top::after {
+  top: 8px;
+}
+
+.window-dock-preview--bottom::after {
+  bottom: 8px;
 }
 
 .window-dock-preview--floating {
   border-style: dashed;
-  background: rgba(190, 207, 225, 0.12);
+  border-color: rgba(210, 220, 232, 0.62);
+  background: rgba(190, 207, 225, 0.10);
+  box-shadow: inset 0 0 0 1px rgba(230, 246, 255, 0.10);
 }

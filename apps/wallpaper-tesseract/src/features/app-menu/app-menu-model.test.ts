@@ -146,6 +146,35 @@ describe("app menu model", () => {
     ]);
   });
 
+  it("uses viewKey as the menu action identity instead of runtime actor ids", () => {
+    const factories: WindowViewFactory[] = [{
+      viewKey: "scene",
+      typeKey: "scene",
+      multiplicity: "singleton",
+      label: "Scene",
+      order: 0,
+      create: () => {
+        throw new Error("not used");
+      }
+    }];
+
+    const items = createWindowMenuItems([
+      createWindowItem({
+        viewKey: "scene",
+        actorId: "scene-frame-runtime-42",
+        label: "Scene",
+        visible: true
+      })
+    ], { factories });
+
+    expect(items[0]).toMatchObject({
+      kind: "open-view",
+      id: "scene",
+      viewKey: "scene",
+      actorId: "scene-frame-runtime-42"
+    });
+  });
+
   it("derives live state from view existence instead of visible state", () => {
     const items = createWindowMenuItems([
       createWindowItem({

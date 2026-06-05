@@ -312,6 +312,8 @@ describe("architecture boundaries", () => {
     expect(componentSource).not.toMatch(/document\.addEventListener\s*\(\s*["']click["']/);
     expect(componentSource).not.toMatch(/\.onclick\s*=/);
     expect(componentSource).toMatch(/\bmenu-dismiss\b/);
+    expect(componentSource).toMatch(/requestOpenView\(hitData\.viewKey,\s*["']menu["']\)/);
+    expect(componentSource).not.toMatch(/requestOpenView\([^)]*actorId/);
     expect(definitionSource).toMatch(/\bgizmoEventBindingComponentType\b/);
     expect(definitionSource).toMatch(/\bstateObserverBindingComponentType\b/);
   });
@@ -412,6 +414,7 @@ describe("architecture boundaries", () => {
 
   it("keeps future dock layout model pure and DOM-free", () => {
     const pureWindowLayoutFiles = new Set([
+      "./window-runtime/window-frame-dock-tree.ts",
       "./window-runtime/window-workspace-layout.ts",
       "./window-runtime/window-dock-targets.ts",
       "./window-runtime/window-tab-drag-session.ts"
@@ -422,6 +425,40 @@ describe("architecture boundaries", () => {
         /\b(?:HTMLElement|HTMLDivElement|Document|Element|getBoundingClientRect|querySelector)\b/.test(source) ||
         /from\s+["'](?:gizmo-core|three)["']/.test(source)
       ))
+      .map(([file]) => file)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps the window frame dock tree model internal to window-runtime", () => {
+    const violations = Object.entries(sourceFiles)
+      .filter(([file]) => (
+        file !== "./architecture-boundaries.test.ts" &&
+        !file.endsWith(".test.ts") &&
+        !file.startsWith("./window-runtime/")
+      ))
+      .filter(([, source]) => /from\s+["'][^"']*window-frame-dock-tree["']/.test(source))
+      .map(([file]) => file)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps dock target production API region-first outside compatibility aliases", () => {
+    const allowedFiles = new Set([
+      "./window-runtime/dock-target-frame-source.ts",
+      "./window-runtime/window-dock-targets.ts"
+    ]);
+    const legacyDockTargetNames =
+      /\b(?:WindowDockTargetFrame|DockTargetFrameSource|DockTargetFrameSourceOptions|createDockTargetFrameSource|listDockTargetFrames)\b/;
+    const violations = Object.entries(sourceFiles)
+      .filter(([file]) => (
+        file !== "./architecture-boundaries.test.ts" &&
+        !file.endsWith(".test.ts") &&
+        !allowedFiles.has(file)
+      ))
+      .filter(([, source]) => legacyDockTargetNames.test(source))
       .map(([file]) => file)
       .sort();
 

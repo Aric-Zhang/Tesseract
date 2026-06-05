@@ -51,6 +51,20 @@ export class WindowDockPreviewComponent {
   show(preview: WindowDockPreview): void {
     this.#preview = preview;
     this.element.hidden = false;
+    this.element.dataset.dockKind = preview.kind;
+    if (preview.kind === "split") {
+      this.element.dataset.dockPlacement = preview.placement;
+      this.element.dataset.targetFrameId = preview.targetFrameId;
+      this.element.dataset.targetTabsetId = preview.targetTabsetId;
+    } else if (preview.kind === "merge-tabs") {
+      delete this.element.dataset.dockPlacement;
+      this.element.dataset.targetFrameId = preview.targetFrameId;
+      this.element.dataset.targetTabsetId = preview.targetTabsetId;
+    } else {
+      delete this.element.dataset.dockPlacement;
+      delete this.element.dataset.targetFrameId;
+      delete this.element.dataset.targetTabsetId;
+    }
     this.element.className = [
       "window-dock-preview",
       `window-dock-preview--${preview.kind}`,
@@ -65,6 +79,10 @@ export class WindowDockPreviewComponent {
   clear(): void {
     this.#preview = null;
     this.element.hidden = true;
+    delete this.element.dataset.dockKind;
+    delete this.element.dataset.dockPlacement;
+    delete this.element.dataset.targetFrameId;
+    delete this.element.dataset.targetTabsetId;
   }
 
   dispose(): void {

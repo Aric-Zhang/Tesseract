@@ -175,6 +175,8 @@ interface SplitFrameViewResult {
   readonly targetWouldBeEmpty: boolean;
 }
 
+let nextWindowWorkspaceFrameNodeId = 1;
+
 export function createWindowWorkspaceLayout(
   options: CreateWindowWorkspaceLayoutOptions = {}
 ): WindowWorkspaceLayout {
@@ -839,7 +841,7 @@ function normalizeFrameDockNode(
     }
     if (tabs.length === 0) return null;
     const activeTabId = tabs.includes(node.activeTabId) ? node.activeTabId : tabs[0];
-    return createFrameTabset(tabs, activeTabId);
+    return createFrameTabset(tabs, activeTabId, node.id || undefined);
   }
 
   const first = normalizeFrameDockNode(node.first, views, framedViewKeys);
@@ -847,7 +849,7 @@ function normalizeFrameDockNode(
   if (!first && !second) return null;
   if (!first) return second;
   if (!second) return first;
-  return createFrameSplitNode(node.direction, first, second, node.ratio);
+  return createFrameSplitNode(node.direction, first, second, node.ratio, node.id || undefined);
 }
 
 function removeFrameViewFromDockNode(
@@ -867,7 +869,7 @@ function removeFrameViewFromDockNode(
       ? tabs[Math.min(removedIndex, tabs.length - 1)] ?? tabs[0]
       : node.activeTabId;
     return {
-      node: createFrameTabset(tabs, activeTabId),
+      node: createFrameTabset(tabs, activeTabId, node.id),
       removed: true
     };
   }
@@ -880,7 +882,7 @@ function removeFrameViewFromDockNode(
   if (!first.node) return { node: second.node, removed: true };
   if (!second.node) return { node: first.node, removed: true };
   return {
-    node: createFrameSplitNode(node.direction, first.node, second.node, node.ratio),
+    node: createFrameSplitNode(node.direction, first.node, second.node, node.ratio, node.id),
     removed: true
   };
 }
@@ -933,7 +935,7 @@ function splitFrameViewInNode(
     return {
       node: createFrameSplitNodeForPlacement(
         createFrameTabset([sourceViewKey], sourceViewKey),
-        createFrameTabset(targetTabs, targetActiveTabId),
+        createFrameTabset(targetTabs, targetActiveTabId, node.id),
         commit.placement,
         commit.ratio
       ),
@@ -959,7 +961,7 @@ function splitFrameViewInNode(
     return { node: first.node, removedSource, splitTarget, targetWouldBeEmpty };
   }
   return {
-    node: createFrameSplitNode(node.direction, first.node, second.node, node.ratio),
+    node: createFrameSplitNode(node.direction, first.node, second.node, node.ratio, node.id),
     removedSource,
     splitTarget,
     targetWouldBeEmpty
@@ -1016,11 +1018,12 @@ function cloneFrameDockNode(node: WindowFrameDockNode): WindowFrameDockNode {
 
 function createFrameTabset(
   tabs: readonly WindowViewKey[],
-  activeTabId: WindowViewKey
+  activeTabId: WindowViewKey,
+  id = createFrameTabsetId()
 ): WindowFrameTabsetNode {
   return {
     kind: "tabset",
-    id: createFrameTabsetId(tabs),
+    id,
     tabs: [...tabs],
     activeTabId
   };
@@ -1030,12 +1033,13 @@ function createFrameSplitNode(
   direction: WindowWorkspaceSplitDirection,
   first: WindowFrameDockNode,
   second: WindowFrameDockNode,
-  ratio = 0.5
+  ratio = 0.5,
+  id = createFrameSplitId()
 ): WindowFrameSplitNode {
   const clampedRatio = Math.min(0.9, Math.max(0.1, ratio));
   return {
     kind: "split",
-    id: createFrameSplitId(direction, first, second),
+    id,
     direction,
     ratio: clampedRatio,
     first,
@@ -1065,16 +1069,12 @@ function createFrameId(viewKey: WindowViewKey): string {
   return `frame:${viewKey}`;
 }
 
-function createFrameTabsetId(tabs: readonly WindowViewKey[]): string {
-  return `frame-tabset:${tabs.join("+")}`;
+function createFrameTabsetId(): string {
+  return `frame-tabset:${nextWindowWorkspaceFrameNodeId++}`;
 }
 
-function createFrameSplitId(
-  direction: WindowWorkspaceSplitDirection,
-  first: WindowFrameDockNode,
-  second: WindowFrameDockNode
-): string {
-  return `frame-split:${direction}:${first.id}|${second.id}`;
+function createFrameSplitId(): string {
+  return `frame-split:${nextWindowWorkspaceFrameNodeId++}`;
 }
 
 function createTabset(tabs: readonly string[], activeTabId: string | null): WindowWorkspaceTabsetNode {

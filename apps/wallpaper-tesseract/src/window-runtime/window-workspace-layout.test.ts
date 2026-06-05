@@ -462,8 +462,10 @@ describe("WindowWorkspaceFrameLayout", () => {
     const normalized = normalizeWindowWorkspaceFrameLayout(raw);
 
     expectValidFrameLayout(normalized);
+    expect(expectFrameTabset(normalized.frames[0]?.root).id).toBe("persisted-a");
     expect(expectFrameTabset(normalized.frames[0]?.root).tabs).toEqual(["debug", "hierarchy"]);
     expect(expectFrameTabset(normalized.frames[0]?.root).activeTabId).toBe("debug");
+    expect(expectFrameTabset(normalized.frames[1]?.root).id).toBe("persisted-b");
     expect(expectFrameTabset(normalized.frames[1]?.root).tabs).toEqual(["scene"]);
     expect(normalized.hiddenViewKeys).toEqual([]);
   });
@@ -520,9 +522,49 @@ describe("WindowWorkspaceFrameLayout", () => {
     const split = expectFrameSplit(splitLayout.frames[0]?.root);
 
     expectValidFrameLayout(splitLayout);
+    expect(split.id).toBe("persisted-split");
     expect(split.ratio).toBe(0.9);
     expect(expectFrameTabset(split.first).tabs).toEqual(["debug"]);
     expect(expectFrameTabset(split.second).tabs).toEqual(["hierarchy"]);
+  });
+
+  it("generates opaque frame node ids only when hydrated ids are missing", () => {
+    const normalized = normalizeWindowWorkspaceFrameLayout({
+      views: {
+        debug: { viewKey: "debug", actorId: "debug-view-actor" },
+        hierarchy: { viewKey: "hierarchy", actorId: "hierarchy-view-actor" }
+      },
+      frames: [{
+        frameId: "frame:missing-ids",
+        bounds: { position: { x: 0, y: 0 }, size: { x: 100, y: 100 }, visible: true },
+        presentation: "windowed",
+        root: {
+          kind: "split",
+          id: "",
+          direction: "horizontal",
+          ratio: 0.5,
+          first: {
+            kind: "tabset",
+            id: "",
+            tabs: ["debug"],
+            activeTabId: "debug"
+          },
+          second: {
+            kind: "tabset",
+            id: "persisted-hierarchy",
+            tabs: ["hierarchy"],
+            activeTabId: "hierarchy"
+          }
+        }
+      }],
+      hiddenViewKeys: []
+    });
+    const split = expectFrameSplit(normalized.frames[0]?.root);
+
+    expectValidFrameLayout(normalized);
+    expect(split.id).toMatch(/^frame-split:/);
+    expect(expectFrameTabset(split.first).id).toMatch(/^frame-tabset:/);
+    expect(expectFrameTabset(split.second).id).toBe("persisted-hierarchy");
   });
 
   it("rejects duplicate view keys before creating frames", () => {
@@ -642,6 +684,8 @@ describe("WindowWorkspaceFrameLayout", () => {
     const split = expectFrameSplit(result.layout.frames[0]?.root);
     expectValidFrameLayout(result.layout);
     expect(result.emptySourceFrameId).toBeNull();
+    expect(expectFrameTabset(split.second).id).toBe("persisted-tools");
+    expect(expectFrameTabset(split.first).id).not.toBe("persisted-tools");
     expect(expectFrameTabset(split.first).tabs).toEqual(["debug"]);
     expect(expectFrameTabset(split.second).tabs).toEqual(["hierarchy"]);
     expect(expectFrameTabset(split.second).activeTabId).toBe("hierarchy");

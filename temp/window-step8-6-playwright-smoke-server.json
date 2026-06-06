@@ -1,7 +1,0 @@
-{
-    "port":  5203,
-    "pid":  25312,
-    "stderr":  "temp/window-step8-6-playwright-vite-5203.err.log",
-    "stdout":  "temp/window-step8-6-playwright-vite-5203.out.log",
-    "url":  "http://127.0.0.1:5203/"
-}

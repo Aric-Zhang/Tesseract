@@ -1,0 +1,61 @@
+.window-frame-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 150px;
+  min-width: 0;
+  max-width: min(150px, calc(100% - 30px));
+  height: 24px;
+  padding: 0 28px 0 10px;
+  overflow: hidden;
+  border: 1px solid rgba(118, 199, 255, 0.2);
+  border-bottom-color: rgba(118, 199, 255, 0.3);
+  background: rgba(24, 39, 54, 0.78);
+  color: rgba(232, 246, 255, 0.9);
+  cursor: default;
+  font: 12px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-overflow: ellipsis;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.window-frame-tab.is-active {
+  border-color: rgba(142, 211, 255, 0.46);
+  background: rgba(42, 66, 88, 0.88);
+  color: #ffffff;
+}
+
+.window-frame-tab__close {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: rgba(232, 246, 255, 0.66);
+  cursor: pointer;
+  font: 13px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  place-items: center;
+  transform: translateY(-50%);
+}
+
+.window-frame-tab__close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.workspace-root-dock-frame__tabs,
+.workspace-root-dock-frame__pane-tabs,
+.floating-gizmo-window__pane-tabs {
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 2px 6px;
+  border-bottom: 1px solid rgba(118, 199, 255, 0.14);
+  background: rgba(14, 22, 31, 0.62);
+  overflow: hidden;
+}

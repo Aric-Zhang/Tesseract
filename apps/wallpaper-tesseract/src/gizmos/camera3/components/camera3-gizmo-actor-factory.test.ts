@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { GizmoCancelEvent, GizmoController, GizmoHit, GizmoMoveEvent, ScreenPoint } from "gizmo-core";
+import type {
+  GizmoCancelEvent,
+  GizmoClickEvent,
+  GizmoController,
+  GizmoHit,
+  GizmoMoveEvent,
+  ScreenPoint
+} from "gizmo-core";
 import { AppRuntimeContext } from "../../../app-runtime";
 import type { Camera3CommandSink, Camera3ControlCommand } from "../../../camera3-control";
 import { installCoreComponentDefinitions } from "../../../component-definitions";
@@ -7,8 +14,7 @@ import type { RuntimeObject, RuntimeRegistration, SceneStateObserver, SceneUpdat
 import {
   actorInputScopeRoutePriority,
   gizmoEventBindingComponentType,
-  isActorInputParticipant,
-  isGizmoResponder
+  isActorInputParticipant
 } from "../../../gizmo-runtime";
 import { Camera3ProjectionModeController } from "../../../features/camera3/model";
 import type { Camera3Gizmo, Camera3GizmoOptions } from "../camera3-gizmo";
@@ -77,7 +83,17 @@ function createCommandSink(commands: Camera3ControlCommand[]): Camera3CommandSin
   };
 }
 
-function createFakeGizmoFactory(calls: string[], commands: Camera3ControlCommand[] = []) {
+function createFakeGizmoFactory(
+  calls: string[],
+  commands: Camera3ControlCommand[] = [],
+  hit: GizmoHit = {
+    gizmoId: "camera3-view-gizmo",
+    partId: "axis-x",
+    kind: "axis",
+    priority: 1,
+    data: { axis: "+x" }
+  }
+) {
   const receivedOptions: Camera3GizmoOptions[] = [];
   const created: FakeCamera3Gizmo[] = [];
   const createGizmo = (options: Camera3GizmoOptions): Camera3Gizmo => {
@@ -92,13 +108,7 @@ function createFakeGizmoFactory(calls: string[], commands: Camera3ControlCommand
         calls.push("gizmo-update");
       },
       hitTest(_point: ScreenPoint): GizmoHit | null {
-        return {
-          gizmoId: "camera3-view-gizmo",
-          partId: "axis-x",
-          kind: "axis",
-          priority: 1,
-          data: { axis: "+x" }
-        };
+        return hit;
       },
       onGizmoMove(event: GizmoMoveEvent): void {
         options.commandSink.submit({
@@ -113,6 +123,13 @@ function createFakeGizmoFactory(calls: string[], commands: Camera3ControlCommand
           type: "snap-axis",
           source: "camera3-gizmo",
           axis: "+x"
+        });
+      },
+      onGizmoClick(event: GizmoClickEvent): void {
+        if (event.hit.partId !== "projection-mode") return;
+        options.commandSink.submit({
+          type: "toggle-projection",
+          source: "camera3-gizmo"
         });
       },
       onGizmoCancel(event: GizmoCancelEvent): void {
@@ -146,6 +163,20 @@ function createMoveEvent(gizmo: GizmoController, hit: GizmoHit): GizmoMoveEvent 
   };
 }
 
+function createClickEvent(gizmo: GizmoController, hit: GizmoHit): GizmoClickEvent {
+  return {
+    gizmo,
+    hit,
+    pointerId: 1,
+    pointerType: "mouse",
+    timeStamp: 0,
+    point: { x: 0, y: 0 },
+    startPoint: { x: 0, y: 0 },
+    buttons: 0,
+    clickCount: 1
+  };
+}
+
 describe("createCamera3GizmoActor", () => {
   it("creates an actor and returns a RegisteredActor handle", () => {
     const { context } = createContext();
@@ -161,7 +192,6 @@ describe("createCamera3GizmoActor", () => {
     expect(handle.actor.id).toBe("camera-actor");
     expect(handle.component.type).toBe(camera3GizmoComponentType);
     expect(isActorInputParticipant(handle.component)).toBe(true);
-    expect(isGizmoResponder(handle.component)).toBe(false);
     expect(context.actorSystem.getActor("camera-actor")).toBe(handle.actor);
   });
 
@@ -245,6 +275,32 @@ describe("createCamera3GizmoActor", () => {
     expect(commands).toEqual([
       { type: "orbit-delta", source: "camera3-gizmo", dx: 3, dy: 4 },
       { type: "snap-axis", source: "camera3-gizmo", axis: "+x" }
+    ]);
+  });
+
+  it("routes projection mode clicks through actor input instead of DOM click handlers", () => {
+    const { context, registeredGizmos } = createContext();
+    const commands: Camera3ControlCommand[] = [];
+    const { createGizmo } = createFakeGizmoFactory([], commands, {
+      gizmoId: "camera3-view-gizmo",
+      partId: "projection-mode",
+      kind: "custom",
+      priority: 20
+    });
+    createCamera3GizmoActor(context, {
+      actorId: "camera-actor",
+      projectionMode: new Camera3ProjectionModeController(),
+      commandSink: createCommandSink(commands)
+    }, createGizmo);
+    const binding = registeredGizmos[0];
+    if (!binding) throw new Error("Expected registered binding.");
+    const hit = binding.hitTest({ x: 0, y: 0 });
+    if (!hit) throw new Error("Expected binding hit.");
+
+    binding.onGizmoClick?.(createClickEvent(binding, hit));
+
+    expect(commands).toEqual([
+      { type: "toggle-projection", source: "camera3-gizmo" }
     ]);
   });
 

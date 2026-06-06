@@ -1,0 +1,41 @@
+{
+  "scenario": [
+    "Opened root workspace at 594x698 viewport on port 5187.",
+    "Dragged Debug Log from floating frame into exposed root tabbar.",
+    "Verified both root tab close rects stayed inside their tab rects.",
+    "Clicked Debug Log root tab close and verified it was removed."
+  ],
+  "result": {
+    "finalData": {
+      "floatingCount": 1,
+      "floatingTabs": [
+        {
+          "bottom": 41.39999961853027,
+          "height": 24,
+          "left": 24.80000114440918,
+          "right": 174.80000114440918,
+          "text": "Hierarchyx",
+          "top": 17.399999618530273,
+          "width": 150
+        }
+      ],
+      "rootTabs": [
+        {
+          "bottom": 52,
+          "height": 24,
+          "left": 0,
+          "right": 180,
+          "text": "Scenex",
+          "top": 28,
+          "width": 180
+        }
+      ],
+      "url": "http://127.0.0.1:5187/",
+      "viewport": {
+        "height": 698,
+        "width": 594
+      }
+    },
+    "consoleErrors": []
+  }
+}

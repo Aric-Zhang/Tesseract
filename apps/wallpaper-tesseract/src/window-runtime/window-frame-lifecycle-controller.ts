@@ -7,12 +7,16 @@ import type {
   WindowDockCommitIntent,
   WindowDockCommitResult,
   WindowDockCommitValidationResult,
+  WindowCloseFrameResult,
+  WindowCloseViewResult,
+  WindowCloseViewOptions,
   WindowFrameLayoutRestorePort,
   WindowFrameLayoutRestoreResult,
   WindowFloatingFrameFactory,
   WindowFrameLayoutSnapshotSource,
   WindowFrameLifecycleController,
   WindowFrameLifecycleReason,
+  WindowOpenViewOptions,
   WindowViewLocation,
   WindowViewLocationSource,
   WindowViewOwnerCommandPort,
@@ -22,7 +26,16 @@ import type {
 } from "./window-frame-lifecycle";
 import type { WindowContentRehostable } from "./floating-window-host";
 import type { WindowFramePort, WindowFrameRuntimeDockNode } from "./window-frame-port";
-import type { WindowViewFactoryRegistry, WindowViewFactoryResult } from "./window-view-factory-registry";
+import type { WindowFramePortRegistryEntry, WindowFramePortRegistryView } from "./window-frame-port-registry";
+import type {
+  WindowViewFactoryRegistry,
+  WindowViewRuntimeFactoryResult
+} from "./window-view-factory-registry";
+import {
+  createWindowViewIdentity,
+  createWindowViewIdentityKey,
+  type WindowViewIdentity
+} from "./window-view-identity";
 import type { WindowViewKey } from "./window-view-key";
 import { vec2 } from "../scene-runtime";
 import {
@@ -34,12 +47,13 @@ import {
 } from "./window-workspace-layout";
 
 export interface LiveWindowView {
+  readonly identity: WindowViewIdentity;
   readonly viewKey: WindowViewKey;
   frameActor: Actor;
   framePort: WindowFramePort;
   readonly viewActor: Actor;
   readonly content: WindowContentRehostable;
-  readonly dispose?: () => void;
+  readonly disposeViewRuntime?: () => void;
 }
 
 type WindowFramePortTab = ReturnType<WindowFramePort["listTabs"]>[number];
@@ -79,6 +93,7 @@ export interface WindowFrameLifecycleControllerOptions {
   readonly actorWindowFocus?: ActorWindowFocusService;
   readonly cancelActiveInput?: () => void;
   readonly createFloatingFrame?: WindowFloatingFrameFactory;
+  readonly framePorts?: WindowFramePortRegistryView;
 }
 
 export class DefaultWindowFrameLifecycleController implements
@@ -93,7 +108,8 @@ export class DefaultWindowFrameLifecycleController implements
   readonly #actorWindowFocus?: ActorWindowFocusService;
   readonly #cancelActiveInput?: () => void;
   readonly #createFloatingFrame?: WindowFloatingFrameFactory;
-  readonly #liveViews = new Map<WindowViewKey, LiveWindowView>();
+  readonly #framePorts?: WindowFramePortRegistryView;
+  readonly #liveViews = new Map<string, LiveWindowView>();
   readonly #fullscreenSessionsByViewActorId = new Map<string, ManagedWindowViewFullscreenSession>();
 
   constructor(options: WindowFrameLifecycleControllerOptions) {
@@ -102,11 +118,13 @@ export class DefaultWindowFrameLifecycleController implements
     this.#actorWindowFocus = options.actorWindowFocus;
     this.#cancelActiveInput = options.cancelActiveInput;
     this.#createFloatingFrame = options.createFloatingFrame;
+    this.#framePorts = options.framePorts;
   }
 
   openView(
     viewKey: WindowViewKey,
-    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
+    options: WindowOpenViewOptions = {}
   ): void {
     const liveView = this.getLiveView(viewKey);
     if (liveView) {
@@ -114,27 +132,221 @@ export class DefaultWindowFrameLifecycleController implements
       this.#actorWindowFocus?.focusActorWindow(liveView.frameActor, toActorWindowFocusReason(reason));
       return;
     }
-    const created = this.#factories.create(viewKey, { reason });
-    this.trackCreatedView(viewKey, created);
-    this.#actorWindowFocus?.focusActorWindow(created.frameActor, toActorWindowFocusReason(reason));
+    if (options.preferredFrameId && this.tryOpenViewRuntimeInFrame(viewKey, options.preferredFrameId, reason)) {
+      return;
+    }
+    const factory = this.#factories.get(viewKey);
+    if (!factory) {
+      throw new Error(`Window view factory is not registered: ${viewKey}.`);
+    }
+    if (!this.#createFloatingFrame) {
+      throw new Error(`Cannot open view without a frame shell factory: ${viewKey}.`);
+    }
+    const frame = this.#createFloatingFrame({
+      viewKey,
+      title: factory.label,
+      reason
+    });
+    try {
+      this.openViewRuntimeInFrameEntry(viewKey, frame.frameActor, frame.framePort, reason);
+    } catch (error) {
+      if (this.#actorSystem.hasActor(frame.frameActor)) {
+        this.#actorSystem.destroyActor(frame.frameActor);
+      }
+      throw error;
+    }
   }
 
   closeFrame(
     frameId: string,
     _reason: Extract<WindowFrameLifecycleReason, "close-button" | "programmatic">
-  ): void {
+  ): WindowCloseFrameResult {
     const frameActor = this.#actorSystem.getActor(frameId);
-    if (!frameActor) return;
+    if (!frameActor) {
+      return {
+        closed: false,
+        frameId,
+        reason: "frame is not live"
+      };
+    }
+    if (!this.canDestroyFrame(frameActor)) {
+      return {
+        closed: false,
+        frameId,
+        reason: "frame cannot be closed"
+      };
+    }
     this.#cancelActiveInput?.();
     const liveViews = this.listLiveViewsForFrame(frameActor);
-    const disposers = new Set(liveViews.map((liveView) => liveView.dispose).filter(Boolean));
-    for (const dispose of disposers) {
-      dispose?.();
+    const cleanedViewActorIds: string[] = [];
+    for (const liveView of liveViews) {
+      const cleanup = this.disposeLiveViewRuntimeForClose(liveView);
+      if (!cleanup.disposed) {
+        return {
+          closed: false,
+          frameId,
+          reason: cleanup.reason,
+          error: cleanup.error
+        };
+      }
+      cleanedViewActorIds.push(liveView.viewActor.id);
     }
-    if (this.#actorSystem.hasActor(frameActor)) {
-      this.#actorSystem.destroyActor(frameActor);
+    for (const liveView of liveViews) {
+      this.#fullscreenSessionsByViewActorId.delete(liveView.viewActor.id);
+      this.#liveViews.delete(toLiveViewKey(liveView));
+    }
+    try {
+      if (this.#actorSystem.hasActor(frameActor)) {
+        this.#actorSystem.destroyActor(frameActor);
+      }
+    } catch (error) {
+      this.pruneLiveViews();
+      return {
+        closed: true,
+        frameId,
+        closedViewActorIds: cleanedViewActorIds,
+        warning: describeError(error, "frame actor destroy failed")
+      };
     }
     this.pruneLiveViews();
+    return {
+      closed: true,
+      frameId,
+      closedViewActorIds: cleanedViewActorIds
+    };
+  }
+
+  closeView(
+    viewActorId: string,
+    _reason: Extract<WindowFrameLifecycleReason, "tab-action" | "programmatic">,
+    options: WindowCloseViewOptions = {}
+  ): WindowCloseViewResult {
+    const liveView = this.getLiveViewByActorId(viewActorId);
+    if (!liveView) {
+      return {
+        closed: false,
+        reason: "view is not live"
+      };
+    }
+    if (!liveView.disposeViewRuntime) {
+      return {
+        closed: false,
+        reason: "view runtime cleanup is not configured",
+        sourceFrameId: liveView.frameActor.id
+      };
+    }
+    const validation = this.validateCloseViewIdentity(liveView, options);
+    if (!validation.valid) {
+      return {
+        closed: false,
+        reason: validation.reason,
+        sourceFrameId: liveView.frameActor.id
+      };
+    }
+
+    this.#cancelActiveInput?.();
+    const fullscreenSession = this.#fullscreenSessionsByViewActorId.get(viewActorId);
+    if (fullscreenSession) {
+      try {
+        this.exitViewFullscreen(viewActorId, "programmatic");
+      } catch (error) {
+        return {
+          closed: false,
+          reason: "fullscreen cleanup failed",
+          sourceFrameId: liveView.frameActor.id,
+          error: describeError(error, "fullscreen cleanup failed")
+        };
+      }
+    }
+
+    const currentLiveView = this.getLiveViewByActorId(viewActorId);
+    if (!currentLiveView) {
+      return {
+        closed: false,
+        reason: "view is not live"
+      };
+    }
+    if (!currentLiveView.disposeViewRuntime) {
+      return {
+        closed: false,
+        reason: "view runtime cleanup is not configured",
+        sourceFrameId: currentLiveView.frameActor.id
+      };
+    }
+    const currentValidation = this.validateCloseViewIdentity(currentLiveView, options);
+    if (!currentValidation.valid) {
+      return {
+        closed: false,
+        reason: currentValidation.reason,
+        sourceFrameId: currentLiveView.frameActor.id
+      };
+    }
+
+    const sourceFrame = currentLiveView.frameActor;
+    const sourceFrameId = sourceFrame.id;
+    const sourcePort = currentLiveView.framePort;
+    const warnings: string[] = [];
+    const cleanup = this.disposeLiveViewRuntimeForClose(currentLiveView);
+    if (!cleanup.disposed) {
+      return {
+        closed: false,
+        reason: cleanup.reason,
+        sourceFrameId,
+        error: cleanup.error
+      };
+    }
+
+    try {
+      sourcePort.removeTab(viewActorId);
+    } catch (error) {
+      warnings.push(describeError(error, "view tab removal failed"));
+    }
+
+    try {
+      if (this.#actorSystem.hasActor(currentLiveView.viewActor)) {
+        this.#actorSystem.destroyActor(currentLiveView.viewActor);
+      }
+    } catch (error) {
+      warnings.push(describeError(error, "view actor destroy failed"));
+    }
+
+    this.#liveViews.delete(toLiveViewKey(currentLiveView));
+    this.#fullscreenSessionsByViewActorId.delete(viewActorId);
+
+    const remainingViews = this.listLiveViewsForFrame(sourceFrame);
+    const nextActiveViewActorId = sourcePort.getActiveViewActorId();
+    if (remainingViews.length === 0) {
+      const destroy = this.destroyEmptyFrameIfAllowed(sourceFrame, "empty owner frame destroy failed");
+      if (!destroy.warning) {
+        return {
+          closed: true,
+          sourceFrameId,
+          ownerFrameDestroyed: destroy.destroyed,
+          nextActiveViewActorId: null,
+          ...createWarningResult(warnings)
+        };
+      }
+      warnings.push(destroy.warning);
+      return {
+        closed: true,
+        sourceFrameId,
+        ownerFrameDestroyed: false,
+        nextActiveViewActorId: null,
+        ...createWarningResult(warnings)
+      };
+    }
+
+    if (nextActiveViewActorId && sourcePort.hasTab(nextActiveViewActorId)) {
+      sourcePort.activateTab(nextActiveViewActorId);
+    }
+    this.#actorWindowFocus?.focusActorWindow(sourceFrame, toActorWindowFocusReason("programmatic"));
+    return {
+      closed: true,
+      sourceFrameId,
+      ownerFrameDestroyed: false,
+      nextActiveViewActorId,
+      ...createWarningResult(warnings)
+    };
   }
 
   activateFrameTab(
@@ -171,14 +383,15 @@ export class DefaultWindowFrameLifecycleController implements
     if (intent.targetFrameId === intent.source.frameId) {
       return invalidDockCommit("target frame is source frame");
     }
-    const targetFrame = this.#actorSystem.getActor(intent.targetFrameId);
-    if (!targetFrame) {
+    const targetActor = this.#actorSystem.getActor(intent.targetFrameId);
+    if (!targetActor) {
       return invalidDockCommit("target frame is missing");
     }
-    if (this.listLiveViewsForFrame(targetFrame).length === 0) {
+    const targetEntry = this.getFramePortEntryById(intent.targetFrameId);
+    if (!targetEntry || !this.#actorSystem.hasActor(targetEntry.frameActor)) {
       return invalidDockCommit("target frame has no live views");
     }
-    const targetPort = this.listLiveViewsForFrame(targetFrame)[0].framePort;
+    const targetPort = targetEntry.framePort;
     if (!targetPort.hasTabset(intent.targetTabsetId)) {
       return invalidDockCommit("target tabset is missing");
     }
@@ -208,15 +421,15 @@ export class DefaultWindowFrameLifecycleController implements
       return this.commitFloatTab(intent, sourceView, sourceTab);
     }
 
-    const targetFrame = this.#actorSystem.getActor(intent.targetFrameId);
-    if (!targetFrame) {
+    const targetEntry = this.getFramePortEntryById(intent.targetFrameId);
+    const targetFrame = targetEntry?.frameActor ?? null;
+    const targetPort = targetEntry?.framePort ?? null;
+    if (!targetFrame || !this.#actorSystem.hasActor(targetFrame)) {
       return { committed: false, reason: "dock commit target disappeared" };
     }
-    const targetView = this.listLiveViewsForFrame(targetFrame)[0];
-    if (!targetView) {
-      return { committed: false, reason: "target frame has no live views" };
+    if (!targetPort) {
+      return { committed: false, reason: "target frame port disappeared" };
     }
-    const targetPort = targetView.framePort;
     if (intent.kind === "split-tab") {
       return this.commitSplitTab(intent, sourceView, sourceTab, targetFrame, targetPort);
     }
@@ -253,26 +466,25 @@ export class DefaultWindowFrameLifecycleController implements
     if (remainingSourceViews.length > 0 || !this.#actorSystem.hasActor(sourceFrame)) {
       return { committed: true, sourceFrameDestroyed: false };
     }
-    try {
-      this.#actorSystem.destroyActor(sourceFrame);
-      return { committed: true, sourceFrameDestroyed: true };
-    } catch (error) {
+    const destroy = this.destroyEmptyFrameIfAllowed(sourceFrame, "source frame destroy failed");
+    if (destroy.warning) {
       return {
         committed: true,
         sourceFrameDestroyed: false,
-        warning: describeError(error, "source frame destroy failed")
+        warning: destroy.warning
       };
     }
+    return { committed: true, sourceFrameDestroyed: destroy.destroyed };
   }
 
   getLiveView(viewKey: WindowViewKey): LiveWindowView | null {
-    const liveView = this.#liveViews.get(viewKey);
+    const liveView = this.getLiveViewByViewKey(viewKey);
     if (!liveView) return null;
     if (
       !this.#actorSystem.hasActor(liveView.frameActor) ||
       !this.#actorSystem.hasActor(liveView.viewActor)
     ) {
-      this.#liveViews.delete(viewKey);
+      this.#liveViews.delete(toLiveViewKey(liveView));
       return null;
     }
     return liveView;
@@ -316,7 +528,25 @@ export class DefaultWindowFrameLifecycleController implements
     const frames: Array<WindowWorkspaceFrameLayout["frames"][number]> = [];
     for (const liveView of liveViews) {
       if (seenFrameIds.has(liveView.frameActor.id)) continue;
-      if (this.isFullscreenIsolationFrame(liveView.frameActor)) continue;
+      const isolatedFullscreenRestore = this.findFullscreenRestoreForFullscreenFrame(liveView.frameActor);
+      if (isolatedFullscreenRestore) {
+        if (seenFrameIds.has(isolatedFullscreenRestore.sourceFrameId)) continue;
+        seenFrameIds.add(isolatedFullscreenRestore.sourceFrameId);
+        const root = mapRuntimeDockRootToViewKeys(isolatedFullscreenRestore.sourceRoot, viewsByActorId);
+        if (!root) continue;
+        const bounds = isolatedFullscreenRestore.sourceBounds;
+        frames.push({
+          frameId: isolatedFullscreenRestore.sourceFrameId,
+          bounds: {
+            position: vec2(Math.round(bounds.left), Math.round(bounds.top)),
+            size: vec2(Math.round(bounds.width), Math.round(bounds.height)),
+            visible: isolatedFullscreenRestore.sourceVisibleBeforeRun ?? liveView.framePort.visible
+          },
+          presentation: isolatedFullscreenRestore.sourcePresentation,
+          root
+        });
+        continue;
+      }
       seenFrameIds.add(liveView.frameActor.id);
       const fullscreenRestore = this.findFullscreenRestoreForFrame(liveView.frameActor);
       const root = mapRuntimeDockRootToViewKeys(
@@ -352,6 +582,7 @@ export class DefaultWindowFrameLifecycleController implements
     const normalized = normalizeWindowWorkspaceFrameLayout(layout);
     const visibleViewKeys = listLayoutVisibleViewKeys(normalized);
     const skippedViewKeys: WindowViewKey[] = [];
+    const preferredFrameIdByViewKey = mapPreferredFrameIdsByViewKey(normalized);
 
     for (const viewKey of visibleViewKeys) {
       if (this.getLiveView(viewKey)) continue;
@@ -360,7 +591,9 @@ export class DefaultWindowFrameLifecycleController implements
         continue;
       }
       try {
-        this.openView(viewKey, reason);
+        this.openView(viewKey, reason, {
+          preferredFrameId: preferredFrameIdByViewKey.get(viewKey)
+        });
       } catch {
         skippedViewKeys.push(viewKey);
       }
@@ -389,9 +622,11 @@ export class DefaultWindowFrameLifecycleController implements
         .map((viewKey) => liveViewsByKey.get(viewKey))
         .filter((liveView): liveView is LiveWindowView => Boolean(liveView));
       if (frameLiveViews.length === 0) continue;
+      const registeredTarget = this.getFramePortEntryById(frame.frameId);
       const targetLiveView = frameLiveViews[0];
-      const targetFrame = targetLiveView.frameActor;
-      const targetPort = targetLiveView.framePort;
+      const targetFrame = registeredTarget?.frameActor ?? targetLiveView.frameActor;
+      const targetPort = registeredTarget?.framePort ?? targetLiveView.framePort;
+      if (!this.#actorSystem.hasActor(targetFrame)) continue;
       const runtimeRoot = mapFrameDockNodeToRuntimeRoot(frame.root, liveViewsByKey);
       if (!runtimeRoot) continue;
       const tabs = frameLiveViews.map((liveView) => createFrameTabFromLiveView(liveView, normalized));
@@ -481,7 +716,11 @@ export class DefaultWindowFrameLifecycleController implements
     liveView.framePort.activateTab(viewActorId);
     const sourceRoot = liveView.framePort.getRuntimeDockRoot();
     const rootViewActorIds = listRuntimeDockRootViewActorIds(sourceRoot);
-    if (rootViewActorIds.length <= 1 && rootViewActorIds[0] === viewActorId) {
+    if (
+      rootViewActorIds.length <= 1 &&
+      rootViewActorIds[0] === viewActorId &&
+      this.canDestroyFrame(liveView.frameActor)
+    ) {
       this.#fullscreenSessionsByViewActorId.set(viewActorId, {
         viewActorId,
         viewKey: liveView.viewKey,
@@ -494,6 +733,22 @@ export class DefaultWindowFrameLifecycleController implements
       return;
     }
     this.enterIsolatedViewFullscreen(liveView, sourceRoot, reason);
+  }
+
+  enterViewWorkspaceFullscreen(viewActorId: string, reason: WindowViewFullscreenReason): void {
+    const existingSession = this.#fullscreenSessionsByViewActorId.get(viewActorId);
+    if (existingSession?.mode === "isolated-frame") {
+      const liveView = this.getLiveViewByActorId(viewActorId);
+      liveView?.framePort.setPresentation("fullscreen");
+      return;
+    }
+    if (existingSession?.mode === "direct-frame") {
+      this.exitViewFullscreen(viewActorId, reason);
+    }
+    const liveView = this.getLiveViewByActorId(viewActorId);
+    if (!liveView) return;
+    liveView.framePort.activateTab(viewActorId);
+    this.enterIsolatedViewFullscreen(liveView, liveView.framePort.getRuntimeDockRoot(), reason);
   }
 
   exitViewFullscreen(viewActorId: string, _reason: WindowViewFullscreenReason): void {
@@ -698,15 +953,123 @@ export class DefaultWindowFrameLifecycleController implements
     }
   }
 
-  private trackCreatedView(viewKey: WindowViewKey, created: WindowViewFactoryResult): void {
-    this.#liveViews.set(viewKey, {
+  private trackCreatedViewRuntime(
+    viewKey: WindowViewKey,
+    created: WindowViewRuntimeFactoryResult,
+    frameActor: Actor,
+    framePort: WindowFramePort
+  ): void {
+    const identity = this.getIdentityForViewKey(viewKey);
+    this.#liveViews.set(createWindowViewIdentityKey(identity), {
+      identity,
       viewKey,
-      frameActor: created.frameActor,
-      framePort: created.framePort,
+      frameActor,
+      framePort,
       viewActor: created.viewActor,
       content: created.content,
-      dispose: created.dispose
+      disposeViewRuntime: created.disposeViewRuntime
     });
+  }
+
+  private tryOpenViewRuntimeInFrame(
+    viewKey: WindowViewKey,
+    preferredFrameId: string,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">
+  ): boolean {
+    const targetEntry = this.getFramePortEntryById(preferredFrameId);
+    if (!targetEntry || !this.#actorSystem.hasActor(targetEntry.frameActor)) return false;
+    this.openViewRuntimeInFrameEntry(viewKey, targetEntry.frameActor, targetEntry.framePort, reason);
+    return true;
+  }
+
+  private openViewRuntimeInFrameEntry(
+    viewKey: WindowViewKey,
+    targetFrameActor: Actor,
+    targetFramePort: WindowFramePort,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">
+  ): void {
+    const targetTabsetId = targetFramePort.listDockTargetTabsets()[0]?.targetTabsetId;
+    if (!targetTabsetId) {
+      throw new Error(`Target frame has no tabset: ${targetFramePort.frameId}.`);
+    }
+    const created = this.#factories.createViewRuntime(viewKey, {
+      reason,
+      parentFrameActor: targetFrameActor
+    });
+    const tab: WindowFramePortTab = {
+      viewActorId: created.viewActor.id,
+      viewKey,
+      title: created.title ?? this.#factories.get(viewKey)?.label ?? viewKey
+    };
+    try {
+      targetFramePort.addTab(tab, {
+        active: true,
+        targetTabsetId
+      });
+      created.content.rehostWindowContent(targetFramePort.getContentHost(created.viewActor.id));
+      if (this.#actorSystem.hasActor(created.viewActor)) {
+        this.#actorSystem.setParent(created.viewActor, targetFrameActor);
+      }
+      this.trackCreatedViewRuntime(viewKey, created, targetFrameActor, targetFramePort);
+      this.#actorWindowFocus?.focusActorWindow(targetFrameActor, toActorWindowFocusReason(reason));
+    } catch (error) {
+      if (targetFramePort.hasTab(created.viewActor.id)) {
+        try {
+          targetFramePort.removeTab(created.viewActor.id);
+        } catch {
+          // Continue cleanup below; the original open error is more useful.
+        }
+      }
+      try {
+        created.disposeViewRuntime?.();
+      } catch {
+        // Continue actor cleanup; the original open error is more useful.
+      }
+      if (this.#actorSystem.hasActor(created.viewActor)) {
+        this.#actorSystem.destroyActor(created.viewActor);
+      }
+      throw error;
+    }
+  }
+
+  private disposeLiveViewRuntimeForClose(liveView: LiveWindowView): {
+    readonly disposed: true;
+  } | {
+    readonly disposed: false;
+    readonly reason: string;
+    readonly error?: string;
+  } {
+    if (!liveView.disposeViewRuntime) {
+      return {
+        disposed: false,
+        reason: "view runtime cleanup is not configured"
+      };
+    }
+    try {
+      liveView.disposeViewRuntime();
+      return { disposed: true };
+    } catch (error) {
+      return {
+        disposed: false,
+        reason: "view runtime cleanup failed",
+        error: describeError(error, "view runtime cleanup failed")
+      };
+    }
+  }
+
+  private validateCloseViewIdentity(liveView: LiveWindowView, options: WindowCloseViewOptions): {
+    readonly valid: true;
+  } | {
+    readonly valid: false;
+    readonly reason: string;
+  } {
+    if (options.viewKey !== undefined && options.viewKey !== liveView.viewKey) {
+      return { valid: false, reason: "view key mismatch" };
+    }
+    if (options.ownerFrameId !== undefined && options.ownerFrameId !== liveView.frameActor.id) {
+      return { valid: false, reason: "owner frame mismatch" };
+    }
+    return { valid: true };
   }
 
   private listLiveViewsForFrame(frameActor: Actor): readonly LiveWindowView[] {
@@ -738,13 +1101,13 @@ export class DefaultWindowFrameLifecycleController implements
     };
   }
 
-  private isFullscreenIsolationFrame(frameActor: Actor): boolean {
+  private findFullscreenRestoreForFullscreenFrame(frameActor: Actor): WindowViewFullscreenRestoreTarget | null {
     for (const session of this.#fullscreenSessionsByViewActorId.values()) {
       if (session.mode === "isolated-frame" && session.fullscreenFrameId === frameActor.id) {
-        return true;
+        return session.restore;
       }
     }
-    return false;
+    return null;
   }
 
   private findFullscreenRestoreForFrame(frameActor: Actor): WindowViewFullscreenRestoreTarget | null {
@@ -757,21 +1120,49 @@ export class DefaultWindowFrameLifecycleController implements
   }
 
   private getFramePortById(frameId: string): WindowFramePort | null {
+    return this.getFramePortEntryById(frameId)?.framePort ?? null;
+  }
+
+  private getFramePortEntryById(frameId: string): WindowFramePortRegistryEntry | null {
+    const registered = this.#framePorts?.get(frameId);
+    if (registered) return registered;
     const frameActor = this.#actorSystem.getActor(frameId);
     if (!frameActor) return null;
-    return this.listLiveViewsForFrame(frameActor)[0]?.framePort ?? null;
+    const liveView = this.listLiveViewsForFrame(frameActor)[0];
+    return liveView
+      ? {
+          frameActor,
+          framePort: liveView.framePort,
+          getStackPriority: () => 0
+        }
+      : null;
   }
 
   private pruneLiveViews(): void {
-    for (const [viewKey, liveView] of this.#liveViews) {
+    for (const [identityKey, liveView] of this.#liveViews) {
       if (
         this.#actorSystem.hasActor(liveView.frameActor) &&
         this.#actorSystem.hasActor(liveView.viewActor)
       ) {
         continue;
       }
-      this.#liveViews.delete(viewKey);
+      this.#liveViews.delete(identityKey);
     }
+  }
+
+  private getIdentityForViewKey(viewKey: WindowViewKey): WindowViewIdentity {
+    const factory = this.#factories.get(viewKey);
+    return factory
+      ? this.#factories.getIdentity(viewKey)
+      : createWindowViewIdentity({ viewKey });
+  }
+
+  private getLiveViewByViewKey(viewKey: WindowViewKey): LiveWindowView | null {
+    const factory = this.#factories.get(viewKey);
+    if (factory) {
+      return this.#liveViews.get(createWindowViewIdentityKey(this.#factories.getIdentity(viewKey))) ?? null;
+    }
+    return [...this.#liveViews.values()].find((liveView) => liveView.viewKey === viewKey) ?? null;
   }
 
   private rollbackMerge(
@@ -865,16 +1256,15 @@ export class DefaultWindowFrameLifecycleController implements
     if (remainingSourceViews.length > 0 || !this.#actorSystem.hasActor(sourceFrame)) {
       return { committed: true, sourceFrameDestroyed: false };
     }
-    try {
-      this.#actorSystem.destroyActor(sourceFrame);
-      return { committed: true, sourceFrameDestroyed: true };
-    } catch (error) {
+    const destroy = this.destroyEmptyFrameIfAllowed(sourceFrame, "source frame destroy failed");
+    if (destroy.warning) {
       return {
         committed: true,
         sourceFrameDestroyed: false,
-        warning: describeError(error, "source frame destroy failed")
+        warning: destroy.warning
       };
     }
+    return { committed: true, sourceFrameDestroyed: destroy.destroyed };
   }
 
   private commitSplitTab(
@@ -919,14 +1309,37 @@ export class DefaultWindowFrameLifecycleController implements
     if (remainingSourceViews.length > 0 || !this.#actorSystem.hasActor(sourceFrame)) {
       return { committed: true, sourceFrameDestroyed: false };
     }
-    try {
-      this.#actorSystem.destroyActor(sourceFrame);
-      return { committed: true, sourceFrameDestroyed: true };
-    } catch (error) {
+    const destroy = this.destroyEmptyFrameIfAllowed(sourceFrame, "source frame destroy failed");
+    if (destroy.warning) {
       return {
         committed: true,
         sourceFrameDestroyed: false,
-        warning: describeError(error, "source frame destroy failed")
+        warning: destroy.warning
+      };
+    }
+    return { committed: true, sourceFrameDestroyed: destroy.destroyed };
+  }
+
+  private canDestroyFrame(frameActor: Actor): boolean {
+    return this.getFramePortEntryById(frameActor.id)?.destroyWhenEmpty ?? true;
+  }
+
+  private destroyEmptyFrameIfAllowed(
+    frameActor: Actor,
+    warningPrefix: string
+  ): { readonly destroyed: boolean; readonly warning?: string } {
+    if (!this.canDestroyFrame(frameActor)) {
+      return { destroyed: false };
+    }
+    try {
+      if (this.#actorSystem.hasActor(frameActor)) {
+        this.#actorSystem.destroyActor(frameActor);
+      }
+      return { destroyed: true };
+    } catch (error) {
+      return {
+        destroyed: false,
+        warning: describeError(error, warningPrefix)
       };
     }
   }
@@ -1075,6 +1488,18 @@ function listLayoutVisibleViewKeys(layout: WindowWorkspaceFrameLayout): readonly
   return viewKeys;
 }
 
+function mapPreferredFrameIdsByViewKey(layout: WindowWorkspaceFrameLayout): ReadonlyMap<WindowViewKey, string> {
+  const result = new Map<WindowViewKey, string>();
+  for (const frame of layout.frames) {
+    for (const viewKey of collectFrameViewKeys(frame.root)) {
+      if (!result.has(viewKey)) {
+        result.set(viewKey, frame.frameId);
+      }
+    }
+  }
+  return result;
+}
+
 function findRuntimeDockRootActiveViewActorId(root: WindowFrameRuntimeDockNode): string | null {
   if (root.kind === "tabset") return root.activeViewActorId ?? root.tabs[0] ?? null;
   return findRuntimeDockRootActiveViewActorId(root.first) ?? findRuntimeDockRootActiveViewActorId(root.second);
@@ -1099,6 +1524,10 @@ function listRuntimeDockRootViewActorIds(node: WindowFrameRuntimeDockNode): read
   return viewActorIds;
 }
 
+function toLiveViewKey(liveView: LiveWindowView): string {
+  return createWindowViewIdentityKey(liveView.identity);
+}
+
 function toActorWindowFocusReason(
   reason: Extract<WindowFrameLifecycleReason, "dock-drop" | "menu" | "tab-click" | "programmatic">
 ): "menu-restore" | "programmatic" {
@@ -1111,6 +1540,15 @@ function invalidDockCommit(reason: string): WindowDockCommitValidationResult {
 
 function describeError(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
+}
+
+function combineWarnings(warnings: readonly string[]): string | undefined {
+  return warnings.length > 0 ? warnings.join("; ") : undefined;
+}
+
+function createWarningResult(warnings: readonly string[]): { readonly warning?: string } {
+  const warning = combineWarnings(warnings);
+  return warning ? { warning } : {};
 }
 
 function isUsableDockRect(rect: {

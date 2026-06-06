@@ -9,6 +9,10 @@ import {
   findOwningFloatingWindowHost,
   findOwningWindowContentHost
 } from "./window-content-host-resolver";
+import {
+  workspaceRootDockFrameComponentType,
+  type WorkspaceRootDockFrameComponent
+} from "./workspace-root-dock-frame-component";
 
 describe("window content host resolver", () => {
   it("returns the floating window host for the frame actor itself", () => {
@@ -61,36 +65,61 @@ describe("window content host resolver", () => {
     expect(findOwningWindowContentHost(actorSystem, componentRegistry, tesseractActor)).toBe(viewHost);
   });
 
-  it("falls back to the frame host when the child actor is not a tab view", () => {
+  it("returns a view-scoped content host even before the child actor is added as a tab", () => {
     const actorSystem = new ActorSystem();
     const frameActor = actorSystem.createActor({ id: "debug-frame" });
     const childActor = actorSystem.createActor({ id: "frame-helper", parent: frameActor });
+    const childHost = createContentHost("debug-window:frame-helper");
     const frameHost = createFrameHost({
       id: "debug-window",
-      tabIds: ["debug-view"]
+      tabIds: ["debug-view"],
+      contentHosts: new Map([["frame-helper", childHost]])
     });
     const componentRegistry = createComponentRegistryView(new Map([
       [frameActor.id, frameHost]
     ]));
 
-    expect(findOwningWindowContentHost(actorSystem, componentRegistry, childActor)).toBe(frameHost);
+    expect(findOwningWindowContentHost(actorSystem, componentRegistry, childActor)).toBe(childHost);
+  });
+
+  it("returns a view-scoped content host from a root dock frame actor", () => {
+    const actorSystem = new ActorSystem();
+    const rootActor = actorSystem.createActor({ id: "workspace-root-frame" });
+    const viewActor = actorSystem.createActor({ id: "scene-view", parent: rootActor });
+    const viewHost = createContentHost("workspace-root:scene-view");
+    const rootHost = createFrameHost({
+      id: "workspace-root",
+      tabIds: [],
+      contentHosts: new Map([["scene-view", viewHost]])
+    });
+    const componentRegistry = createComponentRegistryView(new Map(), new Map([
+      [rootActor.id, rootHost as unknown as WorkspaceRootDockFrameComponent]
+    ]));
+
+    expect(findOwningWindowContentHost(actorSystem, componentRegistry, viewActor)).toBe(viewHost);
   });
 });
 
 function createComponentRegistryView(
-  hostsByActorId: ReadonlyMap<string, FloatingWindowComponent>
+  hostsByActorId: ReadonlyMap<string, FloatingWindowComponent>,
+  rootHostsByActorId: ReadonlyMap<string, WorkspaceRootDockFrameComponent> = new Map()
 ): ComponentRegistryView {
   return {
     getComponent(actor, type) {
-      return type === floatingWindowComponentType
-        ? (hostsByActorId.get(actor.id) as never) ?? null
-        : null;
+      if (type === floatingWindowComponentType) {
+        return (hostsByActorId.get(actor.id) as never) ?? null;
+      }
+      if (type === workspaceRootDockFrameComponentType) {
+        return (rootHostsByActorId.get(actor.id) as never) ?? null;
+      }
+      return null;
     },
     getComponents() {
       return [];
     },
     hasComponent(actor: Actor, type) {
-      return type === floatingWindowComponentType && hostsByActorId.has(actor.id);
+      return (type === floatingWindowComponentType && hostsByActorId.has(actor.id)) ||
+        (type === workspaceRootDockFrameComponentType && rootHostsByActorId.has(actor.id));
     }
   };
 }

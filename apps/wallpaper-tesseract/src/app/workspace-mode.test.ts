@@ -80,6 +80,10 @@ function createSceneViewPort(options: {
         presentationCalls.push(`enter:${candidateViewActorId}:${reason}`);
         presentations.push(`${candidateViewActorId}:fullscreen`);
       },
+      enterViewWorkspaceFullscreen(candidateViewActorId, reason): void {
+        presentationCalls.push(`workspace-enter:${candidateViewActorId}:${reason}`);
+        presentations.push(`${candidateViewActorId}:workspace-fullscreen`);
+      },
       exitViewFullscreen(candidateViewActorId, reason): void {
         presentationCalls.push(`exit:${candidateViewActorId}:${reason}`);
         presentations.push(`${candidateViewActorId}:windowed`);
@@ -163,7 +167,6 @@ describe("WorkspaceModeController", () => {
       ],
       onScenePresentationChanged: () => presentationMeasurements.push("measure")
     });
-
     values.set(sceneParameterPaths.workspace.mode, "run");
     controller.onSceneStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
@@ -232,6 +235,64 @@ describe("WorkspaceModeController", () => {
         timeStamp: undefined
       }
     ]);
+  });
+
+  it("delegates run mode to the workspace presentation port without mutating tool visibility", () => {
+    const values = new Map<ParameterPath, unknown>([
+      [sceneParameterPaths.workspace.mode, "develop"],
+      [sceneParameterPaths.sceneWindow.visible, true],
+      [sceneParameterPaths.debugWindow.visible, true],
+      [sceneParameterPaths.hierarchyWindow.visible, true]
+    ]);
+    const commands: SceneUpdateCommand[] = [];
+    const { sceneView, activations } = createSceneViewPort();
+    const presentationCalls: string[] = [];
+    const controller = new WorkspaceModeController({
+      commandSink: { submit: (command) => commands.push(command) },
+      getValue: (path) => values.get(path) as never,
+      sceneView,
+      workspacePresentation: {
+        enterRunFullscreenForView(viewActorId, reason) {
+          presentationCalls.push(`enter:${viewActorId}:${reason}`);
+        },
+        exitRunFullscreen(reason) {
+          presentationCalls.push(`exit:${reason}`);
+        }
+      },
+      toolWindows: [
+        { id: "debug", paths: sceneParameterPaths.debugWindow },
+        { id: "hierarchy", paths: sceneParameterPaths.hierarchyWindow }
+      ]
+    });
+    presentationCalls.length = 0;
+
+    values.set(sceneParameterPaths.workspace.mode, "run");
+    controller.onSceneStateChanged(createChangedEvent([{
+      path: sceneParameterPaths.workspace.mode,
+      previousValue: "develop",
+      nextValue: "run",
+      sources: [{ id: "shortcut", kind: "keyboard" }],
+      commands: []
+    }]));
+
+    expect(activations).toEqual(["activate:scene-view:programmatic"]);
+    expect(presentationCalls).toEqual(["enter:scene-view:programmatic"]);
+    expect(commands).toEqual([]);
+
+    values.set(sceneParameterPaths.workspace.mode, "develop");
+    controller.onSceneStateChanged(createChangedEvent([{
+      path: sceneParameterPaths.workspace.mode,
+      previousValue: "run",
+      nextValue: "develop",
+      sources: [{ id: "shortcut", kind: "keyboard" }],
+      commands: []
+    }]));
+
+    expect(presentationCalls).toEqual([
+      "enter:scene-view:programmatic",
+      "exit:programmatic"
+    ]);
+    expect(commands).toEqual([]);
   });
 
   it("does not refresh the snapshot for repeated run mode events", () => {
@@ -450,6 +511,9 @@ describe("WorkspaceModeController", () => {
       },
       presentation: {
         enterViewFullscreen: () => {
+          isolated = true;
+        },
+        enterViewWorkspaceFullscreen: () => {
           isolated = true;
         },
         exitViewFullscreen: () => {

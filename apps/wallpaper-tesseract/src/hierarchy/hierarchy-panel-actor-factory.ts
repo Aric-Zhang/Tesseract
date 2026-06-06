@@ -1,4 +1,4 @@
-import { createRegisteredActor } from "../actor-runtime";
+import { createRegisteredActor, type Actor, type RegisteredActor } from "../actor-runtime";
 import type { FeatureActorContext } from "../runtime/ports";
 import { sceneParameterPaths, vec2 } from "../scene-runtime";
 import {
@@ -7,6 +7,7 @@ import {
   type FloatingWindowState,
   type RegisteredWindowActor,
   type WindowFrameIntentSink,
+  type WindowFramePortRegistry,
   type WindowTabDragSink
 } from "../window-runtime";
 import {
@@ -29,7 +30,61 @@ export interface HierarchyPanelActorOptions {
   title?: string;
   document?: Pick<Document, "createElement">;
   frameIntentSink?: WindowFrameIntentSink;
+  framePortRegistry?: WindowFramePortRegistry;
   tabDragSink?: WindowTabDragSink;
+}
+
+export interface HierarchyPanelViewActorOptions {
+  actorId?: string;
+  actorName?: string;
+  parentActor: Actor;
+  objectSource: HierarchyObjectSource;
+  document?: Pick<Document, "createElement">;
+}
+
+export interface RegisteredHierarchyPanelViewActor extends RegisteredActor<HierarchyPanelComponent> {
+  disposeRuntimeTracking?(): void;
+}
+
+export function createHierarchyPanelViewActor(
+  context: FeatureActorContext,
+  options: HierarchyPanelViewActorOptions
+): RegisteredHierarchyPanelViewActor {
+  const actor = context.actorSystem.createActor({
+    id: options.actorId,
+    name: options.actorName ?? options.actorId,
+    parent: options.parentActor
+  });
+  try {
+    const component = context.componentRegistry.addComponent(actor, hierarchyPanelComponentType, {
+      id: "hierarchy-panel",
+      objectSource: options.objectSource,
+      document: options.document
+    });
+    let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
+    const baseHandle = createRegisteredActor({
+      actorSystem: context.actorSystem,
+      actor,
+      component,
+      beforeDispose: () => untrack?.dispose()
+    });
+    const handle: RegisteredHierarchyPanelViewActor = {
+      actor: baseHandle.actor,
+      component: baseHandle.component,
+      dispose: () => baseHandle.dispose(),
+      disposeRuntimeTracking: () => {
+        untrack?.dispose();
+        untrack = null;
+      }
+    };
+    untrack = context.trackRegisteredActor(handle);
+    return handle;
+  } catch (error) {
+    if (context.actorSystem.hasActor(actor)) {
+      context.actorSystem.destroyActor(actor);
+    }
+    throw error;
+  }
 }
 
 export function createHierarchyPanelActor(
@@ -55,6 +110,7 @@ export function createHierarchyPanelActor(
       activeViewActorId: viewActorId,
       activeViewKey: "hierarchy",
       frameIntentSink: options.frameIntentSink,
+      framePortRegistry: options.framePortRegistry,
       tabDragSink: options.tabDragSink,
       windowMenu: {
         viewKey: "hierarchy"
@@ -81,7 +137,11 @@ export function createHierarchyPanelActor(
       actor: baseHandle.actor,
       component: baseHandle.component,
       window: windowComponent as FloatingWindowComponent,
-      dispose: () => baseHandle.dispose()
+      dispose: () => baseHandle.dispose(),
+      disposeRuntimeTracking: () => {
+        untrack?.dispose();
+        untrack = null;
+      }
     };
     untrack = context.trackRegisteredActor(handle);
     return handle;

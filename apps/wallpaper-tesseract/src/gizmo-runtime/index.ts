@@ -21,5 +21,3 @@ export type {
 } from "./actor-input-participant";
 export { isActorInputParticipant } from "./actor-input-participant";
 export { ActorInputRouter } from "./actor-input-router";
-export type { GizmoResponder } from "./gizmo-responder";
-export { isGizmoResponder } from "./gizmo-responder";

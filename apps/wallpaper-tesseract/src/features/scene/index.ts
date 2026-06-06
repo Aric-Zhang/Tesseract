@@ -10,10 +10,13 @@ export type {
   SceneWindowStateOptions
 } from "./scene-window-state";
 export {
+  createSceneViewActor,
   createSceneWindowActor
 } from "./scene-window-actor-factory";
 export type {
+  RegisteredSceneViewActor,
   RegisteredSceneWindowActor,
+  SceneViewActorOptions,
   SceneWindowActorOptions
 } from "./scene-window-actor-factory";
 export {
@@ -30,3 +33,24 @@ export type {
   SceneViewportComponentOptions,
   SceneWorkspaceMode
 } from "./components";
+export {
+  createRenderableSceneView,
+  CurrentRenderableSceneViewRegistry
+} from "./renderable-scene-view";
+export type {
+  CreateRenderableSceneViewOptions,
+  RenderableSceneView,
+  RenderableSceneViewRegistry,
+  RenderableSceneViewSource
+} from "./renderable-scene-view";
+export { installSceneViewFeature } from "./install-scene-view-feature";
+export type {
+  InstalledSceneViewFeature,
+  InstallSceneViewFeatureOptions
+} from "./install-scene-view-feature";
+export { installSceneViewContent } from "./scene-view-content-installer";
+export type {
+  InstalledSceneViewContent,
+  InstallSceneViewContentOptions,
+  SceneViewContentActorIds
+} from "./scene-view-content-installer";

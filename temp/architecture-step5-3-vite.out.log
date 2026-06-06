@@ -1,0 +1,38 @@
+
+> wallpaper-tesseract@0.1.0 dev
+> vite --host 127.0.0.1 --host 127.0.0.1 --port 5179
+
+
+  [32m[1mVITE[22m v7.3.5[39m  [2mready in [0m[1m807[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5179[22m/[39m
+[2m00:00:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/features/app-menu/index.ts[22m
+[2m00:00:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/features/app-menu/index.ts[22m
+[2m00:00:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m00:07:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m00:11:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mD:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/packages/gizmo-core/dist/gizmo-event-system.js[22m
+[2m00:11:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mD:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/packages/gizmo-core/dist/types.js[22m
+[2m00:21:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/gizmos/camera3/camera3-gizmo.ts[22m
+[2m00:21:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/gizmos/camera3/components/camera3-gizmo-component.ts[22m
+[2m00:30:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mD:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/packages/gizmo-core/dist/debug-log.js[22m
+[2m00:30:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mD:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/packages/gizmo-core/dist/gizmo-event-system.js[22m
+[2m00:34:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app-runtime/app-runtime-context.ts[22m
+[2m00:35:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m00:38:08[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/features/scene/scene-view-content-installer.ts[22m
+[2m00:43:17[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/gizmo-runtime/actor-input-router.ts[22m
+[2m00:43:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/gizmo-runtime/index.ts[22m
+[2m00:43:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/gizmo-runtime/gizmo-responder.ts[22m
+[2m00:54:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-workspace-layout.ts[22m
+[2m00:55:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-workspace-layout.ts[22m
+[2m00:56:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-workspace-layout.ts[22m
+[2m00:56:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/index.ts[22m
+[2m01:01:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-view-identity.ts[22m
+[2m01:02:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-view-factory-registry.ts[22m
+[2m01:02:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-frame-lifecycle-controller.ts[22m
+[2m01:03:36[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-frame-lifecycle-controller.ts[22m
+[2m01:03:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-frame-lifecycle-controller.ts[22m
+[2m01:04:21[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-frame-lifecycle-controller.ts[22m
+[2m01:04:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-view-factory-registry.ts[22m
+[2m01:06:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-view-factory-registry.ts[22m
+[2m01:07:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-frame-lifecycle-controller.ts[22m
+[2m04:54:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mD:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/packages/gizmo-core/dist/gizmo-event-system.js[22m

@@ -1,5 +1,9 @@
-export { createDebugLogWindowActor } from "./debug-log-window-actor-factory";
-export type { DebugLogWindowActorOptions } from "./debug-log-window-actor-factory";
+export { createDebugLogViewActor, createDebugLogWindowActor } from "./debug-log-window-actor-factory";
+export type {
+  DebugLogViewActorOptions,
+  DebugLogWindowActorOptions,
+  RegisteredDebugLogViewActor
+} from "./debug-log-window-actor-factory";
 export {
   DebugLogContentComponent,
   debugLogContentComponentType

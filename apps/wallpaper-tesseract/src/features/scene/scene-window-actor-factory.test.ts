@@ -190,6 +190,31 @@ describe("createSceneWindowActor", () => {
     })).toThrow(/requires an owning FloatingWindowComponent/);
   });
 
+  it("can untrack runtime ownership without destroying the Scene actor tree", () => {
+    const context = createContext();
+    const untrackCalls: string[] = [];
+    context.trackRegisteredActor = () => ({
+      dispose: () => untrackCalls.push("untrack")
+    });
+    const document = new FakeDocument();
+    const parent = document.createElement("div");
+    const handle = createSceneWindowActor(context, {
+      actorId: "scene-actor",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      initialState: createDefaultSceneWindowState({ viewportWidth: 1000, viewportHeight: 800 }),
+      createRenderer: () => createFakeRenderer(document)
+    });
+
+    handle.disposeRuntimeTracking?.();
+    handle.disposeRuntimeTracking?.();
+
+    expect(untrackCalls).toEqual(["untrack"]);
+    expect(context.actorSystem.getActor("scene-actor")).toBe(handle.actor);
+    expect(context.actorSystem.getActor("scene-actor:view")).toBe(handle.viewport.actor);
+    expect(parent.children).toHaveLength(1);
+  });
+
   it("measures, renders, and disposes the viewport renderer", () => {
     const context = createContext();
     const document = new FakeDocument();

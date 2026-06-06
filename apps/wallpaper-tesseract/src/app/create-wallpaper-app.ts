@@ -1,63 +1,49 @@
 import { GizmoEventSystem } from "gizmo-core";
 import { AppRuntimeContext } from "../app-runtime";
 import {
-  createDebugLogWindowActor,
   createDefaultDebugWindowState,
   DEBUG_WINDOW_MIN_HEIGHT,
   DEBUG_WINDOW_MIN_WIDTH,
-  registerDebugWindowParameters
+  registerDebugWindowParameters,
+  type DebugLogContentComponent
 } from "../debug";
 import {
   createDefaultSceneWindowState,
+  installSceneViewFeature,
   registerSceneWindowParameters,
   SCENE_WINDOW_MIN_HEIGHT,
   SCENE_WINDOW_MIN_WIDTH,
   SCENE_WINDOW_PRIORITY_DEVELOP
 } from "../features/scene";
-import { createAppMenuBarActor } from "../features/app-menu";
+import { installAppMenuFeature } from "../features/app-menu";
 import {
   createActorHierarchyObjectSource,
   createDefaultHierarchyPanelState,
-  createHierarchyPanelActor,
   HIERARCHY_WINDOW_MIN_HEIGHT,
   HIERARCHY_WINDOW_MIN_WIDTH,
   registerHierarchyPanelParameters
 } from "../hierarchy";
+import { installToolWindowFeatures } from "../features/tool-windows";
 import {
   FrameStateController,
   sceneParameterPaths,
   SceneFrameClock,
   SceneParameterStore,
   SceneRuntime,
-  vec2,
-  type Vec2
+  vec2
 } from "../scene-runtime";
 import type { SceneStateObserverRegistry } from "../runtime/ports";
 import {
   createActorWindowFocusServiceProxy,
-  createDockTargetRegionSource,
-  DefaultWindowFrameLifecycleController,
-  floatingWindowComponentType,
-  type FloatingWindowParameterPaths,
-  type FloatingWindowState,
-  createWindowControlSource,
-  createWindowMenuViewSource,
-  WindowDockPreviewController,
-  type WindowDockRect,
-  type WindowFloatingFrameCreateOptions,
-  type WindowFrameIntentSink,
-  type WindowFramePort,
-  type WindowFrameTab,
   type WindowViewKey,
-  WindowViewFactoryRegistry,
-  hydrateWindowWorkspaceFrameLayout,
-  loadPersistedWindowWorkspaceFrameLayout,
-  type PersistedWindowWorkspaceFrameLayout,
-  WindowWorkspaceFrameLayoutPersistenceController,
-  type WindowWorkspaceFrameLayoutStorage,
-  WindowWorkspaceController,
-  WindowVisibilityActivationController
+  WORKSPACE_ROOT_FRAME_ID,
+  type WindowWorkspaceFrameLayoutStorage
 } from "../window-runtime";
+import {
+  installWindowWorkspaceFeature,
+  type InstalledWindowWorkspaceFeature,
+  type WindowWorkspaceFloatingFramePolicy
+} from "../features/window-workspace";
 import {
   APP_MENU_BAR_ACTOR_ID,
   APP_MENU_BAR_ACTOR_NAME,
@@ -73,9 +59,9 @@ import {
   TESSERACT4_ACTOR_NAME
 } from "./app-actor-ids";
 import { installWallpaperComponentDefinitions } from "./install-component-definitions";
+import { createWallpaperAppShell } from "./app-shell";
 import { ImmediateUpdateScheduler } from "./immediate-update-scheduler";
 import { RenderLoop } from "./render-loop";
-import { CurrentSceneViewSource, SceneViewRuntime } from "./scene-view-runtime";
 import {
   registerWorkspaceModeParameters,
   WorkspaceModeController
@@ -86,7 +72,8 @@ export interface WallpaperApp {
 }
 
 export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
-  mount.replaceChildren();
+  const appShell = createWallpaperAppShell(mount);
+  const floatingFrameParent = appShell.floatingOverlaySlot;
 
   const sceneRuntime = new SceneRuntime();
   const frameClock = new SceneFrameClock();
@@ -119,10 +106,9 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     }
   };
 
-  let debugLogWindow: ReturnType<typeof createDebugLogWindowActor> | null = null;
+  let debugLogWindow: { readonly component: DebugLogContentComponent } | null = null;
   const actorWindowFocus = createActorWindowFocusServiceProxy();
   const gizmoEventSystem = new GizmoEventSystem({
-    buttonsReleasedFallback: false,
     debug: true,
     debugConsole: true,
     onDebugLog: (entry) => debugLogWindow?.component.append(entry)
@@ -136,7 +122,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
 
   installWallpaperComponentDefinitions(runtimeContext.componentRegistry);
 
-  runtimeContext.registerLegacyRuntimeObject(frameStateController);
+  runtimeContext.registerRuntimeService(frameStateController);
 
   const hierarchyObjectSource = createActorHierarchyObjectSource({
     actorSystem: runtimeContext.actorSystem,
@@ -146,256 +132,97 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       [CAMERA3_GIZMO_ACTOR_ID]: { label: CAMERA3_GIZMO_ACTOR_NAME, order: 20 },
       [DEBUG_LOG_WINDOW_ACTOR_ID]: { label: DEBUG_LOG_WINDOW_ACTOR_NAME, order: 1000 },
       [HIERARCHY_PANEL_ACTOR_ID]: { label: HIERARCHY_PANEL_ACTOR_NAME, order: 1010 },
-      [APP_MENU_BAR_ACTOR_ID]: { label: APP_MENU_BAR_ACTOR_NAME, order: 1020 }
+      [APP_MENU_BAR_ACTOR_ID]: { label: APP_MENU_BAR_ACTOR_NAME, order: 1020 },
+      [WORKSPACE_ROOT_FRAME_ID]: { label: "Workspace Root", order: 1030 }
     }
-  });
-  const windowControlSource = createWindowControlSource({
-    actorSystem: runtimeContext.actorSystem
-  });
-  const dockTargetFrameSource = createDockTargetRegionSource({
-    actorSystem: runtimeContext.actorSystem
-  });
-  const windowMenuViewSource = createWindowMenuViewSource({
-    actorSystem: runtimeContext.actorSystem
-  });
-  const windowDockPreview = new WindowDockPreviewController({
-    source: dockTargetFrameSource,
-    parent: mount
-  });
-  const windowWorkspaceController = new WindowWorkspaceController({
-    actorSystem: runtimeContext.actorSystem,
-    source: windowControlSource
-  });
-  actorWindowFocus.bind(windowWorkspaceController);
-  runtimeContext.registerLegacyRuntimeObject(windowWorkspaceController);
-  const currentSceneView = new CurrentSceneViewSource();
-  const windowViewFactories = new WindowViewFactoryRegistry();
-  let windowFrameLifecycleController: DefaultWindowFrameLifecycleController | null = null;
-  const requireWindowFrameLifecycleController = (): DefaultWindowFrameLifecycleController => {
-    if (!windowFrameLifecycleController) {
-      throw new Error("Window frame lifecycle controller is not initialized.");
-    }
-    return windowFrameLifecycleController;
-  };
-  const windowFrameIntents: WindowFrameIntentSink = {
-    requestOpenView(viewKey, reason) {
-      requireWindowFrameLifecycleController().openView(viewKey, reason);
-    },
-    requestCloseFrame(frameId, reason) {
-      requireWindowFrameLifecycleController().closeFrame(frameId, reason);
-    },
-    requestActivateFrameTab(frameId, viewActorId, reason) {
-      requireWindowFrameLifecycleController().activateFrameTab(frameId, viewActorId, reason);
-    },
-    requestCommitDock(intent) {
-      requireWindowFrameLifecycleController().commitDock(intent);
-    }
-  };
-  const floatingFrameCounters = new Map<WindowViewKey, number>();
-  const createFloatingFrameForView = (options: WindowFloatingFrameCreateOptions): {
-    frameActor: ReturnType<typeof runtimeContext.actorSystem.createActor>;
-    framePort: WindowFramePort;
-  } => {
-    const frameOptions = getFloatingFrameOptions(options.source.viewKey, options.tab, options.bounds);
-    const ids = allocateFloatingFrameIds(
-      runtimeContext.actorSystem,
-      floatingFrameCounters,
-      options.source.viewKey,
-      frameOptions.preferredActorId,
-      frameOptions.preferredComponentId
-    );
-    const actor = runtimeContext.actorSystem.createActor({
-      id: ids.actorId,
-      name: `${options.tab.title} Window`
-    });
-    try {
-      const window = runtimeContext.componentRegistry.addComponent(actor, floatingWindowComponentType, {
-        id: ids.componentId,
-        parent: mount,
-        title: options.tab.title,
-        paths: options.runtimeOnly ? undefined : frameOptions.paths,
-        stateBinding: options.runtimeOnly ? { kind: "runtime" } : undefined,
-        initialState: frameOptions.initialState,
-        minSize: frameOptions.minSize,
-        className: frameOptions.className,
-        contentClassName: frameOptions.contentClassName,
-        priority: frameOptions.priority,
-        activeViewActorId: options.tab.viewActorId,
-        activeViewKey: options.tab.viewKey,
-        tabs: [options.tab],
-        frameIntentSink: windowFrameIntents,
-        tabDragSink: windowDockPreview,
-        windowMenu: options.runtimeOnly
-          ? { ...frameOptions.windowMenu, include: false }
-          : frameOptions.windowMenu
-      });
-      return {
-        frameActor: actor,
-        framePort: window as WindowFramePort
-      };
-    } catch (error) {
-      if (runtimeContext.actorSystem.hasActor(actor)) {
-        runtimeContext.actorSystem.destroyActor(actor);
-      }
-      throw error;
-    }
-  };
-  windowViewFactories.register({
-    viewKey: "scene",
-    label: SCENE_WINDOW_ACTOR_NAME,
-    order: 0,
-    create: (options) => {
-      const runtime = new SceneViewRuntime({
-        context: runtimeContext,
-        mount,
-        initialState: readFloatingWindowState(sceneStore, sceneParameterPaths.sceneWindow, {
-          fallback: sceneWindowState,
-          forceVisible: options.reason === "menu"
-        }),
-        actorIds: {
-          sceneWindowActorId: SCENE_WINDOW_ACTOR_ID,
-          sceneWindowActorName: SCENE_WINDOW_ACTOR_NAME,
-          camera3GizmoActorId: CAMERA3_GIZMO_ACTOR_ID,
-          camera3GizmoActorName: CAMERA3_GIZMO_ACTOR_NAME,
-          tesseract4ActorId: TESSERACT4_ACTOR_ID,
-          tesseract4ActorName: TESSERACT4_ACTOR_NAME
-        },
-        frameIntentSink: windowFrameIntents,
-        tabDragSink: windowDockPreview,
-        viewLocationSource: requireWindowFrameLifecycleController()
-      });
-      currentSceneView.setCurrent(runtime);
-      return {
-        frameActor: runtime.sceneWindow.actor,
-        framePort: runtime.sceneWindow.window,
-        viewActor: runtime.sceneWindow.viewport.actor,
-        content: runtime.sceneWindow.viewport,
-        dispose: () => {
-          currentSceneView.clear(runtime);
-          runtime.dispose({ destroyActorTree: false });
-        }
-      };
-    }
-  });
-  windowViewFactories.register({
-    viewKey: "debug",
-    label: DEBUG_LOG_WINDOW_ACTOR_NAME,
-    order: 1000,
-    create: (options) => {
-      const handle = createDebugLogWindowActor(runtimeContext, {
-        actorId: DEBUG_LOG_WINDOW_ACTOR_ID,
-        actorName: DEBUG_LOG_WINDOW_ACTOR_NAME,
-        parent: mount,
-        initialState: readFloatingWindowState(sceneStore, sceneParameterPaths.debugWindow, {
-          fallback: debugWindowState,
-          forceVisible: options.reason === "menu"
-        }),
-        frameIntentSink: windowFrameIntents,
-        tabDragSink: windowDockPreview
-      });
-      debugLogWindow = handle;
-      return {
-        frameActor: handle.actor,
-        framePort: handle.window,
-        viewActor: handle.component.actor,
-        content: handle.component,
-        dispose: () => {
-          if (debugLogWindow === handle) {
-            debugLogWindow = null;
-          }
-          handle.dispose();
-        }
-      };
-    }
-  });
-  windowViewFactories.register({
-    viewKey: "hierarchy",
-    label: HIERARCHY_PANEL_ACTOR_NAME,
-    order: 1010,
-    create: (options) => {
-      const handle = createHierarchyPanelActor(runtimeContext, {
-        actorId: HIERARCHY_PANEL_ACTOR_ID,
-        actorName: HIERARCHY_PANEL_ACTOR_NAME,
-        parent: mount,
-        initialWindowState: readFloatingWindowState(sceneStore, sceneParameterPaths.hierarchyWindow, {
-          fallback: hierarchyPanelState.window,
-          forceVisible: options.reason === "menu"
-        }),
-        objectSource: hierarchyObjectSource,
-        frameIntentSink: windowFrameIntents,
-        tabDragSink: windowDockPreview
-      });
-      return {
-        frameActor: handle.actor,
-        framePort: handle.window,
-        viewActor: handle.component.actor,
-        content: handle.component,
-        dispose: () => handle.dispose()
-      };
-    }
-  });
-  windowFrameLifecycleController = new DefaultWindowFrameLifecycleController({
-    actorSystem: runtimeContext.actorSystem,
-    factories: windowViewFactories,
-    actorWindowFocus,
-    cancelActiveInput: () => runtimeContext.cancelActiveActorInput(),
-    createFloatingFrame: createFloatingFrameForView
   });
   const layoutStorage = resolveWindowWorkspaceLayoutStorage();
-  const persistedFrameLayout = loadPersistedWindowWorkspaceFrameLayout(layoutStorage);
-  let restoredInitialLayout = false;
-  if (persistedFrameLayout) {
-    const restoreResult = windowFrameLifecycleController.restoreFrameLayout(
-      createHydratableFrameLayout(persistedFrameLayout),
-      "programmatic"
-    );
-    restoredInitialLayout = restoreResult.restoredViewKeys.length > 0;
-  }
-  if (!restoredInitialLayout) {
-    windowFrameLifecycleController.openView("scene", "programmatic");
-    windowFrameLifecycleController.openView("debug", "programmatic");
-    windowFrameLifecycleController.openView("hierarchy", "programmatic");
-  }
-  runtimeContext.registerLegacyRuntimeObject(new WindowWorkspaceFrameLayoutPersistenceController({
-    source: windowFrameLifecycleController,
-    storage: layoutStorage
-  }));
-  const windowActivationController = new WindowVisibilityActivationController({
-    source: windowControlSource
+  const windowWorkspace = installWindowWorkspaceFeature({
+    context: runtimeContext,
+    sceneStore,
+    floatingFrameParent,
+    rootFrameParent: appShell.rootDockSlot,
+    actorWindowFocus,
+    cancelActiveInput: () => runtimeContext.cancelActiveActorInput(),
+    floatingFramePolicies: createFloatingFramePolicies({
+      scene: sceneWindowState,
+      debug: debugWindowState,
+      hierarchy: hierarchyPanelState.window
+    }),
+    defaultOpenViews: [
+      { viewKey: "scene", preferredFrameId: WORKSPACE_ROOT_FRAME_ID },
+      { viewKey: "debug" },
+      { viewKey: "hierarchy" }
+    ],
+    layoutStorage,
+    registerRuntimeService: (object) => runtimeContext.registerRuntimeService(object)
   });
-  const unregisterWindowActivationObserver = frameStateBridge.subscribe(windowActivationController);
-  runtimeContext.registerLegacyRuntimeObject(windowActivationController);
-  createAppMenuBarActor(runtimeContext, {
+  const sceneFeature = installSceneViewFeature({
+    context: runtimeContext,
+    mount: floatingFrameParent,
+    sceneStore,
+    sceneWindowState,
+    actorIds: {
+      sceneWindowActorId: SCENE_WINDOW_ACTOR_ID,
+      sceneWindowActorName: SCENE_WINDOW_ACTOR_NAME,
+      camera3GizmoActorId: CAMERA3_GIZMO_ACTOR_ID,
+      camera3GizmoActorName: CAMERA3_GIZMO_ACTOR_NAME,
+      tesseract4ActorId: TESSERACT4_ACTOR_ID,
+      tesseract4ActorName: TESSERACT4_ACTOR_NAME
+    },
+    viewFactories: windowWorkspace.viewFactories,
+    locations: windowWorkspace.lifecycle,
+    frameIntentSink: windowWorkspace.frameIntents,
+    framePortRegistry: windowWorkspace.framePorts,
+    tabDragSink: windowWorkspace.tabDragSink
+  });
+  installToolWindowFeatures({
+    context: runtimeContext,
+    viewFactories: windowWorkspace.viewFactories,
+    hierarchyObjectSource,
+    debugLogLabel: DEBUG_LOG_WINDOW_ACTOR_NAME,
+    hierarchyLabel: HIERARCHY_PANEL_ACTOR_NAME,
+    actorIds: {
+      debugLogViewActorId: `${DEBUG_LOG_WINDOW_ACTOR_ID}:view`,
+      debugLogViewActorName: `${DEBUG_LOG_WINDOW_ACTOR_NAME} View`,
+      hierarchyPanelViewActorId: `${HIERARCHY_PANEL_ACTOR_ID}:view`,
+      hierarchyPanelViewActorName: `${HIERARCHY_PANEL_ACTOR_NAME} View`
+    },
+    onDebugLogContentChanged(component) {
+      debugLogWindow = component ? { component } : null;
+    }
+  });
+  if (!windowWorkspace.restorePersistedLayout()) {
+    windowWorkspace.openDefaultViews();
+  }
+  installAppMenuFeature({
+    context: runtimeContext,
     actorId: APP_MENU_BAR_ACTOR_ID,
     actorName: APP_MENU_BAR_ACTOR_NAME,
-    parent: mount,
-    windowSource: windowControlSource,
-    windowMenuViewSource,
-    windowViewFactories,
-    windowFrameIntents
+    parent: appShell.menuSlot,
+    windowCatalog: windowWorkspace.catalog,
+    windowFrameIntents: windowWorkspace.frameIntents
   });
   const workspaceModeController = new WorkspaceModeController({
     commandSink: frameStateBridge,
     getValue: (path) => sceneStore.get(path),
     sceneView: {
       viewKey: "scene",
-      locations: requireWindowFrameLifecycleController(),
-      commands: requireWindowFrameLifecycleController(),
-      presentation: requireWindowFrameLifecycleController(),
-      open: () => requireWindowFrameLifecycleController().openView("scene", "programmatic")
+      locations: windowWorkspace.lifecycle,
+      commands: windowWorkspace.lifecycle,
+      presentation: windowWorkspace.lifecycle,
+      open: () => windowWorkspace.lifecycle.openView("scene", "programmatic")
     },
-    toolWindows: [
-      { id: DEBUG_LOG_WINDOW_ACTOR_ID, paths: sceneParameterPaths.debugWindow },
-      { id: HIERARCHY_PANEL_ACTOR_ID, paths: sceneParameterPaths.hierarchyWindow }
-    ],
-    onScenePresentationChanged: () => currentSceneView.current?.measureNow()
+    workspacePresentation: windowWorkspace.presentationController,
+    toolWindows: [],
+    onScenePresentationChanged: () => sceneFeature.renderableSceneViews.current?.measureNow()
   });
   const unregisterWorkspaceModeObserver = frameStateBridge.subscribe(workspaceModeController);
 
   const renderLoop = new RenderLoop({ update });
 
   function measureSceneViewport(): void {
-    currentSceneView.current?.measureNow();
+    sceneFeature.renderableSceneViews.current?.measureNow();
   }
 
   function update(timeMs: number): void {
@@ -403,7 +230,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     isUpdatingFrame = true;
     try {
       sceneRuntime.updateFrame(frame);
-      currentSceneView.current?.render();
+      sceneFeature.renderableSceneViews.current?.render();
     } finally {
       isUpdatingFrame = false;
     }
@@ -432,12 +259,12 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     renderLoop.dispose();
     immediateUpdates.dispose();
     unregisterWorkspaceModeObserver.dispose();
-    unregisterWindowActivationObserver.dispose();
     workspaceModeController.dispose();
-    closeLiveWindowFrames(windowFrameLifecycleController);
-    windowDockPreview.dispose();
+    closeLiveWindowFrames(windowWorkspace.lifecycle);
+    windowWorkspace.dispose();
     actorWindowFocus.dispose();
     runtimeContext.dispose();
+    appShell.dispose();
   }
 
   measureSceneViewport();
@@ -449,7 +276,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   return { dispose };
 }
 
-function closeLiveWindowFrames(controller: DefaultWindowFrameLifecycleController | null): void {
+function closeLiveWindowFrames(controller: InstalledWindowWorkspaceFeature["lifecycle"]): void {
   if (!controller) return;
   const frameIds = new Set(controller.listLiveViews().map((view) => view.frameActor.id));
   for (const frameId of frameIds) {
@@ -465,145 +292,40 @@ function resolveWindowWorkspaceLayoutStorage(): WindowWorkspaceFrameLayoutStorag
   }
 }
 
-function createHydratableFrameLayout(persisted: PersistedWindowWorkspaceFrameLayout) {
-  return hydrateWindowWorkspaceFrameLayout(
-    persisted,
-    persisted.views.map((view) => ({
-      viewKey: view.viewKey,
-      actorId: `persisted:${view.viewKey}`,
-      title: view.title,
-      canDock: view.canDock
-    }))
-  );
-}
-
-interface FloatingFrameShellOptions {
-  readonly preferredActorId: string;
-  readonly preferredComponentId: string;
-  readonly paths: FloatingWindowParameterPaths;
-  readonly initialState: FloatingWindowState;
-  readonly minSize: Vec2;
-  readonly className: string;
-  readonly contentClassName?: string;
-  readonly priority: number;
-  readonly windowMenu: {
-    readonly include?: boolean;
-    readonly viewKey: WindowViewKey;
-    readonly label?: string;
-    readonly order?: number;
-    readonly activationMode?: "visible";
-  };
-}
-
-function getFloatingFrameOptions(
-  viewKey: WindowViewKey,
-  tab: WindowFrameTab,
-  bounds: WindowDockRect
-): FloatingFrameShellOptions {
-  switch (viewKey) {
-    case "scene": {
-      const minSize = vec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT);
-      return {
-        preferredActorId: SCENE_WINDOW_ACTOR_ID,
-        preferredComponentId: "floating-window:scene",
-        paths: sceneParameterPaths.sceneWindow,
-        initialState: createFloatingStateFromBounds(bounds, minSize),
-        minSize,
-        className: "scene-window",
-        contentClassName: "scene-window__content",
-        priority: SCENE_WINDOW_PRIORITY_DEVELOP,
-        windowMenu: {
-          include: true,
-          viewKey,
-          label: tab.title,
-          order: 0,
-          activationMode: "visible"
-        }
-      };
-    }
-    case "debug": {
-      const minSize = vec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT);
-      return {
-        preferredActorId: DEBUG_LOG_WINDOW_ACTOR_ID,
-        preferredComponentId: "floating-window:debug-log",
-        paths: sceneParameterPaths.debugWindow,
-        initialState: createFloatingStateFromBounds(bounds, minSize),
-        minSize,
-        className: "debug-log-window",
-        priority: 1000,
-        windowMenu: { viewKey, label: tab.title, activationMode: "visible" }
-      };
-    }
-    case "hierarchy": {
-      const minSize = vec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT);
-      return {
-        preferredActorId: HIERARCHY_PANEL_ACTOR_ID,
-        preferredComponentId: "floating-window:hierarchy",
-        paths: sceneParameterPaths.hierarchyWindow,
-        initialState: createFloatingStateFromBounds(bounds, minSize),
-        minSize,
-        className: "hierarchy-window",
-        priority: 1100,
-        windowMenu: { viewKey, label: tab.title, activationMode: "visible" }
-      };
-    }
-    default:
-      throw new Error(`No floating frame shell is registered for view: ${viewKey}`);
-  }
-}
-
-function createFloatingStateFromBounds(bounds: WindowDockRect, minSize: Vec2): FloatingWindowState {
-  return {
-    position: vec2(Math.max(0, Math.round(bounds.left)), Math.max(0, Math.round(bounds.top))),
-    size: vec2(
-      Math.max(minSize.x, Math.round(bounds.width)),
-      Math.max(minSize.y, Math.round(bounds.height))
-    ),
-    visible: true
-  };
-}
-
-function allocateFloatingFrameIds(
-  actorSystem: { getActor(id: string): unknown },
-  counters: Map<WindowViewKey, number>,
-  viewKey: WindowViewKey,
-  preferredActorId: string,
-  preferredComponentId: string
-): { readonly actorId: string; readonly componentId: string } {
-  if (!actorSystem.getActor(preferredActorId)) {
-    return { actorId: preferredActorId, componentId: preferredComponentId };
-  }
-  let counter = counters.get(viewKey) ?? 1;
-  while (true) {
-    const actorId = `${preferredActorId}:floating-${counter}`;
-    const componentId = `${preferredComponentId}:floating-${counter}`;
-    counters.set(viewKey, counter + 1);
-    counter += 1;
-    if (!actorSystem.getActor(actorId)) {
-      return { actorId, componentId };
-    }
-  }
-}
-
-function readFloatingWindowState(
-  store: SceneParameterStore,
-  paths: FloatingWindowParameterPaths,
-  options: {
-    readonly fallback: FloatingWindowState;
-    readonly forceVisible?: boolean;
-  }
-): FloatingWindowState {
-  const position = readVec2(store, paths.position, options.fallback.position);
-  const size = readVec2(store, paths.size, options.fallback.size);
-  const visible = options.forceVisible ? true : store.get<boolean>(paths.visible);
-  return { position, size, visible };
-}
-
-function readVec2(
-  store: SceneParameterStore,
-  path: FloatingWindowParameterPaths["position"] | FloatingWindowParameterPaths["size"],
-  fallback: Vec2
-): Vec2 {
-  const value = store.get<Vec2>(path);
-  return value ? vec2(value.x, value.y) : vec2(fallback.x, fallback.y);
+function createFloatingFramePolicies(fallbackStates: {
+  readonly scene: ReturnType<typeof createDefaultSceneWindowState>;
+  readonly debug: ReturnType<typeof createDefaultDebugWindowState>;
+  readonly hierarchy: ReturnType<typeof createDefaultHierarchyPanelState>["window"];
+}): ReadonlyMap<WindowViewKey, WindowWorkspaceFloatingFramePolicy> {
+  return new Map<WindowViewKey, WindowWorkspaceFloatingFramePolicy>([
+    ["scene", {
+      preferredActorId: SCENE_WINDOW_ACTOR_ID,
+      preferredComponentId: "floating-window:scene",
+      paths: sceneParameterPaths.sceneWindow,
+      fallbackState: fallbackStates.scene,
+      minSize: vec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT),
+      className: "scene-window",
+      contentClassName: "scene-window__content",
+      priority: SCENE_WINDOW_PRIORITY_DEVELOP,
+      menuOrder: 0
+    }],
+    ["debug", {
+      preferredActorId: DEBUG_LOG_WINDOW_ACTOR_ID,
+      preferredComponentId: "floating-window:debug-log",
+      paths: sceneParameterPaths.debugWindow,
+      fallbackState: fallbackStates.debug,
+      minSize: vec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
+      className: "debug-log-window",
+      priority: 1000
+    }],
+    ["hierarchy", {
+      preferredActorId: HIERARCHY_PANEL_ACTOR_ID,
+      preferredComponentId: "floating-window:hierarchy",
+      paths: sceneParameterPaths.hierarchyWindow,
+      fallbackState: fallbackStates.hierarchy,
+      minSize: vec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT),
+      className: "hierarchy-window",
+      priority: 1100
+    }]
+  ]);
 }

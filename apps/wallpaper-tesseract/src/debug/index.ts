@@ -1,5 +1,13 @@
-export { createDebugLogWindowActor } from "./components";
-export type { DebugLogWindowActorOptions } from "./components";
+export {
+  createDebugLogViewActor,
+  createDebugLogWindowActor,
+  DebugLogContentComponent
+} from "./components";
+export type {
+  DebugLogViewActorOptions,
+  DebugLogWindowActorOptions,
+  RegisteredDebugLogViewActor
+} from "./components";
 export {
   createDefaultDebugWindowState,
   DEBUG_WINDOW_MIN_HEIGHT,

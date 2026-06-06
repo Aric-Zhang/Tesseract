@@ -9,7 +9,6 @@ import { componentType, type Actor, type Component } from "../actor-runtime";
 import type { ActorInputHit } from "./actor-input-hit";
 import { isActorInputParticipant, type ActorInputParticipant } from "./actor-input-participant";
 import { ActorInputRouter } from "./actor-input-router";
-import type { GizmoResponder } from "./gizmo-responder";
 
 interface ActorHarness {
   readonly actor: Actor;
@@ -134,54 +133,6 @@ function createPlainComponent(actor: Actor, id: string): Component {
   };
 }
 
-function createLegacyResponder(
-  actor: Actor,
-  calls: string[],
-  id: string,
-  options: {
-    enabled?: boolean;
-    gizmoPriority?: number;
-    hitPriority?: number;
-  } = {}
-): GizmoResponder {
-  const responderHit: GizmoHit = {
-    gizmoId: `${id}-gizmo`,
-    partId: id,
-    kind: "custom",
-    priority: options.hitPriority,
-    data: { id }
-  };
-  return {
-    id,
-    type: componentType<GizmoResponder>(`legacy-${id}`),
-    actor,
-    enabled: options.enabled ?? true,
-    gizmoPriority: options.gizmoPriority ?? 0,
-    hitTestGizmo(_point) {
-      calls.push(`legacy-hit:${id}`);
-      return responderHit;
-    },
-    onGizmoStart(event) {
-      calls.push(`legacy-start:${id}:${event.hit.gizmoId}:${event.hit.partId}`);
-    },
-    onGizmoMove(event) {
-      calls.push(`legacy-move:${id}:${event.hit.gizmoId}:${event.hit.partId}`);
-    },
-    onGizmoEnd(event) {
-      calls.push(`legacy-end:${id}:${event.hit.gizmoId}:${event.hit.partId}:${event.wasClick}`);
-    },
-    onGizmoCancel(event) {
-      calls.push(`legacy-cancel:${id}:${event.reason}`);
-    },
-    onGizmoClick(event) {
-      calls.push(`legacy-click:${id}:${event.hit.gizmoId}:${event.hit.partId}:${event.clickCount}`);
-    },
-    onGizmoDoubleClick(event) {
-      calls.push(`legacy-double:${id}:${event.hit.gizmoId}:${event.hit.partId}:${event.clickCount}`);
-    }
-  };
-}
-
 function createFakeGizmo(): GizmoController {
   return {
     id: "binding",
@@ -229,17 +180,10 @@ describe("ActorInputRouter", () => {
     const { actor } = createActorHarness();
     const calls: string[] = [];
     const participant = createParticipant(actor, calls, "participant");
-    const legacy = createLegacyResponder(actor, calls, "legacy");
-    const hybrid = Object.assign(createParticipant(actor, calls, "hybrid"), {
-      gizmoPriority: 1,
-      hitTestGizmo(): GizmoHit | null {
-        return createBindingHit("legacy-hybrid");
-      }
-    });
+    const plain = createPlainComponent(actor, "plain");
 
     expect(isActorInputParticipant(participant)).toBe(true);
-    expect(isActorInputParticipant(hybrid)).toBe(true);
-    expect(isActorInputParticipant(legacy)).toBe(false);
+    expect(isActorInputParticipant(plain)).toBe(false);
   });
 
   it("selects hits by local route, participant priority, hit priority, path depth, then attach order", () => {
@@ -452,49 +396,19 @@ describe("ActorInputRouter", () => {
     expect(calls).toEqual(["cancel:target:gizmo-disabled"]);
   });
 
-  it("adapts legacy GizmoResponder hit tests and events", () => {
-    const { actor, add } = createActorHarness();
-    const calls: string[] = [];
-    add(createLegacyResponder(actor, calls, "legacy", {
-      gizmoPriority: 10,
-      hitPriority: 3
-    }));
-    const router = new ActorInputRouter({ actor });
-    const selection = router.hitTest({ x: 0, y: 0 });
-    if (!selection) throw new Error("Expected selection.");
-    calls.length = 0;
-
-    router.start(selection, createStartEvent());
-    router.move(createMoveEvent());
-    router.end({ ...createMoveEvent(), totalDelta: { dx: 0, dy: 0 }, wasClick: true });
-    router.click(selection, { ...createStartEvent(), clickCount: 1 });
-    router.doubleClick(selection, { ...createStartEvent(), clickCount: 2 });
-
-    expect(selection.stackPriority).toBe(10);
-    expect(selection.hit.hitPriority).toBe(3);
-    expect(calls).toEqual([
-      "legacy-start:legacy:legacy-gizmo:legacy",
-      "legacy-move:legacy:legacy-gizmo:legacy",
-      "legacy-end:legacy:legacy-gizmo:legacy:true",
-      "legacy-click:legacy:legacy-gizmo:legacy:1",
-      "legacy-double:legacy:legacy-gizmo:legacy:2"
-    ]);
-  });
-
-  it("uses the new participant path when a component also implements legacy GizmoResponder", () => {
+  it("uses only the ActorInputParticipant path for hybrid-shaped components", () => {
     const { actor, add } = createActorHarness();
     const calls: string[] = [];
     const hybrid = Object.assign(createParticipant(actor, calls, "hybrid", {
       inputStackPriority: 20,
       hit: createHit("hybrid", { partId: "new-path" })
     }), {
-      gizmoPriority: 100,
-      hitTestGizmo(): GizmoHit | null {
-        calls.push("legacy-hit:hybrid");
-        return createBindingHit("legacy-path");
+      otherHitTest(): GizmoHit | null {
+        calls.push("other-hit:hybrid");
+        return createBindingHit("other-path");
       },
-      onGizmoStart(): void {
-        calls.push("legacy-start:hybrid");
+      onOtherStart(): void {
+        calls.push("other-start:hybrid");
       }
     });
     add(hybrid);

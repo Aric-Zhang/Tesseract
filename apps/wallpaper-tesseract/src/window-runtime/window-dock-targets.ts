@@ -23,10 +23,6 @@ export interface WindowDockTargetRegion {
   readonly contentBounds: WindowDockRect;
 }
 
-// Compatibility alias while the docking code migrates from frame-level naming to
-// tabset-region naming.
-export type WindowDockTargetFrame = WindowDockTargetRegion;
-
 export type WindowDockPreview =
   | {
       readonly kind: "merge-tabs";

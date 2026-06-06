@@ -1,0 +1,31 @@
+{
+  "data": {
+    "camera3": true,
+    "canvas": {
+      "backingHeight": 801,
+      "backingWidth": 742,
+      "height": 640.7999877929688,
+      "left": 0,
+      "top": 56.79999923706055,
+      "width": 593.6000366210938
+    },
+    "fullscreenButton": {
+      "aria": "Expand Scene to fullscreen",
+      "height": 40,
+      "left": 531.6000366210938,
+      "top": 244.8000030517578,
+      "width": 40
+    },
+    "hierarchyText": true,
+    "menuButton": {
+      "height": 26,
+      "left": 513.6000366210938,
+      "text": "Window",
+      "top": 10,
+      "width": 68
+    }
+  },
+  "errorCount": 0,
+  "consoleErrors": [],
+  "caveat": "Fresh-tab read-only smoke after in-app screenshot/locator timeout; interaction smoke deferred to next UI step."
+}

@@ -127,7 +127,8 @@
 }
 
 .app-menu-bar__menu-item:focus-visible,
-.app-menu-bar__menu-item:hover {
+.app-menu-bar__menu-item:hover,
+.app-menu-bar__menu-item[data-keyboard-active="true"] {
   outline: none;
   background: rgba(124, 195, 255, 0.14);
 }

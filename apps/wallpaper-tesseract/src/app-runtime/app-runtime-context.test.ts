@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { GizmoController, GizmoHit, ScreenPoint } from "gizmo-core";
+import type { GizmoController } from "gizmo-core";
 import type { RuntimeObject, RuntimeRegistration, SceneStateObserver, SceneUpdateCommand } from "../scene-runtime";
 import { AppRuntimeContext, createRegisteredObject } from "./app-runtime-context";
 import {
@@ -9,23 +9,16 @@ import {
   type Component
 } from "../actor-runtime";
 
-type TestObject = RuntimeObject & GizmoController & SceneStateObserver;
+type TestObject = RuntimeObject;
 interface TestActorComponent extends Component {}
-type FailurePoint = "scene" | "gizmo" | "observer";
-type DisposeFailurePoint = "scene-dispose" | "gizmo-dispose" | "observer-dispose";
+type FailurePoint = "scene";
+type DisposeFailurePoint = "scene-dispose";
 
 const testActorComponentType = componentType<TestActorComponent>("test-actor-component");
 
 function createTestObject(id = "test-object"): TestObject {
   return {
-    id,
-    priority: 0,
-    hitTest(_point: ScreenPoint): GizmoHit | null {
-      return null;
-    },
-    onSceneStateChanged() {
-      // Test observer.
-    }
+    id
   };
 }
 
@@ -60,7 +53,6 @@ function createSystems(options: {
   const gizmoEventSystem = {
     register(object: GizmoController): RuntimeRegistration {
       calls.push(`gizmo-register:${object.id}`);
-      if (options.failAt === "gizmo") throw new Error("gizmo failed");
       return createRegistration("gizmo-dispose", calls, options.failDisposeAt);
     },
     dispose() {
@@ -73,7 +65,6 @@ function createSystems(options: {
     },
     subscribe(observer: SceneStateObserver): RuntimeRegistration {
       calls.push(`observer-subscribe:${(observer as unknown as RuntimeObject).id}`);
-      if (options.failAt === "observer") throw new Error("observer failed");
       return createRegistration("observer-dispose", calls, options.failDisposeAt);
     },
     dispose() {
@@ -113,97 +104,51 @@ function registerActorComponentDefinition(context: AppRuntimeContext, calls: str
 }
 
 describe("AppRuntimeContext", () => {
-  it("registers stateful gizmo objects across all required systems", () => {
+  it("registers runtime services with the scene runtime only", () => {
     const { calls, context } = createSystems();
     const object = createTestObject();
 
-    context.registerLegacyStatefulGizmoObject(object);
+    context.registerRuntimeService(object);
 
     expect(calls).toEqual([
-      "scene-register:test-object",
-      "gizmo-register:test-object",
-      "observer-subscribe:test-object"
+      "scene-register:test-object"
     ]);
   });
 
   it("rejects duplicate object registration before touching lower-level systems", () => {
     const { calls, context } = createSystems();
     const object = createTestObject();
-    context.registerLegacyRuntimeObject(object);
+    context.registerRuntimeService(object);
     calls.length = 0;
 
-    expect(() => context.registerLegacyRuntimeObject(object)).toThrow(/already registered/);
+    expect(() => context.registerRuntimeService(object)).toThrow(/already registered/);
     expect(calls).toEqual([]);
   });
 
   it("rejects duplicate ids before touching lower-level systems", () => {
     const { calls, context } = createSystems();
-    context.registerLegacyRuntimeObject(createTestObject("same-id"));
+    context.registerRuntimeService(createTestObject("same-id"));
     calls.length = 0;
 
-    expect(() => context.registerLegacyRuntimeObject(createTestObject("same-id"))).toThrow(/id is already registered/);
+    expect(() => context.registerRuntimeService(createTestObject("same-id"))).toThrow(/id is already registered/);
     expect(calls).toEqual([]);
   });
 
   it("does not continue registration when scene runtime registration fails", () => {
     const { calls, context } = createSystems({ failAt: "scene" });
 
-    expect(() => context.registerLegacyStatefulGizmoObject(createTestObject())).toThrow("scene failed");
+    expect(() => context.registerRuntimeService(createTestObject())).toThrow("scene failed");
     expect(calls).toEqual(["scene-register:test-object"]);
-  });
-
-  it("rolls back scene registration when gizmo registration fails", () => {
-    const { calls, context } = createSystems({ failAt: "gizmo" });
-
-    expect(() => context.registerLegacyStatefulGizmoObject(createTestObject())).toThrow("gizmo failed");
-    expect(calls).toEqual([
-      "scene-register:test-object",
-      "gizmo-register:test-object",
-      "scene-dispose"
-    ]);
-  });
-
-  it("rolls back in reverse order when observer registration fails", () => {
-    const { calls, context } = createSystems({ failAt: "observer" });
-
-    expect(() => context.registerLegacyStatefulGizmoObject(createTestObject())).toThrow("observer failed");
-    expect(calls).toEqual([
-      "scene-register:test-object",
-      "gizmo-register:test-object",
-      "observer-subscribe:test-object",
-      "gizmo-dispose",
-      "scene-dispose"
-    ]);
-  });
-
-  it("continues rollback when one dispose throws", () => {
-    const rollbackErrors: unknown[][] = [];
-    const { calls, context } = createSystems({
-      failAt: "observer",
-      failDisposeAt: "gizmo-dispose",
-      rollbackErrors
-    });
-
-    expect(() => context.registerLegacyStatefulGizmoObject(createTestObject())).toThrow("observer failed");
-    expect(calls).toEqual([
-      "scene-register:test-object",
-      "gizmo-register:test-object",
-      "observer-subscribe:test-object",
-      "gizmo-dispose",
-      "scene-dispose"
-    ]);
-    expect(rollbackErrors).toHaveLength(1);
-    expect(rollbackErrors[0]).toHaveLength(1);
   });
 
   it("unmarks objects when a registration is disposed", () => {
     const { context } = createSystems();
     const object = createTestObject();
-    const registration = context.registerLegacyRuntimeObject(object);
+    const registration = context.registerRuntimeService(object);
 
     registration.dispose();
 
-    expect(() => context.registerLegacyRuntimeObject(object)).not.toThrow();
+    expect(() => context.registerRuntimeService(object)).not.toThrow();
   });
 
   it("creates idempotent registered object handles", () => {

@@ -20,7 +20,6 @@ import { actorInputScopeRoutePriority, type ActorInputHit, type ActorInputHitReg
 import type { ActorInputParticipant } from "./actor-input-participant";
 import { gizmoEventBindingComponentType } from "./gizmo-event-binding-component";
 import { gizmoEventBindingComponentDefinition } from "./gizmo-event-binding-definition";
-import type { GizmoResponder } from "./gizmo-responder";
 
 function createRegistry(options: { actorWindowFocus?: ActorWindowFocusService } = {}) {
   const calls: string[] = [];
@@ -57,68 +56,6 @@ function createRegistry(options: { actorWindowFocus?: ActorWindowFocusService } 
   return { actorSystem, calls, registered, registry };
 }
 
-function createResponderDefinition(
-  calls: string[],
-  label: string,
-  options: {
-    gizmoPriority: number;
-    hitPriority?: number;
-    enabled?: boolean;
-  }
-): ComponentDefinition<GizmoResponder> {
-  const type = componentType<GizmoResponder>(`responder-${label}`);
-  return {
-    type,
-    singleton: true,
-    createId() {
-      return `${label}-responder`;
-    },
-    create(actor) {
-      const responderHit: GizmoHit = {
-        gizmoId: `${label}-responder`,
-        partId: label,
-        kind: "custom",
-        priority: options.hitPriority
-      };
-      return {
-        id: `${label}-responder`,
-        type,
-        actor,
-        enabled: options.enabled ?? true,
-        gizmoPriority: options.gizmoPriority,
-        hitTestGizmo(_point: ScreenPoint): GizmoHit | null {
-          calls.push(`hit:${label}`);
-          return responderHit;
-        },
-        onGizmoStart(event: GizmoStartEvent): void {
-          calls.push(`start:${label}:${event.hit.gizmoId}:${event.hit.partId}`);
-        },
-        onGizmoMove(): void {
-          calls.push(`move:${label}`);
-        },
-        onGizmoEnd(event): void {
-          calls.push(`end:${label}:${event.hit.gizmoId}:${event.hit.partId}:${event.wasClick}`);
-        },
-        onGizmoCancel(event): void {
-          calls.push(`cancel:${label}:${event.reason}`);
-        },
-        onGizmoClick(event): void {
-          calls.push(`click:${label}:${event.hit.gizmoId}:${event.hit.partId}:${event.clickCount}`);
-        },
-        onGizmoDoubleClick(event): void {
-          calls.push(`double-click:${label}:${event.hit.gizmoId}:${event.hit.partId}:${event.clickCount}`);
-        },
-        onDetach(): void {
-          calls.push(`detach:${label}`);
-        },
-        dispose(): void {
-          calls.push(`dispose:${label}`);
-        }
-      };
-    }
-  };
-}
-
 function createActorInputHit(componentId: string, label: string, options: {
   region?: ActorInputHitRegion;
   scopeRoutePriority?: number;
@@ -153,6 +90,7 @@ function createActorInputParticipantDefinition(
     localRoutePriority?: number;
     hitPriority?: number;
     path?: ActorInputHit["path"];
+    enabled?: boolean;
   } = {}
 ): ComponentDefinition<ActorInputParticipant> {
   const type = componentType<ActorInputParticipant>(`input-participant-${label}`);
@@ -174,7 +112,7 @@ function createActorInputParticipantDefinition(
         id: `${label}-participant`,
         type,
         actor,
-        enabled: true,
+        enabled: options.enabled ?? true,
         inputStackPriority: options.inputStackPriority,
         inputPriority: options.inputPriority,
         hitTestInput(): ActorInputHit | null {
@@ -187,8 +125,20 @@ function createActorInputParticipantDefinition(
         onInputMove(): void {
           calls.push(`input-move:${label}`);
         },
+        onInputEnd(event): void {
+          calls.push(`input-end:${label}:${event.hit.componentId}:${event.hit.partId}:${event.wasClick}`);
+        },
         onInputCancel(event): void {
           calls.push(`input-cancel:${label}:${event.reason}`);
+        },
+        onInputClick(event): void {
+          calls.push(`input-click:${label}:${event.hit.componentId}:${event.hit.partId}:${event.clickCount}`);
+        },
+        onInputDoubleClick(event): void {
+          calls.push(`input-double-click:${label}:${event.hit.componentId}:${event.hit.partId}:${event.clickCount}`);
+        },
+        onDetach(): void {
+          calls.push(`input-detach:${label}`);
         },
         dispose(): void {
           calls.push(`input-dispose:${label}`);
@@ -288,15 +238,16 @@ describe("GizmoEventBindingComponent", () => {
     expect(calls).toEqual(["gizmo-register:actor:gizmo-event-binding"]);
   });
 
-  it("exposes responder hits through the actor-level binding controller", () => {
+  it("exposes actor input participant hits through the actor-level binding controller", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition(calls, "body", {
-      gizmoPriority: 10,
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "body", {
+      inputStackPriority: 10,
+      inputPriority: 10,
       hitPriority: 2
     }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-body"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-body"));
     calls.length = 0;
     const binding = getRegisteredBinding(registered);
 
@@ -309,27 +260,28 @@ describe("GizmoEventBindingComponent", () => {
     if (!hit) throw new Error("Expected hit.");
     expect(hit.priority).toBeGreaterThan(0);
     expect(hit.data).toMatchObject({
-      targetComponentId: "body-responder",
+      targetComponentId: "body-participant",
       actorInputHit: {
-        componentId: "body-responder",
+        componentId: "body-participant",
         partId: "body",
         hitPriority: 2
       }
     });
     binding.onGizmoStart?.(createStartEvent(binding, hit));
-    expect(calls).toEqual(["hit:body", "start:body:body-responder:body"]);
+    expect(calls).toEqual(["input-hit:body", "input-start:body:body-participant:body"]);
   });
 
   it("does not hit test when the actor is inactive through its parent", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition(calls, "body", {
-      gizmoPriority: 10,
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "body", {
+      inputStackPriority: 10,
+      inputPriority: 10,
       hitPriority: 2
     }));
     const parent = actorSystem.createActor({ id: "parent" });
     const actor = actorSystem.createActor({ id: "actor", parent });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-body"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-body"));
     const binding = getRegisteredBinding(registered);
     calls.length = 0;
 
@@ -340,7 +292,7 @@ describe("GizmoEventBindingComponent", () => {
     parent.enabled = true;
     expect(binding.enabled).toBe(true);
     expect(binding.hitTest({ x: 0, y: 0 })?.partId).toBe("body");
-    expect(calls).toEqual(["hit:body"]);
+    expect(calls).toEqual(["input-hit:body"]);
   });
 
   it("keeps local binding enabled independent from actor active state", () => {
@@ -363,62 +315,62 @@ describe("GizmoEventBindingComponent", () => {
     expect(binding.enabled).toBe(true);
   });
 
-  it("selects the responder with the highest gizmoPriority", () => {
+  it("selects the participant with the highest actor-local input priority", () => {
     const { actorSystem, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition([], "low", { gizmoPriority: 1 }));
-    registry.registerDefinition(createResponderDefinition([], "high", { gizmoPriority: 10 }));
+    registry.registerDefinition(createActorInputParticipantDefinition([], "low", { inputPriority: 1 }));
+    registry.registerDefinition(createActorInputParticipantDefinition([], "high", { inputPriority: 10 }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-low"));
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-high"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-low"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-high"));
 
     const hit = getRegisteredBinding(registered).hitTest({ x: 0, y: 0 });
 
     expect(hit?.partId).toBe("high");
   });
 
-  it("uses hit.priority when responder priorities match", () => {
+  it("uses hit priority when actor-local participant priorities match", () => {
     const { actorSystem, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition([], "low-hit", {
-      gizmoPriority: 10,
+    registry.registerDefinition(createActorInputParticipantDefinition([], "low-hit", {
+      inputPriority: 10,
       hitPriority: 1
     }));
-    registry.registerDefinition(createResponderDefinition([], "high-hit", {
-      gizmoPriority: 10,
+    registry.registerDefinition(createActorInputParticipantDefinition([], "high-hit", {
+      inputPriority: 10,
       hitPriority: 5
     }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-low-hit"));
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-high-hit"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-low-hit"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-high-hit"));
 
     const hit = getRegisteredBinding(registered).hitTest({ x: 0, y: 0 });
 
     expect(hit?.partId).toBe("high-hit");
   });
 
-  it("uses responder attach order as the final actor-local tie breaker", () => {
+  it("uses participant attach order as the final actor-local tie breaker", () => {
     const { actorSystem, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition([], "first", { gizmoPriority: 10 }));
-    registry.registerDefinition(createResponderDefinition([], "second", { gizmoPriority: 10 }));
+    registry.registerDefinition(createActorInputParticipantDefinition([], "first", { inputPriority: 10 }));
+    registry.registerDefinition(createActorInputParticipantDefinition([], "second", { inputPriority: 10 }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-first"));
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-second"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-first"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-second"));
 
     const hit = getRegisteredBinding(registered).hitTest({ x: 0, y: 0 });
 
     expect(hit?.partId).toBe("second");
   });
 
-  it("keeps binding priority equal to the highest enabled responder priority", () => {
+  it("keeps binding priority equal to the highest enabled participant stack priority", () => {
     const { actorSystem, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition([], "low", { gizmoPriority: 3 }));
-    registry.registerDefinition(createResponderDefinition([], "high", { gizmoPriority: 12 }));
+    registry.registerDefinition(createActorInputParticipantDefinition([], "low", { inputStackPriority: 3 }));
+    registry.registerDefinition(createActorInputParticipantDefinition([], "high", { inputStackPriority: 12 }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-low"));
-    const high = registry.addComponent(actor, componentType<GizmoResponder>("responder-high"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-low"));
+    const high = registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-high"));
     const binding = getRegisteredBinding(registered);
 
     expect(binding.priority).toBe(12);
@@ -575,19 +527,21 @@ describe("GizmoEventBindingComponent", () => {
     system.dispose();
   });
 
-  it("returns null for disabled actors and ignores disabled responders", () => {
+  it("returns null for disabled actors and ignores disabled participants", () => {
     const { actorSystem, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition([], "disabled", {
+    registry.registerDefinition(createActorInputParticipantDefinition([], "disabled", {
       enabled: false,
-      gizmoPriority: 100
+      inputStackPriority: 100,
+      inputPriority: 100
     }));
-    registry.registerDefinition(createResponderDefinition([], "enabled", {
-      gizmoPriority: 1
+    registry.registerDefinition(createActorInputParticipantDefinition([], "enabled", {
+      inputStackPriority: 1,
+      inputPriority: 1
     }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-disabled"));
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-enabled"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-disabled"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-enabled"));
     const binding = getRegisteredBinding(registered);
 
     expect(binding.hitTest({ x: 0, y: 0 })?.partId).toBe("enabled");
@@ -653,24 +607,24 @@ describe("GizmoEventBindingComponent", () => {
     expect(calls).toEqual([]);
   });
 
-  it("cancels the active responder before it is detached", () => {
+  it("cancels the active participant before it is detached", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition(calls, "active", { gizmoPriority: 10 }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "active", { inputStackPriority: 10 }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    const responder = registry.addComponent(actor, componentType<GizmoResponder>("responder-active"));
+    const participant = registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-active"));
     const binding = getRegisteredBinding(registered);
     const hit = binding.hitTest({ x: 0, y: 0 });
     if (!hit) throw new Error("Expected hit.");
     binding.onGizmoStart?.(createStartEvent(binding, hit));
     calls.length = 0;
 
-    registry.removeComponent(actor, responder);
+    registry.removeComponent(actor, participant);
 
     expect(calls).toEqual([
-      "cancel:active:gizmo-disabled",
-      "detach:active",
-      "dispose:active"
+      "input-cancel:active:gizmo-disabled",
+      "input-detach:active",
+      "input-dispose:active"
     ]);
   });
 
@@ -703,12 +657,12 @@ describe("GizmoEventBindingComponent", () => {
     ]);
   });
 
-  it("cancels the active responder when the actor is destroyed", () => {
+  it("cancels the active participant when the actor is destroyed", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition(calls, "active", { gizmoPriority: 10 }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "active", { inputStackPriority: 10 }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-active"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-active"));
     const binding = getRegisteredBinding(registered);
     const hit = binding.hitTest({ x: 0, y: 0 });
     if (!hit) throw new Error("Expected hit.");
@@ -718,19 +672,19 @@ describe("GizmoEventBindingComponent", () => {
     actorSystem.destroyActor(actor);
 
     expect(calls).toEqual([
-      "cancel:active:gizmo-disabled",
-      "detach:active",
-      "dispose:active",
+      "input-cancel:active:gizmo-disabled",
+      "input-detach:active",
+      "input-dispose:active",
       "gizmo-dispose:actor:gizmo-event-binding"
     ]);
   });
 
-  it("cancels the active responder when the binding is disposed", () => {
+  it("cancels the active participant when the binding is disposed", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition(calls, "active", { gizmoPriority: 10 }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "active", { inputStackPriority: 10 }));
     const actor = actorSystem.createActor({ id: "actor" });
     const bindingComponent = registry.addComponent(actor, gizmoEventBindingComponentType);
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-active"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-active"));
     const binding = getRegisteredBinding(registered);
     const hit = binding.hitTest({ x: 0, y: 0 });
     if (!hit) throw new Error("Expected hit.");
@@ -741,16 +695,16 @@ describe("GizmoEventBindingComponent", () => {
 
     expect(calls).toEqual([
       "gizmo-dispose:actor:gizmo-event-binding",
-      "cancel:active:system-dispose"
+      "input-cancel:active:system-dispose"
     ]);
   });
 
-  it("forwards click and double-click to the selected responder hit", () => {
+  it("forwards click and double-click to the selected participant hit", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition(calls, "active", { gizmoPriority: 10 }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "active", { inputStackPriority: 10 }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-active"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-active"));
     const binding = getRegisteredBinding(registered);
     const hit = binding.hitTest({ x: 0, y: 0 });
     if (!hit) throw new Error("Expected hit.");
@@ -760,22 +714,22 @@ describe("GizmoEventBindingComponent", () => {
     binding.onGizmoDoubleClick?.(createClickEvent(binding, hit, 2));
 
     expect(calls).toEqual([
-      "click:active:active-responder:active:1",
-      "double-click:active:active-responder:active:2"
+      "input-click:active:active-participant:active:1",
+      "input-double-click:active:active-participant:active:2"
     ]);
   });
 
-  it("does not forward move after the active responder has been removed", () => {
+  it("does not forward move after the active participant has been removed", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition(calls, "active", { gizmoPriority: 10 }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "active", { inputStackPriority: 10 }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    const responder = registry.addComponent(actor, componentType<GizmoResponder>("responder-active"));
+    const participant = registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-active"));
     const binding = getRegisteredBinding(registered);
     const hit = binding.hitTest({ x: 0, y: 0 });
     if (!hit) throw new Error("Expected hit.");
     binding.onGizmoStart?.(createStartEvent(binding, hit));
-    registry.removeComponent(actor, responder);
+    registry.removeComponent(actor, participant);
     calls.length = 0;
 
     binding.onGizmoMove?.(createMoveEvent(binding, hit));
@@ -783,14 +737,14 @@ describe("GizmoEventBindingComponent", () => {
     expect(calls).toEqual([]);
   });
 
-  it("does not cancel active interaction when a non-active responder is removed", () => {
+  it("does not cancel active interaction when a non-active participant is removed", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition(calls, "inactive", { gizmoPriority: 1 }));
-    registry.registerDefinition(createResponderDefinition(calls, "active", { gizmoPriority: 10 }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "inactive", { inputStackPriority: 1 }));
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "active", { inputStackPriority: 10 }));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, gizmoEventBindingComponentType);
-    const inactive = registry.addComponent(actor, componentType<GizmoResponder>("responder-inactive"));
-    registry.addComponent(actor, componentType<GizmoResponder>("responder-active"));
+    const inactive = registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-inactive"));
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-active"));
     const binding = getRegisteredBinding(registered);
     const hit = binding.hitTest({ x: 0, y: 0 });
     if (!hit) throw new Error("Expected hit.");
@@ -799,25 +753,25 @@ describe("GizmoEventBindingComponent", () => {
 
     registry.removeComponent(actor, inactive);
 
-    expect(calls).toEqual(["detach:inactive", "dispose:inactive"]);
+    expect(calls).toEqual(["input-detach:inactive", "input-dispose:inactive"]);
   });
 
   it("keeps cross-actor hit selection ordered by binding priority before hit priority", () => {
     const { actorSystem, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition([], "low", {
-      gizmoPriority: 100,
+    registry.registerDefinition(createActorInputParticipantDefinition([], "low", {
+      inputStackPriority: 100,
       hitPriority: 1000
     }));
-    registry.registerDefinition(createResponderDefinition([], "high", {
-      gizmoPriority: 900,
+    registry.registerDefinition(createActorInputParticipantDefinition([], "high", {
+      inputStackPriority: 900,
       hitPriority: 1
     }));
     const lowActor = actorSystem.createActor({ id: "low" });
     const highActor = actorSystem.createActor({ id: "high" });
     registry.addComponent(lowActor, gizmoEventBindingComponentType);
-    registry.addComponent(lowActor, componentType<GizmoResponder>("responder-low"));
+    registry.addComponent(lowActor, componentType<ActorInputParticipant>("input-participant-low"));
     registry.addComponent(highActor, gizmoEventBindingComponentType);
-    registry.addComponent(highActor, componentType<GizmoResponder>("responder-high"));
+    registry.addComponent(highActor, componentType<ActorInputParticipant>("input-participant-high"));
     const system = new RuntimeGizmoEventSystem({ target: new FakeEventTarget() as unknown as EventTarget });
     const lowBinding = registered.find((binding) => binding.id === "low:gizmo-event-binding");
     const highBinding = registered.find((binding) => binding.id === "high:gizmo-event-binding");
@@ -957,10 +911,11 @@ describe("GizmoEventBindingComponent", () => {
     system.dispose();
   });
 
-  it("keeps legacy Camera3 stack priority above lower-stack actor-local content priority", () => {
+  it("keeps Camera3 participant stack priority above lower-stack actor-local content priority", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
-    registry.registerDefinition(createResponderDefinition(calls, "camera3", {
-      gizmoPriority: 100,
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "camera3", {
+      inputStackPriority: 100,
+      inputPriority: 100,
       hitPriority: 1
     }));
     registry.registerDefinition(createActorInputParticipantDefinition(calls, "window-content", {
@@ -971,7 +926,7 @@ describe("GizmoEventBindingComponent", () => {
     const cameraActor = actorSystem.createActor({ id: "camera" });
     const windowActor = actorSystem.createActor({ id: "window" });
     registry.addComponent(cameraActor, gizmoEventBindingComponentType);
-    registry.addComponent(cameraActor, componentType<GizmoResponder>("responder-camera3"));
+    registry.addComponent(cameraActor, componentType<ActorInputParticipant>("input-participant-camera3"));
     registry.addComponent(windowActor, gizmoEventBindingComponentType);
     registry.addComponent(windowActor, componentType<ActorInputParticipant>("input-participant-window-content"));
     const system = new RuntimeGizmoEventSystem({ target: new FakeEventTarget() as unknown as EventTarget });

@@ -1,0 +1,51 @@
+.app-shell {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-areas:
+    "menu"
+    "toolbar"
+    "root"
+    "status";
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: #07090d;
+}
+
+.app-shell__menu {
+  grid-area: menu;
+  min-height: 28px;
+}
+
+.app-shell__toolbar {
+  grid-area: toolbar;
+}
+
+.app-shell__menu,
+.app-shell__toolbar,
+.app-shell__status {
+  position: relative;
+  z-index: 10000;
+}
+
+.app-shell__root-dock {
+  grid-area: root;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-shell__status {
+  grid-area: status;
+}
+
+.app-shell__floating-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.app-shell__floating-overlay > * {
+  pointer-events: auto;
+}

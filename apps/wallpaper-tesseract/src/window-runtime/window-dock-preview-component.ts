@@ -1,5 +1,5 @@
 import type { ScreenPoint } from "gizmo-core";
-import type { DockTargetRegionSource } from "./dock-target-frame-source";
+import type { DockTargetRegionSource } from "./dock-target-region-source";
 import type { WindowDockPreview, WindowDockTargetRegion } from "./window-dock-targets";
 import { WindowTabDragSession } from "./window-tab-drag-session";
 import type {

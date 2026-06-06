@@ -59,6 +59,7 @@ interface FakePointerEvent {
   timeStamp: number;
   defaultPrevented: boolean;
   target?: unknown;
+  composedPath?: () => unknown[];
   preventDefault(): void;
 }
 
@@ -465,6 +466,46 @@ describe("GizmoEventSystem active interaction lifecycle", () => {
     system.dispose();
   });
 
+  it("falls back to a composed-path pointer capture host when the direct target cannot capture", () => {
+    const target = new FakeEventTarget();
+    const captureHost = new FakePointerCaptureHost();
+    const system = new GizmoEventSystem({ target: target as unknown as EventTarget });
+    system.register(createGizmo("a", { hit: createHit("a", "body") }));
+
+    target.dispatchPointer(
+      "pointerdown",
+      createPointerEvent({
+        pointerId: 5,
+        target: {},
+        composedPath: () => [{}, captureHost]
+      })
+    );
+    target.dispatchPointer("pointerup", createPointerEvent({ pointerId: 5, buttons: 0 }));
+
+    expect(captureHost.setCalls).toEqual([5]);
+    expect(captureHost.releaseCalls).toEqual([5]);
+
+    system.dispose();
+  });
+
+  it("falls back to the document element for pointer capture when the event target is not an element", () => {
+    const target = new FakeEventTarget();
+    const captureHost = new FakePointerCaptureHost();
+    (target as unknown as { document: { documentElement: FakePointerCaptureHost } }).document = {
+      documentElement: captureHost
+    };
+    const system = new GizmoEventSystem({ target: target as unknown as EventTarget });
+    system.register(createGizmo("a", { hit: createHit("a", "body") }));
+
+    target.dispatchPointer("pointerdown", createPointerEvent({ pointerId: 7, target: {} }));
+    target.dispatchPointer("pointerup", createPointerEvent({ pointerId: 7, buttons: 0 }));
+
+    expect(captureHost.setCalls).toEqual([7]);
+    expect(captureHost.releaseCalls).toEqual([7]);
+
+    system.dispose();
+  });
+
   it("does not prevent default or create active state when pointerdown misses", () => {
     const target = new FakeEventTarget();
     const system = new GizmoEventSystem({ target: target as unknown as EventTarget });
@@ -648,24 +689,35 @@ describe("GizmoEventSystem cancellation lifecycle", () => {
     system.dispose();
   });
 
-  it("cancels mouse interaction on buttons=0 move without dispatching move", () => {
+  it("keeps mouse interaction active on buttons=0 move until pointerup", () => {
     const target = new FakeEventTarget();
-    const system = new GizmoEventSystem({ target: target as unknown as EventTarget });
+    const system = new GizmoEventSystem({
+      target: target as unknown as EventTarget,
+      clickMoveThreshold: 6
+    });
     const onGizmoCancel = vi.fn();
     const onGizmoMove = vi.fn();
+    const onGizmoEnd = vi.fn();
     system.register({
       ...createGizmo("a", { hit: createHit("a", "body") }),
       onGizmoCancel,
-      onGizmoMove
+      onGizmoMove,
+      onGizmoEnd
     });
 
     target.dispatchPointer("pointerdown", createPointerEvent());
-    target.dispatchPointer("pointermove", createPointerEvent({ buttons: 0, clientX: 10, clientY: 10 }));
-    target.dispatchPointer("pointermove", createPointerEvent({ buttons: 1, clientX: 20, clientY: 20 }));
+    target.dispatchPointer("pointermove", createPointerEvent({ buttons: 0, clientX: 10, clientY: 0 }));
+    target.dispatchPointer("pointerup", createPointerEvent({ buttons: 0, clientX: 10, clientY: 0 }));
+    target.dispatchPointer("pointermove", createPointerEvent({ buttons: 1, clientX: 20, clientY: 0 }));
 
-    expect(onGizmoCancel).toHaveBeenCalledOnce();
-    expect(onGizmoCancel.mock.calls[0]?.[0]).toMatchObject({ reason: "buttons-released" });
-    expect(onGizmoMove).not.toHaveBeenCalled();
+    expect(onGizmoCancel).not.toHaveBeenCalled();
+    expect(onGizmoMove).toHaveBeenCalledOnce();
+    expect(onGizmoMove.mock.calls[0]?.[0]).toMatchObject({
+      buttons: 0,
+      isDragging: true,
+      totalDelta: { dx: 10, dy: 0 }
+    });
+    expect(onGizmoEnd).toHaveBeenCalledOnce();
 
     system.dispose();
   });
@@ -691,31 +743,6 @@ describe("GizmoEventSystem cancellation lifecycle", () => {
     expect(onGizmoCancel).not.toHaveBeenCalled();
     expect(onGizmoMove).toHaveBeenCalledOnce();
     expect(onGizmoMove.mock.calls[0]?.[0]).toMatchObject({ isDragging: true });
-
-    system.dispose();
-  });
-
-  it("does not cancel a mouse move with buttons=0 when the release fallback is disabled", () => {
-    const target = new FakeEventTarget();
-    const system = new GizmoEventSystem({
-      target: target as unknown as EventTarget,
-      buttonsReleasedFallback: false,
-      clickMoveThreshold: 6
-    });
-    const onGizmoCancel = vi.fn();
-    const onGizmoMove = vi.fn();
-    system.register({
-      ...createGizmo("a", { hit: createHit("a", "body") }),
-      onGizmoCancel,
-      onGizmoMove
-    });
-
-    target.dispatchPointer("pointerdown", createPointerEvent());
-    target.dispatchPointer("pointermove", createPointerEvent({ buttons: 0, clientX: 10, clientY: 0 }));
-    target.dispatchPointer("pointerup", createPointerEvent({ buttons: 0, clientX: 10, clientY: 0 }));
-
-    expect(onGizmoCancel).not.toHaveBeenCalled();
-    expect(onGizmoMove).toHaveBeenCalledOnce();
 
     system.dispose();
   });
@@ -802,6 +829,26 @@ describe("GizmoEventSystem cancellation lifecycle", () => {
 });
 
 describe("GizmoEventSystem double-click detection", () => {
+  it("dispatches click for a single click", () => {
+    const target = new FakeEventTarget();
+    const system = new GizmoEventSystem({ target: target as unknown as EventTarget });
+    const onGizmoClick = vi.fn();
+    system.register({
+      ...createGizmo("a", { hit: createHit("a", "axis") }),
+      onGizmoClick
+    });
+
+    dispatchClick(target, { timeStamp: 10 });
+
+    expect(onGizmoClick).toHaveBeenCalledOnce();
+    expect(onGizmoClick.mock.calls[0]?.[0]).toMatchObject({
+      hit: { partId: "axis" },
+      clickCount: 1
+    });
+
+    system.dispose();
+  });
+
   it("does not dispatch doubleClick for the first click", () => {
     const target = new FakeEventTarget();
     const system = new GizmoEventSystem({ target: target as unknown as EventTarget });
@@ -821,15 +868,18 @@ describe("GizmoEventSystem double-click detection", () => {
   it("dispatches doubleClick for two quick clicks on the same part", () => {
     const target = new FakeEventTarget();
     const system = new GizmoEventSystem({ target: target as unknown as EventTarget });
+    const onGizmoClick = vi.fn();
     const onGizmoDoubleClick = vi.fn();
     system.register({
       ...createGizmo("a", { hit: createHit("a", "axis") }),
+      onGizmoClick,
       onGizmoDoubleClick
     });
 
     dispatchClick(target, { timeStamp: 10 });
     dispatchClick(target, { timeStamp: 100 });
 
+    expect(onGizmoClick).toHaveBeenCalledOnce();
     expect(onGizmoDoubleClick).toHaveBeenCalledOnce();
     expect(onGizmoDoubleClick.mock.calls[0]?.[0]).toMatchObject({
       hit: { partId: "axis" },

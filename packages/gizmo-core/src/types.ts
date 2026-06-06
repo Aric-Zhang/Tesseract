@@ -66,7 +66,7 @@ export interface GizmoEndEvent extends GizmoBaseEvent {
 }
 
 export interface GizmoCancelEvent extends GizmoBaseEvent {
-  reason: "pointercancel" | "buttons-released" | "system-dispose" | "gizmo-disabled";
+  reason: "pointercancel" | "system-dispose" | "gizmo-disabled";
 }
 
 export interface GizmoClickEvent extends GizmoBaseEvent {

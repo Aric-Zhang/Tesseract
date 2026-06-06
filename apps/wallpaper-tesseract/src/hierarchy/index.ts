@@ -27,6 +27,10 @@ export type {
   HierarchyPanelComponentServices
 } from "./hierarchy-panel-component";
 export { hierarchyPanelComponentDefinition } from "./hierarchy-panel-definition";
-export { createHierarchyPanelActor } from "./hierarchy-panel-actor-factory";
-export type { HierarchyPanelActorOptions } from "./hierarchy-panel-actor-factory";
+export { createHierarchyPanelActor, createHierarchyPanelViewActor } from "./hierarchy-panel-actor-factory";
+export type {
+  HierarchyPanelActorOptions,
+  HierarchyPanelViewActorOptions,
+  RegisteredHierarchyPanelViewActor
+} from "./hierarchy-panel-actor-factory";
 export { installHierarchyComponentDefinitions } from "./install-component-definitions";

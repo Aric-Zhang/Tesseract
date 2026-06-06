@@ -5,11 +5,11 @@ import type {
   ActorWindowFocusService
 } from "../actor-runtime";
 import type { RuntimeObject, SceneFrame } from "../scene-runtime";
-import {
-  floatingWindowComponentType,
-  type FloatingWindowComponent
-} from "./floating-window-component";
-import type { WindowControlItem, WindowControlSource } from "./window-control-source";
+import type {
+  WindowWorkspaceFrameEntry,
+  WindowWorkspaceViewCatalog
+} from "./window-workspace-view-catalog";
+import type { WindowWorkspaceStackPriorityPort } from "./window-workspace-stack-priority-port";
 
 export const WINDOW_WORKSPACE_CONTROLLER_ID = "window-workspace-controller";
 export const WINDOW_FLOATING_FOCUS_LAYER_START = 2_000;
@@ -17,7 +17,8 @@ export const WINDOW_FLOATING_FOCUS_LAYER_END = 9_999;
 
 export interface WindowWorkspaceControllerOptions {
   readonly actorSystem: ActorSystemView;
-  readonly source: WindowControlSource;
+  readonly catalog: WindowWorkspaceViewCatalog;
+  readonly stackPriorityPort?: WindowWorkspaceStackPriorityPort;
 }
 
 export interface WindowWorkspaceStackEntry {
@@ -28,12 +29,11 @@ export interface WindowWorkspaceStackEntry {
   readonly rank: number | null;
   readonly visible: boolean;
   readonly activeInHierarchy: boolean;
-  readonly presentation: FloatingWindowComponent["presentation"];
+  readonly presentation: WindowWorkspaceFrameEntry["presentation"];
 }
 
-interface IndexedWindowControlItem {
-  readonly item: WindowControlItem;
-  readonly component: FloatingWindowComponent;
+interface IndexedWindowFrameEntry {
+  readonly entry: WindowWorkspaceFrameEntry;
   readonly sourceIndex: number;
 }
 
@@ -43,15 +43,17 @@ export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocu
   enabled = true;
 
   readonly #actorSystem: ActorSystemView;
-  readonly #source: WindowControlSource;
+  readonly #catalog: WindowWorkspaceViewCatalog;
+  readonly #stackPriorityPort?: WindowWorkspaceStackPriorityPort;
   readonly #stackOrder: string[] = [];
   readonly #effectivePriorities = new Map<string, number>();
-  #pendingFocusActorId: string | null = null;
+  #pendingFocusFrameId: string | null = null;
   #disposed = false;
 
   constructor(options: WindowWorkspaceControllerOptions) {
     this.#actorSystem = options.actorSystem;
-    this.#source = options.source;
+    this.#catalog = options.catalog;
+    this.#stackPriorityPort = options.stackPriorityPort;
     this.reconcile();
   }
 
@@ -64,12 +66,12 @@ export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocu
 
   reconcile(): void {
     if (this.#disposed) return;
-    const windows = this.listIndexedWindows();
-    const windowsByActorId = new Map(windows.map((entry) => [entry.item.actorId, entry]));
-    this.pruneStackOrder(windowsByActorId);
-    this.appendNewWindows(windows);
-    this.applyPendingFocus(windowsByActorId);
-    this.applyEffectivePriorities(windowsByActorId);
+    const frames = this.listIndexedFrames();
+    const framesByActorId = new Map(frames.map((entry) => [entry.entry.frameActorId, entry]));
+    this.pruneStackOrder(framesByActorId);
+    this.appendNewFrames(frames);
+    this.applyPendingFocus(framesByActorId);
+    this.applyEffectivePriorities(framesByActorId);
   }
 
   bringToFront(actorOrActorId: Actor | string): void {
@@ -77,7 +79,7 @@ export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocu
     this.reconcile();
     const actorId = typeof actorOrActorId === "string"
       ? actorOrActorId
-      : this.findOwningWindowActor(actorOrActorId)?.id;
+      : this.findOwningStackManagedFrameActor(actorOrActorId)?.id;
     if (!actorId) return;
     const index = this.#stackOrder.indexOf(actorId);
     if (index < 0) return;
@@ -93,15 +95,29 @@ export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocu
 
   getEffectiveStackPriorityForActor(actor: Actor): number | null {
     if (this.#disposed) return null;
-    const owningWindow = this.findOwningWindowActor(actor);
-    return owningWindow ? this.getEffectivePriority(owningWindow.id) : null;
+    const owningFrame = this.findOwningRegisteredFrameActor(actor);
+    if (!owningFrame) return null;
+    const entry = this.getFrameEntry(owningFrame.id);
+    return entry?.effectiveStackPriority ?? null;
   }
 
   findOwningWindowActor(actor: Actor): Actor | null {
+    return this.findOwningStackManagedFrameActor(actor);
+  }
+
+  private findOwningStackManagedFrameActor(actor: Actor): Actor | null {
+    if (this.#disposed || !this.#actorSystem.hasActor(actor)) return null;
+    const owningFrame = this.findOwningRegisteredFrameActor(actor);
+    if (!owningFrame) return null;
+    const entry = this.getFrameEntry(owningFrame.id);
+    return entry?.stackManaged ? owningFrame : null;
+  }
+
+  private findOwningRegisteredFrameActor(actor: Actor): Actor | null {
     if (this.#disposed || !this.#actorSystem.hasActor(actor)) return null;
     let current: Actor | null = actor;
     while (current) {
-      if (current.getComponent(floatingWindowComponentType)) return current;
+      if (this.getFrameEntry(current.id)) return current;
       const parentId = this.#actorSystem.getParentId(current);
       current = parentId ? this.#actorSystem.getActor(parentId) : null;
     }
@@ -114,29 +130,29 @@ export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocu
 
   requestFocusOnVisible(actor: Actor, _reason: ActorWindowFocusReason): void {
     if (this.#disposed) return;
-    const owningWindow = this.findOwningWindowActor(actor);
-    this.#pendingFocusActorId = owningWindow?.id ?? actor.id;
+    const owningFrame = this.findOwningStackManagedFrameActor(actor);
+    this.#pendingFocusFrameId = owningFrame?.id ?? null;
     this.reconcile();
   }
 
   listStackEntries(): readonly WindowWorkspaceStackEntry[] {
     if (this.#disposed) return [];
-    const windowsByActorId = new Map(this.listIndexedWindows().map((entry) => [entry.item.actorId, entry]));
-    const eligibleIds = this.listEligibleActorIds(windowsByActorId);
+    const framesByActorId = new Map(this.listIndexedFrames().map((entry) => [entry.entry.frameActorId, entry]));
+    const eligibleIds = this.listEligibleActorIds(framesByActorId);
     const entries: WindowWorkspaceStackEntry[] = [];
     for (const actorId of this.#stackOrder) {
-      const entry = windowsByActorId.get(actorId);
+      const entry = framesByActorId.get(actorId);
       if (!entry) continue;
       const rank = eligibleIds.indexOf(actorId);
       entries.push({
         actorId,
-        componentId: entry.component.id,
-        basePriority: entry.component.basePriority,
-        effectivePriority: entry.component.inputStackPriority,
+        componentId: entry.entry.frameId,
+        basePriority: entry.entry.baseStackPriority,
+        effectivePriority: entry.entry.effectiveStackPriority,
         rank: rank >= 0 ? rank : null,
-        visible: entry.item.visible,
-        activeInHierarchy: entry.item.activeInHierarchy,
-        presentation: entry.component.presentation
+        visible: entry.entry.effectiveVisible,
+        activeInHierarchy: entry.entry.activeInHierarchy,
+        presentation: entry.entry.presentation
       });
     }
     return entries;
@@ -145,81 +161,82 @@ export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocu
   dispose(): void {
     this.#disposed = true;
     this.#effectivePriorities.clear();
-    this.#pendingFocusActorId = null;
+    this.#pendingFocusFrameId = null;
     this.#stackOrder.length = 0;
   }
 
-  private listIndexedWindows(): readonly IndexedWindowControlItem[] {
-    return this.#source.listWindows().flatMap((item, sourceIndex) => {
-      const component = item.actor.getComponent(floatingWindowComponentType);
-      return component ? [{ item, component, sourceIndex }] : [];
-    });
+  private listIndexedFrames(): readonly IndexedWindowFrameEntry[] {
+    return this.#catalog.listFrameEntries()
+      .map((entry, sourceIndex) => ({ entry, sourceIndex }));
   }
 
-  private pruneStackOrder(windowsByActorId: ReadonlyMap<string, IndexedWindowControlItem>): void {
+  private pruneStackOrder(framesByActorId: ReadonlyMap<string, IndexedWindowFrameEntry>): void {
     for (let index = this.#stackOrder.length - 1; index >= 0; index -= 1) {
-      if (!windowsByActorId.has(this.#stackOrder[index] ?? "")) {
+      if (!framesByActorId.has(this.#stackOrder[index] ?? "")) {
         this.#stackOrder.splice(index, 1);
       }
     }
     for (const actorId of [...this.#effectivePriorities.keys()]) {
-      if (!windowsByActorId.has(actorId)) {
+      if (!framesByActorId.has(actorId)) {
         this.#effectivePriorities.delete(actorId);
       }
     }
   }
 
-  private appendNewWindows(windows: readonly IndexedWindowControlItem[]): void {
-    const newWindows = windows
-      .filter((entry) => !this.#stackOrder.includes(entry.item.actorId))
-      .sort(compareInitialWindowOrder);
-    for (const entry of newWindows) {
-      this.#stackOrder.push(entry.item.actorId);
+  private appendNewFrames(frames: readonly IndexedWindowFrameEntry[]): void {
+    const newFrames = frames
+      .filter((entry) => entry.entry.stackManaged)
+      .filter((entry) => !this.#stackOrder.includes(entry.entry.frameActorId))
+      .sort(compareInitialFrameOrder);
+    for (const entry of newFrames) {
+      this.#stackOrder.push(entry.entry.frameActorId);
     }
   }
 
-  private applyPendingFocus(windowsByActorId: ReadonlyMap<string, IndexedWindowControlItem>): void {
-    if (!this.#pendingFocusActorId) return;
-    const entry = windowsByActorId.get(this.#pendingFocusActorId);
-    if (!entry || !entry.item.canToggle) {
-      this.#pendingFocusActorId = null;
+  private applyPendingFocus(framesByActorId: ReadonlyMap<string, IndexedWindowFrameEntry>): void {
+    if (!this.#pendingFocusFrameId) return;
+    const entry = framesByActorId.get(this.#pendingFocusFrameId);
+    if (!entry || !entry.entry.stackManaged) {
+      this.#pendingFocusFrameId = null;
       return;
     }
     if (!this.isEligibleForDenseStack(entry)) return;
-    this.moveActorIdToFront(entry.item.actorId);
-    this.#pendingFocusActorId = null;
+    this.moveActorIdToFront(entry.entry.frameActorId);
+    this.#pendingFocusFrameId = null;
   }
 
-  private applyEffectivePriorities(windowsByActorId: ReadonlyMap<string, IndexedWindowControlItem>): void {
+  private applyEffectivePriorities(framesByActorId: ReadonlyMap<string, IndexedWindowFrameEntry>): void {
     this.#effectivePriorities.clear();
-    const eligibleActorIds = this.listEligibleActorIds(windowsByActorId);
+    const eligibleActorIds = this.listEligibleActorIds(framesByActorId);
     for (const [rank, actorId] of eligibleActorIds.entries()) {
-      const entry = windowsByActorId.get(actorId);
+      const entry = framesByActorId.get(actorId);
       if (!entry) continue;
       const effectivePriority = Math.min(
         WINDOW_FLOATING_FOCUS_LAYER_START + rank,
         WINDOW_FLOATING_FOCUS_LAYER_END
       );
       this.#effectivePriorities.set(actorId, effectivePriority);
-      entry.component.setEffectivePriority(effectivePriority);
+      this.#stackPriorityPort?.setFrameStackPriority(actorId, effectivePriority);
     }
-    for (const entry of windowsByActorId.values()) {
-      if (this.#effectivePriorities.has(entry.item.actorId)) continue;
-      entry.component.setEffectivePriority(entry.component.basePriority);
+    for (const entry of framesByActorId.values()) {
+      if (!entry.entry.stackManaged || this.#effectivePriorities.has(entry.entry.frameActorId)) continue;
+      this.#stackPriorityPort?.setFrameStackPriority(entry.entry.frameActorId, entry.entry.baseStackPriority);
     }
   }
 
-  private listEligibleActorIds(windowsByActorId: ReadonlyMap<string, IndexedWindowControlItem>): string[] {
+  private listEligibleActorIds(framesByActorId: ReadonlyMap<string, IndexedWindowFrameEntry>): string[] {
     return this.#stackOrder.filter((actorId) => {
-      const entry = windowsByActorId.get(actorId);
+      const entry = framesByActorId.get(actorId);
       return Boolean(entry && this.isEligibleForDenseStack(entry));
     });
   }
 
-  private isEligibleForDenseStack(entry: IndexedWindowControlItem): boolean {
-    return entry.item.visible &&
-      entry.item.activeInHierarchy &&
-      entry.component.presentation === "windowed";
+  private isEligibleForDenseStack(entry: IndexedWindowFrameEntry): boolean {
+    return entry.entry.visible &&
+      entry.entry.effectiveVisible &&
+      entry.entry.activeInHierarchy &&
+      entry.entry.presentation === "windowed" &&
+      entry.entry.stackManaged;
   }
 
   private moveActorIdToFront(actorId: string): void {
@@ -228,10 +245,15 @@ export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocu
     this.#stackOrder.splice(index, 1);
     this.#stackOrder.push(actorId);
   }
+
+  private getFrameEntry(frameActorId: string): WindowWorkspaceFrameEntry | null {
+    return this.#catalog.listFrameEntries()
+      .find((entry) => entry.frameActorId === frameActorId) ?? null;
+  }
 }
 
-function compareInitialWindowOrder(a: IndexedWindowControlItem, b: IndexedWindowControlItem): number {
-  const priorityDelta = a.component.basePriority - b.component.basePriority;
+function compareInitialFrameOrder(a: IndexedWindowFrameEntry, b: IndexedWindowFrameEntry): number {
+  const priorityDelta = a.entry.baseStackPriority - b.entry.baseStackPriority;
   if (priorityDelta !== 0) return priorityDelta;
   return a.sourceIndex - b.sourceIndex;
 }

@@ -6,11 +6,11 @@ export {
 } from "./floating-window-state";
 export { createActorWindowFocusServiceProxy } from "./actor-window-focus-service";
 export type { ActorWindowFocusServiceProxy } from "./actor-window-focus-service";
-export { createDockTargetRegionSource } from "./dock-target-frame-source";
+export { createDockTargetRegionSource } from "./dock-target-region-source";
 export type {
   DockTargetRegionSource,
   DockTargetRegionSourceOptions
-} from "./dock-target-frame-source";
+} from "./dock-target-region-source";
 export type {
   FloatingWindowParameterPaths,
   FloatingWindowState,
@@ -37,12 +37,30 @@ export type {
   WindowFrameRuntimeDockNode,
   WindowFrameRuntimeSplitNode,
   WindowFrameRuntimeTabsetNode,
+  WindowFrameSuppressionReason,
   WindowFrameTab
 } from "./window-frame-port";
+export { WindowFramePortRegistry } from "./window-frame-port-registry";
+export type {
+  RegisteredWindowFramePort,
+  WindowFramePortRegistryEntry,
+  WindowFramePortRegistryView
+} from "./window-frame-port-registry";
+export { createWindowWorkspaceViewCatalog } from "./window-workspace-view-catalog";
+export type {
+  WindowWorkspaceFrameEntry,
+  WindowWorkspaceViewCatalog,
+  WindowWorkspaceViewEntry
+} from "./window-workspace-view-catalog";
+export { createWindowWorkspaceStackPriorityPort } from "./window-workspace-stack-priority-port";
+export type { WindowWorkspaceStackPriorityPort } from "./window-workspace-stack-priority-port";
 export type {
   WindowFrameIntentSink,
   WindowFrameLifecycleController,
   WindowFrameLifecycleReason,
+  WindowCloseFrameResult,
+  WindowCloseViewResult,
+  WindowCloseViewOptions,
   WindowFloatingFrameCreateOptions,
   WindowFloatingFrameCreateResult,
   WindowFloatingFrameFactory,
@@ -51,6 +69,7 @@ export type {
   WindowFrameLayoutSnapshotSource,
   WindowViewLocation,
   WindowViewLocationSource,
+  WindowOpenViewOptions,
   WindowViewOwnerCommandPort,
   WindowViewFullscreenReason,
   WindowViewFullscreenSession,
@@ -62,7 +81,7 @@ export { getWindowViewFactoryIdentity, WindowViewFactoryRegistry } from "./windo
 export type {
   WindowViewFactory,
   WindowViewFactoryCreateOptions,
-  WindowViewFactoryResult
+  WindowViewRuntimeFactoryResult
 } from "./window-view-factory-registry";
 export {
   createWindowContentAttachment,
@@ -103,6 +122,31 @@ export type {
   WindowTabDragSessionState,
   WindowTabDragSource
 } from "./window-tab-drag-session";
+export {
+  createWindowTabCloseAction,
+  isWindowTabAction
+} from "./window-tab-action";
+export type { WindowTabAction } from "./window-tab-action";
+export {
+  WINDOW_FRAME_TAB_ACTION_PART_ID,
+  WINDOW_FRAME_TAB_PART_ID,
+  findWindowFrameTabActionAtPoint,
+  findWindowFrameTabAtPoint,
+  renderWindowFrameTabsetTabs
+} from "./window-frame-tab-chrome";
+export type {
+  RenderWindowFrameTabsetOptions,
+  WindowFrameTabChromeMaps
+} from "./window-frame-tab-chrome";
+export {
+  WindowFrameSurfaceComponent,
+  windowFrameSurfaceComponentType
+} from "./window-frame-surface-component";
+export type {
+  WindowFrameSurfaceComponentOptions,
+  WindowFrameSurfaceHit,
+  WindowFrameSurfaceHost
+} from "./window-frame-surface-component";
 export type {
   FloatingWindowContentAttachment,
   FloatingWindowHost,
@@ -126,20 +170,20 @@ export type {
   FloatingWindowPresentation
 } from "./floating-window-component";
 export { floatingWindowComponentDefinition } from "./floating-window-definition";
+export {
+  WORKSPACE_ROOT_FRAME_ID,
+  WORKSPACE_ROOT_FRAME_PRIORITY,
+  WorkspaceRootDockFrameComponent,
+  workspaceRootDockFrameComponentType
+} from "./workspace-root-dock-frame-component";
+export type {
+  WorkspaceRootDockFrameComponentOptions,
+  WorkspaceRootDockFrameComponentServices
+} from "./workspace-root-dock-frame-component";
+export { workspaceRootDockFrameComponentDefinition } from "./workspace-root-dock-frame-definition";
+export { windowFrameSurfaceComponentDefinition } from "./window-frame-surface-definition";
 export { installWindowComponentDefinitions } from "./install-component-definitions";
 export type { RegisteredWindowActor } from "./registered-window-actor";
-export { createWindowControlSource } from "./window-control-source";
-export type {
-  WindowControlItem,
-  WindowControlSource,
-  WindowControlSourceOptions
-} from "./window-control-source";
-export { createWindowMenuViewSource } from "./window-menu-view-source";
-export type {
-  WindowMenuViewItem,
-  WindowMenuViewSource,
-  WindowMenuViewSourceOptions
-} from "./window-menu-view-source";
 export {
   hydrateWindowWorkspaceFrameLayout,
   parsePersistedWindowWorkspaceFrameLayout,
@@ -166,26 +210,15 @@ export {
   collectFrameViewKeys,
   createSingleTabWindowFrame,
   createWindowWorkspaceFrameLayout,
-  createWindowWorkspaceLayout,
-  dockWindowAsTab,
-  findDockTabsetContaining,
   findFrameContainingView,
   normalizeWindowWorkspaceFrameLayout,
-  normalizeWindowWorkspaceLayout,
-  removeWindowFromDock,
-  removeWindowFromLayout,
   restoreViewAsSingleTabFrame,
-  setActiveDockTab,
-  splitDockViewInFrameLayout,
-  splitDockTab,
-  undockWindow
+  splitDockViewInFrameLayout
 } from "./window-workspace-layout";
 export type {
   CreateSingleTabWindowFrameOptions,
   CreateWindowWorkspaceFrameLayoutOptions,
-  CreateWindowWorkspaceLayoutOptions,
   RestoreViewAsSingleTabFrameOptions,
-  SplitDockTabOptions,
   WindowFrameSplitPlacement,
   WindowFrameDockNode,
   WindowFrameSplitNode,
@@ -196,14 +229,8 @@ export type {
   WindowWorkspaceFrameLayout,
   WindowWorkspaceFramePresentation,
   WindowWorkspaceViewDescriptor,
-  WindowWorkspaceDockNode,
-  WindowWorkspaceFloatingWindow,
-  WindowWorkspaceLayout,
   WindowWorkspaceSplitDirection,
-  WindowWorkspaceSplitNode,
-  WindowWorkspaceSplitPlacement,
-  WindowWorkspaceTabsetNode,
-  WindowWorkspaceWindowDescriptor
+  WindowWorkspaceSplitPlacement
 } from "./window-workspace-layout";
 export {
   WINDOW_FLOATING_FOCUS_LAYER_END,
@@ -216,8 +243,11 @@ export type {
   WindowWorkspaceStackEntry
 } from "./window-workspace-controller";
 export {
-  WINDOW_VISIBILITY_ACTIVATION_CONTROLLER_ID,
-  WINDOW_VISIBILITY_ACTIVATION_CONTROLLER_PRIORITY,
-  WindowVisibilityActivationController
-} from "./window-visibility-activation-controller";
-export type { WindowVisibilityActivationControllerOptions } from "./window-visibility-activation-controller";
+  WINDOW_WORKSPACE_PRESENTATION_CONTROLLER_ID,
+  WindowWorkspacePresentationController
+} from "./window-workspace-presentation-controller";
+export type {
+  WindowWorkspacePresentationControllerOptions,
+  WindowWorkspacePresentationResult,
+  WindowWorkspacePresentationSession
+} from "./window-workspace-presentation-controller";

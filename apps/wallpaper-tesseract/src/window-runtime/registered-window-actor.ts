@@ -3,4 +3,5 @@ import type { FloatingWindowComponent } from "./floating-window-component";
 
 export interface RegisteredWindowActor<TContent extends Component = Component> extends RegisteredActor<TContent> {
   readonly window: FloatingWindowComponent;
+  disposeRuntimeTracking?(): void;
 }

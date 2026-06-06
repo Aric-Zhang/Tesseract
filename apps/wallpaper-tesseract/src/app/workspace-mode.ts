@@ -27,6 +27,7 @@ export interface WorkspaceModeControllerOptions {
   commandSink: SceneCommandSink;
   getValue<TValue>(path: ParameterPath<TValue>): TValue;
   sceneView: WorkspaceSceneViewPort;
+  workspacePresentation?: WorkspacePresentationPort;
   toolWindows: readonly WorkspaceToolWindow[];
   onScenePresentationChanged?: () => void;
 }
@@ -42,6 +43,11 @@ export interface WorkspaceSceneViewPort {
 export interface WorkspaceToolWindow {
   readonly id: string;
   readonly paths: FloatingWindowParameterPaths;
+}
+
+export interface WorkspacePresentationPort {
+  enterRunFullscreenForView(viewActorId: string, reason: "programmatic"): void;
+  exitRunFullscreen(reason: "programmatic"): void;
 }
 
 const registeredWorkspaceModeParameters = new WeakMap<SceneParameterStore, WorkspaceMode>();
@@ -74,6 +80,7 @@ export class WorkspaceModeController {
   readonly #commandSink: SceneCommandSink;
   readonly #getValue: WorkspaceModeControllerOptions["getValue"];
   readonly #sceneView: WorkspaceSceneViewPort;
+  readonly #workspacePresentation?: WorkspacePresentationPort;
   readonly #toolWindows: readonly WorkspaceToolWindow[];
   readonly #onScenePresentationChanged?: () => void;
   #mode: WorkspaceMode;
@@ -88,6 +95,7 @@ export class WorkspaceModeController {
     this.#commandSink = options.commandSink;
     this.#getValue = options.getValue;
     this.#sceneView = options.sceneView;
+    this.#workspacePresentation = options.workspacePresentation;
     this.#toolWindows = options.toolWindows;
     this.#onScenePresentationChanged = options.onScenePresentationChanged;
     this.#mode = options.getValue(sceneParameterPaths.workspace.mode);
@@ -99,6 +107,7 @@ export class WorkspaceModeController {
     if (modeChange) {
       this.applyMode(modeChange.nextValue as WorkspaceMode);
     }
+    if (this.#workspacePresentation) return;
     if (this.#mode !== "run") return;
     for (const change of event.changes) {
       const sceneLocation = this.getSceneLocation();
@@ -153,6 +162,12 @@ export class WorkspaceModeController {
 
   private enterRunMode(): void {
     const sceneLocation = this.ensureSceneLocation();
+    if (this.#workspacePresentation) {
+      if (sceneLocation) {
+        this.enterSceneFullscreen(sceneLocation);
+      }
+      return;
+    }
     if (!this.#developVisibilitySnapshot) {
       this.#developVisibilitySnapshot = new Map(
         this.#toolWindows.map((toolWindow) => [
@@ -196,6 +211,10 @@ export class WorkspaceModeController {
   }
 
   private enterDevelopMode(): void {
+    if (this.#workspacePresentation) {
+      this.exitSceneFullscreen();
+      return;
+    }
     this.exitSceneFullscreen();
     for (const toolWindow of this.#toolWindows) {
       const visible = this.#runModeDesiredVisibility.get(toolWindow.paths.visible) ??
@@ -234,7 +253,11 @@ export class WorkspaceModeController {
 
   private enterSceneFullscreen(sceneLocation: WindowViewLocation): void {
     this.#sceneView.commands.activateView(sceneLocation.viewActorId, "programmatic");
-    this.#sceneView.presentation.enterViewFullscreen(sceneLocation.viewActorId, "programmatic");
+    if (this.#workspacePresentation) {
+      this.#workspacePresentation.enterRunFullscreenForView(sceneLocation.viewActorId, "programmatic");
+    } else {
+      this.#sceneView.presentation.enterViewFullscreen(sceneLocation.viewActorId, "programmatic");
+    }
     this.#onScenePresentationChanged?.();
   }
 
@@ -244,7 +267,11 @@ export class WorkspaceModeController {
       this.#onScenePresentationChanged?.();
       return;
     }
-    this.#sceneView.presentation.exitViewFullscreen(sceneLocation.viewActorId, "programmatic");
+    if (this.#workspacePresentation) {
+      this.#workspacePresentation.exitRunFullscreen("programmatic");
+    } else {
+      this.#sceneView.presentation.exitViewFullscreen(sceneLocation.viewActorId, "programmatic");
+    }
     this.#onScenePresentationChanged?.();
   }
 

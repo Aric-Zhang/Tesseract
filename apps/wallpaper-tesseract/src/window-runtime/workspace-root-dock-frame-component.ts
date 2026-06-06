@@ -1,0 +1,413 @@
+import type { ScreenPoint } from "gizmo-core";
+import { type Actor, type Component, type ComponentType } from "../actor-runtime";
+import { actorInputScopeRoutePriority } from "../gizmo-runtime";
+import type {
+  ActorInputCancelEvent,
+  ActorInputEndEvent,
+  ActorInputHit,
+  ActorInputMoveEvent,
+  ActorInputParticipant,
+  ActorInputStartEvent
+} from "../gizmo-runtime";
+import {
+  type FloatingWindowContentAttachment,
+  type WindowContentAttachmentRequest,
+  type WindowContentHost
+} from "./floating-window-host";
+import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
+import type { WindowDockCommitIntent } from "./window-frame-lifecycle";
+import type {
+  WindowFrameDockTargetTabset,
+  WindowFramePort,
+  WindowFramePresentation,
+  WindowFrameRuntimeDockNode,
+  WindowFrameSuppressionReason,
+  WindowFrameTab
+} from "./window-frame-port";
+import type { RegisteredWindowFramePort, WindowFramePortRegistry } from "./window-frame-port-registry";
+import type { WindowTabDragSink } from "./window-dock-preview-component";
+import type { WindowTabDragSessionEndResult } from "./window-tab-drag-session";
+import { isWindowTabAction } from "./window-tab-action";
+import { readWindowTabDragSource } from "./floating-window-hit-data";
+import {
+  WINDOW_FRAME_TAB_ACTION_PART_ID,
+  WINDOW_FRAME_TAB_PART_ID
+} from "./window-frame-tab-chrome";
+import { rectFromDomRect, type WindowDockRect, type WindowDockSplitPlacement } from "./window-dock-targets";
+import type {
+  WindowFrameSurfaceComponent,
+  WindowFrameSurfaceHost
+} from "./window-frame-surface-component";
+
+export const workspaceRootDockFrameComponentType =
+  "workspace-root-dock-frame-component" as ComponentType<WorkspaceRootDockFrameComponent>;
+
+export const WORKSPACE_ROOT_FRAME_ID = "workspace-root-frame";
+export const WORKSPACE_ROOT_FRAME_PRIORITY = 100;
+
+export interface WorkspaceRootDockFrameComponentOptions {
+  readonly id: string;
+  readonly parent: HTMLElement;
+  readonly frameId?: string;
+  readonly tabs?: readonly WindowFrameTab[];
+  readonly activeViewActorId?: string;
+  readonly priority?: number;
+  readonly frameIntentSink?: WindowFrameIntentSink;
+  readonly tabDragSink?: WindowTabDragSink;
+  readonly framePortRegistry?: WindowFramePortRegistry;
+  readonly document?: Pick<Document, "createElement">;
+}
+
+export interface WorkspaceRootDockFrameComponentServices {
+  readonly surface: WindowFrameSurfaceComponent;
+}
+
+type WorkspaceRootPartId =
+  | typeof WINDOW_FRAME_TAB_PART_ID
+  | typeof WINDOW_FRAME_TAB_ACTION_PART_ID
+  | "root-splitter"
+  | "root-content";
+
+const WORKSPACE_ROOT_SPLIT_MIN_PANE_SIZE = 80;
+
+export class WorkspaceRootDockFrameComponent
+  implements Component, WindowFramePort, ActorInputParticipant {
+  readonly type = workspaceRootDockFrameComponentType;
+  readonly actor: Actor;
+  readonly id: string;
+  enabled = true;
+
+  readonly #root: HTMLDivElement;
+  readonly #tabbar: HTMLDivElement;
+  readonly #content: HTMLDivElement;
+  readonly #surface: WindowFrameSurfaceComponent;
+  readonly #surfaceHost: WindowFrameSurfaceHost;
+  readonly #frameId: string;
+  readonly #priority: number;
+  readonly #frameIntentSink?: WindowFrameIntentSink;
+  readonly #tabDragSink?: WindowTabDragSink;
+  readonly #registration?: RegisteredWindowFramePort;
+  readonly #presentationSuppressionReasons = new Set<WindowFrameSuppressionReason>();
+  #draggingTab = false;
+
+  constructor(
+    actor: Actor,
+    options: WorkspaceRootDockFrameComponentOptions,
+    services: WorkspaceRootDockFrameComponentServices
+  ) {
+    this.actor = actor;
+    this.id = options.id;
+    this.#frameId = options.frameId ?? WORKSPACE_ROOT_FRAME_ID;
+    this.#priority = options.priority ?? WORKSPACE_ROOT_FRAME_PRIORITY;
+    this.#frameIntentSink = options.frameIntentSink;
+    this.#tabDragSink = options.tabDragSink;
+    this.#surface = services.surface;
+    this.#surface.configure({
+      tabs: options.tabs ?? [],
+      activeViewActorId: options.activeViewActorId
+    });
+
+    const documentRef = options.document ?? options.parent.ownerDocument ?? document;
+    this.#root = documentRef.createElement("div");
+    this.#root.className = "workspace-root-dock-frame";
+    this.#tabbar = documentRef.createElement("div");
+    this.#tabbar.className = "workspace-root-dock-frame__tabs";
+    this.#content = documentRef.createElement("div");
+    this.#content.className = "workspace-root-dock-frame__content";
+    this.#root.append(this.#tabbar, this.#content);
+    this.#surfaceHost = {
+      id: this.id,
+      document: documentRef,
+      primaryTabbar: this.#tabbar,
+      primaryContent: this.#content,
+      splitMinPaneSize: WORKSPACE_ROOT_SPLIT_MIN_PANE_SIZE,
+      hidePrimaryTabbarWhenSplit: true,
+      classes: {
+        pane: "workspace-root-dock-frame__pane",
+        paneTabs: "workspace-root-dock-frame__pane-tabs",
+        paneContent: "workspace-root-dock-frame__pane-content",
+        split: "workspace-root-dock-frame__split",
+        splitHorizontal: "workspace-root-dock-frame__split--horizontal",
+        splitVertical: "workspace-root-dock-frame__split--vertical",
+        splitter: "workspace-root-dock-frame__splitter",
+        splitterHorizontal: "workspace-root-dock-frame__splitter--horizontal",
+        splitterVertical: "workspace-root-dock-frame__splitter--vertical",
+        tab: "workspace-root-dock-frame__tab",
+        tabClose: "workspace-root-dock-frame__tab-close"
+      },
+      getEffectiveVisible: () => this.effectiveVisible,
+      getInputStackPriority: () => this.inputStackPriority,
+      getDockTargetFallbackBounds: () => rectFromDomRect(this.#root.getBoundingClientRect())
+    };
+    this.#surface.attachHost(this.#surfaceHost);
+    options.parent.append(this.#root);
+
+    this.#registration = options.framePortRegistry?.register({
+      frameActor: actor,
+      framePort: this,
+      getBaseStackPriority: () => this.inputStackPriority,
+      getStackPriority: () => this.inputStackPriority,
+      canTarget: () => this.enabled && this.effectiveVisible,
+      destroyWhenEmpty: false
+    });
+  }
+
+  get frameId(): string {
+    return this.#frameId;
+  }
+
+  get visiblePath(): null {
+    return null;
+  }
+
+  get visible(): boolean {
+    return true;
+  }
+
+  get presentationSuppressed(): boolean {
+    return this.#presentationSuppressionReasons.size > 0;
+  }
+
+  get effectiveVisible(): boolean {
+    return !this.presentationSuppressed;
+  }
+
+  get presentation(): WindowFramePresentation {
+    return "windowed";
+  }
+
+  get inputStackPriority(): number {
+    return this.#priority;
+  }
+
+  listTabs(): readonly WindowFrameTab[] {
+    return this.#surface.listTabs();
+  }
+
+  getRuntimeDockRoot(): WindowFrameRuntimeDockNode {
+    return this.#surface.getRuntimeDockRoot();
+  }
+
+  restoreRuntimeDockRoot(root: WindowFrameRuntimeDockNode, options = {}): void {
+    this.#surface.restoreRuntimeDockRoot(root, options);
+  }
+
+  listDockTargetTabsets(): readonly WindowFrameDockTargetTabset[] {
+    return this.#surface.listDockTargetTabsets();
+  }
+
+  getActiveViewActorId(): string | null {
+    return this.#surface.getActiveViewActorId();
+  }
+
+  isViewActiveInFrame(viewActorId: string): boolean {
+    return this.#surface.isViewActiveInFrame(viewActorId);
+  }
+
+  isViewVisibleInFrame(viewActorId: string): boolean {
+    return this.#surface.isViewVisibleInFrame(viewActorId);
+  }
+
+  addTab(tab: WindowFrameTab, options = {}): void {
+    this.#surface.addTab(tab, options);
+  }
+
+  splitTab(
+    tab: WindowFrameTab,
+    options: {
+      readonly targetTabsetId: string;
+      readonly placement: WindowDockSplitPlacement;
+      readonly active?: boolean;
+    }
+  ): void {
+    this.#surface.splitTab(tab, options);
+  }
+
+  removeTab(viewActorId: string): void {
+    this.#surface.removeTab(viewActorId);
+  }
+
+  activateTab(viewActorId: string): void {
+    this.#surface.activateTab(viewActorId);
+  }
+
+  hasTab(viewActorId: string): boolean {
+    return this.#surface.hasTab(viewActorId);
+  }
+
+  hasTabset(targetTabsetId: string): boolean {
+    return this.#surface.hasTabset(targetTabsetId);
+  }
+
+  getContentHost(viewActorId: string): WindowContentHost {
+    return this.#surface.getContentHost(viewActorId);
+  }
+
+  getFloatingBounds(): WindowDockRect {
+    return rectFromDomRect(this.#root.getBoundingClientRect());
+  }
+
+  restoreFloatingState(): void {}
+
+  setPresentation(): void {}
+
+  setPresentationSuppressed(reason: WindowFrameSuppressionReason, suppressed: boolean): void {
+    const hadReason = this.#presentationSuppressionReasons.has(reason);
+    if (suppressed === hadReason) return;
+    if (suppressed) {
+      this.#presentationSuppressionReasons.add(reason);
+    } else {
+      this.#presentationSuppressionReasons.delete(reason);
+    }
+    this.#root.hidden = !this.effectiveVisible;
+    this.#surface.refreshActiveContentState();
+  }
+
+  requestVisible(): void {}
+
+  mountContent(requestOrElement: HTMLElement | WindowContentAttachmentRequest): FloatingWindowContentAttachment {
+    return this.#surface.mountContent(requestOrElement);
+  }
+
+  isContentInteractable(element: HTMLElement): boolean {
+    return this.#surface.isContentInteractable(element);
+  }
+
+  hitTestInput(point: ScreenPoint): ActorInputHit | null {
+    if (!this.enabled || !this.effectiveVisible || !isPointInsideRect(point, this.#root.getBoundingClientRect())) return null;
+    const surfaceHit = this.#surface.hitTest(point);
+    if (surfaceHit?.part === "tab-action") {
+      return this.createHit(WINDOW_FRAME_TAB_ACTION_PART_ID, 100, surfaceHit.data);
+    }
+    if (surfaceHit?.part === "tab") {
+      return this.createHit(WINDOW_FRAME_TAB_PART_ID, 50, surfaceHit.data);
+    }
+    if (surfaceHit?.part === "splitter") {
+      return this.createHit("root-splitter", 90, surfaceHit.data);
+    }
+    if (surfaceHit?.part === "content") return this.createHit("root-content", 1);
+    return null;
+  }
+
+  onInputStart(event: ActorInputStartEvent): void {
+    this.#draggingTab = false;
+    this.#surface.endSplitResize();
+    if (event.hit.partId === "root-splitter") {
+      this.#surface.beginSplitResize(event.hit.data);
+      return;
+    }
+    if (event.hit.partId !== WINDOW_FRAME_TAB_PART_ID) return;
+    const source = readWindowTabDragSource(this.#frameId, event.hit);
+    if (source) {
+      this.#draggingTab = true;
+      this.#tabDragSink?.beginTabDrag(source, event.point);
+    }
+  }
+
+  onInputMove(event: ActorInputMoveEvent): void {
+    if (event.hit.partId === "root-splitter") {
+      this.#surface.updateSplitRatioFromDrag(event);
+      return;
+    }
+    if (event.hit.partId === WINDOW_FRAME_TAB_PART_ID && this.#draggingTab) {
+      this.#tabDragSink?.moveTabDrag(event.point);
+    }
+  }
+
+  onInputEnd(event: ActorInputEndEvent): void {
+    this.#surface.endSplitResize();
+    if (event.hit.partId === WINDOW_FRAME_TAB_PART_ID && this.#draggingTab) {
+      const result = this.#tabDragSink?.endTabDrag() ?? null;
+      const intent = result && !event.wasClick ? createDockCommitIntent(result) : null;
+      if (intent) this.#frameIntentSink?.requestCommitDock?.(intent);
+      this.#draggingTab = false;
+      return;
+    }
+    if (event.hit.partId === WINDOW_FRAME_TAB_PART_ID && event.wasClick) {
+      const source = readWindowTabDragSource(this.#frameId, event.hit);
+      if (source) {
+        this.#frameIntentSink?.requestActivateFrameTab?.(this.#frameId, source.viewActorId, "tab-click");
+      }
+    }
+    if (event.hit.partId === WINDOW_FRAME_TAB_ACTION_PART_ID && event.wasClick) {
+      const action = event.hit.data;
+      if (isWindowTabAction(action) && action.kind === "close-view") {
+        this.#frameIntentSink?.requestCloseView?.(action.viewActorId, "tab-action", {
+          ownerFrameId: this.#frameId,
+          viewKey: action.viewKey
+        });
+      }
+    }
+  }
+
+  onInputCancel(_event: ActorInputCancelEvent): void {
+    this.#surface.endSplitResize();
+    if (_event.hit.partId === WINDOW_FRAME_TAB_PART_ID) {
+      this.#tabDragSink?.cancelTabDrag();
+    }
+    this.#draggingTab = false;
+  }
+
+  dispose(): void {
+    this.enabled = false;
+    this.#registration?.dispose();
+    this.#surface.detachHost(this.#surfaceHost);
+    this.#root.remove();
+  }
+
+  private createHit(partId: WorkspaceRootPartId, hitPriority: number, data?: unknown): ActorInputHit {
+    const isContent = partId === "root-content";
+    return {
+      componentId: this.id,
+      partId,
+      kind: isContent ? "content" : "chrome",
+      region: isContent ? "window-content" : "window-frame",
+      scopeRoutePriority: isContent
+        ? actorInputScopeRoutePriority.windowContent
+        : actorInputScopeRoutePriority.windowChrome,
+      localRoutePriority: 100,
+      hitPriority,
+      path: [{
+        componentId: this.id,
+        role: "surface",
+        partId
+      }],
+      data
+    };
+  }
+}
+
+function createDockCommitIntent(result: WindowTabDragSessionEndResult): WindowDockCommitIntent {
+  if (result.preview.kind === "merge-tabs") {
+    return {
+      kind: "merge-tabs",
+      source: result.source,
+      targetFrameId: result.preview.targetFrameId,
+      targetTabsetId: result.preview.targetTabsetId,
+      reason: "dock-drop"
+    };
+  }
+  if (result.preview.kind === "split") {
+    return {
+      kind: "split-tab",
+      source: result.source,
+      targetFrameId: result.preview.targetFrameId,
+      targetTabsetId: result.preview.targetTabsetId,
+      placement: result.preview.placement,
+      reason: "dock-drop"
+    };
+  }
+  return {
+    kind: "float-tab",
+    source: result.source,
+    bounds: result.preview.rect,
+    reason: "dock-drop"
+  };
+}
+
+function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {
+  return point.x >= rect.left &&
+    point.x <= rect.right &&
+    point.y >= rect.top &&
+    point.y <= rect.bottom;
+}

@@ -12,14 +12,24 @@ export type WindowFrameLifecycleReason =
   | "dock-drop"
   | "menu"
   | "tab-click"
+  | "tab-action"
   | "programmatic";
 
 export interface WindowFrameLifecycleController {
-  openView(viewKey: WindowViewKey, reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">): void;
+  openView(
+    viewKey: WindowViewKey,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
+    options?: WindowOpenViewOptions
+  ): void;
   closeFrame(
     frameId: string,
     reason: Extract<WindowFrameLifecycleReason, "close-button" | "programmatic">
-  ): void;
+  ): WindowCloseFrameResult;
+  closeView(
+    viewActorId: string,
+    reason: Extract<WindowFrameLifecycleReason, "tab-action" | "programmatic">,
+    options?: WindowCloseViewOptions
+  ): WindowCloseViewResult;
   activateFrameTab(
     frameId: string,
     viewActorId: string,
@@ -39,6 +49,10 @@ export interface WindowViewLocation {
   readonly activeInFrame: boolean;
   readonly visibleInFrame: boolean;
   readonly presentation: WindowFramePresentation;
+}
+
+export interface WindowOpenViewOptions {
+  readonly preferredFrameId?: string;
 }
 
 export interface WindowViewLocationSource {
@@ -71,6 +85,7 @@ export interface WindowViewFullscreenSession {
 
 export interface WindowViewPresentationCommandPort {
   enterViewFullscreen(viewActorId: string, reason: WindowViewFullscreenReason): void;
+  enterViewWorkspaceFullscreen(viewActorId: string, reason: WindowViewFullscreenReason): void;
   exitViewFullscreen(viewActorId: string, reason: WindowViewFullscreenReason): void;
   getViewFullscreenSession(viewActorId: string): WindowViewFullscreenSession | null;
   isViewFullscreenIsolated(viewActorId: string): boolean;
@@ -128,11 +143,48 @@ export type WindowDockCommitResult =
     }
   | { readonly committed: false; readonly reason: string };
 
+export type WindowCloseViewResult =
+  | {
+      readonly closed: true;
+      readonly sourceFrameId: string;
+      readonly ownerFrameDestroyed: boolean;
+      readonly nextActiveViewActorId: string | null;
+      readonly warning?: string;
+    }
+  | {
+      readonly closed: false;
+      readonly reason: string;
+      readonly sourceFrameId?: string;
+      readonly error?: string;
+      readonly warning?: string;
+    };
+
+export interface WindowCloseViewOptions {
+  readonly viewKey?: WindowViewKey;
+  readonly ownerFrameId?: string;
+}
+
+export type WindowCloseFrameResult =
+  | {
+      readonly closed: true;
+      readonly frameId: string;
+      readonly closedViewActorIds: readonly string[];
+      readonly warning?: string;
+    }
+  | {
+      readonly closed: false;
+      readonly frameId?: string;
+      readonly reason: string;
+      readonly error?: string;
+    };
+
 export interface WindowFloatingFrameCreateOptions {
-  readonly source: WindowTabDragSource;
-  readonly tab: WindowFrameTab;
-  readonly bounds: WindowDockRect;
-  readonly reason: Extract<WindowFrameLifecycleReason, "dock-drop" | "programmatic">;
+  readonly source?: WindowTabDragSource;
+  readonly tab?: WindowFrameTab;
+  readonly viewKey?: WindowViewKey;
+  readonly title?: string;
+  readonly bounds?: WindowDockRect;
+  readonly reason: Extract<WindowFrameLifecycleReason, "dock-drop" | "menu" | "programmatic">;
   readonly runtimeOnly?: boolean;
 }
 
@@ -146,10 +198,19 @@ export type WindowFloatingFrameFactory = (
 ) => WindowFloatingFrameCreateResult;
 
 export interface WindowFrameIntentSink {
-  requestOpenView(viewKey: WindowViewKey, reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">): void;
+  requestOpenView(
+    viewKey: WindowViewKey,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
+    options?: WindowOpenViewOptions
+  ): void;
   requestCloseFrame(
     frameId: string,
     reason: Extract<WindowFrameLifecycleReason, "close-button" | "programmatic">
+  ): void;
+  requestCloseView?(
+    viewActorId: string,
+    reason: Extract<WindowFrameLifecycleReason, "tab-action" | "programmatic">,
+    options?: WindowCloseViewOptions
   ): void;
   requestActivateFrameTab?(
     frameId: string,

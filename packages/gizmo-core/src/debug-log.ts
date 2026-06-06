@@ -10,6 +10,7 @@ export type GizmoDebugLogType =
   | "start"
   | "move"
   | "end"
+  | "click"
   | "cancel"
   | "double-click"
   | "ignore";

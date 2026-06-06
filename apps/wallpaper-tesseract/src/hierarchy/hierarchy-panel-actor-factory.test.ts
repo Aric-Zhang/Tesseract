@@ -333,6 +333,28 @@ describe("createHierarchyPanelActor", () => {
     ]);
   });
 
+  it("can untrack runtime ownership without destroying the hierarchy actor tree", () => {
+    const { calls, context } = createContext();
+    const { document, parent } = createParent();
+    const initial = createDefaultHierarchyPanelState();
+    const handle = createHierarchyPanelActor(context, {
+      actorId: "hierarchy-actor",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      initialWindowState: initial.window,
+      objectSource: createStaticHierarchyObjectSource([])
+    });
+    calls.length = 0;
+
+    handle.disposeRuntimeTracking?.();
+    handle.disposeRuntimeTracking?.();
+
+    expect(context.actorSystem.getActor("hierarchy-actor")).toBe(handle.actor);
+    expect(context.actorSystem.getActor("hierarchy-actor:view")).toBe(handle.component.actor);
+    expect(parent.children).toHaveLength(1);
+    expect(calls).toEqual([]);
+  });
+
   it("runtime context disposal releases still-live hierarchy panel actor handles", () => {
     const { context } = createContext();
     const { document, parent } = createParent();

@@ -3,7 +3,7 @@ import { ActorSystem, ComponentRegistry, type RegisteredActor } from "../../acto
 import { installCoreComponentDefinitions } from "../../component-definitions";
 import { gizmoEventBindingComponentType } from "../../gizmo-runtime";
 import { stateObserverBindingComponentType } from "../../state-runtime";
-import type { WindowControlSource } from "../../window-runtime";
+import type { WindowWorkspaceViewCatalog } from "../../window-runtime";
 import {
   appMenuBarComponentType,
   createAppMenuBarActor,
@@ -23,6 +23,7 @@ class FakeElement {
   readonly children: FakeElement[] = [];
   readonly dataset: Record<string, string> = {};
   readonly attributes = new Map<string, string>();
+  readonly listeners = new Map<string, Array<(event: unknown) => void>>();
   className = "";
   textContent = "";
   hidden = false;
@@ -76,6 +77,17 @@ class FakeElement {
   setAttribute(name: string, value: string): void {
     this.attributes.set(name, value);
   }
+
+  addEventListener(type: string, listener: (event: unknown) => void): void {
+    const listeners = this.listeners.get(type) ?? [];
+    listeners.push(listener);
+    this.listeners.set(type, listeners);
+  }
+
+  removeEventListener(type: string, listener: (event: unknown) => void): void {
+    const listeners = this.listeners.get(type) ?? [];
+    this.listeners.set(type, listeners.filter((candidate) => candidate !== listener));
+  }
 }
 
 function createContext() {
@@ -95,11 +107,12 @@ function createContext() {
   };
 }
 
-function createEmptyWindowSource(): WindowControlSource {
+function createEmptyWindowCatalog(): WindowWorkspaceViewCatalog {
   return {
-    listWindows: () => [],
-    findWindowByViewKey: () => null,
-    findWindowByVisiblePath: () => null
+    listViewEntries: () => [],
+    getViewEntryByIdentity: () => null,
+    getViewEntryByActorId: () => null,
+    listFrameEntries: () => []
   };
 }
 
@@ -114,7 +127,7 @@ describe("createAppMenuBarActor", () => {
       actorName: "App Menu",
       parent: parent as unknown as HTMLElement,
       document: document as unknown as Document,
-      windowSource: createEmptyWindowSource()
+      windowCatalog: createEmptyWindowCatalog()
     });
 
     expect(handle.actor.id).toBe("app-menu-bar");

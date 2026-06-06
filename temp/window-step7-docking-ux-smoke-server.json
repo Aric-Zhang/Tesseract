@@ -1,7 +1,0 @@
-{
-    "port":  5201,
-    "pid":  24020,
-    "stderr":  "temp/window-step7-docking-ux-vite-5201.err.log",
-    "stdout":  "temp/window-step7-docking-ux-vite-5201.out.log",
-    "url":  "http://127.0.0.1:5201/"
-}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { DockTargetRegionSource } from "./dock-target-frame-source";
+import type { DockTargetRegionSource } from "./dock-target-region-source";
 import {
   WindowDockPreviewComponent,
   WindowDockPreviewController

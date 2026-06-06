@@ -85,6 +85,10 @@ export class Camera3GizmoComponent implements ActorInputParticipant {
     );
   }
 
+  onInputClick(event: ActorInputClickEvent): void {
+    this.gizmo.onGizmoClick?.(toCamera3GizmoEvent(event));
+  }
+
   onInputDoubleClick(event: ActorInputClickEvent): void {
     this.gizmo.onGizmoDoubleClick?.(toCamera3GizmoEvent(event));
   }

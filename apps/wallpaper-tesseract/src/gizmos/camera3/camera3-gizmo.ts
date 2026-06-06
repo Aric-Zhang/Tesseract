@@ -5,6 +5,8 @@ import { Camera3GizmoState } from "./camera3-gizmo-state";
 import type { Camera3CommandSink } from "../../camera3-control";
 import type { GizmoClickEvent, GizmoController, GizmoHit, GizmoMoveEvent, ScreenPoint } from "gizmo-core";
 
+const projectionModePartId = "projection-mode";
+
 export interface Camera3GizmoOptions {
   projectionMode: Camera3ProjectionModeController;
   commandSink: Camera3CommandSink;
@@ -61,7 +63,6 @@ export class Camera3Gizmo implements GizmoController {
     this.modeLabel.type = "button";
     this.modeLabel.tabIndex = -1;
     this.modeLabel.textContent = "< Persp";
-    this.modeLabel.addEventListener("click", this.handleModeLabelClick);
 
     this.element.append(this.canvas, this.modeLabel);
     (options.parent ?? document.body).append(this.element);
@@ -80,12 +81,11 @@ export class Camera3Gizmo implements GizmoController {
 
   dispose(): void {
     this.enabled = false;
-    this.modeLabel.removeEventListener("click", this.handleModeLabelClick);
     this.element.remove();
   }
 
   hitTest(point: ScreenPoint): GizmoHit | null {
-    return this.hitTester.hitTest(point);
+    return this.hitTester.hitTest(point) ?? this.hitTestModeLabel(point);
   }
 
   onGizmoMove(event: GizmoMoveEvent): void {
@@ -109,14 +109,27 @@ export class Camera3Gizmo implements GizmoController {
     });
   }
 
-  private readonly handleModeLabelClick = (event: MouseEvent): void => {
-    event.preventDefault();
-    event.stopPropagation();
+  onGizmoClick(event: GizmoClickEvent): void {
+    if (event.hit.partId !== projectionModePartId) return;
     this.commandSink.submit({
       type: "toggle-projection",
       source: "camera3-gizmo"
     });
-  };
+  }
+
+  private hitTestModeLabel(point: ScreenPoint): GizmoHit | null {
+    const rect = this.modeLabel.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    if (point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom) {
+      return null;
+    }
+    return {
+      gizmoId: this.id,
+      partId: projectionModePartId,
+      kind: "custom",
+      priority: 20
+    };
+  }
 
   private draw(): void {
     this.renderer.draw(this.projectionMode.activeCamera);

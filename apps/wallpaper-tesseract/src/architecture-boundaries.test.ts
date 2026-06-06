@@ -43,21 +43,12 @@ function readSourceFile(relativePath: string): string {
 }
 
 describe("architecture boundaries", () => {
-  it("keeps deprecated AppRuntimeContext registration calls limited to transitional files", () => {
-    const allowedFiles = new Set([
-      "./app-runtime/app-runtime-context.ts",
-      "./app-runtime/app-runtime-context.test.ts",
-      "./app/create-wallpaper-app.ts",
-      "./app/scene-view-runtime.ts",
-      "./debug/legacy/debug-log-window-factory.ts",
-      "./gizmos/camera3/legacy/camera3-gizmo-factory.ts"
-    ]);
-
+  it("removes deprecated AppRuntimeContext legacy registration calls", () => {
     expect(findForbiddenMethodCalls([
       "registerLegacyRuntimeObject",
       "registerLegacyGizmoObject",
       "registerLegacyStatefulGizmoObject"
-    ], allowedFiles)).toEqual([]);
+    ], new Set())).toEqual([]);
   });
 
   it("removes the old non-legacy AppRuntimeContext registration names", () => {
@@ -72,17 +63,9 @@ describe("architecture boundaries", () => {
     expect(demoSource).not.toMatch(/\bnew\s+(DebugLogWindow|Camera3Gizmo|Tesseract4RuntimeObject)\s*\(/);
   });
 
-  it("keeps legacy DebugLogWindow imports out of the new component actor path", () => {
-    const allowedFiles = new Set([
-      "./debug/legacy/debug-log-window-factory.ts",
-      "./debug/legacy/debug-log-window-factory.legacy.test.ts",
-      "./debug/legacy/debug-log-window.legacy.test.ts",
-      "./debug/legacy/index.ts"
-    ]);
-
+  it("removes legacy DebugLogWindow imports and factories", () => {
     expect(findForbiddenSourceMatches(
-      /(?:from\s+["'](?:\.\/|\.\.\/)debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()/,
-      allowedFiles
+      /(?:from\s+["'](?:\.\/|\.\.\/)debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()|(?:debug\/legacy)/
     )).toEqual([]);
     expect(sourceFiles["./debug/components/debug-log-window-actor-factory.ts"] ?? "").not.toMatch(
       /(?:from\s+["']\.\.\/debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()/
@@ -162,6 +145,25 @@ describe("architecture boundaries", () => {
     expect(violations).toEqual([]);
   });
 
+  it("removes the legacy GizmoResponder adapter from production code", () => {
+    const violations = Object.entries(sourceFiles)
+      .filter(([file]) => (
+        file !== "./architecture-boundaries.test.ts" &&
+        !file.endsWith(".test.ts")
+      ))
+      .filter(([, source]) => (
+        /\bGizmoResponder\b/.test(source) ||
+        /\bisGizmoResponder\b/.test(source) ||
+        /\bhitTestGizmo\b/.test(source) ||
+        /\bgizmoPriority\b/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
+
   it("keeps window and hierarchy definitions out of core installer", () => {
     const source = sourceFiles["./component-definitions.ts"] ?? "";
     const coreBody = /export function installCoreComponentDefinitions[\s\S]*?\n}/.exec(source)?.[0] ?? "";
@@ -174,6 +176,7 @@ describe("architecture boundaries", () => {
   it("keeps scene feature components independent from app-runtime", () => {
     const violations = Object.entries(sourceFiles)
       .filter(([file]) => file.startsWith("./features/scene/"))
+      .filter(([file]) => !file.endsWith(".test.ts"))
       .filter(([, source]) => /from\s+["'](?:\.\.\/)+app-runtime(?:\/index)?["']/.test(source))
       .map(([file]) => file)
       .sort();
@@ -183,47 +186,107 @@ describe("architecture boundaries", () => {
 
   it("keeps app composition from owning the WebGL renderer canvas directly", () => {
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
-    const sceneViewRuntimeSource = sourceFiles["./app/scene-view-runtime.ts"] ?? "";
+    const sceneFeatureInstallerSource = sourceFiles["./features/scene/install-scene-view-feature.ts"] ?? "";
+    const sceneViewInstallerSource = sourceFiles["./features/scene/scene-view-content-installer.ts"] ?? "";
+    const renderableSceneViewSource = sourceFiles["./features/scene/renderable-scene-view.ts"] ?? "";
 
     expect(appSource).not.toMatch(/\bnew\s+THREE\.WebGLRenderer\b/);
     expect(appSource).not.toMatch(/replaceChildren\s*\(\s*renderer\.domElement\s*\)/);
-    expect(appSource).toMatch(/\bnew\s+SceneViewRuntime\b/);
+    expect(appSource).not.toMatch(/\bnew\s+SceneViewRuntime\b/);
+    expect(appSource).toMatch(/\binstallSceneViewFeature\b/);
+    expect(appSource).not.toMatch(/\binstallSceneViewContent\b/);
+    expect(appSource).not.toMatch(/\bcreateRenderableSceneView\b/);
+    expect(appSource).not.toMatch(/\bCurrentRenderableSceneViewRegistry\b/);
+    expect(appSource).toMatch(/sceneFeature\.renderableSceneViews\.current\?\.render\(\)/);
+    expect(appSource).not.toMatch(/\bCurrentSceneViewSource\b|\bcurrentSceneView\b|\bSceneViewRuntime\b/);
     expect(appSource).not.toMatch(/\bcreateSceneWindowActor\b/);
     expect(appSource).not.toMatch(/sceneWindow\.viewport\.render/);
-    expect(sceneViewRuntimeSource).toMatch(/\bcreateSceneWindowActor\b/);
-    expect(sceneViewRuntimeSource).toMatch(/sceneWindow\.viewport\.render/);
+    expect(appSource).not.toMatch(/sceneView\.viewport\.render/);
+    expect(renderableSceneViewSource).toMatch(/\binterface RenderableSceneView\b/);
+    expect(renderableSceneViewSource).toMatch(/\bisRenderable\s*\(\)\s*:\s*boolean/);
+    expect(renderableSceneViewSource).toMatch(/\brender\s*\(\)\s*:\s*void/);
+    expect(renderableSceneViewSource).not.toMatch(/\bdispose/);
+    expect(sceneFeatureInstallerSource).toMatch(/\binstallSceneViewContent\b/);
+    expect(sceneFeatureInstallerSource).toMatch(/\bcreateRenderableSceneView\b/);
+    expect(sceneFeatureInstallerSource).toMatch(/\bCurrentRenderableSceneViewRegistry\b/);
+    expect(sceneViewInstallerSource).toMatch(/\bcreateSceneWindowActor\b/);
+    expect(sceneViewInstallerSource).toMatch(/\bcreateSceneViewActor\b/);
+    expect(renderableSceneViewSource).toMatch(/sceneView\.viewport\.render/);
   });
 
   it("guards Scene viewport rendering behind current view ownership and active state", () => {
-    const sceneViewRuntimeSource = sourceFiles["./app/scene-view-runtime.ts"] ?? "";
+    const renderableSceneViewSource = sourceFiles["./features/scene/renderable-scene-view.ts"] ?? "";
 
-    expect(sceneViewRuntimeSource).toMatch(/\bisRenderable\s*\(\)\s*:\s*boolean/);
-    expect(sceneViewRuntimeSource).not.toMatch(/sceneWindow\.window\.state\.visible/);
-    expect(sceneViewRuntimeSource).toMatch(/viewLocationSource\.getLocationByViewActorId/);
-    expect(sceneViewRuntimeSource).toMatch(/location\.ownerFrameVisible/);
-    expect(sceneViewRuntimeSource).toMatch(/location\.visibleInFrame/);
-    expect(sceneViewRuntimeSource).toMatch(/actorSystem\.isActorActive\s*\(\s*this\.sceneWindow\.viewport\.actor\s*\)/);
-    expect(sceneViewRuntimeSource).toMatch(/if\s*\(\s*!\s*this\.isRenderable\(\)\s*\)\s*return;\s*\n\s*this\.sceneWindow\.viewport\.render/);
+    expect(renderableSceneViewSource).toMatch(/\bisRenderable\s*\(\)\s*{/);
+    expect(renderableSceneViewSource).not.toMatch(/sceneWindow\.window\.state\.visible/);
+    expect(renderableSceneViewSource).toMatch(/locations\.getLocationByViewActorId/);
+    expect(renderableSceneViewSource).toMatch(/location\.ownerFrameVisible/);
+    expect(renderableSceneViewSource).toMatch(/location\.visibleInFrame/);
+    expect(renderableSceneViewSource).toMatch(/actorSystem\.isActorActive\s*\(\s*options\.sceneView\.viewport\.actor\s*\)/);
+    expect(renderableSceneViewSource).toMatch(/sceneView\.viewport\.render\(options\.camera3Motion\.activeCamera\)/);
   });
 
-  it("keeps SceneViewRuntime construction transactional", () => {
-    const sceneViewRuntimeSource = sourceFiles["./app/scene-view-runtime.ts"] ?? "";
+  it("keeps Camera3 rig, motion, and viewport subscriptions in components", () => {
+    const sceneViewInstallerSource = sourceFiles["./features/scene/scene-view-content-installer.ts"] ?? "";
+    const camera3ComponentsSource = sourceFiles["./features/camera3/components/index.ts"] ?? "";
+    const camera3BindingSource =
+      sourceFiles["./features/camera3/components/scene-camera3-viewport-binding-component.ts"] ?? "";
+    const camera3MotionDefinitionSource =
+      sourceFiles["./features/camera3/components/camera3-motion-definition.ts"] ?? "";
+    const appInstallSource = sourceFiles["./app/install-component-definitions.ts"] ?? "";
 
-    expect(sceneViewRuntimeSource).toMatch(/\btry\s*{/);
-    expect(sceneViewRuntimeSource).toMatch(/\bcatch\s*\(\s*error\s*\)/);
-    expect(sceneViewRuntimeSource).toMatch(/\bdisposeSceneViewConstruction\b/);
-    expect(sceneViewRuntimeSource).toMatch(/options\.sceneWindow\?\.dispose\s*\(\s*\)/);
-    expect(sceneViewRuntimeSource).toMatch(/options\.motionRegistration\?\.dispose\s*\(\s*\)/);
+    expect(sceneViewInstallerSource).not.toMatch(/\bnew\s+Camera3MotionController\b/);
+    expect(sceneViewInstallerSource).not.toMatch(/\bnew\s+Camera3Rig\b/);
+    expect(sceneViewInstallerSource).not.toMatch(/\bnew\s+Camera3ProjectionModeController\b/);
+    expect(sceneViewInstallerSource).not.toMatch(/subscribeResize\s*\(/);
+    expect(sceneViewInstallerSource).not.toMatch(/onCamera3MotionChanged/);
+    expect(sceneViewInstallerSource).toMatch(/\bcamera3RigComponentType\b/);
+    expect(sceneViewInstallerSource).toMatch(/\bcamera3MotionComponentType\b/);
+    expect(sceneViewInstallerSource).toMatch(/\bsceneCamera3ViewportBindingComponentType\b/);
+    expect(camera3ComponentsSource).toMatch(/\bCamera3RigComponent\b/);
+    expect(camera3ComponentsSource).toMatch(/\bCamera3MotionComponent\b/);
+    expect(camera3ComponentsSource).toMatch(/\bSceneCamera3ViewportBindingComponent\b/);
+    expect(camera3BindingSource).toMatch(/subscribeResize\s*\(/);
+    expect(camera3BindingSource).toMatch(/onCamera3MotionChanged/);
+    expect(camera3MotionDefinitionSource).not.toMatch(/\bruntime-object\b/);
+    expect(camera3MotionDefinitionSource).toMatch(/\brequires:\s*\[\s*{/);
+    expect(camera3MotionDefinitionSource).toMatch(/\bcamera3RigComponentType\b/);
+    expect(appInstallSource).toMatch(/installSceneComponentDefinitions[\s\S]*installCamera3FeatureComponentDefinitions/);
+  });
+
+  it("keeps Camera3 UI controls on actor input instead of DOM click handlers", () => {
+    const camera3GizmoSource = sourceFiles["./gizmos/camera3/camera3-gizmo.ts"] ?? "";
+    const camera3ComponentSource = sourceFiles["./gizmos/camera3/components/camera3-gizmo-component.ts"] ?? "";
+
+    expect(camera3GizmoSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
+    expect(camera3GizmoSource).not.toMatch(/\.onclick\s*=/);
+    expect(camera3GizmoSource).toMatch(/projection-mode/);
+    expect(camera3ComponentSource).toMatch(/\bonInputClick\b/);
+  });
+
+  it("keeps Scene view content installation transactional", () => {
+    const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
+    const sceneViewInstallerSource = sourceFiles["./features/scene/scene-view-content-installer.ts"] ?? "";
+
+    expect(appSource).not.toMatch(/registerLegacyRuntimeObject\s*\(\s*content\.camera3Motion\s*\)/);
+    expect(appSource).not.toMatch(/motionRegistration\?\.dispose\s*\(\s*\)/);
+    expect(appSource).not.toMatch(/content\.camera3Motion\.dispose\s*\(\s*\)/);
+    expect(sceneViewInstallerSource).toMatch(/\btry\s*{/);
+    expect(sceneViewInstallerSource).toMatch(/\bcatch\s*\(\s*error\s*\)/);
+    expect(sceneViewInstallerSource).toMatch(/\(sceneWindow\s*\?\?\s*sceneView\)\?\.dispose\s*\(\s*\)/);
+    expect(sceneViewInstallerSource).not.toMatch(/\bregisterLegacyRuntimeObject\b/);
+    expect(sceneViewInstallerSource).not.toMatch(/\brender\s*\(\)\s*:/);
+    expect(sceneViewInstallerSource).not.toMatch(/\bmeasureNow\s*\(\)\s*:/);
   });
 
   it("parents the Camera3 actor gizmo inside the Scene viewport overlay", () => {
-    const sceneViewRuntimeSource = sourceFiles["./app/scene-view-runtime.ts"] ?? "";
+    const sceneViewInstallerSource = sourceFiles["./features/scene/scene-view-content-installer.ts"] ?? "";
     const camera3Styles = readSourceFile("./gizmos/camera3/camera3-gizmo.css");
-    const camera3ActorCall = /createCamera3GizmoActor\s*\(\s*context\s*,\s*{[\s\S]*?\n      },/
-      .exec(sceneViewRuntimeSource)?.[0] ?? "";
+    const camera3ActorCall = /createCamera3GizmoActor\s*\(\s*context\s*,\s*{[\s\S]*?parentActor:\s*sceneView\.viewport\.actor[\s\S]*?}/
+      .exec(sceneViewInstallerSource)?.[0] ?? "";
 
-    expect(camera3ActorCall).toMatch(/parent:\s*sceneWindow\.viewport\.overlayElement/);
-    expect(camera3ActorCall).toMatch(/parentActor:\s*sceneWindow\.viewport\.actor/);
+    expect(camera3ActorCall).toMatch(/parent:\s*sceneView\.viewport\.overlayElement/);
+    expect(camera3ActorCall).toMatch(/parentActor:\s*sceneView\.viewport\.actor/);
     expect(camera3ActorCall).not.toMatch(/parent:\s*mount/);
     expect(camera3Styles).toMatch(/\.scene-window__overlay\s+\.camera3-gizmo\s*{[\s\S]*position:\s*absolute/);
   });
@@ -238,15 +301,34 @@ describe("architecture boundaries", () => {
     expect(appMenuActorFactory).not.toMatch(/\bfloatingWindowComponentType\b/);
   });
 
-  it("composes the window workspace controller through app-level ports", () => {
+  it("composes the window workspace through a feature installer", () => {
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
     const appRuntimeSource = sourceFiles["./app-runtime/app-runtime-context.ts"] ?? "";
+    const workspaceInstallerSource =
+      sourceFiles["./features/window-workspace/install-window-workspace-feature.ts"] ?? "";
 
     expect(appSource).toMatch(/\bcreateActorWindowFocusServiceProxy\b/);
-    expect(appSource).toMatch(/\bnew\s+WindowWorkspaceController\b/);
-    expect(appSource).toMatch(/actorWindowFocus\.bind\s*\(\s*windowWorkspaceController\s*\)/);
+    expect(appSource).toMatch(/\binstallWindowWorkspaceFeature\b/);
+    expect(appSource).not.toMatch(/\bnew\s+(WindowWorkspaceController|WindowViewFactoryRegistry|WindowDockPreviewController|WindowWorkspacePresentationController)\b/);
+    expect(appSource).not.toMatch(/\bnew\s+WindowFramePortRegistry\b/);
+    expect(appSource).not.toMatch(/\bcreateDockTargetRegionSource\b/);
+    expect(workspaceInstallerSource).toMatch(/\bnew\s+WindowWorkspaceController\b/);
+    expect(workspaceInstallerSource).toMatch(/actorWindowFocus\.bind\s*\(\s*workspaceController\s*\)/);
     expect(appSource).toMatch(/actorWindowFocus\.dispose\s*\(\s*\)/);
     expect(appRuntimeSource).toMatch(/\bactorWindowFocus:\s*options\.actorWindowFocus\b/);
+  });
+
+  it("keeps run-mode fullscreen on the workspace presentation session path", () => {
+    const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
+    const workspaceModeSource = sourceFiles["./app/workspace-mode.ts"] ?? "";
+    const workspaceModeConstruction = /new\s+WorkspaceModeController\s*\(\s*{[\s\S]*?\n  }\);/
+      .exec(appSource)?.[0] ?? "";
+
+    expect(appSource).not.toMatch(/\bnew\s+WindowWorkspacePresentationController\b/);
+    expect(workspaceModeConstruction).toMatch(/\bworkspacePresentation:\s*windowWorkspace\.presentationController\b/);
+    expect(workspaceModeConstruction).not.toMatch(/sceneParameterPaths\.(?:debugWindow|hierarchyWindow)/);
+    expect(workspaceModeSource).toMatch(/\benterRunFullscreenForView\b/);
+    expect(workspaceModeSource).toMatch(/\bexitRunFullscreen\b/);
   });
 
   it("keeps actor-local input route scores out of gizmo-core hit priority", () => {
@@ -257,6 +339,12 @@ describe("architecture boundaries", () => {
     expect(bindingSource).toMatch(/priority:\s*selection\.scopeRouteScore\b/);
     expect(routerSource).toMatch(/\bscopeRouteScore\b/);
     expect(routerSource).toMatch(/\bgetActorInputScopeRoutePriority\b/);
+  });
+
+  it("keeps pointer active interaction policy in gizmo-core instead of app-level fallbacks", () => {
+    const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
+
+    expect(appSource).not.toMatch(/\bbuttonsReleasedFallback\b/);
   });
 
   it("keeps feature definition installation owned by features and composed by app", () => {
@@ -284,9 +372,12 @@ describe("architecture boundaries", () => {
     const camera3GizmoStyles = readSourceFile("./gizmos/camera3/camera3-gizmo.css");
     const sceneWindowStyles = readSourceFile("./features/scene/scene-window.css");
     const appMenuStyles = readSourceFile("./features/app-menu/app-menu.css");
+    const appShellStyles = readSourceFile("./app/app-shell.css");
     const appStyleManifestSource = sourceFiles["./app/styles.ts"] ?? "";
 
     expect(appRootStyles).not.toMatch(/floating-gizmo-window|debug-log-window|hierarchy-panel|camera3-gizmo|scene-window|app-menu-bar/);
+    expect(appShellStyles).toMatch(/app-shell/);
+    expect(appShellStyles).not.toMatch(/floating-gizmo-window|debug-log-window|hierarchy-panel|camera3-gizmo|scene-window|app-menu-bar/);
     expect(floatingWindowStyles).toMatch(/floating-gizmo-window/);
     expect(debugLogStyles).toMatch(/debug-log-window/);
     expect(hierarchyStyles).toMatch(/hierarchy-panel/);
@@ -294,6 +385,7 @@ describe("architecture boundaries", () => {
     expect(sceneWindowStyles).toMatch(/scene-window/);
     expect(appMenuStyles).toMatch(/app-menu-bar/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/style\.css["']/);
+    expect(appStyleManifestSource).toMatch(/["']\.\/app-shell\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/features\/app-menu\/app-menu\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/window-runtime\/floating-window\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/features\/scene\/scene-window\.css["']/);
@@ -305,22 +397,75 @@ describe("architecture boundaries", () => {
   it("keeps App Menu routed through actor input and state observer bindings", () => {
     const componentSource = sourceFiles["./features/app-menu/app-menu-bar-component.ts"] ?? "";
     const definitionSource = sourceFiles["./features/app-menu/app-menu-bar-definition.ts"] ?? "";
+    const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
 
+    expect(appSource).toMatch(/\binstallAppMenuFeature\b/);
+    expect(appSource).not.toMatch(/\bcreateAppMenuBarActor\b/);
     expect(componentSource).toMatch(/\bhitTestInput\b/);
     expect(componentSource).toMatch(/\bonInputEnd\b/);
     expect(componentSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
     expect(componentSource).not.toMatch(/document\.addEventListener\s*\(\s*["']click["']/);
     expect(componentSource).not.toMatch(/\.onclick\s*=/);
     expect(componentSource).toMatch(/\bmenu-dismiss\b/);
-    expect(componentSource).toMatch(/requestOpenView\(hitData\.viewKey,\s*["']menu["']\)/);
+    expect(componentSource).toMatch(/activateOpenViewRow\(row,\s*event\.timeStamp\)/);
+    expect(componentSource).toMatch(/requestOpenView\(row\.viewKey,\s*["']menu["']\)/);
     expect(componentSource).not.toMatch(/requestOpenView\([^)]*actorId/);
     expect(definitionSource).toMatch(/\bgizmoEventBindingComponentType\b/);
     expect(definitionSource).toMatch(/\bstateObserverBindingComponentType\b/);
   });
 
+  it("keeps tab-local window actions on actor input lifecycle intents", () => {
+    const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
+    const tabActionSource = sourceFiles["./window-runtime/window-tab-action.ts"] ?? "";
+
+    expect(floatingWindowSource).toMatch(/partId\s*===\s*["']window-tab-action["']/);
+    expect(floatingWindowSource).toMatch(/requestCloseView\(event\.hit\.data\.viewActorId,\s*["']tab-action["'],\s*\{/);
+    expect(floatingWindowSource).toMatch(/ownerFrameId:\s*this\.#frameId/);
+    expect(floatingWindowSource).toMatch(/viewKey:\s*event\.hit\.data\.viewKey/);
+    expect(floatingWindowSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
+    expect(floatingWindowSource).not.toMatch(/\.onclick\s*=/);
+    expect(tabActionSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
+    expect(tabActionSource).not.toMatch(/\.onclick\s*=/);
+    expect(tabActionSource).not.toMatch(/\brequestCloseFrame\b|\bcloseFrame\b/);
+  });
+
+  it("keeps dock surface behavior in the shared frame surface component", () => {
+    const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
+    const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
+    const floatingDefinitionSource = sourceFiles["./window-runtime/floating-window-definition.ts"] ?? "";
+    const rootDefinitionSource = sourceFiles["./window-runtime/workspace-root-dock-frame-definition.ts"] ?? "";
+    const installSource = sourceFiles["./window-runtime/install-component-definitions.ts"] ?? "";
+    const surfaceSource = sourceFiles["./window-runtime/window-frame-surface-component.ts"] ?? "";
+
+    expect(surfaceSource).toMatch(/\bWindowDockSurfaceModel\b/);
+    expect(surfaceSource).toMatch(/\brenderWindowFrameTabsetTabs\b/);
+    expect(surfaceSource).toMatch(/\bcreateWindowContentAttachment\b/);
+    expect(floatingWindowSource).not.toMatch(/\bWindowDockSurfaceModel\b/);
+    expect(rootFrameSource).not.toMatch(/\bWindowDockSurfaceModel\b/);
+    expect(floatingWindowSource).not.toMatch(/#contentAttachments|#tabElementsByViewActorId|renderTabsetTabs|renderSplitNode/);
+    expect(rootFrameSource).not.toMatch(/#contentAttachments|#tabElementsByViewActorId|renderTabsetTabs|renderSplitNode/);
+    expect(floatingWindowSource).not.toMatch(/new\s+WindowFrameSurfaceComponent/);
+    expect(rootFrameSource).not.toMatch(/new\s+WindowFrameSurfaceComponent/);
+    expect(floatingWindowSource).not.toMatch(/#surface\.dispose\(/);
+    expect(rootFrameSource).not.toMatch(/#surface\.dispose\(/);
+    expect(floatingDefinitionSource).toMatch(/\bwindowFrameSurfaceComponentType\b/);
+    expect(rootDefinitionSource).toMatch(/\bwindowFrameSurfaceComponentType\b/);
+    expect(installSource).toMatch(/windowFrameSurfaceComponentDefinition[\s\S]*floatingWindowComponentDefinition/);
+    expect(installSource).toMatch(/windowFrameSurfaceComponentDefinition[\s\S]*workspaceRootDockFrameComponentDefinition/);
+  });
+
+  it("keeps the window workspace catalog as a read-only projection", () => {
+    const catalogSource = sourceFiles["./window-runtime/window-workspace-view-catalog.ts"] ?? "";
+    const controllerSource = sourceFiles["./window-runtime/window-workspace-controller.ts"] ?? "";
+    const priorityPortSource = sourceFiles["./window-runtime/window-workspace-stack-priority-port.ts"] ?? "";
+
+    expect(catalogSource).not.toMatch(/\bsetStackPriority\b/);
+    expect(controllerSource).toMatch(/\bWindowWorkspaceStackPriorityPort\b/);
+    expect(priorityPortSource).toMatch(/\bsetFrameStackPriority\b/);
+  });
+
   it("keeps App Menu model as a feature-level adapter over window runtime facts", () => {
     const appMenuModelSource = sourceFiles["./features/app-menu/app-menu-model.ts"] ?? "";
-    const windowControlSource = sourceFiles["./window-runtime/window-control-source.ts"] ?? "";
     const windowRuntimeViolations = Object.entries(sourceFiles)
       .filter(([file]) => file.startsWith("./window-runtime/"))
       .filter(([, source]) => /features\/app-menu/.test(source))
@@ -330,9 +475,30 @@ describe("architecture boundaries", () => {
     expect(appMenuModelSource).toMatch(/from\s+["']\.\.\/\.\.\/window-runtime["']/);
     expect(appMenuModelSource).toMatch(/\bkind:\s*["']open-view["']/);
     expect(appMenuModelSource).toMatch(/\bviewKey\b/);
-    expect(windowControlSource).toMatch(/\bfindWindowByViewKey\b/);
+    expect(appMenuModelSource).toMatch(/\bWindowWorkspaceViewEntry\b/);
     expect(appMenuModelSource).not.toMatch(/\bdata\s*\?:\s*unknown\b/);
     expect(windowRuntimeViolations).toEqual([]);
+  });
+
+  it("keeps old window source and visible-activation adapters deleted", () => {
+    expect(sourceFiles["./window-runtime/window-control-source.ts"]).toBeUndefined();
+    expect(sourceFiles["./window-runtime/window-menu-view-source.ts"]).toBeUndefined();
+    expect(sourceFiles["./window-runtime/window-visibility-activation-controller.ts"]).toBeUndefined();
+  });
+
+  it("keeps window view factories limited to view runtime creation", () => {
+    const factoryRegistrySource = sourceFiles["./window-runtime/window-view-factory-registry.ts"] ?? "";
+    const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
+
+    expect(factoryRegistrySource).not.toMatch(/\bWindowViewFactoryResult\b/);
+    expect(factoryRegistrySource).not.toMatch(/\bcreate\s*\(\s*options:\s*WindowViewFactoryCreateOptions/);
+    expect(factoryRegistrySource).not.toMatch(/\bdispose\?\s*\(/);
+    expect(factoryRegistrySource).toMatch(/\bcreateViewRuntime\s*\(/);
+    expect(appSource).not.toMatch(/\bcreateDebugLogWindowActor\b/);
+    expect(appSource).not.toMatch(/\bcreateDebugLogViewActor\b/);
+    expect(appSource).not.toMatch(/\bcreateHierarchyPanelActor\b/);
+    expect(appSource).not.toMatch(/\bcreateHierarchyPanelViewActor\b/);
+    expect(appSource).toMatch(/\binstallToolWindowFeatures\b/);
   });
 
   it("keeps window runtime independent from feature implementations", () => {
@@ -393,8 +559,32 @@ describe("architecture boundaries", () => {
     expect(persistenceControllerSource).toMatch(/\bWindowFrameLayoutSnapshotSource\b/);
     expect(persistenceControllerSource).not.toMatch(/\bActorSystem\b/);
     expect(persistenceControllerSource).not.toMatch(/\bFloatingWindowComponent\b/);
-    expect(appSource).toMatch(/\bloadPersistedWindowWorkspaceFrameLayout\b/);
-    expect(appSource).toMatch(/\brestoreFrameLayout\b/);
+    expect(appSource).not.toMatch(/\bloadPersistedWindowWorkspaceFrameLayout\b/);
+    expect(appSource).not.toMatch(/\brestoreFrameLayout\b/);
+  });
+
+  it("removes the actor-id workspace layout compatibility API from production code", () => {
+    const oldLayoutApi =
+      /\b(?:WindowWorkspaceLayout|createWindowWorkspaceLayout|dockWindowAsTab|findDockTabsetContaining|normalizeWindowWorkspaceLayout|removeWindowFromDock|removeWindowFromLayout|setActiveDockTab|splitDockTab|undockWindow)\b/;
+    const violations = Object.entries(sourceFiles)
+      .filter(([file]) => (
+        file !== "./architecture-boundaries.test.ts" &&
+        !file.endsWith(".test.ts")
+      ))
+      .filter(([, source]) => oldLayoutApi.test(source))
+      .map(([file]) => file)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps live window view tracking keyed by view identity instead of only view key", () => {
+    const controllerSource = sourceFiles["./window-runtime/window-frame-lifecycle-controller.ts"] ?? "";
+    const factoryRegistrySource = sourceFiles["./window-runtime/window-view-factory-registry.ts"] ?? "";
+
+    expect(controllerSource).toMatch(/\bcreateWindowViewIdentityKey\b/);
+    expect(controllerSource).not.toMatch(/new\s+Map\s*<\s*WindowViewKey\s*,\s*LiveWindowView\s*>/);
+    expect(factoryRegistrySource).toMatch(/\bidentity:\s*getWindowViewFactoryIdentity\b/);
   });
 
   it("keeps feature window content components on the narrow WindowContentHost port", () => {
@@ -445,18 +635,13 @@ describe("architecture boundaries", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps dock target production API region-first outside compatibility aliases", () => {
-    const allowedFiles = new Set([
-      "./window-runtime/dock-target-frame-source.ts",
-      "./window-runtime/window-dock-targets.ts"
-    ]);
+  it("keeps dock target production API region-first", () => {
     const legacyDockTargetNames =
       /\b(?:WindowDockTargetFrame|DockTargetFrameSource|DockTargetFrameSourceOptions|createDockTargetFrameSource|listDockTargetFrames)\b/;
     const violations = Object.entries(sourceFiles)
       .filter(([file]) => (
         file !== "./architecture-boundaries.test.ts" &&
-        !file.endsWith(".test.ts") &&
-        !allowedFiles.has(file)
+        !file.endsWith(".test.ts")
       ))
       .filter(([, source]) => legacyDockTargetNames.test(source))
       .map(([file]) => file)
@@ -545,22 +730,18 @@ describe("architecture boundaries", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps the Camera3 legacy factory behind the legacy entrypoint", () => {
+  it("removes the Camera3 legacy factory surface", () => {
     const normalIndex = sourceFiles["./gizmos/camera3/index.ts"] ?? "";
     const componentIndex = sourceFiles["./gizmos/camera3/components/index.ts"] ?? "";
     const componentSource = sourceFiles["./gizmos/camera3/components/camera3-gizmo-component.ts"] ?? "";
-    const legacyIndex = sourceFiles["./gizmos/camera3/legacy/index.ts"] ?? "";
-    const allowedFiles = new Set([
-      "./gizmos/camera3/legacy/index.ts",
-      "./gizmos/camera3/legacy/camera3-gizmo-factory.ts",
-      "./gizmos/camera3/legacy/camera3-gizmo-factory.legacy.test.ts"
-    ]);
     const violations = Object.entries(sourceFiles)
       .filter(([file]) => (
-        file !== "./architecture-boundaries.test.ts" &&
-        !allowedFiles.has(file)
+        file !== "./architecture-boundaries.test.ts"
       ))
-      .filter(([, source]) => /from\s+["'][^"']*camera3-gizmo-factory["']/.test(source))
+      .filter(([, source]) => (
+        /from\s+["'][^"']*camera3-gizmo-factory["']/.test(source) ||
+        /gizmos\/camera3\/legacy/.test(source)
+      ))
       .map(([file]) => file)
       .sort();
 
@@ -570,8 +751,6 @@ describe("architecture boundaries", () => {
     expect(componentIndex).toMatch(/\bCamera3GizmoViewFactory\b/);
     expect(componentSource).not.toMatch(/\bCamera3GizmoFactory\b/);
     expect(componentSource).toMatch(/\bCamera3GizmoViewFactory\b/);
-    expect(legacyIndex).toMatch(/\bcreateCamera3Gizmo\b/);
-    expect(legacyIndex).toMatch(/\bLegacyCamera3GizmoFactory\b/);
     expect(violations).toEqual([]);
   });
 

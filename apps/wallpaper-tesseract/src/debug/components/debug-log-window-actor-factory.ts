@@ -1,4 +1,4 @@
-import { createRegisteredActor } from "../../actor-runtime";
+import { createRegisteredActor, type Actor, type RegisteredActor } from "../../actor-runtime";
 import type { FeatureActorContext } from "../../runtime/ports";
 import { sceneParameterPaths, vec2 } from "../../scene-runtime";
 import {
@@ -7,6 +7,7 @@ import {
   type FloatingWindowState,
   type RegisteredWindowActor,
   type WindowFrameIntentSink,
+  type WindowFramePortRegistry,
   type WindowTabDragSink
 } from "../../window-runtime";
 import {
@@ -28,7 +29,61 @@ export interface DebugLogWindowActorOptions {
   priority?: number;
   document?: Pick<Document, "createElement">;
   frameIntentSink?: WindowFrameIntentSink;
+  framePortRegistry?: WindowFramePortRegistry;
   tabDragSink?: WindowTabDragSink;
+}
+
+export interface DebugLogViewActorOptions {
+  actorId?: string;
+  actorName?: string;
+  parentActor: Actor;
+  maxLines?: number;
+  document?: Pick<Document, "createElement">;
+}
+
+export interface RegisteredDebugLogViewActor extends RegisteredActor<DebugLogContentComponent> {
+  disposeRuntimeTracking?(): void;
+}
+
+export function createDebugLogViewActor(
+  context: FeatureActorContext,
+  options: DebugLogViewActorOptions
+): RegisteredDebugLogViewActor {
+  const actor = context.actorSystem.createActor({
+    id: options.actorId,
+    name: options.actorName ?? options.actorId,
+    parent: options.parentActor
+  });
+  try {
+    const component = context.componentRegistry.addComponent(actor, debugLogContentComponentType, {
+      id: "debug-log-content",
+      maxLines: options.maxLines,
+      document: options.document
+    });
+    let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
+    const baseHandle = createRegisteredActor({
+      actorSystem: context.actorSystem,
+      actor,
+      component,
+      beforeDispose: () => untrack?.dispose()
+    });
+    const handle: RegisteredDebugLogViewActor = {
+      actor: baseHandle.actor,
+      component: baseHandle.component,
+      dispose: () => baseHandle.dispose(),
+      disposeRuntimeTracking: () => {
+        untrack?.dispose();
+        untrack = null;
+      }
+    };
+    untrack = context.trackRegisteredActor(handle);
+    return handle;
+  } catch (error) {
+    if (context.actorSystem.hasActor(actor)) {
+      context.actorSystem.destroyActor(actor);
+    }
+    throw error;
+  }
 }
 
 export function createDebugLogWindowActor(
@@ -54,6 +109,7 @@ export function createDebugLogWindowActor(
       activeViewActorId: viewActorId,
       activeViewKey: "debug",
       frameIntentSink: options.frameIntentSink,
+      framePortRegistry: options.framePortRegistry,
       tabDragSink: options.tabDragSink,
       windowMenu: {
         viewKey: "debug"
@@ -80,7 +136,11 @@ export function createDebugLogWindowActor(
       actor: baseHandle.actor,
       component: baseHandle.component,
       window: window as FloatingWindowComponent,
-      dispose: () => baseHandle.dispose()
+      dispose: () => baseHandle.dispose(),
+      disposeRuntimeTracking: () => {
+        untrack?.dispose();
+        untrack = null;
+      }
     };
     untrack = context.trackRegisteredActor(handle);
     return handle;

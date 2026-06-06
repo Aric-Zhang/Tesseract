@@ -12,6 +12,7 @@ import { parameterPath, vec2, type SceneStateChangedEvent, type SceneUpdateComma
 import { stateObserverBindingComponentType } from "../state-runtime";
 import {
   createActorInputEndEvent,
+  createActorInputHit,
   createActorInputMoveEvent,
   createActorInputStartEvent,
   createTestComponentRegistry
@@ -21,6 +22,7 @@ import {
   floatingWindowComponentType,
   type FloatingWindowMenuOptions
 } from "./floating-window-component";
+import { WindowFrameSurfaceComponent } from "./window-frame-surface-component";
 import type { FloatingWindowParameterPaths } from "./floating-window-state";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
 import type {
@@ -28,6 +30,7 @@ import type {
   WindowFrameRuntimeTabsetNode,
   WindowFrameTab
 } from "./window-frame-port";
+import { createWindowTabCloseAction } from "./window-tab-action";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
 
 class FakeDocument {
@@ -133,6 +136,7 @@ function createSubject(options: CreateSubjectOptions = {}) {
         }
       }
     : undefined;
+  const surface = new WindowFrameSurfaceComponent(actor, { id: "window-frame-surface:test" });
   const component = new FloatingWindowComponent(actor, {
     id: "floating-window:test",
     parent: parent as unknown as HTMLElement,
@@ -156,10 +160,10 @@ function createSubject(options: CreateSubjectOptions = {}) {
     frameIntentSink: options.frameIntentSink,
     tabDragSink: options.tabDragSink,
     windowMenu: options.windowMenu
-  }, commandSink ? { commandSink } : undefined);
+  }, { commandSink, surface });
   const root = parent.children[0];
   if (!root) throw new Error("Expected window root.");
-  return { actor, actorSystem, component, document, parent, paths, root };
+  return { actor, actorSystem, component, document, parent, paths, root, surface };
 }
 
 function createComponentOptions(document: FakeDocument, parent: FakeElement) {
@@ -305,6 +309,34 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(commands).toEqual([]);
     expect(component.state.visible).toBe(false);
     expect(root.hidden).toBe(true);
+  });
+
+  it("suppresses presentation without mutating persistent visibility", () => {
+    const { component, document, root } = createSubject({
+      tabs: [{ viewActorId: "scene-view", viewKey: "scene", title: "Scene" }],
+      activeViewActorId: "scene-view"
+    });
+    const content = document.createElement("pre");
+    root.rect = createRect(12, 24, 320, 180);
+    const attachment = component.getContentHost("scene-view").mountContent(content as unknown as HTMLElement);
+
+    component.setPresentationSuppressed("workspace-run", true);
+
+    expect(component.state.visible).toBe(true);
+    expect(component.visible).toBe(true);
+    expect(component.presentationSuppressed).toBe(true);
+    expect(component.effectiveVisible).toBe(false);
+    expect(root.hidden).toBe(true);
+    expect(attachment.interactable).toBe(false);
+    expect(component.isContentInteractable(content as unknown as HTMLElement)).toBe(false);
+    expect(component.hitTestInput({ x: 20, y: 30 })).toBeNull();
+
+    component.setPresentationSuppressed("workspace-run", false);
+
+    expect(component.presentationSuppressed).toBe(false);
+    expect(component.effectiveVisible).toBe(true);
+    expect(root.hidden).toBe(false);
+    expect(attachment.interactable).toBe(true);
   });
 
   it("ignores scene state changes for runtime-only state bindings", () => {
@@ -538,6 +570,47 @@ describe("FloatingWindowComponent DOM shell", () => {
       hitPriority: 1,
       path: [{ componentId: "floating-window:test", role: "surface", partId: "window-content" }]
     });
+  });
+
+  it("hit-tests a rendered tab close control above the tab body", () => {
+    const frameIntents: string[] = [];
+    const { component, root } = createSubject({
+      frameId: "frame:test",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" }
+      ],
+      frameIntentSink: {
+        requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
+        requestCloseFrame: (frameId, reason) => frameIntents.push(`frame-close:${frameId}:${reason}`),
+        requestCloseView: (viewActorId, reason, options) => (
+          frameIntents.push(`view-close:${viewActorId}:${reason}:${options?.viewKey}:${options?.ownerFrameId}`)
+        )
+      }
+    });
+    setWindowRects(root);
+    const titlebar = findChildByClass(root, "floating-gizmo-window__titlebar");
+    const tab = findChildByClass(titlebar, "floating-gizmo-window__tab");
+    const tabClose = findChildByClass(tab, "floating-gizmo-window__tab-close");
+    tab.rect = createRect(18, 24, 110, 24);
+    tabClose.rect = createRect(106, 28, 16, 16);
+
+    const actionHit = component.hitTestInput({ x: 112, y: 36 });
+    const tabHit = component.hitTestInput({ x: 40, y: 36 });
+    if (!actionHit) throw new Error("Expected tab action hit.");
+
+    component.onInputEnd(createActorInputEndEvent(actionHit, { wasClick: true }));
+
+    expect(actionHit).toMatchObject({
+      partId: "window-tab-action",
+      hitPriority: 25,
+      data: {
+        kind: "close-view",
+        viewActorId: "debug-view",
+        viewKey: "debug"
+      }
+    });
+    expect(tabHit).toMatchObject({ partId: "window-tab" });
+    expect(frameIntents).toEqual(["view-close:debug-view:tab-action:debug:frame:test"]);
   });
 
   it("does not hit-test window chrome while fullscreen", () => {
@@ -1236,6 +1309,75 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(component.getActiveViewActorId()).toBe("debug-view");
   });
 
+  it("routes tab action hits to close-view intent without using frame close or tab drag", () => {
+    const frameIntents: string[] = [];
+    const tabDragCalls: string[] = [];
+    const { component } = createSubject({
+      frameId: "frame:test",
+      activeViewActorId: "debug-view",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
+        { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
+      ],
+      frameIntentSink: {
+        requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
+        requestCloseFrame: (frameId, reason) => frameIntents.push(`frame-close:${frameId}:${reason}`),
+        requestCloseView: (viewActorId, reason, options) => (
+          frameIntents.push(`view-close:${viewActorId}:${reason}:${options?.viewKey}:${options?.ownerFrameId}`)
+        ),
+        requestActivateFrameTab: (frameId, viewActorId, reason) => (
+          frameIntents.push(`activate:${frameId}:${viewActorId}:${reason}`)
+        )
+      },
+      tabDragSink: {
+        beginTabDrag: () => tabDragCalls.push("begin"),
+        moveTabDrag: () => tabDragCalls.push("move"),
+        endTabDrag: () => {
+          tabDragCalls.push("end");
+          return null;
+        },
+        cancelTabDrag: () => tabDragCalls.push("cancel")
+      }
+    });
+    const hit = createActorInputHit(component.id, {
+      partId: "window-tab-action",
+      data: createWindowTabCloseAction({
+        viewActorId: "hierarchy-view",
+        viewKey: "hierarchy",
+        title: "Hierarchy"
+      })
+    });
+
+    component.onInputStart(createActorInputStartEvent(hit));
+    component.onInputEnd(createActorInputEndEvent(hit, { wasClick: true }));
+
+    expect(frameIntents).toEqual(["view-close:hierarchy-view:tab-action:hierarchy:frame:test"]);
+    expect(tabDragCalls).toEqual([]);
+  });
+
+  it("ignores disabled or malformed tab action hits", () => {
+    const frameIntents: string[] = [];
+    const { component } = createSubject({
+      frameId: "frame:test",
+      tabs: [
+        { viewActorId: "debug-view", viewKey: "debug", title: "Debug" }
+      ],
+      frameIntentSink: {
+        requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
+        requestCloseFrame: (frameId, reason) => frameIntents.push(`frame-close:${frameId}:${reason}`),
+        requestCloseView: (viewActorId, reason) => frameIntents.push(`view-close:${viewActorId}:${reason}`)
+      }
+    });
+    const malformedHit = createActorInputHit(component.id, {
+      partId: "window-tab-action",
+      data: { kind: "close-view", viewActorId: 42, viewKey: "debug" }
+    });
+
+    component.onInputEnd(createActorInputEndEvent(malformedHit, { wasClick: true }));
+
+    expect(frameIntents).toEqual([]);
+  });
+
   it("starts tab drag with the concrete dragged tab identity", () => {
     const tabDragCalls: string[] = [];
     const { component, root } = createSubject({
@@ -1574,8 +1716,8 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(component.hitTestInput({ x: 40, y: 90 })).toBeNull();
   });
 
-  it("removes mounted content and root on dispose", () => {
-    const { component, document, parent, root } = createSubject();
+  it("detaches its surface host and root on dispose while surface lifetime stays component-owned", () => {
+    const { component, document, parent, root, surface } = createSubject();
     const content = document.createElement("pre");
     component.mountContent(content as unknown as HTMLElement);
 
@@ -1583,8 +1725,12 @@ describe("FloatingWindowComponent DOM shell", () => {
 
     expect(component.enabled).toBe(false);
     expect(parent.children).toEqual([]);
-    expect(content.parentElement).toBeNull();
+    expect(content.parentElement).not.toBeNull();
     expect(root.parentElement).toBeNull();
+
+    surface.dispose();
+
+    expect(content.parentElement).toBeNull();
   });
 });
 

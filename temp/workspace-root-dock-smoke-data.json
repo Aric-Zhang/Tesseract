@@ -1,0 +1,80 @@
+{
+  "camera3": {
+    "height": 150,
+    "hidden": false,
+    "left": 439.6000061035156,
+    "text": "< Persp",
+    "top": 74.80000305175781,
+    "width": 132
+  },
+  "canvas": {
+    "height": 644.7999877929688,
+    "hidden": false,
+    "left": 0,
+    "text": "",
+    "top": 52.79999923706055,
+    "width": 593.6000366210938
+  },
+  "floatingWindows": [
+    {
+      "className": "floating-gizmo-window debug-log-window",
+      "height": 240,
+      "hidden": false,
+      "left": 14,
+      "text": "Debug Logxx 1597 pointerdown pid=1 type=mouse button=0 buttons=1 xy=552,261\n 159",
+      "top": 444,
+      "width": 565.6000366210938
+    },
+    {
+      "className": "floating-gizmo-window hierarchy-window",
+      "height": 360,
+      "hidden": false,
+      "left": 14,
+      "text": "HierarchyxxDebug Log WindowDebug Log ViewHierarchy PanelHierarchy ViewApp MenuWo",
+      "top": 14,
+      "width": 280
+    }
+  ],
+  "menu": {
+    "height": 26,
+    "hidden": false,
+    "left": 513.6000366210938,
+    "text": "WindowSceneDebug Log WindowHierarchy Panel",
+    "top": 10,
+    "width": 68
+  },
+  "menuItems": [
+    "Scene",
+    "Debug Log Window",
+    "Hierarchy Panel"
+  ],
+  "menuOpen": true,
+  "rootDock": {
+    "height": 669.6000366210938,
+    "hidden": false,
+    "left": 0,
+    "text": "Scenex< Persp",
+    "top": 28,
+    "width": 593.6000366210938
+  },
+  "rootFrame": {
+    "height": 669.6000366210938,
+    "hidden": false,
+    "left": 0,
+    "text": "Scenex< Persp",
+    "top": 28,
+    "width": 593.6000366210938
+  },
+  "rootTabs": [
+    "Scenex"
+  ],
+  "toggleLabels": [
+    "Expand Scene to fullscreen"
+  ],
+  "url": "http://127.0.0.1:5176/",
+  "viewport": {
+    "height": 698,
+    "width": 594
+  },
+  "consoleErrors": []
+}

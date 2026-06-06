@@ -1,9 +1,7 @@
-import type { GizmoController } from "gizmo-core";
 import type {
   RuntimeObject,
   RuntimeRegistration,
-  SceneCommandSink,
-  SceneStateObserver
+  SceneCommandSink
 } from "../scene-runtime";
 import type {
   GizmoControllerRegistry,
@@ -35,7 +33,7 @@ export interface AppRuntimeContextOptions {
   onRollbackError?: (errors: readonly unknown[]) => void;
 }
 
-type RegisterableObject = RuntimeObject | GizmoController;
+type RegisterableObject = RuntimeObject;
 
 export class AppRuntimeContext {
   readonly sceneRuntime: RuntimeObjectRegistry;
@@ -80,38 +78,9 @@ export class AppRuntimeContext {
     this.componentRuntimeBridge.cancelActiveActorInput();
   }
 
-  /**
-   * @deprecated Legacy Phase B entry. New actor-backed features must use
-   * ActorSystem + ComponentRegistry instead of registering runtime objects directly.
-   */
-  registerLegacyRuntimeObject(object: RuntimeObject): RuntimeRegistration {
+  registerRuntimeService(object: RuntimeObject): RuntimeRegistration {
     return this.registerObject(object, [
       () => this.sceneRuntime.register(object)
-    ]);
-  }
-
-  /**
-   * @deprecated Legacy Phase B entry. New gizmo actors must bind through
-   * component definitions and ComponentRuntimeBridge.
-   */
-  registerLegacyGizmoObject(object: RuntimeObject & GizmoController): RuntimeRegistration {
-    return this.registerObject(object, [
-      () => this.sceneRuntime.register(object),
-      () => this.gizmoEventSystem.register(object)
-    ]);
-  }
-
-  /**
-   * @deprecated Legacy Phase B entry. New stateful gizmo actors must bind
-   * through binding components and ComponentRuntimeBridge.
-   */
-  registerLegacyStatefulGizmoObject(
-    object: RuntimeObject & GizmoController & SceneStateObserver
-  ): RuntimeRegistration {
-    return this.registerObject(object, [
-      () => this.sceneRuntime.register(object),
-      () => this.gizmoEventSystem.register(object),
-      () => this.frameStateController.subscribe(object)
     ]);
   }
 

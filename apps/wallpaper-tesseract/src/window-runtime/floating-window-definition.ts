@@ -6,6 +6,7 @@ import {
   floatingWindowComponentType,
   type FloatingWindowComponentOptions
 } from "./floating-window-component";
+import { windowFrameSurfaceComponentType } from "./window-frame-surface-component";
 
 export const floatingWindowComponentDefinition:
   ComponentDefinition<FloatingWindowComponent, FloatingWindowComponentOptions> = {
@@ -13,7 +14,8 @@ export const floatingWindowComponentDefinition:
     singleton: true,
     requires: [
       { type: gizmoEventBindingComponentType },
-      { type: stateObserverBindingComponentType }
+      { type: stateObserverBindingComponentType },
+      { type: windowFrameSurfaceComponentType }
     ],
     createId(_actor, options) {
       if (!options?.id) {
@@ -25,8 +27,13 @@ export const floatingWindowComponentDefinition:
       if (!options) {
         throw new Error("FloatingWindowComponent options are required.");
       }
+      const surface = context.componentRegistry.getComponent(actor, windowFrameSurfaceComponentType);
+      if (!surface) {
+        throw new Error("FloatingWindowComponent requires WindowFrameSurfaceComponent.");
+      }
       return new FloatingWindowComponent(actor, options, {
-        commandSink: context.services.commandSink
+        commandSink: context.services.commandSink,
+        surface
       });
     }
   };

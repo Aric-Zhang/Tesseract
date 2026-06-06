@@ -13,7 +13,10 @@ import type {
   SceneStateChangedEvent,
   SceneStateObserver
 } from "../scene-runtime";
-import type { GizmoControllerRegistry, SceneStateObserverRegistry } from "../runtime/ports";
+import type {
+  GizmoControllerRegistry,
+  SceneStateObserverRegistry
+} from "../runtime/ports";
 import type { Actor } from "./actor";
 import type { Component, ComponentDefinition } from "./component";
 
@@ -70,6 +73,7 @@ export class ComponentRuntimeBridge {
       canceller.cancelActiveInput(reason);
     }
   }
+
 }
 
 interface ActorInputCanceller {

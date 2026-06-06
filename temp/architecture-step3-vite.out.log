@@ -1,0 +1,83 @@
+
+> wallpaper-tesseract@0.1.0 dev
+> vite --host 127.0.0.1 --host 127.0.0.1 --port 5204
+
+
+  [32m[1mVITE[22m v7.3.5[39m  [2mready in [0m[1m821[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5204[22m/[39m
+[2m21:41:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/floating-window-component.ts[22m
+[2m21:41:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/floating-window-component.ts[22m
+[2m21:41:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/workspace-root-dock-frame-component.ts[22m
+[2m21:42:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-workspace-view-catalog.ts[22m
+[2m21:44:05[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-workspace-controller.ts[22m
+[2m21:45:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m21:46:07[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/index.ts[22m
+[2m21:47:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-workspace-stack-priority-port.ts[22m
+[2m21:48:17[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-workspace-view-catalog.ts[22m
+[2m21:51:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/features/scene/index.ts[22m
+[2m21:51:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/scene-view-runtime.ts[22m
+[2m21:52:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m22:15:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/features/scene/index.ts[22m
+[2m22:15:42[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/install-component-definitions.ts[22m
+[2m22:16:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/scene-view-runtime.ts[22m
+[2m22:20:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/scene-view-runtime.ts[22m
+[2m22:21:18[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/scene-view-runtime.ts[22m
+[2m22:31:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/features/scene/index.ts[22m
+[2m22:31:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/scene-view-runtime.ts[22m
+[2m22:32:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/scene-view-runtime.ts[22m
+[2m22:42:40[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/features/scene/renderable-scene-view.ts[22m
+[2m22:43:05[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/features/scene/index.ts[22m
+[2m22:43:52[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m22:44:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m22:44:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/scene-view-runtime.ts[22m
+[2m23:08:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/actor-runtime/component.ts[22m
+[2m23:08:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/actor-runtime/component-runtime-bridge.ts[22m
+[2m23:09:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/actor-runtime/component-runtime-bridge.ts[22m
+[2m23:09:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app-runtime/app-runtime-context.ts[22m
+[2m23:10:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:15:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/actor-runtime/component.ts[22m
+[2m23:16:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/actor-runtime/component-runtime-bridge.ts[22m
+[2m23:16:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app-runtime/app-runtime-context.ts[22m
+[2m23:32:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:33:02[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:34:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:34:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:35:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:35:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:38:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:44:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/features/scene/index.ts[22m
+[2m23:44:24[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:45:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:45:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:46:19[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:53:35[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:54:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m23:54:53[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m00:00:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/features/app-menu/index.ts[22m
+[2m00:00:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m00:07:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m00:11:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mD:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/packages/gizmo-core/dist/gizmo-event-system.js[22m
+[2m00:11:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mD:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/packages/gizmo-core/dist/types.js[22m
+[2m00:21:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/gizmos/camera3/camera3-gizmo.ts[22m
+[2m00:21:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/gizmos/camera3/components/camera3-gizmo-component.ts[22m
+[2m00:30:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mD:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/packages/gizmo-core/dist/debug-log.js[22m
+[2m00:30:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mD:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/packages/gizmo-core/dist/gizmo-event-system.js[22m
+[2m00:34:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app-runtime/app-runtime-context.ts[22m
+[2m00:35:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/app/create-wallpaper-app.ts[22m
+[2m00:43:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/gizmo-runtime/actor-input-router.ts[22m
+[2m00:43:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/gizmo-runtime/index.ts[22m
+[2m00:43:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/gizmo-runtime/gizmo-responder.ts[22m
+[2m00:54:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-workspace-layout.ts[22m
+[2m00:55:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-workspace-layout.ts[22m
+[2m00:56:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-workspace-layout.ts[22m
+[2m00:56:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/index.ts[22m
+[2m01:01:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-view-identity.ts[22m
+[2m01:02:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-view-factory-registry.ts[22m
+[2m01:02:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-frame-lifecycle-controller.ts[22m
+[2m01:03:36[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-frame-lifecycle-controller.ts[22m
+[2m01:03:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-frame-lifecycle-controller.ts[22m
+[2m01:04:21[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-frame-lifecycle-controller.ts[22m
+[2m01:04:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-view-factory-registry.ts[22m
+[2m01:06:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-view-factory-registry.ts[22m
+[2m01:07:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/window-runtime/window-frame-lifecycle-controller.ts[22m

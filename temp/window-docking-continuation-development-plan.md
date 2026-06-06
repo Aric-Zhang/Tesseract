@@ -5,6 +5,20 @@
 This plan replaces the remaining future-facing parts of the older docking plans
 after the current implementation reached a stable baseline.
 
+## Current Precondition
+
+Before executing any remaining step in this document, complete:
+
+```text
+temp/workspace-presentation-session-refactor-plan.md
+```
+
+Reason: the current independent-frame Scene fullscreen bug shows that
+workspace run mode still mixes direct frame fullscreen with queued persistent
+tool-window visibility changes. The remaining docking, persistence,
+accessibility, hierarchy, and multi-instance work should build on the explicit
+workspace presentation session model instead.
+
 Reviewed source plans:
 
 - `temp/unity-style-window-docking-design-plan.md`

@@ -1,4 +1,4 @@
-import type { WindowControlItem, WindowMenuViewItem, WindowViewFactory, WindowViewKey } from "../../window-runtime";
+import type { WindowViewKey, WindowWorkspaceViewEntry } from "../../window-runtime";
 
 export type AppMenuLeadingAccessory =
   | { readonly kind: "none" }
@@ -38,95 +38,26 @@ export interface AppMenuCheckableCommandItemViewModel {
   readonly shortcutLabel?: string;
 }
 
-export interface CreateWindowMenuItemsOptions {
-  readonly factories?: readonly WindowViewFactory[];
-}
-
-type WindowMenuSourceItem = Pick<
-  WindowControlItem | WindowMenuViewItem,
-  "actorId" | "canToggle" | "label" | "order" | "viewKey"
->;
-
-interface WindowMenuEntry {
-  readonly viewKey: WindowViewKey;
-  readonly actorId: string | null;
-  readonly label: string;
-  readonly order: number;
-  readonly sourceIndex: number;
-  readonly enabled: boolean;
-  readonly live: boolean;
-}
-
-export function createWindowMenuItem(item: WindowMenuSourceItem): AppMenuOpenViewItemViewModel {
-  return createWindowMenuItemFromEntry(createEntryFromWindow(item));
-}
-
-function createWindowMenuItemFromEntry(entry: WindowMenuEntry): AppMenuOpenViewItemViewModel {
+export function createWindowMenuItem(item: WindowWorkspaceViewEntry): AppMenuOpenViewItemViewModel {
   return {
     kind: "open-view",
-    id: entry.viewKey,
-    viewKey: entry.viewKey,
-    actorId: entry.actorId,
-    label: entry.label,
-    enabled: entry.enabled,
-    live: entry.live,
+    id: item.viewKey,
+    viewKey: item.viewKey,
+    actorId: item.viewActorId,
+    label: item.label,
+    enabled: item.enabled,
+    live: item.live,
     leading: { kind: "none" }
   };
 }
 
 export function createWindowMenuItems(
-  items: readonly WindowMenuSourceItem[],
-  options: CreateWindowMenuItemsOptions = {}
+  items: readonly WindowWorkspaceViewEntry[]
 ): readonly AppMenuOpenViewItemViewModel[] {
-  return createWindowMenuEntries(items, options)
-    .map(createWindowMenuItemFromEntry);
-}
-
-function createWindowMenuEntries(
-  items: readonly WindowMenuSourceItem[],
-  options: CreateWindowMenuItemsOptions
-): readonly WindowMenuEntry[] {
-  const liveByViewKey = new Map(items.map((item) => [item.viewKey, item]));
-  const entries = new Map<WindowViewKey, WindowMenuEntry>();
-
-  for (const [factoryIndex, factory] of (options.factories ?? []).entries()) {
-    const liveItem = liveByViewKey.get(factory.viewKey);
-    entries.set(factory.viewKey, liveItem
-      ? createEntryFromWindow(liveItem, factory, factoryIndex)
-      : {
-          viewKey: factory.viewKey,
-          actorId: null,
-          label: factory.label,
-          order: factory.order ?? 0,
-          sourceIndex: factoryIndex,
-          enabled: factory.enabled ?? true,
-          live: false
-        });
-  }
-
-  for (const [itemIndex, item] of items.entries()) {
-    if (entries.has(item.viewKey)) continue;
-    entries.set(item.viewKey, createEntryFromWindow(item, undefined, itemIndex));
-  }
-
-  return [...entries.values()].sort((a, b) => {
-    const orderDelta = a.order - b.order;
-    return orderDelta !== 0 ? orderDelta : a.sourceIndex - b.sourceIndex;
-  });
-}
-
-function createEntryFromWindow(
-  item: WindowMenuSourceItem,
-  factory?: WindowViewFactory,
-  sourceIndex = 0
-): WindowMenuEntry {
-  return {
-    viewKey: item.viewKey,
-    actorId: item.actorId,
-    label: factory?.label ?? item.label,
-    order: factory?.order ?? item.order,
-    sourceIndex,
-    enabled: factory?.enabled ?? item.canToggle,
-    live: true
-  };
+  return [...items]
+    .sort((a, b) => {
+      const orderDelta = a.order - b.order;
+      return orderDelta !== 0 ? orderDelta : a.sourceIndex - b.sourceIndex;
+    })
+    .map(createWindowMenuItem);
 }

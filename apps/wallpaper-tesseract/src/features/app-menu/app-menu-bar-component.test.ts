@@ -1,22 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem, type Actor } from "../../actor-runtime";
+import { ActorSystem } from "../../actor-runtime";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
 import {
-  parameterPath,
   sceneParameterPaths,
-  type ParameterPath,
-  type SceneStateChangedEvent,
-  type SceneUpdateCommand
+  type SceneStateChangedEvent
 } from "../../scene-runtime";
 import { createActorInputEndEvent } from "../../test-support";
 import {
-  WindowViewFactoryRegistry,
-  type WindowControlItem,
-  type WindowControlSource,
+  createSingletonWindowViewIdentity,
   type WindowFrameIntentSink,
-  type WindowMenuViewItem,
-  type WindowMenuViewSource,
-  type WindowViewFactory
+  type WindowViewKey,
+  type WindowWorkspaceViewCatalog,
+  type WindowWorkspaceViewEntry
 } from "../../window-runtime";
 import { APP_MENU_PRIORITY, AppMenuBarComponent } from "./app-menu-bar-component";
 
@@ -33,6 +28,7 @@ class FakeElement {
   readonly children: FakeElement[] = [];
   readonly dataset: Record<string, string> = {};
   readonly attributes = new Map<string, string>();
+  readonly listeners = new Map<string, Array<(event: FakeKeyboardEvent) => void>>();
   className = "";
   textContent = "";
   hidden = false;
@@ -81,39 +77,50 @@ class FakeElement {
   getAttribute(name: string): string | null {
     return this.attributes.get(name) ?? null;
   }
+
+  addEventListener(type: string, listener: (event: FakeKeyboardEvent) => void): void {
+    const listeners = this.listeners.get(type) ?? [];
+    listeners.push(listener);
+    this.listeners.set(type, listeners);
+  }
+
+  removeEventListener(type: string, listener: (event: FakeKeyboardEvent) => void): void {
+    const listeners = this.listeners.get(type) ?? [];
+    this.listeners.set(type, listeners.filter((candidate) => candidate !== listener));
+  }
+
+  dispatchKeyDown(key: string, timeStamp = 0): FakeKeyboardEvent {
+    const event = new FakeKeyboardEvent(key, timeStamp);
+    for (const listener of this.listeners.get("keydown") ?? []) {
+      listener(event);
+    }
+    return event;
+  }
+}
+
+class FakeKeyboardEvent {
+  defaultPrevented = false;
+
+  constructor(
+    readonly key: string,
+    readonly timeStamp: number
+  ) {}
+
+  preventDefault(): void {
+    this.defaultPrevented = true;
+  }
 }
 
 interface Subject {
-  readonly commands: SceneUpdateCommand[];
   readonly component: AppMenuBarComponent;
-  readonly focusCalls: string[];
+  readonly entries: WindowWorkspaceViewEntry[];
   readonly frameIntents: string[];
-  readonly sceneActor: Actor;
-  readonly debugActor: Actor;
-  readonly hierarchyActor: Actor;
-  readonly items: WindowControlItem[];
   readonly root: FakeElement;
 }
 
 interface CreateSubjectOptions {
   readonly initialMode?: "develop" | "run";
-  readonly scene?: Partial<WindowItemFixtureOptions>;
-  readonly debug?: Partial<WindowItemFixtureOptions>;
-  readonly hierarchy?: Partial<WindowItemFixtureOptions>;
-  readonly factories?: readonly WindowViewFactory[];
-  readonly menuViewItems?: readonly WindowMenuViewItem[];
-  readonly includeHierarchy?: boolean;
-  readonly lifecycleMode?: boolean;
-}
-
-interface WindowItemFixtureOptions {
-  viewKey?: string;
-  actorId: string;
-  label: string;
-  visible: boolean;
-  activeSelf: boolean;
-  activeInHierarchy: boolean;
-  canToggle?: boolean;
+  readonly entries?: readonly WindowWorkspaceViewEntry[];
 }
 
 function createRect(x: number, y: number, width: number, height: number): DOMRectReadOnly {
@@ -135,142 +142,75 @@ function createRect(x: number, y: number, width: number, height: number): DOMRec
 function createSubject(options: CreateSubjectOptions = {}): Subject {
   const actorSystem = new ActorSystem();
   const menuActor = actorSystem.createActor({ id: "app-menu-bar" });
-  const sceneActor = actorSystem.createActor({ id: "scene-window", name: "Scene" });
-  const debugActor = actorSystem.createActor({ id: "debug-log-window", name: "Debug Log Window" });
-  const hierarchyActor = actorSystem.createActor({ id: "hierarchy-panel", name: "Hierarchy Panel" });
-  const debugPath = parameterPath<boolean>("debugWindow.visible");
-  const hierarchyPath = parameterPath<boolean>("hierarchyWindow.visible");
-  const items: WindowControlItem[] = [
-    createWindowItem(sceneActor, sceneParameterPaths.sceneWindow.visible, {
-      actorId: "scene-window",
-      label: "Scene",
-      visible: true,
-      activeSelf: true,
-      activeInHierarchy: true,
-      ...options.scene
-    }),
-    createWindowItem(debugActor, debugPath, {
-      actorId: "debug-log-window",
-      label: "Debug Log",
-      visible: true,
-      activeSelf: true,
-      activeInHierarchy: true,
-      ...options.debug
-    }),
-    ...(options.includeHierarchy === false ? [] : [createWindowItem(hierarchyActor, hierarchyPath, {
-      actorId: "hierarchy-panel",
-      label: "Hierarchy",
-      visible: false,
-      activeSelf: false,
-      activeInHierarchy: false,
-      ...options.hierarchy
-    })])
-  ];
-  const source: WindowControlSource = {
-    listWindows: () => items.map((item) => ({ ...item })),
-    findWindowByViewKey: (viewKey) => source.listWindows().find((item) => item.viewKey === viewKey) ?? null,
-    findWindowByVisiblePath: (path) => source.listWindows().find((item) => item.visiblePath === path) ?? null
-  };
-  const menuViewSource: WindowMenuViewSource | undefined = options.menuViewItems
-    ? {
-        listMenuViews: () => options.menuViewItems ?? [],
-        findMenuViewByViewKey: (viewKey) => (
-          options.menuViewItems?.find((item) => item.viewKey === viewKey) ?? null
-        )
-      }
-    : undefined;
+  const entries = [...(options.entries ?? [
+    createViewEntry({ viewKey: "scene", viewActorId: "scene-view", label: "Scene", order: 0 }),
+    createViewEntry({ viewKey: "debug", viewActorId: "debug-view", label: "Debug Log", order: 10 }),
+    createViewEntry({ viewKey: "hierarchy", viewActorId: null, label: "Hierarchy", order: 20, live: false })
+  ])];
+  const catalog = createFakeCatalog(entries);
   const document = new FakeDocument();
   const parent = document.createElement("div");
-  const commands: SceneUpdateCommand[] = [];
-  const focusCalls: string[] = [];
   const frameIntents: string[] = [];
-  const windowViewFactories = options.factories ? new WindowViewFactoryRegistry() : undefined;
-  for (const factory of options.factories ?? []) {
-    windowViewFactories?.register(factory);
-  }
-  const windowFrameIntents: WindowFrameIntentSink | undefined = options.lifecycleMode
-    ? {
-        requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
-        requestCloseFrame: (frameId, reason) => frameIntents.push(`close:${frameId}:${reason}`)
-      }
-    : undefined;
+  const windowFrameIntents: WindowFrameIntentSink = {
+    requestOpenView: (viewKey, reason) => frameIntents.push(`open:${viewKey}:${reason}`),
+    requestCloseFrame: (frameId, reason) => frameIntents.push(`close-frame:${frameId}:${reason}`),
+    requestCloseView: (viewActorId, reason) => frameIntents.push(`close-view:${viewActorId}:${reason}`),
+    requestActivateFrameTab: (frameId, viewActorId, reason) => (
+      frameIntents.push(`activate:${frameId}:${viewActorId}:${reason}`)
+    ),
+    requestCommitDock: () => frameIntents.push("commit-dock")
+  };
+
   const component = new AppMenuBarComponent(menuActor, {
     parent: parent as unknown as HTMLElement,
     document: document as unknown as Document,
-    windowSource: source,
-    windowMenuViewSource: menuViewSource,
-    windowViewFactories,
+    windowCatalog: catalog,
     windowFrameIntents,
     initialMode: options.initialMode
-  }, {
-    commandSink: {
-      submit(command) {
-        commands.push(command);
-      }
-    },
-    actorWindowFocus: {
-      getEffectiveStackPriorityForActor() {
-        return null;
-      },
-      focusActorWindow(actor, reason) {
-        focusCalls.push(`focus:${actor.id}:${reason}`);
-      },
-      requestFocusOnVisible(actor, reason) {
-        focusCalls.push(`pending:${actor.id}:${reason}`);
-      }
-    }
-  });
+  }, {});
   const root = parent.children[0];
   if (!root) throw new Error("Expected menu root.");
-  return { commands, component, focusCalls, frameIntents, sceneActor, debugActor, hierarchyActor, items, root };
+  return { component, entries, frameIntents, root };
 }
 
-function createWindowItem(
-  actor: Actor,
-  visiblePath: ParameterPath<boolean>,
-  options: WindowItemFixtureOptions
-): WindowControlItem {
+function createFakeCatalog(entries: readonly WindowWorkspaceViewEntry[]): WindowWorkspaceViewCatalog {
   return {
-    actor,
-    viewKey: options.viewKey ?? options.actorId,
-    actorId: options.actorId,
-    componentId: `floating-window:${options.actorId}`,
-    label: options.label,
-    order: 0,
-    group: null,
-    visible: options.visible,
-    activeSelf: options.activeSelf,
-    activeInHierarchy: options.activeInHierarchy,
-    activationMode: "visible",
-    canToggle: options.canToggle ?? true,
-    visiblePath
+    listViewEntries: () => entries.map((entry) => ({ ...entry })),
+    getViewEntryByIdentity: (identity) => (
+      entries.find((entry) => entry.identity.viewKey === identity.viewKey) ?? null
+    ),
+    getViewEntryByActorId: (viewActorId) => (
+      entries.find((entry) => entry.viewActorId === viewActorId) ?? null
+    ),
+    listFrameEntries: () => []
   };
 }
 
-function createMenuViewItem(
-  actor: Actor,
-  options: {
-    viewActorId: string;
-    viewKey: string;
-    label: string;
-    activeTab: boolean;
-  }
-): WindowMenuViewItem {
+function createViewEntry(options: {
+  readonly viewKey: WindowViewKey;
+  readonly viewActorId: string | null;
+  readonly label: string;
+  readonly order: number;
+  readonly sourceIndex?: number;
+  readonly enabled?: boolean;
+  readonly live?: boolean;
+}): WindowWorkspaceViewEntry {
   return {
-    actor,
-    actorId: actor.id,
-    frameActor: actor,
-    frameActorId: actor.id,
-    viewActorId: options.viewActorId,
+    identity: createSingletonWindowViewIdentity(options.viewKey),
     viewKey: options.viewKey,
+    viewActorId: options.viewActorId,
+    ownerFrameActorId: options.viewActorId ? `${options.viewKey}-frame` : null,
     label: options.label,
-    order: 0,
+    order: options.order,
+    sourceIndex: options.sourceIndex ?? options.order,
     group: null,
-    activeTab: options.activeTab,
-    activeSelf: actor.enabled,
-    activeInHierarchy: actor.enabled,
-    activationMode: "visible",
-    canToggle: true
+    enabled: options.enabled ?? true,
+    live: options.live ?? true,
+    activeInFrame: true,
+    visibleInFrame: true,
+    ownerFrameVisible: true,
+    ownerFrameActiveInHierarchy: true,
+    presentation: options.live === false ? null : "windowed"
   };
 }
 
@@ -340,7 +280,7 @@ function createWorkspaceModeEvent(mode: "develop" | "run"): SceneStateChangedEve
 }
 
 describe("AppMenuBarComponent", () => {
-  it("renders ordinary window menu rows as open-view commands with high input priority", () => {
+  it("renders catalog view rows as open-view commands with high input priority", () => {
     const { component, root } = createSubject();
 
     expect(root.className).toBe("app-menu-bar");
@@ -351,69 +291,29 @@ describe("AppMenuBarComponent", () => {
     expect(menu(root).hidden).toBe(true);
     expect(rows(root).map(labelText)).toEqual(["Scene", "Debug Log", "Hierarchy"]);
     expect(rows(root)[0].dataset).toMatchObject({
-      menuItemId: "scene-window",
+      menuItemId: "scene",
       itemKind: "open-view",
-      viewKey: "scene-window",
-      actorId: "scene-window",
+      viewKey: "scene",
+      actorId: "scene-view",
       live: "true",
       enabled: "true"
     });
     expect(rows(root)[0].getAttribute("role")).toBe("menuitem");
     expect(rows(root)[0].getAttribute("aria-checked")).toBeNull();
     expect(childByClass(rows(root)[0], "app-menu-bar__menu-item-leading").children).toEqual([]);
-    expect(rows(root)[1].dataset).toMatchObject({
-      menuItemId: "debug-log-window",
-      itemKind: "open-view",
-      viewKey: "debug-log-window",
-      actorId: "debug-log-window",
-      live: "true",
-      enabled: "true"
-    });
-    expect(rows(root)[1].getAttribute("role")).toBe("menuitem");
-    expect(rows(root)[1].getAttribute("aria-checked")).toBeNull();
     expect(rows(root)[2].dataset).toMatchObject({
-      menuItemId: "hierarchy-panel",
+      menuItemId: "hierarchy",
       itemKind: "open-view",
-      viewKey: "hierarchy-panel",
-      actorId: "hierarchy-panel",
-      live: "true",
+      viewKey: "hierarchy",
+      live: "false",
       enabled: "true"
     });
-    expect(rows(root)[2].getAttribute("role")).toBe("menuitem");
-    expect(rows(root)[2].getAttribute("aria-checked")).toBeNull();
-    expect(rows(root)[2].getAttribute("aria-disabled")).toBe("false");
-    expect(hasClass(rows(root)[2], "is-disabled")).toBe(false);
+    expect(rows(root)[2].dataset.actorId).toBeUndefined();
     expect(component.inputStackPriority).toBe(APP_MENU_PRIORITY);
   });
 
-  it("renders menu rows from view source instead of collapsing to one row per frame", () => {
-    const actorSystem = new ActorSystem();
-    const frameActor = actorSystem.createActor({ id: "merged-frame" });
-    const { root } = createSubject({
-      includeHierarchy: false,
-      menuViewItems: [
-        createMenuViewItem(frameActor, {
-          viewActorId: "debug-view",
-          viewKey: "debug",
-          label: "Debug Log",
-          activeTab: true
-        }),
-        createMenuViewItem(frameActor, {
-          viewActorId: "hierarchy-view",
-          viewKey: "hierarchy",
-          label: "Hierarchy",
-          activeTab: false
-        })
-      ]
-    });
-
-    expect(rows(root).map(labelText)).toEqual(["Debug Log", "Hierarchy"]);
-    expect(rows(root).map((row) => row.dataset.viewKey)).toEqual(["debug", "hierarchy"]);
-    expect(rows(root).map((row) => row.dataset.actorId)).toEqual(["merged-frame", "merged-frame"]);
-  });
-
-  it("routes input to a visible Scene menu row and focuses it without hiding", () => {
-    const { commands, component, focusCalls, root } = createSubject();
+  it("routes actor input to open-view intent by view key", () => {
+    const { component, frameIntents, root } = createSubject();
     setMenuRects(root);
     const buttonHit = component.hitTestInput({ x: 735, y: 18 });
     if (!buttonHit) throw new Error("Expected menu button hit.");
@@ -427,71 +327,20 @@ describe("AppMenuBarComponent", () => {
     expect(sceneHit.scopeRoutePriority).toBe(actorInputScopeRoutePriority.appOverlay);
     expect(sceneHit.data).toEqual({
       kind: "open-view",
-      viewKey: "scene-window"
+      viewKey: "scene"
     });
 
     component.onInputEnd(createActorInputEndEvent(sceneHit, { wasClick: true, timeStamp: 20 }));
 
-    expect(commands).toEqual([]);
-    expect(focusCalls).toEqual(["focus:scene-window:menu-restore"]);
+    expect(frameIntents).toEqual(["open:scene:menu"]);
     expect(menu(root).hidden).toBe(true);
   });
 
-  it("submits a show command when clicking a hidden window row", () => {
-    const { commands, component, focusCalls, root } = createSubject();
-    setMenuRects(root);
-    const buttonHit = component.hitTestInput({ x: 735, y: 18 });
-    if (!buttonHit) throw new Error("Expected menu button hit.");
-    component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
-    const hierarchyHit = component.hitTestInput({ x: 640, y: 104 });
-    if (!hierarchyHit) throw new Error("Expected hierarchy row hit.");
-
-    component.onInputEnd(createActorInputEndEvent(hierarchyHit, { wasClick: true, timeStamp: 24 }));
-
-    expect(focusCalls).toEqual(["pending:hierarchy-panel:menu-restore"]);
-    expect(commands).toMatchObject([{
-      source: { id: "app-menu-bar", kind: "gizmo" },
-      target: parameterPath<boolean>("hierarchyWindow.visible"),
-      operation: "set",
-      value: true,
-      timeStamp: 24
-    }]);
-  });
-
-  it("treats visible but inactive menu items as activate/show actions", () => {
-    const { commands, component, root } = createSubject({
-      debug: {
-        visible: true,
-        activeSelf: false,
-        activeInHierarchy: false
-      }
-    });
-    expect(rows(root)[1].getAttribute("role")).toBe("menuitem");
-    expect(rows(root)[1].getAttribute("aria-checked")).toBeNull();
-    expect(rows(root)[1].getAttribute("aria-disabled")).toBe("false");
-    expect(hasClass(rows(root)[1], "is-disabled")).toBe(false);
-    setMenuRects(root);
-    const buttonHit = component.hitTestInput({ x: 735, y: 18 });
-    if (!buttonHit) throw new Error("Expected menu button hit.");
-    component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
-    const debugHit = component.hitTestInput(centerOf(rowByViewKey(root, "debug-log-window")));
-    if (!debugHit) throw new Error("Expected debug row hit.");
-
-    component.onInputEnd(createActorInputEndEvent(debugHit, { wasClick: true, timeStamp: 30 }));
-
-    expect(commands[0]).toMatchObject({
-      target: parameterPath<boolean>("debugWindow.visible"),
-      operation: "set",
-      value: true,
-      timeStamp: 30
-    });
-  });
-
-  it("does not submit commands for disabled window menu rows", () => {
-    const { commands, component, focusCalls, items, root } = createSubject();
-    items[1] = {
-      ...items[1],
-      canToggle: false
+  it("does not submit intents for disabled view rows", () => {
+    const { component, entries, frameIntents, root } = createSubject();
+    entries[1] = {
+      ...entries[1],
+      enabled: false
     };
     component.updateFrame();
     expect(rows(root)[1].getAttribute("aria-disabled")).toBe("true");
@@ -501,119 +350,18 @@ describe("AppMenuBarComponent", () => {
     const buttonHit = component.hitTestInput({ x: 735, y: 18 });
     if (!buttonHit) throw new Error("Expected menu button hit.");
     component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
-    const debugHit = component.hitTestInput(centerOf(rowByViewKey(root, "debug-log-window")));
+    const debugHit = component.hitTestInput(centerOf(rowByViewKey(root, "debug")));
     if (!debugHit) throw new Error("Expected debug row hit.");
 
     component.onInputEnd(createActorInputEndEvent(debugHit, { wasClick: true, timeStamp: 36 }));
 
-    expect(commands).toEqual([]);
-    expect(focusCalls).toEqual([]);
+    expect(frameIntents).toEqual([]);
     expect(menu(root).hidden).toBe(false);
     expect(menuButton(root).getAttribute("aria-expanded")).toBe("true");
   });
 
-  it("renders missing registered factories as not-live lifecycle open-view rows", () => {
-    const { root } = createSubject({
-      includeHierarchy: false,
-      lifecycleMode: true,
-      factories: [
-        createWindowFactory("scene-window", "Scene", 0),
-        createWindowFactory("debug-log-window", "Debug Log", 10),
-        createWindowFactory("hierarchy-panel", "Hierarchy", 20)
-      ]
-    });
-
-    expect(rows(root).map(labelText)).toEqual(["Scene", "Debug Log", "Hierarchy"]);
-    expect(rows(root)[2].dataset).toMatchObject({
-      menuItemId: "hierarchy-panel",
-      itemKind: "open-view",
-      viewKey: "hierarchy-panel",
-      live: "false",
-      enabled: "true"
-    });
-    expect(rows(root)[2].dataset.actorId).toBeUndefined();
-    expect(rows(root)[2].getAttribute("role")).toBe("menuitem");
-    expect(rows(root)[2].getAttribute("aria-checked")).toBeNull();
-  });
-
-  it("dispatches lifecycle open intents by view key without submitting visible commands", () => {
-    const { commands, component, frameIntents, focusCalls, root } = createSubject({
-      includeHierarchy: false,
-      lifecycleMode: true,
-      factories: [
-        createWindowFactory("scene-window", "Scene", 0),
-        createWindowFactory("debug-log-window", "Debug Log", 10),
-        createWindowFactory("hierarchy-panel", "Hierarchy", 20)
-      ]
-    });
-    setMenuRects(root);
-    const buttonHit = component.hitTestInput({ x: 735, y: 18 });
-    if (!buttonHit) throw new Error("Expected menu button hit.");
-    component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
-    const hierarchyHit = component.hitTestInput({ x: 640, y: 104 });
-    if (!hierarchyHit) throw new Error("Expected hierarchy row hit.");
-
-    expect(hierarchyHit.data).toEqual({
-      kind: "open-view",
-      viewKey: "hierarchy-panel"
-    });
-
-    component.onInputEnd(createActorInputEndEvent(hierarchyHit, { wasClick: true, timeStamp: 42 }));
-
-    expect(frameIntents).toEqual(["open:hierarchy-panel:menu"]);
-    expect(commands).toEqual([]);
-    expect(focusCalls).toEqual([]);
-    expect(menu(root).hidden).toBe(true);
-  });
-
-  it("focuses live lifecycle rows without closing or recreating them", () => {
-    const { commands, component, frameIntents, root } = createSubject({
-      lifecycleMode: true,
-      factories: [
-        createWindowFactory("debug-log-window", "Debug Log", 10)
-      ]
-    });
-    setMenuRects(root);
-    const buttonHit = component.hitTestInput({ x: 735, y: 18 });
-    if (!buttonHit) throw new Error("Expected menu button hit.");
-    component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
-    const debugHit = component.hitTestInput(centerOf(rowByViewKey(root, "debug-log-window")));
-    if (!debugHit) throw new Error("Expected debug row hit.");
-
-    component.onInputEnd(createActorInputEndEvent(debugHit, { wasClick: true, timeStamp: 46 }));
-
-    expect(frameIntents).toEqual(["open:debug-log-window:menu"]);
-    expect(commands).toEqual([]);
-    expect(menu(root).hidden).toBe(true);
-  });
-
-  it("uses live open-view semantics in lifecycle mode without checkbox aria", () => {
-    const { root } = createSubject({
-      lifecycleMode: true,
-      debug: {
-        visible: false,
-        activeSelf: true,
-        activeInHierarchy: true
-      },
-      factories: [
-        createWindowFactory("debug-log-window", "Debug Log", 10)
-      ]
-    });
-
-    const debugRow = rowByViewKey(root, "debug-log-window");
-    expect(debugRow.dataset.live).toBe("true");
-    expect(debugRow.dataset.checked).toBeUndefined();
-    expect(debugRow.getAttribute("role")).toBe("menuitem");
-    expect(debugRow.getAttribute("aria-checked")).toBeNull();
-  });
-
   it("closes the menu through an actor-input dismiss hit outside the menu", () => {
-    const { commands, component, frameIntents, root } = createSubject({
-      lifecycleMode: true,
-      factories: [
-        createWindowFactory("debug-log-window", "Debug Log", 10)
-      ]
-    });
+    const { component, frameIntents, root } = createSubject();
     setMenuRects(root);
     const buttonHit = component.hitTestInput({ x: 735, y: 18 });
     if (!buttonHit) throw new Error("Expected menu button hit.");
@@ -629,9 +377,44 @@ describe("AppMenuBarComponent", () => {
 
     expect(menu(root).hidden).toBe(true);
     expect(menuButton(root).getAttribute("aria-expanded")).toBe("false");
-    expect(commands).toEqual([]);
     expect(frameIntents).toEqual([]);
     expect(component.hitTestInput({ x: 120, y: 150 })).toBeNull();
+  });
+
+  it("opens, navigates, and activates menu rows from the keyboard", () => {
+    const { frameIntents, root } = createSubject();
+
+    expect(root.dispatchKeyDown("ArrowDown", 10).defaultPrevented).toBe(true);
+    expect(menu(root).hidden).toBe(false);
+    expect(rows(root).map((row) => row.dataset.keyboardActive)).toEqual(["true", "false", "false"]);
+
+    root.dispatchKeyDown("ArrowDown", 11);
+    root.dispatchKeyDown("ArrowDown", 12);
+    expect(rows(root).map((row) => row.dataset.keyboardActive)).toEqual(["false", "false", "true"]);
+
+    expect(root.dispatchKeyDown("Enter", 13).defaultPrevented).toBe(true);
+
+    expect(frameIntents).toEqual(["open:hierarchy:menu"]);
+    expect(menu(root).hidden).toBe(true);
+    expect(menuButton(root).getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("skips disabled rows during keyboard navigation", () => {
+    const { component, entries, frameIntents, root } = createSubject();
+    entries[1] = {
+      ...entries[1],
+      enabled: false
+    };
+    component.updateFrame();
+    root.dispatchKeyDown("ArrowDown", 20);
+    expect(rows(root).map((row) => row.dataset.keyboardActive)).toEqual(["true", "false", "false"]);
+
+    root.dispatchKeyDown("ArrowDown", 21);
+    expect(rows(root).map((row) => row.dataset.keyboardActive)).toEqual(["false", "false", "true"]);
+
+    root.dispatchKeyDown("Enter", 22);
+
+    expect(frameIntents).toEqual(["open:hierarchy:menu"]);
   });
 
   it("keeps the menu open for menu-surface hits and prioritizes rows over dismiss", () => {
@@ -678,14 +461,3 @@ describe("AppMenuBarComponent", () => {
     expect(menuButton(root).getAttribute("aria-expanded")).toBe("false");
   });
 });
-
-function createWindowFactory(viewKey: string, label: string, order: number): WindowViewFactory {
-  return {
-    viewKey,
-    label,
-    order,
-    create: () => {
-      throw new Error("not used");
-    }
-  };
-}

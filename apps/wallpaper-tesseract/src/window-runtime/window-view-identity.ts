@@ -4,6 +4,7 @@ import { windowViewKey } from "./window-view-key";
 export type WindowViewTypeKey = "scene" | "debug" | "hierarchy" | (string & {});
 
 export type WindowViewInstanceId = string & { readonly __windowViewInstanceIdBrand: "WindowViewInstanceId" };
+export type WindowViewIdentityKey = string & { readonly __windowViewIdentityKeyBrand: "WindowViewIdentityKey" };
 
 export type WindowViewMultiplicity = "singleton" | "multi-instance";
 
@@ -44,6 +45,29 @@ export function createSingletonWindowViewIdentity(
     instanceId: null,
     multiplicity: "singleton"
   };
+}
+
+export function createWindowViewIdentity(options: {
+  readonly viewKey: WindowViewKey;
+  readonly typeKey?: WindowViewTypeKey;
+  readonly instanceId?: WindowViewInstanceId | null;
+  readonly multiplicity?: WindowViewMultiplicity;
+}): WindowViewIdentity {
+  const typeKey = options.typeKey ?? windowViewTypeKey(options.viewKey);
+  const multiplicity = options.multiplicity ?? "singleton";
+  return {
+    viewKey: options.viewKey,
+    typeKey,
+    instanceId: options.instanceId ?? (multiplicity === "multi-instance"
+      ? windowViewInstanceId(options.viewKey)
+      : null),
+    multiplicity
+  };
+}
+
+export function createWindowViewIdentityKey(identity: WindowViewIdentity): WindowViewIdentityKey {
+  const instancePart = identity.instanceId ?? `singleton:${identity.viewKey}`;
+  return `${identity.typeKey}:${instancePart}` as WindowViewIdentityKey;
 }
 
 export function createWindowViewKeyFromTypeAndInstance(

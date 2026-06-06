@@ -321,6 +321,27 @@ describe("createDebugLogWindowActor", () => {
     ]);
   });
 
+  it("can untrack runtime ownership without destroying the debug actor tree", () => {
+    const { calls, context } = createContext();
+    const document = new FakeDocument();
+    const parent = document.createElement("div");
+    const handle = createDebugLogWindowActor(context, {
+      actorId: "debug-actor",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      initialState: createDefaultDebugWindowState()
+    });
+    calls.length = 0;
+
+    handle.disposeRuntimeTracking?.();
+    handle.disposeRuntimeTracking?.();
+
+    expect(context.actorSystem.getActor("debug-actor")).toBe(handle.actor);
+    expect(context.actorSystem.getActor("debug-actor:view")).toBe(handle.component.actor);
+    expect(parent.children).toHaveLength(1);
+    expect(calls).toEqual([]);
+  });
+
   it("context.dispose releases a still-live debug window actor handle", () => {
     const { context } = createContext();
     const document = new FakeDocument();

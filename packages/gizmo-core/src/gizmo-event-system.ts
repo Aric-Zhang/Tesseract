@@ -17,7 +17,6 @@ export interface GizmoEventSystemOptions {
   doubleClickWindowMs?: number;
   doubleClickDistance?: number;
   preventDefaultOnHit?: boolean;
-  buttonsReleasedFallback?: boolean;
   debug?: boolean;
   debugConsole?: boolean;
   onDebugLog?: (entry: GizmoDebugLogEntry) => void;
@@ -88,7 +87,6 @@ export class GizmoEventSystem {
   private readonly doubleClickWindowMs: number;
   private readonly doubleClickDistance: number;
   private readonly preventDefaultOnHit: boolean;
-  private readonly buttonsReleasedFallback: boolean;
   private readonly debug: boolean;
   private readonly debugConsole: boolean;
   private readonly onDebugLog?: (entry: GizmoDebugLogEntry) => void;
@@ -105,7 +103,6 @@ export class GizmoEventSystem {
     this.doubleClickWindowMs = options.doubleClickWindowMs ?? 360;
     this.doubleClickDistance = options.doubleClickDistance ?? 12;
     this.preventDefaultOnHit = options.preventDefaultOnHit ?? true;
-    this.buttonsReleasedFallback = options.buttonsReleasedFallback ?? true;
     this.debug = options.debug ?? false;
     this.debugConsole = options.debugConsole ?? this.debug;
     this.onDebugLog = options.onDebugLog;
@@ -299,7 +296,22 @@ export class GizmoEventSystem {
   }
 
   private getPointerCaptureHost(event: NormalizedPointerEvent): PointerCaptureHost | null {
-    const candidate = event.target as Partial<PointerCaptureHost> | null;
+    const candidate = this.asPointerCaptureHost(event.target);
+    if (candidate) return candidate;
+    const rawEvent = event.rawEvent as {
+      composedPath?: () => unknown[];
+    };
+    const path = typeof rawEvent.composedPath === "function" ? rawEvent.composedPath() : [];
+    for (const entry of path) {
+      const pathCandidate = this.asPointerCaptureHost(entry);
+      if (pathCandidate) return pathCandidate;
+    }
+    return this.getDocumentElementCaptureHost(event.target) ??
+      this.getDocumentElementCaptureHost(this.target);
+  }
+
+  private asPointerCaptureHost(value: unknown): PointerCaptureHost | null {
+    const candidate = value as Partial<PointerCaptureHost> | null;
     if (
       candidate &&
       typeof candidate.setPointerCapture === "function" &&
@@ -309,6 +321,17 @@ export class GizmoEventSystem {
       return candidate as PointerCaptureHost;
     }
     return null;
+  }
+
+  private getDocumentElementCaptureHost(value: unknown): PointerCaptureHost | null {
+    const candidate = value as {
+      document?: { documentElement?: unknown };
+      documentElement?: unknown;
+      ownerDocument?: { documentElement?: unknown };
+    } | null;
+    return this.asPointerCaptureHost(candidate?.ownerDocument?.documentElement) ??
+      this.asPointerCaptureHost(candidate?.documentElement) ??
+      this.asPointerCaptureHost(candidate?.document?.documentElement);
   }
 
   private setPointerCapture(event: NormalizedPointerEvent): PointerCaptureHost | null {
@@ -373,6 +396,15 @@ export class GizmoEventSystem {
     }
 
     this.lastClick = current;
+    this.log("click", event, {
+      point,
+      gizmoId: active.gizmo.id,
+      partId: active.hit.partId
+    });
+    active.gizmo.onGizmoClick?.({
+      ...this.createBaseEvent(active, event, point),
+      clickCount: 1
+    });
   }
 
   private normalizePointerEvent(event: Event, source: PointerInputSource): NormalizedPointerEvent {
@@ -467,12 +499,8 @@ export class GizmoEventSystem {
       return;
     }
     if (active.pointerType === "mouse" && pointerEvent.buttons === 0 && !this.hasActivePointerCapture(active)) {
-      if (this.buttonsReleasedFallback) {
-        this.cancelActive("buttons-released", pointerEvent);
-        return;
-      }
       this.log("ignore", pointerEvent, {
-        reason: "buttons-zero-fallback-disabled",
+        reason: "buttons-zero-without-capture",
         gizmoId: active.gizmo.id,
         partId: active.hit.partId,
         capture: false

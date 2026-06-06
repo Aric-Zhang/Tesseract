@@ -2,7 +2,6 @@ import type {
   GizmoCancelEvent,
   GizmoClickEvent,
   GizmoEndEvent,
-  GizmoHit,
   GizmoMoveEvent,
   GizmoStartEvent,
   ScreenPoint
@@ -18,7 +17,6 @@ import {
   type ActorInputParticipant,
   type ActorInputStartEvent
 } from "./actor-input-participant";
-import { isGizmoResponder, type GizmoResponder } from "./gizmo-responder";
 
 export interface ActorInputRouterOptions {
   readonly actor: Actor;
@@ -48,11 +46,6 @@ interface ActiveActorInputInteraction {
   point: ScreenPoint;
   startPoint: ScreenPoint;
   buttons: number;
-}
-
-interface LegacyActorInputHitData {
-  readonly responderHit: GizmoHit;
-  readonly data: unknown;
 }
 
 const routeScoreLocalRouteFactor = 1_000_000_000_000;
@@ -168,10 +161,6 @@ export class ActorInputRouter {
       if (!component.enabled) return;
       if (isActorInputParticipant(component)) {
         participants.push({ component, participant: component, order });
-        return;
-      }
-      if (isGizmoResponder(component)) {
-        participants.push({ component, participant: createLegacyActorInputParticipant(component), order });
       }
     });
     return participants;
@@ -259,71 +248,6 @@ export class ActorInputRouter {
   }
 }
 
-function createLegacyActorInputParticipant(responder: GizmoResponder): ActorInputParticipant {
-  return {
-    get id() {
-      return responder.id;
-    },
-    get type() {
-      return responder.type;
-    },
-    get actor() {
-      return responder.actor;
-    },
-    get enabled() {
-      return responder.enabled;
-    },
-    set enabled(value: boolean) {
-      responder.enabled = value;
-    },
-    get inputStackPriority() {
-      return responder.gizmoPriority;
-    },
-    get inputPriority() {
-      return responder.gizmoPriority;
-    },
-    hitTestInput(point: ScreenPoint): ActorInputHit | null {
-      const responderHit = responder.hitTestGizmo(point);
-      if (!responderHit) return null;
-      return {
-        componentId: responder.id,
-        partId: responderHit.partId,
-        kind: "custom",
-        region: "custom",
-        localRoutePriority: 0,
-        hitPriority: responderHit.priority ?? 0,
-        path: [{
-          componentId: responder.id,
-          role: "control",
-          partId: responderHit.partId
-        }],
-        data: {
-          responderHit,
-          data: responderHit.data
-        } satisfies LegacyActorInputHitData
-      };
-    },
-    onInputStart(event: ActorInputStartEvent): void {
-      responder.onGizmoStart?.(toLegacyGizmoEvent(event));
-    },
-    onInputMove(event: ActorInputMoveEvent): void {
-      responder.onGizmoMove?.(toLegacyGizmoEvent(event));
-    },
-    onInputEnd(event: ActorInputEndEvent): void {
-      responder.onGizmoEnd?.(toLegacyGizmoEvent(event));
-    },
-    onInputCancel(event: ActorInputCancelEvent): void {
-      responder.onGizmoCancel?.(toLegacyGizmoEvent(event));
-    },
-    onInputClick(event: ActorInputClickEvent): void {
-      responder.onGizmoClick?.(toLegacyGizmoEvent(event));
-    },
-    onInputDoubleClick(event: ActorInputClickEvent): void {
-      responder.onGizmoDoubleClick?.(toLegacyGizmoEvent(event));
-    }
-  };
-}
-
 function resolvePathComponents(
   components: readonly Component[],
   targetComponent: Component,
@@ -403,31 +327,4 @@ function toActorInputCancelEvent(event: GizmoCancelEvent, hit: ActorInputHit): A
 
 function toActorInputClickEvent(event: GizmoClickEvent, hit: ActorInputHit): ActorInputClickEvent {
   return { ...event, hit };
-}
-
-function toLegacyGizmoEvent<TEvent extends { readonly hit: ActorInputHit }>(
-  event: TEvent
-): Omit<TEvent, "hit"> & { readonly hit: GizmoHit } {
-  return {
-    ...event,
-    hit: readLegacyResponderHit(event.hit)
-  };
-}
-
-function readLegacyResponderHit(hit: ActorInputHit): GizmoHit {
-  const data = hit.data;
-  if (
-    typeof data === "object" &&
-    data !== null &&
-    "responderHit" in data
-  ) {
-    return (data as LegacyActorInputHitData).responderHit;
-  }
-  return {
-    gizmoId: hit.componentId,
-    partId: hit.partId,
-    kind: "custom",
-    priority: hit.hitPriority,
-    data: hit.data
-  };
 }

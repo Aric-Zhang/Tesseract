@@ -172,7 +172,7 @@ describe("ComponentRuntimeBridge", () => {
     ]);
   });
 
-  it("uses injected actor active state for legacy gizmo adapters", () => {
+  it("uses injected actor active state for actor input routing", () => {
     const actorSystem = new ActorSystem();
     const calls: string[] = [];
     const parent = actorSystem.createActor({ id: "parent" });

@@ -18,16 +18,13 @@ export const appMenuBarComponentDefinition:
     createId(_actor, options) {
       return options?.id ?? "app-menu-bar";
     },
-    create(actor, context, options) {
+    create(actor, _context, options) {
       if (!options?.parent) {
         throw new Error("AppMenuBarComponent requires options.parent.");
       }
-      if (!options.windowSource) {
-        throw new Error("AppMenuBarComponent requires options.windowSource.");
+      if (!options.windowCatalog) {
+        throw new Error("AppMenuBarComponent requires options.windowCatalog.");
       }
-      return new AppMenuBarComponent(actor, options, {
-        commandSink: context.services.commandSink,
-        actorWindowFocus: context.services.actorWindowFocus
-      });
+      return new AppMenuBarComponent(actor, options, {});
     }
   };

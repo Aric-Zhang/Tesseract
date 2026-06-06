@@ -1,9 +1,8 @@
 import type { ScreenPoint } from "gizmo-core";
-import type { Actor, ActorWindowFocusService, Component, ComponentType } from "../../actor-runtime";
+import type { Actor, Component, ComponentType } from "../../actor-runtime";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
 import {
   sceneParameterPaths,
-  type SceneCommandSink,
   type SceneStateChangedEvent
 } from "../../scene-runtime";
 import type {
@@ -13,10 +12,8 @@ import type {
 } from "../../gizmo-runtime";
 import type { StateObserverResponder } from "../../state-runtime";
 import type {
-  WindowControlSource,
   WindowFrameIntentSink,
-  WindowMenuViewSource,
-  WindowViewFactoryRegistry,
+  WindowWorkspaceViewCatalog,
   WindowViewKey
 } from "../../window-runtime";
 import {
@@ -29,28 +26,19 @@ export const appMenuBarComponentType =
   "app-menu-bar-component" as ComponentType<AppMenuBarComponent>;
 
 export const APP_MENU_PRIORITY = 10_000;
-export const APP_MENU_SOURCE = {
-  id: "app-menu-bar",
-  kind: "gizmo"
-} as const;
 
 export type AppMenuWorkspaceMode = "run" | "develop";
 
 export interface AppMenuBarComponentOptions {
   readonly id?: string;
   readonly parent: HTMLElement;
-  readonly windowSource: WindowControlSource;
-  readonly windowMenuViewSource?: WindowMenuViewSource;
-  readonly windowViewFactories?: WindowViewFactoryRegistry;
+  readonly windowCatalog: WindowWorkspaceViewCatalog;
   readonly windowFrameIntents?: WindowFrameIntentSink;
   readonly initialMode?: AppMenuWorkspaceMode;
   readonly document?: Pick<Document, "createElement">;
 }
 
-export interface AppMenuBarComponentServices {
-  readonly commandSink: SceneCommandSink;
-  readonly actorWindowFocus?: ActorWindowFocusService;
-}
+export interface AppMenuBarComponentServices {}
 
 interface MenuRow {
   readonly kind: "open-view";
@@ -72,11 +60,7 @@ export class AppMenuBarComponent
   readonly id: string;
   enabled = true;
 
-  readonly #commandSink: SceneCommandSink;
-  readonly #actorWindowFocus?: ActorWindowFocusService;
-  readonly #windowSource: WindowControlSource;
-  readonly #windowMenuViewSource?: WindowMenuViewSource;
-  readonly #windowViewFactories?: WindowViewFactoryRegistry;
+  readonly #windowCatalog: WindowWorkspaceViewCatalog;
   readonly #windowFrameIntents?: WindowFrameIntentSink;
   readonly #root: HTMLDivElement;
   readonly #windowButton: HTMLButtonElement;
@@ -84,22 +68,22 @@ export class AppMenuBarComponent
   #mode: AppMenuWorkspaceMode;
   #menuOpen = false;
   #rows: MenuRow[] = [];
+  #activeRowIndex = -1;
   #lastSignature: string | null = null;
+  readonly #onKeyDown = (event: KeyboardEvent): void => {
+    this.handleKeyDown(event);
+  };
 
   constructor(
     actor: Actor,
     options: AppMenuBarComponentOptions,
-    services: AppMenuBarComponentServices
+    _services: AppMenuBarComponentServices
   ) {
     this.actor = actor;
     this.id = options.id ?? DEFAULT_APP_MENU_BAR_COMPONENT_ID;
     this.#mode = options.initialMode ?? "develop";
-    this.#windowSource = options.windowSource;
-    this.#windowMenuViewSource = options.windowMenuViewSource;
-    this.#windowViewFactories = options.windowViewFactories;
+    this.#windowCatalog = options.windowCatalog;
     this.#windowFrameIntents = options.windowFrameIntents;
-    this.#commandSink = services.commandSink;
-    this.#actorWindowFocus = services.actorWindowFocus;
 
     const documentRef = resolveDocument(options);
     this.#root = documentRef.createElement("div");
@@ -121,6 +105,7 @@ export class AppMenuBarComponent
     this.#menu.hidden = true;
 
     this.#root.append(this.#windowButton, this.#menu);
+    this.#root.addEventListener("keydown", this.#onKeyDown);
     options.parent.append(this.#root);
     this.applyMode();
     this.renderIfChanged();
@@ -181,40 +166,52 @@ export class AppMenuBarComponent
     if (!hitData) return;
     const row = this.#rows.find((candidate) => candidate.viewKey === hitData.viewKey);
     if (!row?.enabled) return;
-    if (this.#windowFrameIntents) {
-      this.#windowFrameIntents.requestOpenView(hitData.viewKey, "menu");
-      this.setMenuOpen(false);
-      return;
-    }
-    const item = this.#windowSource.findWindowByViewKey(hitData.viewKey) ??
-      (row.actorId ? this.#windowSource.listWindows().find((candidate) => candidate.actorId === row.actorId) : null);
-    if (!item?.canToggle) return;
-    if (!item.visible || !item.activeSelf || !item.activeInHierarchy) {
-      this.#actorWindowFocus?.requestFocusOnVisible(item.actor, "menu-restore");
-      this.#commandSink.submit({
-        source: APP_MENU_SOURCE,
-        target: item.visiblePath,
-        operation: "set",
-        value: true,
-        timeStamp: event.timeStamp
-      });
-    } else {
-      this.#actorWindowFocus?.focusActorWindow(item.actor, "menu-restore");
-    }
-    this.setMenuOpen(false);
+    this.activateOpenViewRow(row, event.timeStamp);
   }
 
   dispose(): void {
     this.enabled = false;
     this.#rows = [];
+    this.#root.removeEventListener("keydown", this.#onKeyDown);
     this.#root.remove();
   }
 
+  private handleKeyDown(event: KeyboardEvent): void {
+    if (!this.enabled || this.#root.hidden) return;
+    if (event.key === "Escape" && this.#menuOpen) {
+      event.preventDefault();
+      this.setMenuOpen(false);
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!this.#menuOpen) {
+        this.setMenuOpen(true);
+        return;
+      }
+      this.moveActiveRow(event.key === "ArrowDown" ? 1 : -1);
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (!this.#menuOpen) {
+        this.setMenuOpen(true);
+        return;
+      }
+      const row = this.#rows[this.#activeRowIndex];
+      if (row?.enabled) {
+        this.activateOpenViewRow(row, event.timeStamp);
+      }
+    }
+  }
+
+  private activateOpenViewRow(row: MenuRow, _timeStamp?: number): void {
+    this.#windowFrameIntents?.requestOpenView(row.viewKey, "menu");
+    this.setMenuOpen(false);
+  }
+
   private renderIfChanged(): void {
-    const items = this.#windowMenuViewSource?.listMenuViews() ?? this.#windowSource.listWindows();
-    const viewModels = createWindowMenuItems(items, {
-      factories: this.#windowViewFactories?.list()
-    });
+    const viewModels = createWindowMenuItems(this.#windowCatalog.listViewEntries());
     const signature = createMenuItemsSignature(viewModels);
     if (signature === this.#lastSignature) return;
     this.#lastSignature = signature;
@@ -237,6 +234,9 @@ export class AppMenuBarComponent
         });
       }
     }
+    if (this.#activeRowIndex >= this.#rows.length || !this.#rows[this.#activeRowIndex]?.enabled) {
+      this.#activeRowIndex = this.findFirstEnabledRowIndex();
+    }
     this.applyOpenState();
   }
 
@@ -251,6 +251,7 @@ export class AppMenuBarComponent
 
   private setMenuOpen(open: boolean): void {
     this.#menuOpen = open;
+    this.#activeRowIndex = open ? this.findFirstEnabledRowIndex() : -1;
     this.applyOpenState();
   }
 
@@ -261,6 +262,7 @@ export class AppMenuBarComponent
     );
     this.#menu.hidden = !this.#menuOpen || this.#root.hidden;
     this.#windowButton.setAttribute("aria-expanded", String(this.#menuOpen && !this.#root.hidden));
+    this.applyKeyboardActiveRowState();
   }
 
   private createMenuItemElement(item: AppMenuItemViewModel): HTMLButtonElement {
@@ -345,6 +347,34 @@ export class AppMenuBarComponent
       }],
       data
     };
+  }
+
+  private findFirstEnabledRowIndex(): number {
+    return this.#rows.findIndex((row) => row.enabled);
+  }
+
+  private moveActiveRow(delta: 1 | -1): void {
+    const enabledIndexes = this.#rows
+      .map((row, index) => row.enabled ? index : -1)
+      .filter((index) => index >= 0);
+    if (enabledIndexes.length === 0) {
+      this.#activeRowIndex = -1;
+      this.applyKeyboardActiveRowState();
+      return;
+    }
+    const currentIndex = enabledIndexes.indexOf(this.#activeRowIndex);
+    const nextEnabledIndex = currentIndex < 0
+      ? enabledIndexes[0]
+      : enabledIndexes[(currentIndex + delta + enabledIndexes.length) % enabledIndexes.length];
+    this.#activeRowIndex = nextEnabledIndex ?? -1;
+    this.applyKeyboardActiveRowState();
+  }
+
+  private applyKeyboardActiveRowState(): void {
+    this.#rows.forEach((row, index) => {
+      const active = this.#menuOpen && index === this.#activeRowIndex;
+      row.element.dataset.keyboardActive = String(active);
+    });
   }
 }
 

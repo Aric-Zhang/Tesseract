@@ -11,11 +11,15 @@ import {
 } from "./floating-window-component";
 import { installWindowComponentDefinitions } from "./install-component-definitions";
 import type { FloatingWindowParameterPaths } from "./floating-window-state";
-import { createWindowControlSource } from "./window-control-source";
+import type { WindowFramePort } from "./window-frame-port";
+import { WindowFramePortRegistry } from "./window-frame-port-registry";
+import { WindowViewFactoryRegistry } from "./window-view-factory-registry";
+import { createWindowWorkspaceViewCatalog } from "./window-workspace-view-catalog";
 import {
   WINDOW_FLOATING_FOCUS_LAYER_START,
   WindowWorkspaceController
 } from "./window-workspace-controller";
+import { createWindowWorkspaceStackPriorityPort } from "./window-workspace-stack-priority-port";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -99,6 +103,7 @@ function createWorkspace(options: CreateWorkspaceOptions) {
   const { registry } = createTestComponentRegistry({ actorSystem });
   installCoreComponentDefinitions(registry);
   installWindowComponentDefinitions(registry);
+  const framePorts = new WindowFramePortRegistry();
   const windows: Record<string, WindowFixture> = {};
   for (const windowOptions of options.windows) {
     const actor = actorSystem.createActor({
@@ -121,13 +126,23 @@ function createWorkspace(options: CreateWorkspaceOptions) {
       },
       priority: windowOptions.priority,
       presentation: windowOptions.presentation,
-      windowMenu: windowOptions.windowMenu
+      windowMenu: windowOptions.windowMenu,
+      framePortRegistry: framePorts
     });
     windows[windowOptions.actorId] = { actor, component, parent, paths };
   }
-  const source = createWindowControlSource({ actorSystem });
-  const controller = new WindowWorkspaceController({ actorSystem, source });
-  return { actorSystem, controller, document, registry, source, windows };
+  const catalog = createWindowWorkspaceViewCatalog({
+    actorSystem,
+    factories: new WindowViewFactoryRegistry(),
+    locations: createEmptyLocationSource(),
+    framePorts
+  });
+  const controller = new WindowWorkspaceController({
+    actorSystem,
+    catalog,
+    stackPriorityPort: createWindowWorkspaceStackPriorityPort(framePorts)
+  });
+  return { actorSystem, catalog, controller, document, framePorts, registry, windows };
 }
 
 function createPaths(prefix: string): FloatingWindowParameterPaths {
@@ -200,6 +215,24 @@ describe("WindowWorkspaceController", () => {
     expect(priorityOf(windows.fullscreen!)).toBe(1100);
   });
 
+  it("lets children of a fullscreen floating frame inherit its own input priority", () => {
+    const { actorSystem, controller, windows } = createWorkspace({
+      windows: [
+        { actorId: "fullscreen", priority: 1100, presentation: "fullscreen" },
+        { actorId: "scene", priority: 500 }
+      ]
+    });
+    const fullscreenChild = actorSystem.createActor({
+      id: "fullscreen-child",
+      parent: windows.fullscreen!.actor
+    });
+
+    expect(controller.getEffectivePriority("fullscreen")).toBeNull();
+    expect(controller.getEffectiveStackPriorityForActor(fullscreenChild)).toBe(
+      windows.fullscreen!.component.inputStackPriority
+    );
+  });
+
   it("focuses a pending hidden restore only after it becomes visible", () => {
     const { controller, windows } = createWorkspace({
       windows: [
@@ -219,16 +252,11 @@ describe("WindowWorkspaceController", () => {
     expect(controller.getEffectivePriority("debug")).toBe(WINDOW_FLOATING_FOCUS_LAYER_START + 2);
   });
 
-  it("clears pending focus when the target is destroyed or cannot be toggled", () => {
+  it("clears pending focus when the target is destroyed", () => {
     const workspace = createWorkspace({
       windows: [
         { actorId: "debug", priority: 1000, visible: false },
-        {
-          actorId: "diagnostics",
-          priority: 1100,
-          visible: false,
-          windowMenu: { include: true, activationMode: "none" }
-        }
+        { actorId: "diagnostics", priority: 1100, visible: false }
       ]
     });
 
@@ -266,6 +294,35 @@ describe("WindowWorkspaceController", () => {
     );
   });
 
+  it("inherits stack priority from a registered non-floating frame through the parent chain", () => {
+    const actorSystem = new ActorSystem();
+    const framePorts = new WindowFramePortRegistry();
+    const rootFrame = actorSystem.createActor({ id: "workspace-root-frame" });
+    const sceneView = actorSystem.createActor({ id: "scene-view", parent: rootFrame });
+    const modeToggle = actorSystem.createActor({ id: "scene-mode-toggle", parent: sceneView });
+    framePorts.register({
+      frameActor: rootFrame,
+      framePort: createFramePort("workspace-root-frame"),
+      getStackPriority: () => 100,
+      destroyWhenEmpty: false
+    });
+    const catalog = createWindowWorkspaceViewCatalog({
+      actorSystem,
+      factories: new WindowViewFactoryRegistry(),
+      locations: createEmptyLocationSource(),
+      framePorts
+    });
+    const controller = new WindowWorkspaceController({
+      actorSystem,
+      catalog,
+      stackPriorityPort: createWindowWorkspaceStackPriorityPort(framePorts)
+    });
+
+    expect(controller.findOwningWindowActor(modeToggle)).toBeNull();
+    expect(controller.getEffectiveStackPriorityForActor(modeToggle)).toBe(100);
+    expect(controller.getEffectiveStackPriorityForActor(rootFrame)).toBe(100);
+  });
+
   it("prunes destroyed windows and ignores mutations after dispose", () => {
     const { actorSystem, controller, windows } = createWorkspace({
       windows: [
@@ -287,3 +344,52 @@ describe("WindowWorkspaceController", () => {
     expect(controller.listStackEntries()).toEqual([]);
   });
 });
+
+function createEmptyLocationSource() {
+  return {
+    listLocations: () => [],
+    getLocationByViewKey: () => null,
+    getLocationByViewActorId: () => null
+  };
+}
+
+function createFramePort(frameId: string): WindowFramePort {
+  return {
+    frameId,
+    visiblePath: null,
+    visible: true,
+    effectiveVisible: true,
+    presentationSuppressed: false,
+    presentation: "windowed",
+    listTabs: () => [],
+    getRuntimeDockRoot: () => ({
+      kind: "tabset",
+      id: `${frameId}:root`,
+      tabs: [],
+      activeViewActorId: null
+    }),
+    restoreRuntimeDockRoot() {},
+    listDockTargetTabsets: () => [],
+    getActiveViewActorId: () => null,
+    isViewActiveInFrame: () => false,
+    isViewVisibleInFrame: () => false,
+    addTab() {},
+    splitTab() {},
+    removeTab() {},
+    activateTab() {},
+    hasTab: () => false,
+    hasTabset: () => false,
+    getContentHost: () => ({
+      id: `${frameId}:host`,
+      mountContent() {
+        throw new Error("not used");
+      },
+      isContentInteractable: () => false
+    }),
+    getFloatingBounds: () => ({ left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 }),
+    restoreFloatingState() {},
+    setPresentation() {},
+    setPresentationSuppressed() {},
+    requestVisible() {}
+  };
+}

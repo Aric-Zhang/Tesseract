@@ -1,4 +1,4 @@
-import { createRegisteredActor, type RegisteredActor } from "../../actor-runtime";
+import { createRegisteredActor, type Actor, type RegisteredActor } from "../../actor-runtime";
 import type { FeatureActorContext } from "../../runtime/ports";
 import { sceneParameterPaths, vec2 } from "../../scene-runtime";
 import {
@@ -6,6 +6,7 @@ import {
   type FloatingWindowComponent,
   type FloatingWindowState,
   type WindowFrameIntentSink,
+  type WindowFramePortRegistry,
   type WindowTabDragSink
 } from "../../window-runtime";
 import {
@@ -34,6 +35,7 @@ export interface SceneWindowActorOptions {
   createResizeObserver?: SceneViewportResizeObserverFactory;
   devicePixelRatio?: () => number;
   frameIntentSink?: WindowFrameIntentSink;
+  framePortRegistry?: WindowFramePortRegistry;
   tabDragSink?: WindowTabDragSink;
 }
 
@@ -41,6 +43,72 @@ export interface RegisteredSceneWindowActor extends RegisteredActor<SceneViewpor
   readonly window: FloatingWindowComponent;
   readonly viewport: SceneViewportComponent;
   readonly modeToggle: SceneModeToggleComponent;
+  disposeRuntimeTracking?(): void;
+}
+
+export interface SceneViewActorOptions {
+  actorId?: string;
+  actorName?: string;
+  parentActor: Actor;
+  document?: Pick<Document, "createElement">;
+  createRenderer?: SceneViewportRendererFactory;
+  createResizeObserver?: SceneViewportResizeObserverFactory;
+  devicePixelRatio?: () => number;
+}
+
+export interface RegisteredSceneViewActor extends RegisteredActor<SceneViewportComponent> {
+  readonly viewport: SceneViewportComponent;
+  readonly modeToggle: SceneModeToggleComponent;
+  disposeRuntimeTracking?(): void;
+}
+
+export function createSceneViewActor(
+  context: FeatureActorContext,
+  options: SceneViewActorOptions
+): RegisteredSceneViewActor {
+  const actor = context.actorSystem.createActor({
+    id: options.actorId,
+    name: options.actorName ?? options.actorId,
+    parent: options.parentActor
+  });
+  try {
+    const viewport = context.componentRegistry.addComponent(actor, sceneViewportComponentType, {
+      id: "scene-viewport",
+      document: options.document,
+      createRenderer: options.createRenderer,
+      createResizeObserver: options.createResizeObserver,
+      devicePixelRatio: options.devicePixelRatio
+    });
+    const modeToggle = context.componentRegistry.addComponent(actor, sceneModeToggleComponentType, {
+      id: "scene-mode-toggle",
+      document: options.document
+    });
+    let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
+    const baseHandle = createRegisteredActor({
+      actorSystem: context.actorSystem,
+      actor,
+      component: viewport,
+      beforeDispose: () => untrack?.dispose()
+    });
+    const handle: RegisteredSceneViewActor = {
+      actor: baseHandle.actor,
+      component: baseHandle.component,
+      viewport,
+      modeToggle,
+      dispose: () => baseHandle.dispose(),
+      disposeRuntimeTracking: () => {
+        untrack?.dispose();
+        untrack = null;
+      }
+    };
+    untrack = context.trackRegisteredActor(handle);
+    return handle;
+  } catch (error) {
+    if (context.actorSystem.hasActor(actor)) {
+      context.actorSystem.destroyActor(actor);
+    }
+    throw error;
+  }
 }
 
 export function createSceneWindowActor(
@@ -67,6 +135,7 @@ export function createSceneWindowActor(
       activeViewActorId: viewActorId,
       activeViewKey: "scene",
       frameIntentSink: options.frameIntentSink,
+      framePortRegistry: options.framePortRegistry,
       tabDragSink: options.tabDragSink,
       windowMenu: {
         include: true,
@@ -105,7 +174,11 @@ export function createSceneWindowActor(
       window: window as FloatingWindowComponent,
       viewport,
       modeToggle,
-      dispose: () => baseHandle.dispose()
+      dispose: () => baseHandle.dispose(),
+      disposeRuntimeTracking: () => {
+        untrack?.dispose();
+        untrack = null;
+      }
     };
     untrack = context.trackRegisteredActor(handle);
     return handle;

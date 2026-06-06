@@ -1,0 +1,655 @@
+{
+  "url": "http://127.0.0.1:5203/",
+  "passed": true,
+  "assertions": {
+    "passed": true,
+    "failures": []
+  },
+  "errors": [],
+  "steps": [
+    {
+      "name": "initial",
+      "state": {
+        "frames": [
+          {
+            "className": "floating-gizmo-window scene-window",
+            "rect": {
+              "left": 219,
+              "top": 146,
+              "right": 1148,
+              "bottom": 622,
+              "width": 929,
+              "height": 476
+            },
+            "tabs": [
+              {
+                "text": "Scene",
+                "active": true,
+                "rect": {
+                  "left": 230,
+                  "top": 149.5,
+                  "right": 380,
+                  "bottom": 173.5,
+                  "width": 150,
+                  "height": 24
+                }
+              }
+            ],
+            "splitCount": 0,
+            "paneCount": 0
+          },
+          {
+            "className": "floating-gizmo-window debug-log-window",
+            "rect": {
+              "left": 14,
+              "top": 514,
+              "right": 734,
+              "bottom": 754,
+              "width": 720,
+              "height": 240
+            },
+            "tabs": [
+              {
+                "text": "Debug Log",
+                "active": true,
+                "rect": {
+                  "left": 25,
+                  "top": 517.5,
+                  "right": 175,
+                  "bottom": 541.5,
+                  "width": 150,
+                  "height": 24
+                }
+              }
+            ],
+            "splitCount": 0,
+            "paneCount": 0
+          },
+          {
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "left": 14,
+              "top": 14,
+              "right": 294,
+              "bottom": 374,
+              "width": 280,
+              "height": 360
+            },
+            "tabs": [
+              {
+                "text": "Hierarchy",
+                "active": true,
+                "rect": {
+                  "left": 25,
+                  "top": 17.5,
+                  "right": 175,
+                  "bottom": 41.5,
+                  "width": 150,
+                  "height": 24
+                }
+              }
+            ],
+            "splitCount": 0,
+            "paneCount": 0
+          }
+        ],
+        "preview": {
+          "hidden": true,
+          "className": "window-dock-preview",
+          "dataset": {},
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        "canvasRect": {
+          "left": 220,
+          "top": 177,
+          "right": 1147,
+          "bottom": 621,
+          "width": 927,
+          "height": 444
+        }
+      }
+    },
+    {
+      "name": "merge-debug-into-scene",
+      "preview": {
+        "hidden": false,
+        "className": "window-dock-preview window-dock-preview--merge-tabs",
+        "dataset": {
+          "dockKind": "merge-tabs",
+          "targetFrameId": "scene-window",
+          "targetTabsetId": "frame-tabset:1"
+        },
+        "rect": {
+          "left": 220,
+          "top": 147,
+          "right": 1147,
+          "bottom": 177,
+          "width": 927,
+          "height": 30
+        }
+      },
+      "state": {
+        "frames": [
+          {
+            "className": "floating-gizmo-window scene-window",
+            "rect": {
+              "left": 219,
+              "top": 146,
+              "right": 1148,
+              "bottom": 622,
+              "width": 929,
+              "height": 476
+            },
+            "tabs": [
+              {
+                "text": "Scene",
+                "active": false,
+                "rect": {
+                  "left": 230,
+                  "top": 149.5,
+                  "right": 380,
+                  "bottom": 173.5,
+                  "width": 150,
+                  "height": 24
+                }
+              },
+              {
+                "text": "Debug Log",
+                "active": true,
+                "rect": {
+                  "left": 386,
+                  "top": 149.5,
+                  "right": 536,
+                  "bottom": 173.5,
+                  "width": 150,
+                  "height": 24
+                }
+              }
+            ],
+            "splitCount": 0,
+            "paneCount": 0
+          },
+          {
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "left": 14,
+              "top": 14,
+              "right": 294,
+              "bottom": 374,
+              "width": 280,
+              "height": 360
+            },
+            "tabs": [
+              {
+                "text": "Hierarchy",
+                "active": true,
+                "rect": {
+                  "left": 25,
+                  "top": 17.5,
+                  "right": 175,
+                  "bottom": 41.5,
+                  "width": 150,
+                  "height": 24
+                }
+              }
+            ],
+            "splitCount": 0,
+            "paneCount": 0
+          }
+        ],
+        "preview": {
+          "hidden": true,
+          "className": "window-dock-preview window-dock-preview--merge-tabs",
+          "dataset": {},
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        "canvasRect": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      }
+    },
+    {
+      "name": "split-hierarchy-into-scene-left",
+      "preview": {
+        "hidden": false,
+        "className": "window-dock-preview window-dock-preview--split window-dock-preview--left",
+        "dataset": {
+          "dockKind": "split",
+          "dockPlacement": "left",
+          "targetFrameId": "scene-window",
+          "targetTabsetId": "frame-tabset:1"
+        },
+        "rect": {
+          "left": 220,
+          "top": 177,
+          "right": 535.171875,
+          "bottom": 621,
+          "width": 315.171875,
+          "height": 444
+        }
+      },
+      "state": {
+        "frames": [
+          {
+            "className": "floating-gizmo-window scene-window",
+            "rect": {
+              "left": 219,
+              "top": 146,
+              "right": 1148,
+              "bottom": 622,
+              "width": 929,
+              "height": 476
+            },
+            "tabs": [
+              {
+                "text": "Hierarchy",
+                "active": true,
+                "rect": {
+                  "left": 227,
+                  "top": 180,
+                  "right": 377,
+                  "bottom": 204,
+                  "width": 150,
+                  "height": 24
+                }
+              },
+              {
+                "text": "Scene",
+                "active": false,
+                "rect": {
+                  "left": 547.4375,
+                  "top": 180,
+                  "right": 697.4375,
+                  "bottom": 204,
+                  "width": 150,
+                  "height": 24
+                }
+              },
+              {
+                "text": "Debug Log",
+                "active": true,
+                "rect": {
+                  "left": 701.4375,
+                  "top": 180,
+                  "right": 851.4375,
+                  "bottom": 204,
+                  "width": 150,
+                  "height": 24
+                }
+              }
+            ],
+            "splitCount": 1,
+            "paneCount": 2
+          }
+        ],
+        "preview": {
+          "hidden": true,
+          "className": "window-dock-preview window-dock-preview--split window-dock-preview--left",
+          "dataset": {},
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        "canvasRect": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      }
+    },
+    {
+      "name": "float-debug-from-content-center",
+      "preview": {
+        "hidden": false,
+        "className": "window-dock-preview window-dock-preview--floating",
+        "dataset": {
+          "dockKind": "floating"
+        },
+        "rect": {
+          "left": 553.5,
+          "top": 381,
+          "right": 813.5,
+          "bottom": 561,
+          "width": 260,
+          "height": 180
+        }
+      },
+      "state": {
+        "frames": [
+          {
+            "className": "floating-gizmo-window scene-window",
+            "rect": {
+              "left": 219,
+              "top": 146,
+              "right": 1148,
+              "bottom": 622,
+              "width": 929,
+              "height": 476
+            },
+            "tabs": [
+              {
+                "text": "Hierarchy",
+                "active": true,
+                "rect": {
+                  "left": 227,
+                  "top": 180,
+                  "right": 377,
+                  "bottom": 204,
+                  "width": 150,
+                  "height": 24
+                }
+              },
+              {
+                "text": "Scene",
+                "active": true,
+                "rect": {
+                  "left": 547.4375,
+                  "top": 180,
+                  "right": 697.4375,
+                  "bottom": 204,
+                  "width": 150,
+                  "height": 24
+                }
+              }
+            ],
+            "splitCount": 1,
+            "paneCount": 2
+          },
+          {
+            "className": "floating-gizmo-window debug-log-window",
+            "rect": {
+              "left": 554,
+              "top": 381,
+              "right": 854,
+              "bottom": 561,
+              "width": 300,
+              "height": 180
+            },
+            "tabs": [
+              {
+                "text": "Debug Log",
+                "active": true,
+                "rect": {
+                  "left": 565,
+                  "top": 384.5,
+                  "right": 715,
+                  "bottom": 408.5,
+                  "width": 150,
+                  "height": 24
+                }
+              }
+            ],
+            "splitCount": 0,
+            "paneCount": 0
+          }
+        ],
+        "preview": {
+          "hidden": true,
+          "className": "window-dock-preview window-dock-preview--floating",
+          "dataset": {},
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        "canvasRect": {
+          "left": 541.4375,
+          "top": 207,
+          "right": 1146,
+          "bottom": 620,
+          "width": 604.5625,
+          "height": 413
+        }
+      }
+    },
+    {
+      "name": "titlebar-empty-drag-moves-frame",
+      "previewDuringDrag": {
+        "hidden": true,
+        "className": "window-dock-preview window-dock-preview--floating",
+        "dataset": {},
+        "rect": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "width": 0,
+          "height": 0
+        }
+      },
+      "beforeMove": {
+        "left": 554,
+        "top": 381,
+        "right": 854,
+        "bottom": 561,
+        "width": 300,
+        "height": 180
+      },
+      "afterMove": {
+        "left": 614,
+        "top": 416,
+        "right": 914,
+        "bottom": 596,
+        "width": 300,
+        "height": 180
+      },
+      "movedBy": {
+        "dx": 60,
+        "dy": 35
+      },
+      "state": {
+        "frames": [
+          {
+            "className": "floating-gizmo-window scene-window",
+            "rect": {
+              "left": 219,
+              "top": 146,
+              "right": 1148,
+              "bottom": 622,
+              "width": 929,
+              "height": 476
+            },
+            "tabs": [
+              {
+                "text": "Hierarchy",
+                "active": true,
+                "rect": {
+                  "left": 227,
+                  "top": 180,
+                  "right": 377,
+                  "bottom": 204,
+                  "width": 150,
+                  "height": 24
+                }
+              },
+              {
+                "text": "Scene",
+                "active": true,
+                "rect": {
+                  "left": 547.4375,
+                  "top": 180,
+                  "right": 697.4375,
+                  "bottom": 204,
+                  "width": 150,
+                  "height": 24
+                }
+              }
+            ],
+            "splitCount": 1,
+            "paneCount": 2
+          },
+          {
+            "className": "floating-gizmo-window debug-log-window",
+            "rect": {
+              "left": 614,
+              "top": 416,
+              "right": 914,
+              "bottom": 596,
+              "width": 300,
+              "height": 180
+            },
+            "tabs": [
+              {
+                "text": "Debug Log",
+                "active": true,
+                "rect": {
+                  "left": 625,
+                  "top": 419.5,
+                  "right": 775,
+                  "bottom": 443.5,
+                  "width": 150,
+                  "height": 24
+                }
+              }
+            ],
+            "splitCount": 0,
+            "paneCount": 0
+          }
+        ],
+        "preview": {
+          "hidden": true,
+          "className": "window-dock-preview window-dock-preview--floating",
+          "dataset": {},
+          "rect": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        "canvasRect": {
+          "left": 541.4375,
+          "top": 207,
+          "right": 1146,
+          "bottom": 620,
+          "width": 604.5625,
+          "height": 413
+        }
+      }
+    }
+  ],
+  "finalState": {
+    "frames": [
+      {
+        "className": "floating-gizmo-window scene-window",
+        "rect": {
+          "left": 219,
+          "top": 146,
+          "right": 1148,
+          "bottom": 622,
+          "width": 929,
+          "height": 476
+        },
+        "tabs": [
+          {
+            "text": "Hierarchy",
+            "active": true,
+            "rect": {
+              "left": 227,
+              "top": 180,
+              "right": 377,
+              "bottom": 204,
+              "width": 150,
+              "height": 24
+            }
+          },
+          {
+            "text": "Scene",
+            "active": true,
+            "rect": {
+              "left": 547.4375,
+              "top": 180,
+              "right": 697.4375,
+              "bottom": 204,
+              "width": 150,
+              "height": 24
+            }
+          }
+        ],
+        "splitCount": 1,
+        "paneCount": 2
+      },
+      {
+        "className": "floating-gizmo-window debug-log-window",
+        "rect": {
+          "left": 614,
+          "top": 416,
+          "right": 914,
+          "bottom": 596,
+          "width": 300,
+          "height": 180
+        },
+        "tabs": [
+          {
+            "text": "Debug Log",
+            "active": true,
+            "rect": {
+              "left": 625,
+              "top": 419.5,
+              "right": 775,
+              "bottom": 443.5,
+              "width": 150,
+              "height": 24
+            }
+          }
+        ],
+        "splitCount": 0,
+        "paneCount": 0
+      }
+    ],
+    "preview": {
+      "hidden": true,
+      "className": "window-dock-preview window-dock-preview--floating",
+      "dataset": {},
+      "rect": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    "canvasRect": {
+      "left": 541.4375,
+      "top": 207,
+      "right": 1146,
+      "bottom": 620,
+      "width": 604.5625,
+      "height": 413
+    }
+  }
+}

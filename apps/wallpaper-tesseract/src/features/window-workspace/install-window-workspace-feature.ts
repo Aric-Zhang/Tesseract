@@ -24,11 +24,12 @@ import {
   WORKSPACE_ROOT_FRAME_ID,
   workspaceRootDockFrameComponentType,
   type FloatingWindowParameterPaths,
-  type FloatingWindowState
+  type FloatingWindowState,
+  uiVec2,
+  type UiVec2
 } from "../../window-runtime";
-import type { RuntimeObject, RuntimeRegistration, Vec2 } from "../../scene-runtime";
-import { SceneParameterStore, vec2 } from "../../scene-runtime";
-import type { FeatureActorContext } from "../../runtime/ports";
+import { SceneParameterStore } from "../../scene-runtime";
+import type { FeatureActorContext, RuntimeObject, RuntimeRegistration } from "../../runtime/ports";
 import type { WindowWorkspaceViewCatalog } from "../../window-runtime";
 
 export interface WindowWorkspaceFloatingFramePolicy {
@@ -36,7 +37,7 @@ export interface WindowWorkspaceFloatingFramePolicy {
   readonly preferredComponentId: string;
   readonly paths?: FloatingWindowParameterPaths;
   readonly fallbackState: FloatingWindowState;
-  readonly minSize: Vec2;
+  readonly minSize: UiVec2;
   readonly className: string;
   readonly contentClassName?: string;
   readonly priority: number;
@@ -260,7 +261,7 @@ interface FloatingFrameShellOptions {
   readonly preferredComponentId: string;
   readonly paths?: FloatingWindowParameterPaths;
   readonly initialState: FloatingWindowState;
-  readonly minSize: Vec2;
+  readonly minSize: UiVec2;
   readonly className: string;
   readonly contentClassName?: string;
   readonly priority: number;
@@ -317,16 +318,16 @@ function cloneFloatingWindowStateWithVisibility(
   visibleOverride?: boolean
 ): FloatingWindowState {
   return {
-    position: vec2(state.position.x, state.position.y),
-    size: vec2(state.size.x, state.size.y),
+    position: uiVec2(state.position.x, state.position.y),
+    size: uiVec2(state.size.x, state.size.y),
     visible: visibleOverride ?? state.visible
   };
 }
 
-function createFloatingStateFromBounds(bounds: WindowDockRect, minSize: Vec2): FloatingWindowState {
+function createFloatingStateFromBounds(bounds: WindowDockRect, minSize: UiVec2): FloatingWindowState {
   return {
-    position: vec2(Math.max(0, Math.round(bounds.left)), Math.max(0, Math.round(bounds.top))),
-    size: vec2(
+    position: uiVec2(Math.max(0, Math.round(bounds.left)), Math.max(0, Math.round(bounds.top))),
+    size: uiVec2(
       Math.max(minSize.x, Math.round(bounds.width)),
       Math.max(minSize.y, Math.round(bounds.height))
     ),
@@ -373,10 +374,10 @@ function readFloatingWindowState(
 function readVec2(
   store: SceneParameterStore,
   path: FloatingWindowParameterPaths["position"] | FloatingWindowParameterPaths["size"],
-  fallback: Vec2
-): Vec2 {
-  const value = store.get<Vec2>(path);
-  return value ? vec2(value.x, value.y) : vec2(fallback.x, fallback.y);
+  fallback: UiVec2
+): UiVec2 {
+  const value = store.get<UiVec2>(path);
+  return value ? uiVec2(value.x, value.y) : uiVec2(fallback.x, fallback.y);
 }
 
 function createHydratableFrameLayout(persisted: Parameters<typeof hydrateWindowWorkspaceFrameLayout>[0]) {

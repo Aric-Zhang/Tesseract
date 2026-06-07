@@ -1,10 +1,7 @@
 import type { ScreenPoint } from "gizmo-core";
 import type { Actor, Component, ComponentType } from "../../actor-runtime";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
-import {
-  sceneParameterPaths,
-  type SceneStateChangedEvent
-} from "../../scene-runtime";
+import type { StateChangedEvent } from "../../runtime/ports";
 import type {
   ActorInputEndEvent,
   ActorInputHit,
@@ -13,6 +10,7 @@ import type {
 import type { StateObserverResponder } from "../../state-runtime";
 import type {
   WindowFrameIntentSink,
+  UiLayoutPath,
   WindowWorkspaceViewCatalog,
   WindowViewIdentity,
   WindowViewTypeKey
@@ -36,6 +34,7 @@ export interface AppMenuBarComponentOptions {
   readonly parent: HTMLElement;
   readonly windowCatalog: WindowWorkspaceViewCatalog;
   readonly windowFrameIntents?: WindowFrameIntentSink;
+  readonly workspaceModePath: UiLayoutPath<AppMenuWorkspaceMode>;
   readonly initialMode?: AppMenuWorkspaceMode;
   readonly document?: Pick<Document, "createElement">;
 }
@@ -64,6 +63,7 @@ export class AppMenuBarComponent
 
   readonly #windowCatalog: WindowWorkspaceViewCatalog;
   readonly #windowFrameIntents?: WindowFrameIntentSink;
+  readonly #workspaceModePath: UiLayoutPath<AppMenuWorkspaceMode>;
   readonly #root: HTMLDivElement;
   readonly #windowButton: HTMLButtonElement;
   readonly #menu: HTMLDivElement;
@@ -86,6 +86,7 @@ export class AppMenuBarComponent
     this.#mode = options.initialMode ?? "develop";
     this.#windowCatalog = options.windowCatalog;
     this.#windowFrameIntents = options.windowFrameIntents;
+    this.#workspaceModePath = options.workspaceModePath;
 
     const documentRef = resolveDocument(options);
     this.#root = documentRef.createElement("div");
@@ -125,8 +126,8 @@ export class AppMenuBarComponent
     this.renderIfChanged();
   }
 
-  onSceneStateChanged(event: SceneStateChangedEvent): void {
-    const modeChange = event.changes.find((change) => change.path === sceneParameterPaths.workspace.mode);
+  onStateChanged(event: StateChangedEvent): void {
+    const modeChange = event.changes.find((change) => change.path === this.#workspaceModePath);
     if (!modeChange) return;
     this.#mode = modeChange.nextValue as AppMenuWorkspaceMode;
     this.applyMode();

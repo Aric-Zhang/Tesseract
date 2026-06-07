@@ -8,9 +8,9 @@ import type {
 } from "../../../gizmo-runtime";
 import {
   sceneParameterPaths,
-  type SceneCommandSink,
-  type SceneStateChangedEvent
+  type SceneCommandSink
 } from "../../../scene-runtime";
+import type { StateChangedEvent } from "../../../runtime/ports";
 import type { StateObserverResponder } from "../../../state-runtime";
 import type { SceneViewportComponent } from "./scene-viewport-component";
 
@@ -80,7 +80,7 @@ export class SceneModeToggleComponent
     return this.#buttonElement;
   }
 
-  onSceneStateChanged(event: SceneStateChangedEvent): void {
+  onStateChanged(event: StateChangedEvent): void {
     const modeChange = event.changes.find((change) => change.path === sceneParameterPaths.workspace.mode);
     if (!modeChange) return;
     this.#mode = modeChange.nextValue as SceneWorkspaceMode;

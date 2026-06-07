@@ -1,7 +1,8 @@
 import type { ScreenPoint } from "gizmo-core";
 import type { Actor, Component, ComponentType } from "../actor-runtime";
-import { sceneParameterPaths, type SceneCommandSink, type SceneStateChangedEvent } from "../scene-runtime";
+import { sceneParameterPaths, type SceneCommandSink } from "../scene-runtime";
 import type { ActorInputEndEvent, ActorInputHit, ActorInputParticipant } from "../gizmo-runtime";
+import type { StateChangedEvent } from "../runtime/ports";
 import type { StateObserverResponder } from "../state-runtime";
 import type { WindowContentAttachment, WindowContentHost, WindowContentRehostable } from "../window-runtime";
 import type { HierarchyObjectItem, HierarchyObjectSource } from "./hierarchy-object-source";
@@ -97,7 +98,7 @@ export class HierarchyPanelComponent
     this.renderIfItemsChanged();
   }
 
-  onSceneStateChanged(event: SceneStateChangedEvent): void {
+  onStateChanged(event: StateChangedEvent): void {
     let changed = false;
     for (const change of event.changes) {
       if (change.path !== sceneParameterPaths.selection.activeObject) continue;

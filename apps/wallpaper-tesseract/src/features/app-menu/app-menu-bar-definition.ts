@@ -25,6 +25,9 @@ export const appMenuBarComponentDefinition:
       if (!options.windowCatalog) {
         throw new Error("AppMenuBarComponent requires options.windowCatalog.");
       }
+      if (!options.workspaceModePath) {
+        throw new Error("AppMenuBarComponent requires options.workspaceModePath.");
+      }
       return new AppMenuBarComponent(actor, options, {});
     }
   };

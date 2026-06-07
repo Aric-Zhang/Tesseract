@@ -1,4 +1,4 @@
-import type { RuntimeObject, SceneFrame } from "../scene-runtime";
+import type { RuntimeObject, UpdateFrame } from "../runtime/ports";
 import { ActorImpl, isActorImpl, type Actor, type ActorOptions } from "./actor";
 import type { Component } from "./component";
 
@@ -146,7 +146,7 @@ export class ActorSystem implements RuntimeObject {
     return false;
   }
 
-  updateFrame(frame: SceneFrame): void {
+  updateFrame(frame: UpdateFrame): void {
     const actors = this.listActorsInTreeOrder();
     for (const actor of actors) {
       const actorImpl = this.actors.get(actor.id)?.actor;

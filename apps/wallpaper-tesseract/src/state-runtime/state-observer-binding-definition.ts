@@ -1,4 +1,5 @@
 import type { ComponentDefinition } from "../actor-runtime";
+import { stateObserverAttachment } from "./state-observer-attachment-runtime";
 import {
   StateObserverBindingComponent,
   stateObserverBindingComponentType
@@ -9,7 +10,7 @@ export const stateObserverBindingComponentDefinition:
     type: stateObserverBindingComponentType,
     kind: "binding",
     singleton: true,
-    capabilities: ["state-observer-binding"],
+    attachments: [stateObserverAttachment],
     createId(actor) {
       return `${actor.id}:${stateObserverBindingComponentType}`;
     },

@@ -1,4 +1,5 @@
 import type { ComponentDefinition } from "../../../actor-runtime";
+import type { SceneCommandSink } from "../../../scene-runtime";
 import { gizmoEventBindingComponentType } from "../../../gizmo-runtime";
 import { stateObserverBindingComponentType } from "../../../state-runtime";
 import {
@@ -10,8 +11,14 @@ import {
   sceneViewportComponentType
 } from "./scene-viewport-component";
 
-export const sceneModeToggleComponentDefinition:
-  ComponentDefinition<SceneModeToggleComponent, SceneModeToggleComponentOptions> = {
+export interface SceneModeToggleComponentDefinitionOptions {
+  readonly commandSink?: SceneCommandSink;
+}
+
+export function createSceneModeToggleComponentDefinition(
+  services: SceneModeToggleComponentDefinitionOptions = {}
+): ComponentDefinition<SceneModeToggleComponent, SceneModeToggleComponentOptions> {
+  return {
     type: sceneModeToggleComponentType,
     singleton: true,
     requires: [
@@ -28,7 +35,14 @@ export const sceneModeToggleComponentDefinition:
         throw new Error("SceneModeToggleComponent requires SceneViewportComponent on the same actor.");
       }
       return new SceneModeToggleComponent(actor, viewport, options ?? {}, {
-        commandSink: context.services.commandSink
+        commandSink: services.commandSink ?? noopSceneCommandSink
       });
     }
   };
+}
+
+export const sceneModeToggleComponentDefinition = createSceneModeToggleComponentDefinition();
+
+const noopSceneCommandSink: SceneCommandSink = {
+  submit(): void {}
+};

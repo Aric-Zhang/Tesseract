@@ -41,11 +41,24 @@ function isSameDefinition(existing: ComponentDefinition, candidate: ComponentDef
     existing.singleton === (candidate.singleton ?? false) &&
     existing.create === candidate.create &&
     existing.createId === candidate.createId &&
-    sameArray(existing.capabilities ?? [], candidate.capabilities ?? []) &&
+    sameAttachmentArray(existing.attachments ?? [], candidate.attachments ?? []) &&
     sameArray(existing.requires ?? [], candidate.requires ?? [])
   );
 }
 
 function sameArray<T>(a: readonly T[], b: readonly T[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+function sameAttachmentArray(
+  a: NonNullable<ComponentDefinition["attachments"]>,
+  b: NonNullable<ComponentDefinition["attachments"]>
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every((attachment, index) => (
+      attachment.kind === b[index].kind &&
+      attachment.options === b[index].options
+    ))
+  );
 }

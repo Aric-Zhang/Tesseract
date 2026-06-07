@@ -1,5 +1,8 @@
-import type { RuntimeRegistration, SceneCommandSink } from "../scene-runtime";
 import type { Actor, ActorImpl } from "./actor";
+import type {
+  ComponentAttachmentRegistration,
+  ComponentAttachmentRuntime
+} from "./component-attachment-runtime";
 import type {
   ActorWindowFocusService,
   ActorSystemView,
@@ -13,13 +16,11 @@ import type {
   ComponentType
 } from "./component";
 import { ComponentTransaction, type RollbackErrorHandler } from "./component-transaction";
-import type { ComponentRuntimeBridge } from "./component-runtime-bridge";
 import { ActorSystem, actorComponentMutationToken } from "./actor-system";
 
 export interface ComponentRegistryOptions {
   actorSystem: ActorSystem;
-  bridge?: ComponentRuntimeBridge;
-  commandSink?: SceneCommandSink;
+  attachmentRuntime?: ComponentAttachmentRuntime;
   actorWindowFocus?: ActorWindowFocusService;
   onRollbackError?: RollbackErrorHandler;
 }
@@ -52,19 +53,17 @@ interface ComponentAddPlanBuildState {
 
 export class ComponentRegistry {
   private readonly actorSystem: ActorSystem;
-  private readonly bridge?: ComponentRuntimeBridge;
-  private readonly commandSink: SceneCommandSink;
+  private readonly attachmentRuntime?: ComponentAttachmentRuntime;
   private readonly actorWindowFocus?: ActorWindowFocusService;
   private readonly onRollbackError?: RollbackErrorHandler;
   private readonly actorSystemView: ActorSystemView;
   private readonly componentRegistryView: ComponentRegistryView;
   private readonly definitions = new Map<string, ComponentDefinition>();
-  private readonly externalRegistrations = new WeakMap<Component, RuntimeRegistration>();
+  private readonly externalRegistrations = new WeakMap<Component, ComponentAttachmentRegistration>();
 
   constructor(options: ComponentRegistryOptions) {
     this.actorSystem = options.actorSystem;
-    this.bridge = options.bridge;
-    this.commandSink = options.commandSink ?? noopCommandSink;
+    this.attachmentRuntime = options.attachmentRuntime;
     this.actorWindowFocus = options.actorWindowFocus;
     this.onRollbackError = options.onRollbackError;
     this.actorSystemView = {
@@ -228,8 +227,12 @@ export class ComponentRegistry {
     this.actorSystem.attachComponent(actorComponentMutationToken, actor, component);
     attached = true;
     component.onAttach?.();
-    if (this.bridge) {
-      const externalRegistration = this.bridge.attach(actor, component, item.definition);
+    if (this.attachmentRuntime) {
+      const externalRegistration = this.attachmentRuntime.attach(
+        actor,
+        component,
+        item.definition.attachments ?? []
+      );
       this.externalRegistrations.set(component, externalRegistration);
       transaction.addRollback(() => {
         externalRegistration.dispose();
@@ -337,18 +340,11 @@ export class ComponentRegistry {
       actorSystem: this.actorSystemView,
       componentRegistry: this.componentRegistryView,
       services: {
-        commandSink: this.commandSink,
         actorWindowFocus: this.actorWindowFocus
       }
     };
   }
 }
-
-const noopCommandSink: SceneCommandSink = {
-  submit(): void {
-    // Optional command sink for isolated component tests.
-  }
-};
 
 function validateComponent(component: Component, type: string, actor: Actor): void {
   if (component.type !== type) {
@@ -430,6 +426,6 @@ function normalizeDefinition(definition: ComponentDefinition): ComponentDefiniti
     kind: definition.kind ?? "business",
     singleton: definition.singleton ?? false,
     requires: definition.requires ?? [],
-    capabilities: definition.capabilities ?? []
+    attachments: definition.attachments ?? []
   };
 }

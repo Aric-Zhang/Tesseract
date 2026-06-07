@@ -6,13 +6,14 @@ import {
 
 export const projectPrismSourceZones = [
   definePathZone("actor-core-candidate", "Actor primitives that are already UI-free and scene-free.", [
-    /^\.\/actor-runtime\/actor\.ts$/
+    /^\.\/actor-runtime\/actor\.ts$/,
+    /^\.\/actor-runtime\/component-attachment-runtime\.ts$/
   ]),
-  definePathZone("actor-core-debt", "Actor system and registry files that still depend on scene/runtime bridge concepts.", [
+  definePathZone("actor-core-debt", "Actor system and registry files that still depend on app-local update/runtime or component registry ownership concepts.", [
     /^\.\/actor-runtime\/(?:actor-system|component-registry|component-transaction|registered-actor)\.ts$/
   ], { debt: true }),
-  definePathZone("actor-binding-debt", "Actor component contracts and bridges that still know scene, gizmo, or state domains.", [
-    /^\.\/actor-runtime\/(?:component|component-runtime-bridge|index)\.ts$/,
+  definePathZone("actor-binding-debt", "Actor component contracts that still carry app-local update, focus, or state binding ownership seams.", [
+    /^\.\/actor-runtime\/(?:component|index)\.ts$/,
     /^\.\/state-runtime\//
   ], { debt: true }),
   definePathZone("actor-input-candidate", "Actor input and gizmo-core adapter candidates.", [
@@ -87,14 +88,14 @@ export const projectPrismDebtBlockers = [
   {
     zoneId: "actor-core-debt",
     blocks: ["actor-core extraction"],
-    blocker: "Actor system, registry, transactions, and registered handles still carry component/runtime bridge semantics.",
-    deletionCondition: "Actor core owns only actor identity, tree, enabled state, lifecycle, and component attachment primitives."
+    blocker: "Actor system, registry, transactions, and registered handles are free of domain attachment bridge ownership, but ActorSystem still implements the app-local RuntimeObject/UpdateFrame scheduling contract and ComponentRegistry still owns app-local component context/service wiring.",
+    deletionCondition: "Actor core owns only actor identity, tree, enabled state, lifecycle, and component attachment primitives; app-local update scheduling and component context service wiring are moved behind package-owned ports outside the actor-core candidate."
   },
   {
     zoneId: "actor-binding-debt",
     blocks: ["actor-core extraction", "actor-input extraction", "state/runtime bridge split"],
-    blocker: "Component contracts still expose SceneFrame, SceneCommandSink, gizmo capabilities, and state observer capabilities.",
-    deletionCondition: "Frame update, command, gizmo, and state observer capabilities move to explicit binding packages or ports."
+    blocker: "Component context no longer exposes SceneCommandSink, the legacy ComponentRuntimeBridge/capability metadata is removed, and active input cancellation is an explicit attachment; remaining binding debt is the UpdateFrame import from runtime/ports, actor-window focus context, and staged state observer binding ownership.",
+    deletionCondition: "Component update scheduling, actor-window focus, and state observer binding ownership are expressed through package-owned ports outside the actor-core candidate, without actor-runtime importing runtime/ports."
   },
   {
     zoneId: "ui-state-binding-debt",
@@ -163,8 +164,8 @@ export const projectPrismRuntimeExtractionBlockers = [
     ],
     blocks: ["runtime-core extraction", "state/scheduler split"],
     requiredPort: "RuntimeFrameSource + RuntimeCommandSink",
-    blocker: "Camera3 motion implements RuntimeObject and consumes SceneFrame from scene-runtime.",
-    deletionCondition: "Camera motion consumes package-owned runtime frame and command ports, not scene-runtime frame objects."
+    blocker: "Camera3 motion implements app-local RuntimeObject and is still scheduled by the app scene runtime.",
+    deletionCondition: "Camera motion consumes package-owned runtime frame and command ports, not app scene runtime services."
   },
   {
     id: "scene-view-render-host",
@@ -189,7 +190,7 @@ export const projectPrismRuntimeExtractionBlockers = [
     ],
     blocks: ["runtime-core extraction", "runtime-three extraction"],
     requiredPort: "RuntimeWorldActor + RuntimeThreeRenderable",
-    blocker: "Tesseract4 runtime object owns 4D world update, Three line adapter, SceneFrame update, and actor component creation path together.",
+    blocker: "Tesseract4 runtime object owns 4D world update, Three line adapter, app-local UpdateFrame scheduling, and actor component creation path together.",
     deletionCondition: "4D world/projection update is runtime-core; Three renderable adapter is runtime-three; actor/editor binding is an adapter."
   }
 ] as const satisfies readonly ProjectPrismRuntimeExtractionBlocker[];
@@ -213,9 +214,9 @@ export const projectPrismUiFrameworkExtractionBlockers = [
       "./window-runtime/window-frame-port.ts"
     ],
     blocks: ["ui-framework extraction"],
-    requiredPort: "ui-layout-state path/value port + UI-owned geometry types",
-    blocker: "Generic window state still uses scene-runtime ParameterPath, SceneCommandSink, and Vec2 facts.",
-    deletionCondition: "Window state and commands depend on UI-owned layout state and geometry contracts, not scene-runtime."
+    requiredPort: "ui-layout-state path/value port",
+    blocker: "Generic window state now uses UI-owned geometry, layout paths, and command sinks, but its persistent backing still goes through a scene-runtime state-store adapter.",
+    deletionCondition: "Window persistence and observation depend on UI-owned layout state storage/observer contracts, not scene-runtime adapters."
   },
   {
     id: "workspace-runtime-service-registration",
@@ -227,18 +228,8 @@ export const projectPrismUiFrameworkExtractionBlockers = [
     ],
     blocks: ["ui-framework extraction", "state/scheduler split"],
     requiredPort: "ui-scheduler-port + workspace layout persistence port",
-    blocker: "Workspace controllers are registered as scene-runtime RuntimeObject services and consume SceneFrame.",
+    blocker: "Workspace controllers are still registered as app scene runtime RuntimeObject services.",
     deletionCondition: "Workspace UI services use package-owned scheduling and persistence ports."
-  },
-  {
-    id: "app-menu-workspace-mode-state",
-    files: [
-      "./features/app-menu/app-menu-bar-component.ts"
-    ],
-    blocks: ["ui-framework extraction"],
-    requiredPort: "workspace-mode view model port",
-    blocker: "App Menu observes sceneParameterPaths.workspace.mode directly.",
-    deletionCondition: "App Menu consumes a UI/editor workspace mode projection without importing scene-runtime."
   }
 ] as const satisfies readonly ProjectPrismUiFrameworkExtractionBlocker[];
 

@@ -28,6 +28,19 @@ describe("Project Prism smoke evidence contract", () => {
     expect(validateProjectPrismSmokeEvidence(evidence)).toContain("consoleErrors must be empty, got 1");
   });
 
+  it("rejects smoke data that is not marked as passed with no validation errors", () => {
+    const evidence = {
+      ...createValidEvidence(),
+      passed: false,
+      validationErrors: ["missing interaction"]
+    };
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toEqual(expect.arrayContaining([
+      "passed must be true",
+      "validationErrors must be empty, got 1"
+    ]));
+  });
+
   it("rejects evidence when the structured actor hit does not match the expected target", () => {
     const evidence = createValidEvidence({
       actorInputHit: {
@@ -64,6 +77,8 @@ function createValidEvidence(
   interactionOverrides: Partial<ProjectPrismSmokeEvidence["interactions"][number]> = {}
 ): ProjectPrismSmokeEvidence {
   return {
+    passed: true,
+    validationErrors: [],
     url: "http://127.0.0.1:5173/?resetWorkspaceLayout=1",
     viewport: { width: 1280, height: 720 },
     consoleErrors: [],

@@ -72,10 +72,7 @@ function createRect(x: number, y: number, width: number, height: number): DOMRec
 }
 
 function createRegistry(actorSystem: ActorSystem): ComponentRegistry {
-  const registry = new ComponentRegistry({
-    actorSystem,
-    commandSink: { submit() {} }
-  });
+  const registry = new ComponentRegistry({ actorSystem });
   installCoreComponentDefinitions(registry);
   installWindowComponentDefinitions(registry);
   return registry;

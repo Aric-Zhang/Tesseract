@@ -184,7 +184,13 @@ function createContext() {
     frameStateController
   });
   installCoreComponentDefinitions(context.componentRegistry);
-  installWindowComponentDefinitions(context.componentRegistry);
+  installWindowComponentDefinitions(context.componentRegistry, {
+    commandSink: {
+      submit(command) {
+        frameStateController.submit(command as unknown as SceneUpdateCommand);
+      }
+    }
+  });
   installDebugLogComponentDefinitions(context.componentRegistry);
   return { calls, context, frameStateController, observers, registeredGizmos };
 }

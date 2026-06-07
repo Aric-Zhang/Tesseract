@@ -8,7 +8,7 @@ import {
   rotateYZ,
   rotateZU
 } from "four-rotation";
-import type { RuntimeObject, SceneFrame } from "../scene-runtime";
+import type { RuntimeObject, UpdateFrame } from "../runtime/ports";
 
 export interface Tesseract4RuntimeObjectOptions {
   id?: string;
@@ -50,7 +50,7 @@ export class Tesseract4RuntimeObject implements RuntimeObject {
     this.object = this.lineAdapter.object;
   }
 
-  updateFrame(frame: SceneFrame): void {
+  updateFrame(frame: UpdateFrame): void {
     const t = frame.timeMs * 0.001;
     rotateXU(t * 0.45, this.rXU);
     rotateYZ(t * 0.31, this.rYZ);

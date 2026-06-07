@@ -1,4 +1,4 @@
-import type { RuntimeRegistration } from "../scene-runtime";
+import type { RuntimeRegistration } from "../runtime/ports";
 
 export interface RecordingRuntimeRegistrationOptions {
   readonly disposeCall?: string;

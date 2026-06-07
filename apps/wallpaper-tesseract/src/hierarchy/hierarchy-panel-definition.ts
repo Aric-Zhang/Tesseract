@@ -1,4 +1,5 @@
 import type { ComponentDefinition } from "../actor-runtime";
+import type { SceneCommandSink } from "../scene-runtime";
 import { gizmoEventBindingComponentType } from "../gizmo-runtime";
 import { findOwningWindowContentHost } from "../window-runtime";
 import {
@@ -7,8 +8,14 @@ import {
   type HierarchyPanelComponentOptions
 } from "./hierarchy-panel-component";
 
-export const hierarchyPanelComponentDefinition:
-  ComponentDefinition<HierarchyPanelComponent, HierarchyPanelComponentOptions> = {
+export interface HierarchyPanelComponentDefinitionOptions {
+  readonly commandSink?: SceneCommandSink;
+}
+
+export function createHierarchyPanelComponentDefinition(
+  services: HierarchyPanelComponentDefinitionOptions = {}
+): ComponentDefinition<HierarchyPanelComponent, HierarchyPanelComponentOptions> {
+  return {
     type: hierarchyPanelComponentType,
     singleton: true,
     requires: [
@@ -27,7 +34,14 @@ export const hierarchyPanelComponentDefinition:
       }
       return new HierarchyPanelComponent(actor, options, {
         host,
-        commandSink: context.services.commandSink
+        commandSink: services.commandSink ?? noopSceneCommandSink
       });
     }
   };
+}
+
+export const hierarchyPanelComponentDefinition = createHierarchyPanelComponentDefinition();
+
+const noopSceneCommandSink: SceneCommandSink = {
+  submit(): void {}
+};

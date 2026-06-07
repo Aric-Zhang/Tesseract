@@ -1,5 +1,5 @@
 import type { Actor } from "../actor-runtime";
-import type { ParameterPath } from "../scene-runtime";
+import type { UiLayoutPath } from "./ui-layout-state";
 import type { WindowViewKey } from "./window-view-key";
 import type { WindowDockRect } from "./window-dock-targets";
 import type { WindowDockSplitPlacement } from "./window-dock-targets";
@@ -59,7 +59,7 @@ export interface WindowViewLocation {
   readonly identity: WindowViewIdentity;
   readonly viewActorId: string;
   readonly ownerFrameActorId: string;
-  readonly ownerFrameVisiblePath: ParameterPath<boolean> | null;
+  readonly ownerFrameVisiblePath: UiLayoutPath<boolean> | null;
   readonly ownerFrameVisible: boolean;
   readonly ownerFrameActiveInHierarchy: boolean;
   readonly activeInFrame: boolean;

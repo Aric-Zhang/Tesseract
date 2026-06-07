@@ -174,6 +174,7 @@ function createSubject(options: CreateSubjectOptions = {}): Subject {
     document: document as unknown as Document,
     windowCatalog: catalog,
     windowFrameIntents,
+    workspaceModePath: sceneParameterPaths.workspace.mode,
     initialMode: options.initialMode
   }, {});
   const root = parent.children[0];
@@ -518,13 +519,13 @@ describe("AppMenuBarComponent", () => {
     component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true }));
     expect(menu(root).hidden).toBe(false);
 
-    component.onSceneStateChanged(createWorkspaceModeEvent("run"));
+    component.onStateChanged(createWorkspaceModeEvent("run"));
 
     expect(root.hidden).toBe(true);
     expect(component.hitTestInput({ x: 735, y: 18 })).toBeNull();
     expect(component.hitTestInput({ x: 120, y: 150 })).toBeNull();
 
-    component.onSceneStateChanged(createWorkspaceModeEvent("develop"));
+    component.onStateChanged(createWorkspaceModeEvent("develop"));
     expect(root.hidden).toBe(false);
     expect(menu(root).hidden).toBe(true);
     expect(menuButton(root).getAttribute("aria-expanded")).toBe("false");

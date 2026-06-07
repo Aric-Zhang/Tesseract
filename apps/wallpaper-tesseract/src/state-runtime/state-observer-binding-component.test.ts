@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ComponentRuntimeBridge, componentType } from "../actor-runtime";
+import { componentType } from "../actor-runtime";
 import type { ComponentDefinition } from "../actor-runtime";
 import { installCoreComponentDefinitions } from "../component-definitions";
 import type {
@@ -14,25 +14,14 @@ import {
 import {
   stateObserverBindingComponentType
 } from "./state-observer-binding-component";
+import { StateObserverAttachmentRuntime } from "./state-observer-attachment-runtime";
 import type { StateObserverResponder } from "./state-observer-responder";
 
 function createRegistry() {
   const calls: string[] = [];
   const observers: SceneStateObserver[] = [];
-  const bridge = new ComponentRuntimeBridge({
-    gizmoEventSystem: {
-      register(): RuntimeRegistration {
-        calls.push("gizmo-register");
-        return createRecordingRuntimeRegistration("gizmo-dispose", calls);
-      },
-      dispose(): void {
-        calls.push("gizmo-system-dispose");
-      }
-    },
-    frameStateController: {
-      submit(): void {
-        calls.push("frame-submit");
-      },
+  const attachmentRuntime = new StateObserverAttachmentRuntime<SceneStateObserver>({
+    registry: {
       subscribe(observer: SceneStateObserver): RuntimeRegistration {
         calls.push("observer-subscribe");
         observers.push(observer);
@@ -41,9 +30,16 @@ function createRegistry() {
       dispose(): void {
         calls.push("frame-system-dispose");
       }
+    },
+    getObserver(component) {
+      const observer = component as Partial<SceneStateObserver>;
+      if (typeof observer.onSceneStateChanged !== "function") {
+        throw new Error("Expected SceneStateObserver.");
+      }
+      return observer as SceneStateObserver;
     }
   });
-  const { actorSystem, registry } = createTestComponentRegistry({ bridge });
+  const { actorSystem, registry } = createTestComponentRegistry({ attachmentRuntime });
   installCoreComponentDefinitions(registry);
   return { actorSystem, calls, observers, registry };
 }
@@ -65,7 +61,7 @@ function createResponderDefinition(
         type,
         actor,
         enabled: true,
-        onSceneStateChanged(): void {
+        onStateChanged(): void {
           calls.push(`state:${label}`);
         },
         updateFrame(): void {

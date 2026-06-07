@@ -1,6 +1,6 @@
 # Project Prism Phase Model Current Assessment
 
-Date: 2026-06-07
+Date: 2026-06-08
 
 ## Verdict
 
@@ -47,10 +47,22 @@ Remaining identity risks should be handled as:
 The old outline placed actor-core extraction before the state/scheduler/input
 bridge split. Current facts show that is backwards.
 
-`Component.updateFrame(SceneFrame)`, `SceneCommandSink`, gizmo capability, state
-observer capability, and `ComponentRuntimeBridge` responsibilities must be split
-first. Otherwise `actor-core` would be extracted with the same app-specific
-coupling under a new package name.
+After Phase 1A-1D, the old `SceneCommandSink`,
+`ComponentRuntimeBridge`, `ComponentCapability`, legacy capability strings, and
+structural active-input cancellation probing have been removed from the actor
+runtime path.
+
+Actor-core extraction is still too early because the remaining blockers are now
+more specific:
+
+- `actor-runtime` still imports the app-local `UpdateFrame` contract from
+  `runtime/ports`;
+- actor-window focus/stack context still needs an extraction ownership decision;
+- state observer binding is outside actor-runtime, but still staged in
+  app-local state-runtime;
+- component definition installation remains app-owned.
+
+These are now the Phase 1F readiness gate, not the old Step 1D bridge problem.
 
 ### App Composition Thinning Should Be A Late Phase
 
@@ -77,6 +89,7 @@ Phase 1B: command/state domain ports
 Phase 1C: component contract decapability
 Phase 1D: ComponentRuntimeBridge responsibility split
 Phase 1E: boundary lock and deletion of old capability names
+Phase 1F: actor-core extraction readiness decision
 ```
 
 This avoids the failure mode where several mixed concepts are touched, but no
@@ -103,7 +116,9 @@ Split the mixed contracts that block every package:
 - runtime/editor/UI command ports;
 - runtime/editor/UI state domains;
 - gizmo and state observer capabilities out of core component contracts;
-- `ComponentRuntimeBridge` responsibility split.
+- `ComponentRuntimeBridge` responsibility split;
+- actor-core extraction readiness decision for `UpdateFrame`, focus/stack, and
+  remaining state/definition-installer blockers.
 
 No package extraction unless the boundary is already clean.
 
@@ -118,8 +133,9 @@ Extract:
 - `actor-core`;
 - `actor-input`.
 
-This can only start after Phase 1 removes scene/gizmo/state/frame coupling from
-core actor contracts.
+This can only start after Phase 1F either marks actor-core / actor-input
+extraction allowed in generated facts, or records a precise blocker report with
+a first executable Phase 2 step.
 
 ### Phase 3: UI Framework Port Split And Extraction
 
@@ -211,20 +227,19 @@ has been updated to this revised model.
 
 ## Immediate Next Step
 
-Continue Phase 0B, not package extraction:
+Continue Phase 1, not package extraction:
 
 ```text
-temp/project-prism-phase-0b-remaining-blockers-resolution-steps.md
+temp/project-prism-phase-1-shared-spine-implementation-plan.md
 ```
 
 Specifically:
 
-1. build the generated boundary report helper;
-2. build package-target matrix summary output;
-3. regenerate structured browser smoke evidence;
-4. write the final Phase 0B exit report.
+1. complete Step 1E by writing the Phase 1 acceptance report and refreshing
+   generated boundary facts;
+2. execute Step 1F to decide the remaining actor-core extraction blockers,
+   especially `UpdateFrame` ownership;
+3. only then begin Phase 2 actor-core / actor-input extraction planning.
 
-The smoke evidence contract has been strengthened to support semantic target
-checks through `expectedTarget`: visual expectation, DOM top target, actor input
-hit, and action result can now be validated together instead of merely checking
-that fields exist.
+Phase 0B is now a completed boundary baseline. Its smoke contract remains the
+browser evidence shape for later risky UI/input changes.

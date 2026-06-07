@@ -1,20 +1,23 @@
-import type {
-  RuntimeObject,
-  RuntimeRegistration,
-  SceneCommandSink
-} from "../scene-runtime";
-import type {
-  GizmoControllerRegistry,
-  RuntimeObjectRegistry,
-  SceneStateObserverRegistry
-} from "../runtime/ports";
+import type { SceneCommandSink } from "../scene-runtime";
+import type { SceneStateObserver } from "../scene-runtime";
+import type { RuntimeObject, RuntimeObjectRegistry, RuntimeRegistration } from "../runtime/ports";
+import {
+  ActiveInputCancellationRuntime,
+  GizmoControllerAttachmentRuntime,
+  type GizmoControllerRegistry
+} from "../gizmo-runtime";
+import {
+  StateObserverAttachmentRuntime,
+  type StateObserverRegistry
+} from "../state-runtime";
 import {
   ActorSystem,
   ComponentRegistry,
-  ComponentRuntimeBridge,
   type ActorWindowFocusService,
+  type Component,
   type RegisteredActor
 } from "../actor-runtime";
+import { CompositeComponentAttachmentRuntime } from "./composite-component-attachment-runtime";
 
 export interface RegisteredObject<T> {
   readonly object: T;
@@ -27,7 +30,7 @@ interface TrackedDisposable {
 
 export interface AppRuntimeContextOptions {
   sceneRuntime: RuntimeObjectRegistry;
-  frameStateController: SceneStateObserverRegistry;
+  frameStateController: StateObserverRegistry<SceneStateObserver> & SceneCommandSink;
   gizmoEventSystem: GizmoControllerRegistry;
   actorWindowFocus?: ActorWindowFocusService;
   onRollbackError?: (errors: readonly unknown[]) => void;
@@ -37,12 +40,12 @@ type RegisterableObject = RuntimeObject;
 
 export class AppRuntimeContext {
   readonly sceneRuntime: RuntimeObjectRegistry;
-  readonly frameStateController: SceneStateObserverRegistry;
+  readonly frameStateController: StateObserverRegistry<SceneStateObserver> & SceneCommandSink;
   readonly gizmoEventSystem: GizmoControllerRegistry;
   readonly actorSystem: ActorSystem;
   readonly componentRegistry: ComponentRegistry;
   private readonly onRollbackError?: (errors: readonly unknown[]) => void;
-  private readonly componentRuntimeBridge: ComponentRuntimeBridge;
+  private readonly activeInputCancellationRuntime: ActiveInputCancellationRuntime;
   private readonly actorSystemRegistration: RuntimeRegistration;
   private readonly registeredObjects = new Set<object>();
   private readonly registeredIds = new Map<string, object>();
@@ -55,15 +58,18 @@ export class AppRuntimeContext {
     this.gizmoEventSystem = options.gizmoEventSystem;
     this.onRollbackError = options.onRollbackError;
     this.actorSystem = new ActorSystem();
-    this.componentRuntimeBridge = new ComponentRuntimeBridge({
-      gizmoEventSystem: this.gizmoEventSystem,
-      frameStateController: this.frameStateController,
-      isActorActive: (actor) => this.actorSystem.isActorActive(actor)
-    });
+    this.activeInputCancellationRuntime = new ActiveInputCancellationRuntime();
+    const componentAttachmentRuntime = new CompositeComponentAttachmentRuntime([
+      new GizmoControllerAttachmentRuntime({ registry: this.gizmoEventSystem }),
+      new StateObserverAttachmentRuntime({
+        registry: this.frameStateController,
+        getObserver: assertSceneStateObserverBinding
+      }),
+      this.activeInputCancellationRuntime
+    ]);
     this.componentRegistry = new ComponentRegistry({
       actorSystem: this.actorSystem,
-      bridge: this.componentRuntimeBridge,
-      commandSink: this.frameStateController,
+      attachmentRuntime: componentAttachmentRuntime,
       actorWindowFocus: options.actorWindowFocus,
       onRollbackError: this.onRollbackError
     });
@@ -75,7 +81,7 @@ export class AppRuntimeContext {
   }
 
   cancelActiveActorInput(): void {
-    this.componentRuntimeBridge.cancelActiveActorInput();
+    this.activeInputCancellationRuntime.cancelActiveActorInput();
   }
 
   registerRuntimeService(object: RuntimeObject): RuntimeRegistration {
@@ -171,6 +177,16 @@ export class AppRuntimeContext {
       throw new Error("Cannot use AppRuntimeContext after dispose().");
     }
   }
+}
+
+function assertSceneStateObserverBinding(component: Component): SceneStateObserver {
+  const candidate = component as Partial<SceneStateObserver>;
+  if (typeof candidate.onSceneStateChanged !== "function") {
+    throw new Error(
+      `Component ${component.type} declares state-observer attachment but does not implement SceneStateObserver.`
+    );
+  }
+  return candidate as SceneStateObserver;
 }
 
 export function createRuntimeRegistration(dispose: () => void): RuntimeRegistration {

@@ -4,7 +4,7 @@ import type {
   ActorWindowFocusReason,
   ActorWindowFocusService
 } from "../actor-runtime";
-import type { RuntimeObject, SceneFrame } from "../scene-runtime";
+import type { RuntimeObject, UpdateFrame } from "../runtime/ports";
 import type {
   WindowWorkspaceFrameEntry,
   WindowWorkspaceViewCatalog
@@ -57,7 +57,7 @@ export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocu
     this.reconcile();
   }
 
-  updateFrame(_frame: SceneFrame): void {
+  updateFrame(_frame: UpdateFrame): void {
     // First-pass strategy: window counts are small, so polling keeps actor,
     // state, and source changes aligned. Once docking/layout grows, move this
     // to explicit invalidation from actor/window/source change events.

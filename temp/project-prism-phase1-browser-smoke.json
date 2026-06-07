@@ -1,0 +1,16 @@
+{
+  "url": "http://127.0.0.1:5183/?resetWorkspaceLayout=1",
+  "checks": {
+    "menuButtonVisible": true,
+    "menuOpen": true,
+    "menuText": "Scene\nDebug Log Window\nHierarchy Panel\nInspector\nNew Inspector",
+    "floatingWindows": 2,
+    "sceneCanvasCount": 2,
+    "sceneModeButtonVisible": true,
+    "afterFullscreenFloatingWindows": 3,
+    "afterRestoreSceneModeButtonVisible": true
+  },
+  "consoleErrors": [],
+  "screenshotPath": "D:\\SteamLibrary\\steamapps\\common\\wallpaper_engine\\projects\\myprojects\\tesseract\\temp\\project-prism-phase1-browser-smoke.png",
+  "passed": true
+}

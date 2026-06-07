@@ -25,7 +25,7 @@ export class StateObserverBindingComponent implements Component, SceneStateObser
     if (!this.enabled) return;
     for (const component of this.actor.listComponents()) {
       if (component === this || !component.enabled || !isStateObserverResponder(component)) continue;
-      component.onSceneStateChanged(event);
+      component.onStateChanged(event);
     }
   }
 }

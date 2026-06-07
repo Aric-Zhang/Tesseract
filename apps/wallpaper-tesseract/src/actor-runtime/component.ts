@@ -1,16 +1,9 @@
-import type { GizmoController } from "gizmo-core";
-import type { SceneCommandSink, SceneFrame, SceneStateObserver } from "../scene-runtime";
+import type { UpdateFrame } from "../runtime/ports";
 import type { Actor } from "./actor";
+import type { ComponentAttachmentDescriptor } from "./component-attachment-runtime";
 
 export type ComponentType<T extends Component = Component> = string & { readonly __componentType?: T };
 export type ComponentDefinitionKind = "business" | "binding";
-export type ComponentCapability =
-  | "frame"
-  | "gizmo-controller-binding"
-  | "state-observer-binding"
-  // Transitional capabilities kept until the binding components replace direct adapters.
-  | "gizmo"
-  | "state-observer";
 
 export interface Component {
   readonly id: string;
@@ -18,7 +11,7 @@ export interface Component {
   readonly actor: Actor;
   enabled: boolean;
   onAttach?(): void;
-  updateFrame?(frame: SceneFrame): void;
+  updateFrame?(frame: UpdateFrame): void;
   onDetach?(): void;
   dispose?(): void;
 }
@@ -59,7 +52,6 @@ export interface BusinessComponentContext {
   readonly actorSystem: ActorSystemView;
   readonly componentRegistry: ComponentRegistryView;
   readonly services: {
-    readonly commandSink: SceneCommandSink;
     readonly actorWindowFocus?: ActorWindowFocusService;
   };
 }
@@ -84,13 +76,10 @@ export interface ComponentDefinition<T extends Component = Component, TOptions =
   readonly kind?: ComponentDefinitionKind;
   readonly singleton?: boolean;
   readonly requires?: readonly ComponentRequirement[];
-  readonly capabilities?: readonly ComponentCapability[];
+  readonly attachments?: readonly ComponentAttachmentDescriptor[];
   createId?(actor: Actor, options?: TOptions): string;
   create(actor: Actor, context: ComponentContext, options?: TOptions): T;
 }
-
-export type GizmoCapableComponent = Component & GizmoController;
-export type StateObserverCapableComponent = Component & SceneStateObserver;
 
 export function componentType<T extends Component>(type: string): ComponentType<T> {
   return type as ComponentType<T>;

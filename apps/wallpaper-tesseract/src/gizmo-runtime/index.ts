@@ -11,6 +11,21 @@ export {
 } from "./gizmo-event-binding-component";
 export { gizmoEventBindingComponentDefinition } from "./gizmo-event-binding-definition";
 export type {
+  GizmoControllerRegistry,
+  GizmoControllerRegistration
+} from "./gizmo-controller-registry";
+export {
+  gizmoControllerAttachment,
+  gizmoControllerAttachmentKind,
+  GizmoControllerAttachmentRuntime
+} from "./gizmo-controller-attachment-runtime";
+export type { GizmoControllerAttachmentRuntimeOptions } from "./gizmo-controller-attachment-runtime";
+export {
+  activeInputCancellationAttachment,
+  activeInputCancellationAttachmentKind,
+  ActiveInputCancellationRuntime
+} from "./active-input-cancellation-runtime";
+export type {
   ActorInputCancelEvent,
   ActorInputClickEvent,
   ActorInputEndEvent,

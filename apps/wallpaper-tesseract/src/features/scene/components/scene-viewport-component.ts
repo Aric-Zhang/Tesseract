@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
-import type { RuntimeRegistration } from "../../../scene-runtime";
+import type { RuntimeRegistration } from "../../../runtime/ports";
 import type {
   WindowContentAttachment,
   WindowContentHost,

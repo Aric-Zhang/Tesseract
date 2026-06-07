@@ -1,4 +1,6 @@
 import type { ComponentDefinition } from "../actor-runtime";
+import { activeInputCancellationAttachment } from "./active-input-cancellation-runtime";
+import { gizmoControllerAttachment } from "./gizmo-controller-attachment-runtime";
 import {
   GizmoEventBindingComponent,
   gizmoEventBindingComponentType
@@ -8,7 +10,7 @@ export const gizmoEventBindingComponentDefinition: ComponentDefinition<GizmoEven
   type: gizmoEventBindingComponentType,
   kind: "binding",
   singleton: true,
-  capabilities: ["gizmo-controller-binding"],
+  attachments: [gizmoControllerAttachment, activeInputCancellationAttachment],
   createId(actor) {
     return `${actor.id}:${gizmoEventBindingComponentType}`;
   },

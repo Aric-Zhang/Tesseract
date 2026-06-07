@@ -21,5 +21,9 @@ export type {
   SceneWorkspaceMode
 } from "./scene-mode-toggle-component";
 export { sceneViewportComponentDefinition } from "./scene-viewport-definition";
-export { sceneModeToggleComponentDefinition } from "./scene-mode-toggle-definition";
+export {
+  createSceneModeToggleComponentDefinition,
+  sceneModeToggleComponentDefinition
+} from "./scene-mode-toggle-definition";
+export type { SceneModeToggleComponentDefinitionOptions } from "./scene-mode-toggle-definition";
 export { installSceneComponentDefinitions } from "./install-component-definitions";

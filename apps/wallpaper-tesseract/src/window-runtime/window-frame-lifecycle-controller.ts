@@ -38,7 +38,7 @@ import {
   type WindowViewTypeKey
 } from "./window-view-identity";
 import type { WindowViewKey } from "./window-view-key";
-import { vec2 } from "../scene-runtime";
+import { uiVec2 } from "./ui-geometry";
 import {
   collectFrameViewKeys,
   normalizeWindowWorkspaceFrameLayout,
@@ -585,8 +585,8 @@ export class DefaultWindowFrameLifecycleController implements
         frames.push({
           frameId: isolatedFullscreenRestore.sourceFrameId,
           bounds: {
-            position: vec2(Math.round(bounds.left), Math.round(bounds.top)),
-            size: vec2(Math.round(bounds.width), Math.round(bounds.height)),
+            position: uiVec2(Math.round(bounds.left), Math.round(bounds.top)),
+            size: uiVec2(Math.round(bounds.width), Math.round(bounds.height)),
             visible: isolatedFullscreenRestore.sourceVisibleBeforeRun ?? liveView.framePort.visible
           },
           presentation: isolatedFullscreenRestore.sourcePresentation,
@@ -605,8 +605,8 @@ export class DefaultWindowFrameLifecycleController implements
       frames.push({
         frameId: liveView.frameActor.id,
         bounds: {
-          position: vec2(Math.round(bounds.left), Math.round(bounds.top)),
-          size: vec2(Math.round(bounds.width), Math.round(bounds.height)),
+          position: uiVec2(Math.round(bounds.left), Math.round(bounds.top)),
+          size: uiVec2(Math.round(bounds.width), Math.round(bounds.height)),
           visible: fullscreenRestore
             ? fullscreenRestore.sourceVisibleBeforeRun ?? liveView.framePort.visible
             : liveView.framePort.visible

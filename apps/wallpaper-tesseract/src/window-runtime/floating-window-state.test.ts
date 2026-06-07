@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { FrameStateController, parameterPath, SceneParameterStore, vec2 } from "../scene-runtime";
 import {
   createDefaultFloatingWindowState,
-  registerFloatingWindowParameters,
   type FloatingWindowParameterPaths
 } from "./floating-window-state";
+import { registerFloatingWindowParameters } from "./floating-window-scene-state-adapter";
 
 function createPaths(prefix: string): FloatingWindowParameterPaths {
   return {

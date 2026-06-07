@@ -1,5 +1,4 @@
-import type { RuntimeObject, RuntimeRegistration } from "./runtime-object";
-import type { SceneFrame } from "./scene-frame";
+import type { RuntimeObject, RuntimeRegistration, StateChange, StateChangedEvent, UpdateFrame } from "../runtime/ports";
 import { SceneParameterStore } from "./scene-parameter-store";
 import type { ParameterPath, SceneCommandSink, SceneUpdateCommand } from "./scene-update-command";
 import type { SceneUpdateSource } from "./scene-update-source";
@@ -8,18 +7,11 @@ export interface FrameStateControllerOptions {
   store: SceneParameterStore;
 }
 
-export interface SceneParameterChange<TValue = unknown> {
-  path: ParameterPath;
-  previousValue: TValue;
-  nextValue: TValue;
-  sources: readonly SceneUpdateSource[];
-  commands: readonly SceneUpdateCommand[];
-}
+export type SceneParameterChange<TValue = unknown> =
+  StateChange<ParameterPath, TValue, SceneUpdateSource, SceneUpdateCommand>;
 
-export interface SceneStateChangedEvent {
-  frame: SceneFrame;
-  changes: readonly SceneParameterChange[];
-}
+export type SceneStateChangedEvent =
+  StateChangedEvent<ParameterPath, SceneUpdateSource, SceneUpdateCommand>;
 
 export interface SceneStateObserver {
   onSceneStateChanged(event: SceneStateChangedEvent): void;
@@ -65,7 +57,7 @@ export class FrameStateController implements SceneCommandSink, RuntimeObject {
     };
   }
 
-  updateFrame(frame: SceneFrame): void {
+  updateFrame(frame: UpdateFrame): void {
     const commands = this.pendingCommands;
     this.pendingCommands = [];
     if (commands.length === 0) return;

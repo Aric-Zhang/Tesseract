@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry, type RegisteredActor } from "../../actor-runtime";
 import { installCoreComponentDefinitions } from "../../component-definitions";
 import { gizmoEventBindingComponentType } from "../../gizmo-runtime";
+import { sceneParameterPaths } from "../../scene-runtime";
 import { stateObserverBindingComponentType } from "../../state-runtime";
 import type { WindowWorkspaceViewCatalog } from "../../window-runtime";
 import {
@@ -92,10 +93,7 @@ class FakeElement {
 
 function createContext() {
   const actorSystem = new ActorSystem();
-  const componentRegistry = new ComponentRegistry({
-    actorSystem,
-    commandSink: { submit() {} }
-  });
+  const componentRegistry = new ComponentRegistry({ actorSystem });
   installCoreComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
   return {
@@ -127,7 +125,8 @@ describe("createAppMenuBarActor", () => {
       actorName: "App Menu",
       parent: parent as unknown as HTMLElement,
       document: document as unknown as Document,
-      windowCatalog: createEmptyWindowCatalog()
+      windowCatalog: createEmptyWindowCatalog(),
+      workspaceModePath: sceneParameterPaths.workspace.mode
     });
 
     expect(handle.actor.id).toBe("app-menu-bar");

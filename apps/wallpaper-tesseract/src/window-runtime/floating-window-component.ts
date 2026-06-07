@@ -1,14 +1,7 @@
 import type {
   ScreenPoint
 } from "gizmo-core";
-import {
-  cloneVec2,
-  vec2,
-  type ParameterPath,
-  type SceneCommandSink,
-  type SceneStateChangedEvent,
-  type Vec2
-} from "../scene-runtime";
+import type { StateChangedEvent } from "../runtime/ports";
 import { type Actor, type Component, type ComponentType } from "../actor-runtime";
 import { actorInputScopeRoutePriority } from "../gizmo-runtime";
 import type {
@@ -41,6 +34,8 @@ import {
   type FloatingWindowParameterPaths,
   type FloatingWindowState
 } from "./floating-window-state";
+import { cloneUiVec2, uiVec2, type UiVec2 } from "./ui-geometry";
+import type { UiLayoutCommandSink, UiLayoutPath } from "./ui-layout-state";
 import type {
   WindowFramePort,
   WindowFramePresentation,
@@ -121,7 +116,7 @@ export interface FloatingWindowComponentOptions {
 }
 
 export interface FloatingWindowComponentServices {
-  commandSink?: SceneCommandSink;
+  commandSink?: UiLayoutCommandSink;
   surface: WindowFrameSurfaceComponent;
 }
 
@@ -156,11 +151,11 @@ type ResizeHandleClass =
 interface FloatingWindowStateBinding {
   readonly kind: "persistent" | "runtime";
   readonly paths: FloatingWindowParameterPaths | null;
-  readonly visiblePath: ParameterPath<boolean> | null;
-  requestPosition(state: FloatingWindowState, position: Vec2, timeStamp?: number): boolean;
-  requestSize(state: FloatingWindowState, size: Vec2, timeStamp?: number): boolean;
+  readonly visiblePath: UiLayoutPath<boolean> | null;
+  requestPosition(state: FloatingWindowState, position: UiVec2, timeStamp?: number): boolean;
+  requestSize(state: FloatingWindowState, size: UiVec2, timeStamp?: number): boolean;
   requestVisible(state: FloatingWindowState, visible: boolean, timeStamp?: number): boolean;
-  applySceneStateChanged(state: FloatingWindowState, event: SceneStateChangedEvent): boolean;
+  applyStateChanged(state: FloatingWindowState, event: StateChangedEvent): boolean;
 }
 
 const FLOATING_WINDOW_SPLIT_MIN_PANE_SIZE = 80;
@@ -175,7 +170,7 @@ export class FloatingWindowComponent
   readonly #stateBinding: FloatingWindowStateBinding;
   readonly #menuDescriptor: FloatingWindowMenuDescriptor;
   readonly #basePriority: number;
-  readonly #minSize: Vec2;
+  readonly #minSize: UiVec2;
   readonly #parentElement: HTMLElement;
   readonly #rootClassName: string;
   readonly #rootElement: HTMLDivElement;
@@ -208,7 +203,7 @@ export class FloatingWindowComponent
     this.#basePriority = options.priority ?? DEFAULT_FLOATING_WINDOW_PRIORITY;
     this.#effectivePriority = this.#basePriority;
     this.#menuDescriptor = createMenuDescriptor(options, this.#basePriority);
-    this.#minSize = cloneVec2(options.minSize ?? DEFAULT_FLOATING_WINDOW_MIN_SIZE);
+    this.#minSize = cloneUiVec2(options.minSize ?? DEFAULT_FLOATING_WINDOW_MIN_SIZE);
     this.#parentElement = options.parent;
     this.#rootClassName = joinClassNames("floating-gizmo-window", options.className);
     this.#presentation = options.presentation ?? "windowed";
@@ -316,7 +311,7 @@ export class FloatingWindowComponent
     return this.#stateBinding.paths;
   }
 
-  get visiblePath(): ParameterPath<boolean> | null {
+  get visiblePath(): UiLayoutPath<boolean> | null {
     return this.#stateBinding.visiblePath;
   }
 
@@ -440,8 +435,8 @@ export class FloatingWindowComponent
   }
 
   restoreFloatingState(state: FloatingWindowState): void {
-    this.state.position = cloneVec2(state.position);
-    this.state.size = cloneVec2(state.size);
+    this.state.position = cloneUiVec2(state.position);
+    this.state.size = cloneUiVec2(state.size);
     this.state.visible = state.visible;
     this.applyLayout();
   }
@@ -504,8 +499,8 @@ export class FloatingWindowComponent
     }
   }
 
-  onSceneStateChanged(event: SceneStateChangedEvent): void {
-    if (this.#stateBinding.applySceneStateChanged(this.state, event)) {
+  onStateChanged(event: StateChangedEvent): void {
+    if (this.#stateBinding.applyStateChanged(this.state, event)) {
       this.applyLayout();
     }
   }
@@ -581,7 +576,7 @@ export class FloatingWindowComponent
     const dragStartState = this.#dragStartState ?? this.state;
     const partId = event.hit.partId as FloatingWindowPartId;
     if (partId === "titlebar-empty") {
-      this.submitPositionSet(event, vec2(
+      this.submitPositionSet(event, uiVec2(
         dragStartState.position.x + event.totalDelta.dx,
         dragStartState.position.y + event.totalDelta.dy
       ));
@@ -695,13 +690,13 @@ export class FloatingWindowComponent
     this.applyEffectivePriority();
   }
 
-  private submitPositionSet(event: ActorInputMoveEvent, position: Vec2): void {
+  private submitPositionSet(event: ActorInputMoveEvent, position: UiVec2): void {
     if (this.#stateBinding.requestPosition(this.state, position, event.timeStamp)) {
       this.applyLayout();
     }
   }
 
-  private submitSizeSet(event: ActorInputMoveEvent, size: Vec2): void {
+  private submitSizeSet(event: ActorInputMoveEvent, size: UiVec2): void {
     if (this.#stateBinding.requestSize(this.state, size, event.timeStamp)) {
       this.applyLayout();
     }
@@ -775,7 +770,7 @@ function createFloatingWindowStateBinding(
 
 function createPersistentFloatingWindowStateBinding(
   paths: FloatingWindowParameterPaths,
-  commandSink: SceneCommandSink | undefined,
+  commandSink: UiLayoutCommandSink | undefined,
   componentId: string
 ): FloatingWindowStateBinding {
   return {
@@ -784,7 +779,7 @@ function createPersistentFloatingWindowStateBinding(
     visiblePath: paths.visible,
     requestPosition(_state, position, timeStamp) {
       commandSink?.submit({
-        source: { id: componentId, kind: "gizmo" },
+        source: { id: componentId, kind: "pointer" },
         target: paths.position,
         operation: "set",
         value: position,
@@ -794,7 +789,7 @@ function createPersistentFloatingWindowStateBinding(
     },
     requestSize(_state, size, timeStamp) {
       commandSink?.submit({
-        source: { id: componentId, kind: "gizmo" },
+        source: { id: componentId, kind: "pointer" },
         target: paths.size,
         operation: "set",
         value: size,
@@ -804,7 +799,7 @@ function createPersistentFloatingWindowStateBinding(
     },
     requestVisible(_state, visible, timeStamp) {
       commandSink?.submit({
-        source: { id: componentId, kind: "gizmo" },
+        source: { id: componentId, kind: "pointer" },
         target: paths.visible,
         operation: "set",
         value: visible,
@@ -812,14 +807,14 @@ function createPersistentFloatingWindowStateBinding(
       });
       return false;
     },
-    applySceneStateChanged(state, event) {
+    applyStateChanged(state, event) {
       let changed = false;
       for (const change of event.changes) {
         if (change.path === paths.position) {
-          state.position = cloneVec2(change.nextValue as Vec2);
+          state.position = cloneUiVec2(change.nextValue as UiVec2);
           changed = true;
         } else if (change.path === paths.size) {
-          state.size = cloneVec2(change.nextValue as Vec2);
+          state.size = cloneUiVec2(change.nextValue as UiVec2);
           changed = true;
         } else if (change.path === paths.visible) {
           state.visible = change.nextValue as boolean;
@@ -837,18 +832,18 @@ function createRuntimeFloatingWindowStateBinding(): FloatingWindowStateBinding {
     paths: null,
     visiblePath: null,
     requestPosition(state, position) {
-      state.position = cloneVec2(position);
+      state.position = cloneUiVec2(position);
       return true;
     },
     requestSize(state, size) {
-      state.size = cloneVec2(size);
+      state.size = cloneUiVec2(size);
       return true;
     },
     requestVisible(state, visible) {
       state.visible = visible;
       return true;
     },
-    applySceneStateChanged() {
+    applyStateChanged() {
       return false;
     }
   };
@@ -944,8 +939,8 @@ function getResizeState(
   start: FloatingWindowState,
   dx: number,
   dy: number,
-  minSize: Vec2
-): { position?: Vec2; size: Vec2 } {
+  minSize: UiVec2
+): { position?: UiVec2; size: UiVec2 } {
   let x = start.position.x;
   let y = start.position.y;
   let width = start.size.x;
@@ -969,8 +964,8 @@ function getResizeState(
   }
 
   return {
-    position: updatesPosition ? vec2(x, y) : undefined,
-    size: vec2(width, height)
+    position: updatesPosition ? uiVec2(x, y) : undefined,
+    size: uiVec2(width, height)
   };
 }
 

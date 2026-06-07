@@ -79,7 +79,6 @@ describe("architecture boundaries", () => {
     expect(zoneMap.ambiguousCandidateFiles).toEqual([]);
     expect(zoneMap.debtEntries.map((entry) => entry.file)).toEqual(expect.arrayContaining([
       "./actor-runtime/component.ts",
-      "./actor-runtime/component-runtime-bridge.ts",
       "./scene-runtime/parameter-paths.ts",
       "./app-runtime/app-runtime-context.ts",
       "./app/create-wallpaper-app.ts",
@@ -138,7 +137,10 @@ describe("architecture boundaries", () => {
       .filter((file) => /\b(?:HTMLElement|Document)\b/.test(sourceFiles[file] ?? ""))
       .sort();
 
-    expect([...actorCoreCandidateFiles].sort()).toEqual(["./actor-runtime/actor.ts"]);
+    expect([...actorCoreCandidateFiles].sort()).toEqual([
+      "./actor-runtime/actor.ts",
+      "./actor-runtime/component-attachment-runtime.ts"
+    ]);
     expect(forbiddenEdges).toEqual([]);
     expect(forbiddenSymbols).toEqual([]);
   });
@@ -802,7 +804,7 @@ describe("architecture boundaries", () => {
     expect(rootFrameSource).not.toMatch(/#surface\.dispose\(/);
     expect(floatingDefinitionSource).toMatch(/\bwindowFrameSurfaceComponentType\b/);
     expect(rootDefinitionSource).toMatch(/\bwindowFrameSurfaceComponentType\b/);
-    expect(installSource).toMatch(/windowFrameSurfaceComponentDefinition[\s\S]*floatingWindowComponentDefinition/);
+    expect(installSource).toMatch(/windowFrameSurfaceComponentDefinition[\s\S]*createFloatingWindowComponentDefinition/);
     expect(installSource).toMatch(/windowFrameSurfaceComponentDefinition[\s\S]*workspaceRootDockFrameComponentDefinition/);
   });
 
@@ -1090,6 +1092,118 @@ describe("architecture boundaries", () => {
       .sort();
 
     expect(violations).toEqual([]);
+  });
+
+  it("keeps UpdateFrame as the source of frame/update contracts", () => {
+    const updateFrameSource = sourceFiles["./runtime/ports/update-frame.ts"] ?? "";
+    const sceneFrameSource = sourceFiles["./scene-runtime/scene-frame.ts"] ?? "";
+    const actorRuntimeSceneFrameImports = Object.entries(sourceFiles)
+      .filter(([file]) => file.startsWith("./actor-runtime/"))
+      .filter(([, source]) => (
+        /from\s+["'](?:\.\.\/)+scene-runtime\/scene-frame["']/.test(source) ||
+        /\bSceneFrame(?:Clock)?\b/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+
+    expect(updateFrameSource).toMatch(/\binterface\s+UpdateFrame\b/);
+    expect(updateFrameSource).toMatch(/\bclass\s+UpdateFrameClock\b/);
+    expect(updateFrameSource).not.toMatch(/\bSceneFrame\b/);
+    expect(updateFrameSource).not.toMatch(/from\s+["'][^"']*scene-runtime/);
+    expect(sceneFrameSource).toMatch(/UpdateFrame/);
+    expect(actorRuntimeSceneFrameImports).toEqual([]);
+  });
+
+  it("keeps window-runtime geometry independent from scene Vec2 helpers", () => {
+    const sceneVec2Imports = Object.entries(sourceFiles)
+      .filter(([file]) => file.startsWith("./window-runtime/"))
+      .filter(([file]) => !file.endsWith(".test.ts"))
+      .filter(([, source]) => (
+        /from\s+["'](?:\.\.\/)+scene-runtime(?:\/index)?["']/.test(source) &&
+        /\b(?:Vec2|vec2|cloneVec2|addVec2|equalsVec2|assertVec2)\b/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+    const uiGeometrySource = sourceFiles["./window-runtime/ui-geometry.ts"] ?? "";
+
+    expect(uiGeometrySource).toMatch(/\binterface\s+UiVec2\b/);
+    expect(sceneVec2Imports).toEqual([]);
+  });
+
+  it("keeps generic window-runtime commands independent from scene command/path contracts", () => {
+    const sceneCommandOrPathImports = Object.entries(sourceFiles)
+      .filter(([file]) => file.startsWith("./window-runtime/"))
+      .filter(([file]) => !file.endsWith(".test.ts"))
+      .filter(([, source]) => (
+        /from\s+["'](?:\.\.\/)+scene-runtime(?:\/index)?["']/.test(source) &&
+        /\b(?:SceneCommandSink|ParameterPath)\b/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+    const appMenuSceneCommandImports = Object.entries(sourceFiles)
+      .filter(([file]) => file.startsWith("./features/app-menu/"))
+      .filter(([file]) => !file.endsWith(".test.ts"))
+      .filter(([, source]) => /\b(?:SceneCommandSink|ParameterPath|sceneParameterPaths)\b/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const uiLayoutStateSource = sourceFiles["./window-runtime/ui-layout-state.ts"] ?? "";
+
+    expect(uiLayoutStateSource).toMatch(/\binterface\s+UiLayoutCommandSink\b/);
+    expect(sceneCommandOrPathImports).toEqual([]);
+    expect(appMenuSceneCommandImports).toEqual([]);
+  });
+
+  it("keeps generic UI state responders on the shared StateChangedEvent contract", () => {
+    const uiResponderSceneObserverUses = Object.entries(sourceFiles)
+      .filter(([file]) => (
+        file.startsWith("./window-runtime/") ||
+        file.startsWith("./features/app-menu/") ||
+        file.startsWith("./hierarchy/") ||
+        file.startsWith("./features/scene/components/")
+      ))
+      .filter(([file]) => !file.endsWith(".test.ts"))
+      .filter(([, source]) => (
+        /\bSceneStateChangedEvent\b/.test(source) ||
+        /\bonSceneStateChanged\s*\(/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+    const responderSource = sourceFiles["./state-runtime/state-observer-responder.ts"] ?? "";
+
+    expect(responderSource).toMatch(/\bonStateChanged\b/);
+    expect(responderSource).toMatch(/\bStateChangedEvent\b/);
+    expect(uiResponderSceneObserverUses).toEqual([]);
+  });
+
+  it("removes legacy component capability adapters and metadata", () => {
+    const componentSource = sourceFiles["./actor-runtime/component.ts"] ?? "";
+    const actorRuntimeIndexSource = sourceFiles["./actor-runtime/index.ts"] ?? "";
+    const productionCapabilityMetadata = Object.entries(sourceFiles)
+      .filter(([file]) => (
+        !file.endsWith(".test.ts") &&
+        !file.startsWith("./test-support/") &&
+        file !== "./architecture-boundaries.test.ts"
+      ))
+      .filter(([, source]) => /\bcapabilities\s*:/.test(source))
+      .map(([file]) => file)
+      .sort();
+
+    expect(componentSource).not.toMatch(/["']gizmo["']/);
+    expect(componentSource).not.toMatch(/["']state-observer["']/);
+    expect(componentSource).not.toMatch(/\bComponentCapability\b/);
+    expect(componentSource).not.toMatch(/\bcapabilities\b/);
+    expect(actorRuntimeIndexSource).not.toMatch(/\bComponentRuntimeBridge\b/);
+    expect(productionCapabilityMetadata).toEqual([]);
+  });
+
+  it("keeps active input cancellation behind an explicit attachment descriptor", () => {
+    const activeCancellationSource = sourceFiles["./gizmo-runtime/active-input-cancellation-runtime.ts"] ?? "";
+    const gizmoDefinitionSource = sourceFiles["./gizmo-runtime/gizmo-event-binding-definition.ts"] ?? "";
+
+    expect(activeCancellationSource).toMatch(/\bactiveInputCancellationAttachmentKind\b/);
+    expect(activeCancellationSource).toMatch(/\battachments\.some\b/);
+    expect(activeCancellationSource).not.toMatch(/\bfunction\s+isActorInputCanceller\b/);
+    expect(gizmoDefinitionSource).toMatch(/\bactiveInputCancellationAttachment\b/);
   });
 
   it("keeps actor-runtime focus service as a narrow port independent from window-runtime", () => {

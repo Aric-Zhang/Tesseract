@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { RuntimeRegistration, SceneCommandSink } from "../scene-runtime";
 import { ActorSystem } from "./actor-system";
 import type { Actor } from "./actor";
+import type {
+  ComponentAttachmentRegistration,
+  ComponentAttachmentRuntime
+} from "./component-attachment-runtime";
 import type {
   ActorWindowFocusService,
   Component,
@@ -13,7 +16,6 @@ import type {
 } from "./component";
 import { componentType } from "./component";
 import { ComponentRegistry } from "./component-registry";
-import type { ComponentRuntimeBridge } from "./component-runtime-bridge";
 
 interface TestComponent extends Component {
   marker: string;
@@ -134,9 +136,9 @@ function createLifecycleObserverDefinition(
   };
 }
 
-function createBridge(calls: string[], fail = false): ComponentRuntimeBridge {
+function createAttachmentRuntime(calls: string[], fail = false): ComponentAttachmentRuntime {
   return {
-    attach(_actor: Actor, component: Component): RuntimeRegistration {
+    attach(_actor: Actor, component: Component): ComponentAttachmentRegistration {
       calls.push(`bridge-attach:${component.id}`);
       if (fail) throw new Error("bridge failed");
       return {
@@ -145,7 +147,7 @@ function createBridge(calls: string[], fail = false): ComponentRuntimeBridge {
         }
       };
     }
-  } as unknown as ComponentRuntimeBridge;
+  };
 }
 
 function assertNoExternalSystemAccess(context: ComponentContext): void {
@@ -184,7 +186,7 @@ describe("ComponentRegistry", () => {
     expect(definition.kind).toBe("business");
     expect(definition.singleton).toBe(true);
     expect(definition.requires).toEqual([]);
-    expect(definition.capabilities).toEqual([]);
+    expect(definition.attachments).toEqual([]);
   });
 
   it("normalizes default singleton state when it is omitted", () => {
@@ -215,11 +217,6 @@ describe("ComponentRegistry", () => {
   it("passes a narrow business component context with query-only registry access", () => {
     const actorSystem = new ActorSystem();
     const calls: string[] = [];
-    const commandSink: SceneCommandSink = {
-      submit() {
-        calls.push("command-submit");
-      }
-    };
     const actorWindowFocus: ActorWindowFocusService = {
       getEffectiveStackPriorityForActor(windowActor) {
         calls.push(`window-priority:${windowActor.id}`);
@@ -232,7 +229,7 @@ describe("ComponentRegistry", () => {
         calls.push(`window-pending:${windowActor.id}:${reason}`);
       }
     };
-    const registry = new ComponentRegistry({ actorSystem, commandSink, actorWindowFocus });
+    const registry = new ComponentRegistry({ actorSystem, actorWindowFocus });
     let receivedContext: ComponentContext | null = null;
     registry.registerDefinition({
       type: testComponentType,
@@ -251,12 +248,6 @@ describe("ComponentRegistry", () => {
     assertNoExternalSystemAccess(context);
     assertReadonlyComponentRegistryView(context);
     assertReadonlyActorSystemView(context);
-    context.services.commandSink.submit({
-      source: { kind: "debug", id: "test" },
-      target: "debug.enabled",
-      operation: "set",
-      value: true
-    });
     expect(context.services.actorWindowFocus?.getEffectiveStackPriorityForActor(actor)).toBe(123);
     context.services.actorWindowFocus?.focusActorWindow(actor, "pointer-down");
     context.services.actorWindowFocus?.requestFocusOnVisible(actor, "menu-restore");
@@ -269,7 +260,6 @@ describe("ComponentRegistry", () => {
     expect(calls).toEqual([
       "create",
       "attach",
-      "command-submit",
       "window-priority:actor",
       "window-focus:actor:pointer-down",
       "window-pending:actor:menu-restore"
@@ -320,7 +310,7 @@ describe("ComponentRegistry", () => {
     const calls: string[] = [];
     const observerType = componentType<ComponentLifecycleObserver>("observer");
     const targetType = componentType<TestComponent>("target");
-    const registry = new ComponentRegistry({ actorSystem, bridge: createBridge(calls) });
+    const registry = new ComponentRegistry({ actorSystem, attachmentRuntime: createAttachmentRuntime(calls) });
     registry.registerDefinition(createLifecycleObserverDefinition(calls, observerType, {
       beforeComponentDetach(component) {
         calls.push(`before:${component.id}`);
@@ -733,7 +723,7 @@ describe("ComponentRegistry", () => {
     const calls: string[] = [];
     const dependencyType = componentType<TestComponent>("dependency");
     const rootType = componentType<TestComponent>("root");
-    const registry = new ComponentRegistry({ actorSystem, bridge: createBridge(calls, true) });
+    const registry = new ComponentRegistry({ actorSystem, attachmentRuntime: createAttachmentRuntime(calls, true) });
     registry.registerDefinition(createLabeledDefinition(calls, dependencyType, "dependency"));
     registry.registerDefinition(createLabeledDefinition(calls, rootType, "root", {
       requires: [{ type: dependencyType }]
@@ -1088,7 +1078,7 @@ describe("ComponentRegistry", () => {
   it("rolls back a component when bridge registration fails", () => {
     const actorSystem = new ActorSystem();
     const calls: string[] = [];
-    const registry = new ComponentRegistry({ actorSystem, bridge: createBridge(calls, true) });
+    const registry = new ComponentRegistry({ actorSystem, attachmentRuntime: createAttachmentRuntime(calls, true) });
     registry.registerDefinition(createDefinition(calls));
     const actor = actorSystem.createActor({ id: "actor" });
 
@@ -1101,7 +1091,7 @@ describe("ComponentRegistry", () => {
   it("disposes external registrations before component detach and dispose", () => {
     const actorSystem = new ActorSystem();
     const calls: string[] = [];
-    const registry = new ComponentRegistry({ actorSystem, bridge: createBridge(calls) });
+    const registry = new ComponentRegistry({ actorSystem, attachmentRuntime: createAttachmentRuntime(calls) });
     registry.registerDefinition(createDefinition(calls));
     const actor = actorSystem.createActor({ id: "actor" });
 

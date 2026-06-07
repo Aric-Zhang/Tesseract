@@ -1,4 +1,4 @@
-import type { RuntimeObject } from "../scene-runtime";
+import type { RuntimeObject } from "../runtime/ports";
 import type { WindowFrameLayoutSnapshotSource } from "./window-frame-lifecycle";
 import {
   parsePersistedWindowWorkspaceFrameLayout,

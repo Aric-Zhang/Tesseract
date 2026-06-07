@@ -3,7 +3,7 @@ import type {
   ComponentRegistry,
   RegisteredActor
 } from "../../actor-runtime";
-import type { RuntimeRegistration } from "../../scene-runtime";
+import type { RuntimeRegistration } from "./update-frame";
 
 export interface FeatureActorContext {
   readonly actorSystem: ActorSystem;

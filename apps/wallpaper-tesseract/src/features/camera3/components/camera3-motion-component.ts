@@ -7,7 +7,7 @@ import {
   type Camera3MotionUpdateResult
 } from "../../../camera3-control";
 import type { Camera3CommandSink, Camera3ControlCommand } from "../../../camera3-control";
-import type { RuntimeObject, RuntimeRegistration, SceneFrame } from "../../../scene-runtime";
+import type { RuntimeObject, RuntimeRegistration, UpdateFrame } from "../../../runtime/ports";
 import type { Camera3RigComponent } from "./camera3-rig-component";
 import type { Camera3ProjectionModeController } from "../model";
 
@@ -57,11 +57,11 @@ export class Camera3MotionComponent implements Component, Camera3CommandSink, Ru
     return this.#controller.subscribe(observer);
   }
 
-  updateFrame(frame: SceneFrame): void {
+  updateFrame(frame: UpdateFrame): void {
     this.#controller.updateFrame(frame);
   }
 
-  update(frame: SceneFrame): Camera3MotionUpdateResult {
+  update(frame: UpdateFrame): Camera3MotionUpdateResult {
     return this.#controller.update(frame);
   }
 

@@ -29,14 +29,18 @@ import {
 } from "../features/tool-windows";
 import {
   FrameStateController,
+  type SceneCommandSink,
+  type SceneUpdateCommand,
   sceneParameterPaths,
-  SceneFrameClock,
   SceneParameterStore,
-  SceneRuntime
+  SceneRuntime,
+  type SceneStateObserver
 } from "../scene-runtime";
-import type { SceneStateObserverRegistry } from "../runtime/ports";
+import { UpdateFrameClock } from "../runtime/ports";
+import type { StateObserverRegistry } from "../state-runtime";
 import {
   createActorWindowFocusServiceProxy,
+  type UiLayoutCommandSink,
   WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY,
   WORKSPACE_ROOT_FRAME_ID
 } from "../window-runtime";
@@ -77,7 +81,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const floatingFrameParent = appShell.floatingOverlaySlot;
 
   const sceneRuntime = new SceneRuntime();
-  const frameClock = new SceneFrameClock();
+  const frameClock = new UpdateFrameClock();
   const sceneStore = new SceneParameterStore();
   const sceneWindowState = createDefaultSceneWindowState();
   const debugWindowState = createDefaultDebugWindowState();
@@ -94,7 +98,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   });
 
   const frameStateController = new FrameStateController({ store: sceneStore });
-  const frameStateBridge: SceneStateObserverRegistry = {
+  const frameStateBridge: StateObserverRegistry<SceneStateObserver> & SceneCommandSink = {
     submit(command) {
       frameStateController.submit(command);
       immediateUpdates.requestUpdate(command.timeStamp);
@@ -121,7 +125,10 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     actorWindowFocus
   });
 
-  installWallpaperComponentDefinitions(runtimeContext.componentRegistry);
+  installWallpaperComponentDefinitions(runtimeContext.componentRegistry, {
+    sceneCommandSink: frameStateBridge,
+    uiLayoutCommandSink: createSceneBackedUiLayoutCommandSink(frameStateBridge)
+  });
 
   runtimeContext.registerRuntimeService(frameStateController);
 
@@ -207,7 +214,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     actorName: APP_MENU_BAR_ACTOR_NAME,
     parent: appShell.menuSlot,
     windowCatalog: windowWorkspace.catalog,
-    windowFrameIntents: windowWorkspace.frameIntents
+    windowFrameIntents: windowWorkspace.frameIntents,
+    workspaceModePath: sceneParameterPaths.workspace.mode
   });
   const workspaceModeController = new WorkspaceModeController({
     commandSink: frameStateBridge,
@@ -280,6 +288,14 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   document.addEventListener("keydown", handleKeyDown);
 
   return { dispose };
+}
+
+function createSceneBackedUiLayoutCommandSink(commandSink: SceneCommandSink): UiLayoutCommandSink {
+  return {
+    submit(command) {
+      commandSink.submit(command as unknown as SceneUpdateCommand);
+    }
+  };
 }
 
 const RESET_WORKSPACE_LAYOUT_QUERY_PARAM = "resetWorkspaceLayout";

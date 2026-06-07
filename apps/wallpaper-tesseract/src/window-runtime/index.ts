@@ -1,9 +1,30 @@
 export {
   DEFAULT_FLOATING_WINDOW_MIN_SIZE,
   cloneFloatingWindowState,
-  createDefaultFloatingWindowState,
-  registerFloatingWindowParameters
+  createDefaultFloatingWindowState
 } from "./floating-window-state";
+export { registerFloatingWindowParameters } from "./floating-window-scene-state-adapter";
+export type { RegisterFloatingWindowParametersOptions } from "./floating-window-scene-state-adapter";
+export {
+  addUiVec2,
+  assertUiVec2,
+  cloneUiVec2,
+  equalsUiVec2,
+  uiVec2
+} from "./ui-geometry";
+export { uiLayoutPath } from "./ui-layout-state";
+export type {
+  UiPoint,
+  UiSize,
+  UiVec2
+} from "./ui-geometry";
+export type {
+  UiLayoutCommand,
+  UiLayoutCommandOperation,
+  UiLayoutCommandSink,
+  UiLayoutCommandSource,
+  UiLayoutPath
+} from "./ui-layout-state";
 export { createActorWindowFocusServiceProxy } from "./actor-window-focus-service";
 export type { ActorWindowFocusServiceProxy } from "./actor-window-focus-service";
 export { createDockTargetRegionSource } from "./dock-target-region-source";
@@ -14,8 +35,7 @@ export type {
 export type {
   FloatingWindowParameterPaths,
   FloatingWindowState,
-  FloatingWindowStateOptions,
-  RegisterFloatingWindowParametersOptions
+  FloatingWindowStateOptions
 } from "./floating-window-state";
 export { windowViewKey } from "./window-view-key";
 export type { WindowViewKey } from "./window-view-key";
@@ -170,7 +190,11 @@ export type {
   FloatingWindowMenuOptions,
   FloatingWindowPresentation
 } from "./floating-window-component";
-export { floatingWindowComponentDefinition } from "./floating-window-definition";
+export {
+  createFloatingWindowComponentDefinition,
+  floatingWindowComponentDefinition
+} from "./floating-window-definition";
+export type { FloatingWindowComponentDefinitionOptions } from "./floating-window-definition";
 export {
   WORKSPACE_ROOT_FRAME_ID,
   WORKSPACE_ROOT_FRAME_PRIORITY,

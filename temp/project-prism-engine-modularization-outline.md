@@ -8,6 +8,12 @@ Current phase model assessment:
 temp/project-prism-phase-model-current-assessment.md
 ```
 
+Current Phase 2 implementation plan:
+
+```text
+temp/project-prism-phase-2-actor-core-extraction-implementation-plan.md
+```
+
 ## Codename
 
 本次大重构代号：**Project Prism**。
@@ -63,8 +69,11 @@ gizmo-core <- actor-input
 ### Actor Core Must Be Decapable
 
 `actor-core` 不能直接移动当前 `apps/wallpaper-tesseract/src/actor-runtime`。
-当前 `Component` / `ComponentRuntimeBridge` 仍知道 `gizmo-core`、`SceneFrame`、
-`SceneCommandSink`、`SceneStateObserver` 等能力，这些必须先拆出去。
+Phase 1A-1D 已经移除了旧 `ComponentRuntimeBridge`、`ComponentCapability`、
+legacy capability string、`SceneCommandSink` business context，以及结构探测式
+active-input cancellation。当前剩余阻塞更窄：`UpdateFrame` 归属、
+actor-window focus/stack context、state observer bridge staging、central
+component-definition installer 仍需在 Phase 1F / Phase 2 前明确。
 
 `actor-core` 只允许包含：
 
@@ -614,10 +623,12 @@ that would poison extracted APIs.
 
 Why this phase exists:
 
-`actor-runtime/component.ts`, `ComponentRuntimeBridge`, `scene-runtime`, and
-window/app workspace services currently share frame update, command, state,
-input, and scheduler concepts. Extracting actor/UI/runtime packages before
-this split would simply preserve the same coupling under new package names.
+Historically, `actor-runtime/component.ts`, `ComponentRuntimeBridge`,
+`scene-runtime`, and window/app workspace services shared frame update, command,
+state, input, and scheduler concepts. Phase 1A-1D removed the broadest bridge
+and capability coupling. The remaining Phase 1 work is to lock the boundary
+facts and decide the still-open actor-core extraction blockers without moving
+packages prematurely.
 
 Work:
 
@@ -629,6 +640,7 @@ Phase 1B: command/state domain ports
 Phase 1C: component contract decapability
 Phase 1D: ComponentRuntimeBridge responsibility split
 Phase 1E: boundary lock and deletion of old capability names
+Phase 1F: actor-core extraction readiness decision
 ```
 
 Phase 1A work:
@@ -655,16 +667,28 @@ Phase 1C work:
 
 Phase 1D work:
 
-- define replacement seams for `ComponentRuntimeBridge` responsibilities:
-  actor input binding, state observer binding, scheduler binding, and active
-  interaction cancellation;
-- split by ownership, not by file size.
+- completed through the Step 1D amendment;
+- `ComponentRuntimeBridge` and `ComponentCapability` are removed from
+  actor-runtime;
+- gizmo registration, state observer registration, and active input
+  cancellation are owned by domain attachment runtimes;
+- active input cancellation is explicit attachment metadata, not method-shape
+  probing.
 
 Phase 1E work:
 
-- delete or quarantine old capability names once replacement seams are in use;
+- write the Phase 1 acceptance report;
+- regenerate boundary facts and prove old capability/bridge facts stay deleted;
 - keep all new seams legacy-free. Do not add wrapper adapters that preserve old
   concepts as public contracts.
+
+Phase 1F work:
+
+- decide `UpdateFrame` ownership before actor-core extraction;
+- decide whether actor-window focus/stack context belongs in actor-core,
+  actor-input, or UI framework;
+- document remaining state observer / component definition installer blockers
+  as precise Phase 2 inputs.
 
 Acceptance:
 
@@ -676,6 +700,8 @@ Acceptance:
 - boundary tests fail if the old mixed concepts re-enter candidate zones.
 - tests prove each Phase 1 subphase does not add new product-specific imports
   to future package candidates.
+- Phase 2 does not begin until Step 1F records the actor-core extraction
+  decision.
 
 ### Phase 2: Actor Core And Actor Input Extraction
 

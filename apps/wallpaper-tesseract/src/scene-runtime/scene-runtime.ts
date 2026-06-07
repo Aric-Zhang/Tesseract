@@ -1,5 +1,4 @@
-import type { RuntimeObject, RuntimeRegistration } from "./runtime-object";
-import type { SceneFrame } from "./scene-frame";
+import type { RuntimeObject, RuntimeRegistration, UpdateFrame } from "../runtime/ports";
 
 interface RuntimeEntry {
   object: RuntimeObject;
@@ -32,7 +31,7 @@ export class SceneRuntime {
     }
   }
 
-  updateFrame(frame: SceneFrame): void {
+  updateFrame(frame: UpdateFrame): void {
     for (const entry of this.entries) {
       const object = entry.object;
       if (object.enabled === false) continue;

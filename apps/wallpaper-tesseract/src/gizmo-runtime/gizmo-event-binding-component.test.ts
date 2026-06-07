@@ -9,23 +9,24 @@ import type {
   ScreenPoint
 } from "gizmo-core";
 import { GizmoEventSystem as RuntimeGizmoEventSystem } from "gizmo-core";
-import { ComponentRuntimeBridge, componentType } from "../actor-runtime";
+import { componentType } from "../actor-runtime";
 import type { ActorWindowFocusService, Component, ComponentDefinition } from "../actor-runtime";
-import type { RuntimeRegistration, SceneStateObserver } from "../scene-runtime";
+import type { RuntimeRegistration } from "../runtime/ports";
 import {
   createRecordingRuntimeRegistration,
   createTestComponentRegistry
 } from "../test-support";
 import { actorInputScopeRoutePriority, type ActorInputHit, type ActorInputHitRegion } from "./actor-input-hit";
 import type { ActorInputParticipant } from "./actor-input-participant";
+import { GizmoControllerAttachmentRuntime } from "./gizmo-controller-attachment-runtime";
 import { gizmoEventBindingComponentType } from "./gizmo-event-binding-component";
 import { gizmoEventBindingComponentDefinition } from "./gizmo-event-binding-definition";
 
 function createRegistry(options: { actorWindowFocus?: ActorWindowFocusService } = {}) {
   const calls: string[] = [];
   const registered: GizmoController[] = [];
-  const bridge = new ComponentRuntimeBridge({
-    gizmoEventSystem: {
+  const attachmentRuntime = new GizmoControllerAttachmentRuntime({
+    registry: {
       register(controller: GizmoController): RuntimeRegistration {
         calls.push(`gizmo-register:${controller.id}`);
         registered.push(controller);
@@ -34,22 +35,10 @@ function createRegistry(options: { actorWindowFocus?: ActorWindowFocusService } 
       dispose(): void {
         calls.push("gizmo-system-dispose");
       }
-    },
-    frameStateController: {
-      submit(): void {
-        calls.push("frame-submit");
-      },
-      subscribe(_observer: SceneStateObserver): RuntimeRegistration {
-        calls.push("observer-subscribe");
-        return createRecordingRuntimeRegistration("observer-dispose", calls);
-      },
-      dispose(): void {
-        calls.push("frame-system-dispose");
-      }
     }
   });
   const { actorSystem, registry } = createTestComponentRegistry({
-    bridge,
+    attachmentRuntime,
     actorWindowFocus: options.actorWindowFocus
   });
   registry.registerDefinition(gizmoEventBindingComponentDefinition);
@@ -228,7 +217,7 @@ function selectBestHit(system: GizmoEventSystem, point: ScreenPoint) {
 }
 
 describe("GizmoEventBindingComponent", () => {
-  it("registers the binding component to GizmoEventSystem through ComponentRuntimeBridge", () => {
+  it("registers the binding component to GizmoEventSystem through gizmo attachment runtime", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
     const actor = actorSystem.createActor({ id: "actor" });
 

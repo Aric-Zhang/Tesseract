@@ -328,7 +328,7 @@ describe("HierarchyPanelComponent", () => {
     const { component, root } = createSubject({ commands });
     const cameraRow = rows(root)[1];
 
-    component.onSceneStateChanged(createChangedEvent("camera"));
+    component.onStateChanged(createChangedEvent("camera"));
 
     expect(cameraRow.getAttribute("aria-selected")).toBe("true");
     expect(cameraRow.classList.contains("is-selected")).toBe(true);
@@ -389,7 +389,7 @@ describe("HierarchyPanelComponent", () => {
   it("leaves all rows unselected when selection points to a missing object", () => {
     const { component, root } = createSubject();
 
-    component.onSceneStateChanged(createChangedEvent("missing-actor"));
+    component.onStateChanged(createChangedEvent("missing-actor"));
     component.updateFrame();
 
     expect(rows(root).map((row) => row.getAttribute("aria-selected"))).toEqual(["false", "false"]);

@@ -2,7 +2,28 @@
 
 ## Status
 
-Ready to execute after Phase 0 acceptance.
+Step 1A through Step 1F are closed. Phase 1 is complete as an app-local
+shared-spine decoupling phase.
+
+Step 1D was executed through the amendment, not through the historical Step 1D
+text in this file.
+
+Step 1D completion report:
+
+```text
+temp/project-prism-phase-1-step-1d-completion-report.md
+```
+
+Phase 1 acceptance and actor-core readiness reports:
+
+```text
+temp/project-prism-phase-1-acceptance-report.md
+temp/project-prism-phase-1-actor-core-readiness-report.md
+```
+
+Do not start Phase 2 package extraction by moving current actor-runtime files.
+Phase 2 must start from the actor-core readiness report, especially the
+actor lifecycle/update ownership split.
 
 Phase 1 is not a package extraction phase. Its purpose is to remove the mixed
 contracts that currently prevent later extraction of `actor-core`,
@@ -466,6 +487,18 @@ Stop if:
 
 ## Step 1D: ComponentRuntimeBridge Responsibility Split
 
+Amendment required:
+
+Do not execute this section directly. Step 1A-1C exposed that Step 1D first
+needs a component attachment metadata model and a stricter split between
+actor-runtime and domain binding runtimes. The executable replacement plan is:
+
+```text
+temp/project-prism-phase-1-step-1d-amendment.md
+```
+
+The rest of this section is retained as historical context only.
+
 Objective:
 
 Split `ComponentRuntimeBridge` into narrow binding registries so actor/component
@@ -597,8 +630,8 @@ npm run build
 Acceptance:
 
 - Phase 1 report names which blockers were deleted and which remain.
-- Later Phase 2 actor extraction can begin only if actor-core and actor-input
-  blockers are resolved.
+- Later Phase 2 actor extraction can begin only after Step 1F decides the
+  remaining actor-core/actor-input blockers.
 - Later Phase 3 UI extraction can begin only if UI state/scheduler blockers are
   resolved.
 - If blocker counts did not decrease in generated boundary facts, Phase 1 is
@@ -609,6 +642,74 @@ Stop if:
 - generated reports and source facts diverge;
 - any boundary rule requires a broad allowlist to pass;
 - root smoke reveals an input/render regression.
+
+## Step 1F: Actor-Core Extraction Readiness Gate
+
+Objective:
+
+Turn the remaining actor-core / actor-input blockers into a precise extraction
+decision before Phase 2. This is not package extraction. It is the final Phase 1
+readiness gate that prevents moving a still-mixed actor runtime into a package.
+
+Current blockers after Step 1D:
+
+- `actor-runtime` still imports `UpdateFrame` from `runtime/ports`.
+- actor-window focus is still carried by `BusinessComponentContext.services`.
+- state observer binding is now state-runtime owned, but it is still staged in
+  app-local state-runtime rather than a package-owned state bridge.
+- central component definition installation is still app-owned.
+
+Implementation Steps:
+
+1. Decide the `UpdateFrame` ownership rule before extraction:
+   - either move the generic update lifecycle contract into actor-runtime /
+     future actor-core;
+   - or make component update a generic actor lifecycle port that does not
+     import `runtime/ports`.
+   Do not leave `actor-core -> runtime/ports` as the planned package direction.
+2. Add or update boundary facts so `actor-core-debt` names the exact remaining
+   reason if `actor-runtime` cannot yet be moved.
+3. Decide whether `ActorWindowFocusService` remains in actor-core as a generic
+   focus/stack port, or moves to actor-input/ui-framework as an attachment
+   context supplied outside actor-core.
+4. Confirm state observer binding ownership is outside actor-core and document
+   whether the remaining state bridge belongs to Phase 3 UI state or Phase 4
+   runtime/editor state.
+5. Confirm component definition installation cannot block actor-core package
+   extraction by requiring app-owned centralized installers.
+6. Write:
+
+```text
+temp/project-prism-phase-1-actor-core-readiness-report.md
+```
+
+Tests:
+
+```text
+npm run prism:phase0:report
+npm run test -w wallpaper-tesseract -- project-prism-boundary-report architecture-boundaries
+npm run typecheck -w wallpaper-tesseract
+```
+
+Acceptance:
+
+- `actor-core` and `actor-input` package targets are either marked extraction
+  allowed, or remain blocked by a small named list that does not include already
+  solved Step 1D issues.
+- `ComponentRuntimeBridge`, `ComponentCapability`, legacy capability strings,
+  and structural active-input cancellation probing are not listed as remaining
+  blockers.
+- The `UpdateFrame` ownership decision is explicit and executable.
+- Phase 2 has a precise first step and no longer needs to reinterpret Phase 1
+  history.
+
+Stop if:
+
+- moving `UpdateFrame` exposes a deeper scheduler ownership conflict;
+- focus/stack priority still requires UI/window implementation details inside
+  actor-runtime;
+- component definition installation requires package extraction to design
+  correctly. In that case, record it as a Phase 2 blocker instead of hiding it.
 
 ## Phase 1 Browser Smoke Minimum
 
@@ -632,8 +733,12 @@ component state.
 After Phase 1:
 
 - shared timing/update names are no longer scene-specific;
-- generic UI no longer owns scene parameter paths as public API;
+- generic UI has UI-owned command/geometry/state seams for its public API, and
+  any remaining scene-state backing adapter is explicitly named as
+  `ui-state-binding-debt`;
 - transitional component capabilities are gone;
 - bridge responsibilities are split into small binding runtimes;
+- actor-core extraction readiness is decided through Step 1F, especially for
+  `UpdateFrame` ownership;
 - generated boundary facts show fewer blockers for Phase 2 and Phase 3;
 - no package has been extracted prematurely.

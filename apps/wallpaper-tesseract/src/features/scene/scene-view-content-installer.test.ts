@@ -4,15 +4,14 @@ import { installWallpaperComponentDefinitions } from "../../app/install-componen
 import type {
   RuntimeObject,
   RuntimeRegistration,
+  SceneCommandSink,
   SceneStateObserver
 } from "../../scene-runtime";
 import type { SceneViewportRenderer } from "./components";
 import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
-import type {
-  GizmoControllerRegistry,
-  RuntimeObjectRegistry,
-  SceneStateObserverRegistry
-} from "../../runtime/ports";
+import type { RuntimeObjectRegistry } from "../../runtime/ports";
+import type { GizmoControllerRegistry } from "../../gizmo-runtime";
+import type { StateObserverRegistry } from "../../state-runtime";
 import {
   createRenderableSceneView,
   CurrentRenderableSceneViewRegistry,
@@ -166,7 +165,7 @@ function createFakeCamera3Gizmo(document: FakeDocument, calls: string[]): Camera
 
 function createRuntimeContext(calls: string[] = []) {
   const sceneRuntime = createRuntimeObjectRegistry(calls);
-  const frameStateController: SceneStateObserverRegistry = {
+  const frameStateController: StateObserverRegistry<SceneStateObserver> & SceneCommandSink = {
     submit: () => {},
     subscribe: (observer: SceneStateObserver) => {
       calls.push(`state-subscribe:${observer.constructor.name}`);

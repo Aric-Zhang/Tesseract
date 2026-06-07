@@ -1,6 +1,6 @@
-import type { ParameterPath } from "../scene-runtime";
 import type { FloatingWindowState } from "./floating-window-state";
 import type { WindowContentHost } from "./floating-window-host";
+import type { UiLayoutPath } from "./ui-layout-state";
 import type { WindowDockRect } from "./window-dock-targets";
 import type { WindowDockSplitPlacement } from "./window-dock-targets";
 import type { WindowViewIdentity } from "./window-view-identity";
@@ -44,7 +44,7 @@ export interface WindowFrameDockTargetTabset {
 
 export interface WindowFramePort {
   readonly frameId: string;
-  readonly visiblePath: ParameterPath<boolean> | null;
+  readonly visiblePath: UiLayoutPath<boolean> | null;
   /**
    * Persistent frame visibility. Runtime presentation sessions should use
    * `effectiveVisible` instead of mutating this value.

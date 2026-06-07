@@ -88,13 +88,14 @@ function findChildByClass(element: FakeElement, className: string): FakeElement 
 
 function createContext(commands: SceneUpdateCommand[] = []) {
   const actorSystem = new ActorSystem();
-  const componentRegistry = new ComponentRegistry({
-    actorSystem,
+  const componentRegistry = new ComponentRegistry({ actorSystem });
+  installCoreComponentDefinitions(componentRegistry);
+  installWindowComponentDefinitions(componentRegistry, {
+    commandSink: { submit: (command) => commands.push(command as unknown as SceneUpdateCommand) }
+  });
+  installSceneComponentDefinitions(componentRegistry, {
     commandSink: { submit: (command) => commands.push(command) }
   });
-  installCoreComponentDefinitions(componentRegistry);
-  installWindowComponentDefinitions(componentRegistry);
-  installSceneComponentDefinitions(componentRegistry);
   return {
     actorSystem,
     componentRegistry,
@@ -316,7 +317,7 @@ describe("createSceneViewActor", () => {
     const enterRunHit = handle.modeToggle.hitTestInput({ x: 720, y: 520 });
     if (!enterRunHit) throw new Error("Expected mode toggle hit.");
     handle.modeToggle.onInputEnd(createActorInputEndEvent(enterRunHit, { wasClick: true }));
-    handle.modeToggle.onSceneStateChanged({
+    handle.modeToggle.onStateChanged({
       frame: { timeMs: 0, deltaMs: 0, frameIndex: 0 },
       changes: [{
         path: sceneParameterPaths.workspace.mode,

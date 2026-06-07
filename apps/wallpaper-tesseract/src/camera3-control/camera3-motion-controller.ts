@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Camera3ProjectionModeController, Camera3Rig } from "../features/camera3/model";
-import type { RuntimeObject, RuntimeRegistration, SceneFrame } from "../scene-runtime";
+import type { RuntimeObject, RuntimeRegistration, UpdateFrame } from "../runtime/ports";
 import type { Camera3CommandSink, Camera3ControlCommand } from "./camera3-control-command";
 
 export interface Camera3MotionControllerOptions {
@@ -14,7 +14,7 @@ export interface Camera3MotionUpdateResult {
 }
 
 export interface Camera3MotionChangedEvent {
-  frame: SceneFrame;
+  frame: UpdateFrame;
   rig: Camera3Rig;
   projectionMode: Camera3ProjectionModeController;
   activeCamera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
@@ -78,11 +78,11 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
     };
   }
 
-  updateFrame(frame: SceneFrame): void {
+  updateFrame(frame: UpdateFrame): void {
     this.update(frame);
   }
 
-  update(frame: SceneFrame): Camera3MotionUpdateResult {
+  update(frame: UpdateFrame): Camera3MotionUpdateResult {
     const commands = this.pendingCommands;
     this.pendingCommands = [];
     if (commands.length === 0) {
@@ -144,7 +144,7 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
     };
   }
 
-  private notify(frame: SceneFrame, commands: readonly Camera3ControlCommand[]): void {
+  private notify(frame: UpdateFrame, commands: readonly Camera3ControlCommand[]): void {
     const event: Camera3MotionChangedEvent = {
       frame,
       rig: this.rig,

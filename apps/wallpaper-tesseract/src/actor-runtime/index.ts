@@ -4,11 +4,13 @@ export type { Actor, ActorOptions } from "./actor";
 export {
   componentType
 } from "./component";
+export {
+  componentAttachmentKind
+} from "./component-attachment-runtime";
 export type {
   ActorWindowFocusReason,
   ActorWindowFocusService,
   Component,
-  ComponentCapability,
   ActorSystemView,
   BindingComponentContext,
   BusinessComponentContext,
@@ -19,14 +21,16 @@ export type {
   ComponentLifecycleObserver,
   ComponentRegistryView,
   ComponentRequirement,
-  ComponentType,
-  GizmoCapableComponent,
-  StateObserverCapableComponent
+  ComponentType
 } from "./component";
+export type {
+  ComponentAttachmentDescriptor,
+  ComponentAttachmentKind,
+  ComponentAttachmentRegistration,
+  ComponentAttachmentRuntime
+} from "./component-attachment-runtime";
 export { ComponentRegistry } from "./component-registry";
 export type { ComponentRegistryOptions } from "./component-registry";
-export { ComponentRuntimeBridge } from "./component-runtime-bridge";
-export type { ComponentRuntimeBridgeOptions } from "./component-runtime-bridge";
 export { ComponentTransaction } from "./component-transaction";
 export type { RollbackErrorHandler } from "./component-transaction";
 export { createRegisteredActor } from "./registered-actor";

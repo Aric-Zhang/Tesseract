@@ -342,7 +342,7 @@ describe("FloatingWindowComponent DOM shell", () => {
   it("ignores scene state changes for runtime-only state bindings", () => {
     const { component, paths, root } = createSubject({ runtimeState: true });
 
-    component.onSceneStateChanged(createChangedEvent([
+    component.onStateChanged(createChangedEvent([
       {
         path: paths.position,
         previousValue: vec2(12, 24),
@@ -378,7 +378,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(root.style.zIndex).toBe("2400");
     expect(component.menuDescriptor.order).toBe(1200);
 
-    component.onSceneStateChanged(createChangedEvent([{
+    component.onStateChanged(createChangedEvent([{
       path: paths.position,
       previousValue: vec2(12, 24),
       nextValue: vec2(40, 50),
@@ -418,7 +418,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     const { actor, component, paths, root } = createSubject();
     actor.enabled = false;
 
-    component.onSceneStateChanged(createChangedEvent([
+    component.onStateChanged(createChangedEvent([
       {
         path: paths.position,
         previousValue: vec2(12, 24),
@@ -457,7 +457,7 @@ describe("FloatingWindowComponent DOM shell", () => {
   it("keeps hidden window actors registered and leaves enabled ownership outside the component", () => {
     const { actor, actorSystem, component, paths, root } = createSubject();
 
-    component.onSceneStateChanged(createChangedEvent([
+    component.onStateChanged(createChangedEvent([
       {
         path: paths.visible,
         previousValue: true,
@@ -502,7 +502,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     parent.rect = createRect(40, 50, 640, 360);
 
     component.setPresentation("fullscreen");
-    component.onSceneStateChanged(createChangedEvent([
+    component.onStateChanged(createChangedEvent([
       {
         path: paths.position,
         previousValue: vec2(12, 24),
@@ -637,7 +637,7 @@ describe("FloatingWindowComponent DOM shell", () => {
 
     expect(commands).toEqual([
       {
-        source: { id: "floating-window:test", kind: "gizmo" },
+        source: { id: "floating-window:test", kind: "pointer" },
         target: paths.position,
         operation: "set",
         value: vec2(22, 19),
@@ -675,14 +675,14 @@ describe("FloatingWindowComponent DOM shell", () => {
 
     expect(commands).toEqual([
       {
-        source: { id: "floating-window:test", kind: "gizmo" },
+        source: { id: "floating-window:test", kind: "pointer" },
         target: paths.position,
         operation: "set",
         value: vec2(32, 84),
         timeStamp: 20
       },
       {
-        source: { id: "floating-window:test", kind: "gizmo" },
+        source: { id: "floating-window:test", kind: "pointer" },
         target: paths.size,
         operation: "set",
         value: vec2(300, 120),
@@ -702,7 +702,7 @@ describe("FloatingWindowComponent DOM shell", () => {
 
     expect(commands).toEqual([
       {
-        source: { id: "floating-window:test", kind: "gizmo" },
+        source: { id: "floating-window:test", kind: "pointer" },
         target: paths.visible,
         operation: "set",
         value: false,
@@ -797,7 +797,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(hit.partId).toBe("titlebar-empty");
     expect(tabDragCalls).toEqual([]);
     expect(commands).toEqual([{
-      source: { id: "floating-window:test", kind: "gizmo" },
+      source: { id: "floating-window:test", kind: "pointer" },
       target: paths.position,
       operation: "set",
       value: vec2(27, 44),

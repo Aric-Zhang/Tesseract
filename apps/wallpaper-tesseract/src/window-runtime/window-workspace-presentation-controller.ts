@@ -1,4 +1,4 @@
-import type { RuntimeObject } from "../scene-runtime";
+import type { RuntimeObject } from "../runtime/ports";
 import type {
   WindowViewFullscreenReason,
   WindowViewFullscreenSession,

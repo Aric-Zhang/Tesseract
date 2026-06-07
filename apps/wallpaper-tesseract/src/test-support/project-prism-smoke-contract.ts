@@ -39,6 +39,8 @@ export interface ProjectPrismInteractionEvidence {
 }
 
 export interface ProjectPrismSmokeEvidence {
+  readonly passed: boolean;
+  readonly validationErrors: readonly string[];
   readonly url: string;
   readonly viewport: {
     readonly width: number;
@@ -50,6 +52,12 @@ export interface ProjectPrismSmokeEvidence {
 
 export function validateProjectPrismSmokeEvidence(evidence: ProjectPrismSmokeEvidence): string[] {
   const errors: string[] = [];
+  if (evidence.passed !== true) {
+    errors.push("passed must be true");
+  }
+  if (evidence.validationErrors.length > 0) {
+    errors.push(`validationErrors must be empty, got ${evidence.validationErrors.length}`);
+  }
   if (!evidence.url) {
     errors.push("url is required");
   }

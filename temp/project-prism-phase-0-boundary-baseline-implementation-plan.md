@@ -12,9 +12,12 @@ temp/project-prism-phase-model-current-assessment.md
 temp/project-prism-engine-modularization-outline.md
 ```
 
-Current execution should continue through Phase 0B remaining blockers, then
-Phase 1 shared spine decoupling. Do not use this document's old `Phase -1`
-wording as the active roadmap.
+Current execution is past Phase 0B and Step 1D. Do not use this document's old
+`Phase -1` wording as the active roadmap. The current executable roadmap is:
+
+```text
+temp/project-prism-phase-1-shared-spine-implementation-plan.md
+```
 
 Related outline:
 
@@ -904,7 +907,17 @@ Stop and revise the plan if:
 
 ## Hand-Off To Next Phases
 
-After Phase 0:
+Historical note:
+
+The old handoff below has been superseded. Do not execute the old Phase -1
+route. The current handoff is:
+
+1. Finish Phase 1E: boundary lock and Phase 1 acceptance report.
+2. Finish Phase 1F: actor-core extraction readiness decision.
+3. Start Phase 2 only after generated boundary facts either allow actor-core /
+   actor-input extraction or name the exact remaining blockers.
+
+Old handoff, retained only as historical context:
 
 1. Run Phase -1: view instance identity continuation.
 2. Run Phase 1: actor-core purification and extraction.

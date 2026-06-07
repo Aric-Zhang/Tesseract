@@ -6,10 +6,17 @@ import {
   floatingWindowComponentType,
   type FloatingWindowComponentOptions
 } from "./floating-window-component";
+import type { UiLayoutCommandSink } from "./ui-layout-state";
 import { windowFrameSurfaceComponentType } from "./window-frame-surface-component";
 
-export const floatingWindowComponentDefinition:
-  ComponentDefinition<FloatingWindowComponent, FloatingWindowComponentOptions> = {
+export interface FloatingWindowComponentDefinitionOptions {
+  readonly commandSink?: UiLayoutCommandSink;
+}
+
+export function createFloatingWindowComponentDefinition(
+  services: FloatingWindowComponentDefinitionOptions = {}
+): ComponentDefinition<FloatingWindowComponent, FloatingWindowComponentOptions> {
+  return {
     type: floatingWindowComponentType,
     singleton: true,
     requires: [
@@ -32,8 +39,11 @@ export const floatingWindowComponentDefinition:
         throw new Error("FloatingWindowComponent requires WindowFrameSurfaceComponent.");
       }
       return new FloatingWindowComponent(actor, options, {
-        commandSink: context.services.commandSink,
+        commandSink: services.commandSink,
         surface
       });
     }
   };
+}
+
+export const floatingWindowComponentDefinition = createFloatingWindowComponentDefinition();

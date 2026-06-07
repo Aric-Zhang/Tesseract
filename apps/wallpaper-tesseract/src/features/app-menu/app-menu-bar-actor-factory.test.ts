@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry, type RegisteredActor } from "../../actor-runtime";
-import { installCoreComponentDefinitions } from "../../component-definitions";
+import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { gizmoEventBindingComponentType } from "../../gizmo-runtime";
 import { sceneParameterPaths } from "../../scene-runtime";
 import { stateObserverBindingComponentType } from "../../state-runtime";
@@ -94,7 +95,8 @@ class FakeElement {
 function createContext() {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
-  installCoreComponentDefinitions(componentRegistry);
+  installGizmoRuntimeComponentDefinitions(componentRegistry);
+  installStateRuntimeComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
   return {
     actorSystem,
@@ -136,3 +138,6 @@ describe("createAppMenuBarActor", () => {
     expect(parent.children[0].className).toBe("app-menu-bar");
   });
 });
+
+
+

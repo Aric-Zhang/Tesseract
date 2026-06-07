@@ -6,7 +6,7 @@ import type {
   GizmoStartEvent,
   ScreenPoint
 } from "gizmo-core";
-import type { Actor, Component } from "../actor-runtime";
+import type { Actor, Component } from "actor-core";
 import { getActorInputScopeRoutePriority, type ActorInputHit, type ActorInputSelection } from "./actor-input-hit";
 import {
   isActorInputParticipant,
@@ -328,3 +328,4 @@ function toActorInputCancelEvent(event: GizmoCancelEvent, hit: ActorInputHit): A
 function toActorInputClickEvent(event: GizmoClickEvent, hit: ActorInputHit): ActorInputClickEvent {
   return { ...event, hit };
 }
+

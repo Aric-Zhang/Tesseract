@@ -23,10 +23,12 @@ function createRegistration(label: string, calls: string[]): RuntimeRegistration
 
 function createContext() {
   const calls: string[] = [];
+  const runtimeObjects: RuntimeObject[] = [];
   const context = new AppRuntimeContext({
     sceneRuntime: {
       register(object: RuntimeObject): RuntimeRegistration {
         calls.push(`scene-register:${object.id}`);
+        runtimeObjects.push(object);
         return createRegistration(`scene-dispose:${object.id}`, calls);
       },
       dispose(): void {
@@ -56,7 +58,19 @@ function createContext() {
     }
   });
   installTesseract4ComponentDefinitions(context.componentRegistry);
-  return { calls, context };
+  return { calls, context, runtimeObjects };
+}
+
+function updateRegisteredRuntimeObject(
+  runtimeObjects: readonly RuntimeObject[],
+  id: string,
+  frame = { timeMs: 0, deltaMs: 0, frameIndex: 0 }
+): void {
+  const object = runtimeObjects.find((candidate) => candidate.id === id);
+  if (!object?.updateFrame) {
+    throw new Error(`Missing runtime object with updateFrame: ${id}`);
+  }
+  object.updateFrame(frame);
 }
 
 function createFakeObjectFactory(calls: string[]) {
@@ -102,12 +116,16 @@ describe("createTesseract4Actor", () => {
   });
 
   it("delegates frame updates to the wrapped runtime object", () => {
-    const { calls, context } = createContext();
+    const { calls, context, runtimeObjects } = createContext();
     const { createObject } = createFakeObjectFactory(calls);
     createTesseract4Actor(context, { actorId: "tesseract-actor" }, createObject);
     calls.length = 0;
 
-    context.actorSystem.updateFrame({ timeMs: 1000, deltaMs: 16, frameIndex: 1 });
+    updateRegisteredRuntimeObject(runtimeObjects, "frame-update-attachment-runtime", {
+      timeMs: 1000,
+      deltaMs: 16,
+      frameIndex: 1
+    });
 
     expect(calls).toEqual(["tesseract-update"]);
   });

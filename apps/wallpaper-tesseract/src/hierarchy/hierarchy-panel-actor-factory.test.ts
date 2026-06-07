@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { GizmoController } from "gizmo-core";
 import { AppRuntimeContext } from "../app-runtime";
-import { installCoreComponentDefinitions } from "../component-definitions";
+import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../state-runtime";
 import { installWindowComponentDefinitions } from "../window-runtime";
 import { installHierarchyComponentDefinitions } from "./install-component-definitions";
 import type {
@@ -160,7 +161,8 @@ function createContext() {
       }
     }
   });
-  installCoreComponentDefinitions(context.componentRegistry);
+  installGizmoRuntimeComponentDefinitions(context.componentRegistry);
+  installStateRuntimeComponentDefinitions(context.componentRegistry);
   installWindowComponentDefinitions(context.componentRegistry);
   installHierarchyComponentDefinitions(context.componentRegistry);
   return { calls, context, observers, registeredGizmos };
@@ -395,3 +397,6 @@ describe("createHierarchyPanelActor", () => {
     expect(parent.children).toEqual([]);
   });
 });
+
+
+

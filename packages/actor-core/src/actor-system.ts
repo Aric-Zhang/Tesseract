@@ -1,4 +1,3 @@
-import type { RuntimeObject, UpdateFrame } from "../runtime/ports";
 import { ActorImpl, isActorImpl, type Actor, type ActorOptions } from "./actor";
 import type { Component } from "./component";
 
@@ -14,10 +13,7 @@ interface ActorEntry {
   destroying: boolean;
 }
 
-export class ActorSystem implements RuntimeObject {
-  readonly id = "actor-system";
-  readonly priority = -900;
-  enabled = true;
+export class ActorSystem {
   private readonly actors = new Map<string, ActorEntry>();
   private nextActorId = 0;
   private nextOrder = 0;
@@ -144,20 +140,6 @@ export class ActorSystem implements RuntimeObject {
       currentEntry = this.actors.get(currentEntry.parentId);
     }
     return false;
-  }
-
-  updateFrame(frame: UpdateFrame): void {
-    const actors = this.listActorsInTreeOrder();
-    for (const actor of actors) {
-      const actorImpl = this.actors.get(actor.id)?.actor;
-      if (actorImpl !== actor || !this.isActorActive(actorImpl)) continue;
-      const components = actorImpl.listComponents();
-      for (const component of components) {
-        if (this.actors.get(actorImpl.id)?.actor !== actorImpl || !this.isActorActive(actorImpl)) break;
-        if (!actorImpl.hasComponentInstance(component) || !component.enabled) continue;
-        component.updateFrame?.(frame);
-      }
-    }
   }
 
   dispose(): void {

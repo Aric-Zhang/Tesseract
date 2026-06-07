@@ -1,10 +1,7 @@
-import type {
-  Actor,
-  ActorSystemView,
-  ActorWindowFocusReason,
-  ActorWindowFocusService
-} from "../actor-runtime";
+import type { Actor, ActorSystemView } from "../actor-runtime";
+import type { ActorInputStackPrioritySource } from "../gizmo-runtime";
 import type { RuntimeObject, UpdateFrame } from "../runtime/ports";
+import type { WindowFocusCommandPort, WindowFocusReason } from "./window-focus-command-port";
 import type {
   WindowWorkspaceFrameEntry,
   WindowWorkspaceViewCatalog
@@ -37,7 +34,7 @@ interface IndexedWindowFrameEntry {
   readonly sourceIndex: number;
 }
 
-export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocusService {
+export class WindowWorkspaceController implements RuntimeObject, ActorInputStackPrioritySource, WindowFocusCommandPort {
   readonly id = WINDOW_WORKSPACE_CONTROLLER_ID;
   readonly priority = -100;
   enabled = true;
@@ -124,11 +121,11 @@ export class WindowWorkspaceController implements RuntimeObject, ActorWindowFocu
     return null;
   }
 
-  focusActorWindow(actor: Actor, _reason: ActorWindowFocusReason): void {
+  focusActorWindow(actor: Actor, _reason: WindowFocusReason): void {
     this.bringToFront(actor);
   }
 
-  requestFocusOnVisible(actor: Actor, _reason: ActorWindowFocusReason): void {
+  requestFocusOnVisible(actor: Actor, _reason: WindowFocusReason): void {
     if (this.#disposed) return;
     const owningFrame = this.findOwningStackManagedFrameActor(actor);
     this.#pendingFocusFrameId = owningFrame?.id ?? null;

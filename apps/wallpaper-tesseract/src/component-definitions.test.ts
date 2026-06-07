@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { installWallpaperComponentDefinitions } from "./app/install-component-definitions";
-import { installCoreComponentDefinitions } from "./component-definitions";
 import { installDebugLogComponentDefinitions } from "./debug";
 import {
   debugLogContentComponentType
@@ -16,13 +15,17 @@ import {
 } from "./features/scene";
 import {
   gizmoEventBindingComponentDefinition,
-  gizmoEventBindingComponentType
+  gizmoEventBindingComponentType,
+  installGizmoRuntimeComponentDefinitions
 } from "./gizmo-runtime";
 import {
   hierarchyPanelComponentType,
   installHierarchyComponentDefinitions
 } from "./hierarchy";
-import { stateObserverBindingComponentType } from "./state-runtime";
+import {
+  installStateRuntimeComponentDefinitions,
+  stateObserverBindingComponentType
+} from "./state-runtime";
 import {
   tesseract4ComponentType,
   installTesseract4ComponentDefinitions
@@ -38,10 +41,11 @@ function createRegistry() {
 }
 
 describe("component definition installers", () => {
-  it("installs core component definitions explicitly", () => {
+  it("installs gizmo and state runtime definitions explicitly", () => {
     const registry = createRegistry();
 
-    installCoreComponentDefinitions(registry);
+    installGizmoRuntimeComponentDefinitions(registry);
+    installStateRuntimeComponentDefinitions(registry);
 
     expect(registry.getDefinition(gizmoEventBindingComponentType).type).toBe(
       gizmoEventBindingComponentDefinition.type
@@ -116,11 +120,13 @@ describe("component definition installers", () => {
     expect(registry.getDefinition(tesseract4ComponentType).type).toBe(tesseract4ComponentType);
   });
 
-  it("allows repeated installation of the same core definitions", () => {
+  it("allows repeated installation of the same runtime binding definitions", () => {
     const registry = createRegistry();
 
-    installCoreComponentDefinitions(registry);
-    installCoreComponentDefinitions(registry);
+    installGizmoRuntimeComponentDefinitions(registry);
+    installStateRuntimeComponentDefinitions(registry);
+    installGizmoRuntimeComponentDefinitions(registry);
+    installStateRuntimeComponentDefinitions(registry);
 
     expect(registry.getDefinition(gizmoEventBindingComponentType).type).toBe(
       gizmoEventBindingComponentDefinition.type
@@ -145,10 +151,11 @@ describe("component definition installers", () => {
     expect(registry.getDefinition(hierarchyPanelComponentType).type).toBe(hierarchyPanelComponentType);
   });
 
-  it("does not install window definitions as core definitions", () => {
+  it("does not install window definitions as runtime binding definitions", () => {
     const registry = createRegistry();
 
-    installCoreComponentDefinitions(registry);
+    installGizmoRuntimeComponentDefinitions(registry);
+    installStateRuntimeComponentDefinitions(registry);
 
     expect(() => registry.getDefinition(floatingWindowComponentType)).toThrow(/is not registered/);
   });
@@ -171,6 +178,6 @@ describe("component definition installers", () => {
       }
     });
 
-    expect(() => installCoreComponentDefinitions(registry)).toThrow(/different definition/);
+    expect(() => installGizmoRuntimeComponentDefinitions(registry)).toThrow(/different definition/);
   });
 });

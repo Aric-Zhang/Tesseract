@@ -10,7 +10,6 @@ interface TestComponent extends Component {}
 interface TestComponentOptions {
   id: string;
   enabled?: boolean;
-  updateFrame?: () => void;
   dispose?: () => void;
 }
 
@@ -22,7 +21,6 @@ function createComponent(actor: Actor, options: TestComponentOptions): TestCompo
     type: testComponentType,
     actor,
     enabled: options.enabled ?? true,
-    updateFrame: options.updateFrame,
     dispose: options.dispose
   };
 }
@@ -133,115 +131,6 @@ describe("ActorSystem", () => {
     expect(() => actorSystem.createActor({ id: "child", parent: "missing" })).toThrow(/does not exist/);
     expect(actorSystem.getActor("child")).toBeNull();
     expect(actorSystem.listActors()).toEqual([]);
-  });
-
-  it("updates enabled actors and components in actor registration order", () => {
-    const actorSystem = new ActorSystem();
-    const registry = createRegistry(actorSystem);
-    const calls: string[] = [];
-    const actorA = actorSystem.createActor({ id: "a" });
-    const actorB = actorSystem.createActor({ id: "b" });
-    const disabledActor = actorSystem.createActor({ id: "disabled-actor", enabled: false });
-
-    addComponent(registry, actorA, { id: "a-1", updateFrame: () => calls.push("a-1") });
-    addComponent(registry, actorA, {
-      id: "disabled-component",
-      enabled: false,
-      updateFrame: () => calls.push("disabled-component")
-    });
-    addComponent(registry, actorB, { id: "b-1", updateFrame: () => calls.push("b-1") });
-    addComponent(registry, disabledActor, {
-      id: "disabled-actor-1",
-      updateFrame: () => calls.push("disabled-actor-1")
-    });
-
-    actorSystem.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
-
-    expect(calls).toEqual(["a-1", "b-1"]);
-  });
-
-  it("does not update children while an ancestor is inactive", () => {
-    const actorSystem = new ActorSystem();
-    const registry = createRegistry(actorSystem);
-    const calls: string[] = [];
-    const grandparent = actorSystem.createActor({ id: "grandparent" });
-    const parent = actorSystem.createActor({ id: "parent", parent: grandparent });
-    const child = actorSystem.createActor({ id: "child", parent });
-    addComponent(registry, child, { id: "child-component", updateFrame: () => calls.push("child") });
-
-    grandparent.enabled = false;
-    expect(actorSystem.isActorActive(child)).toBe(false);
-    actorSystem.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
-    expect(calls).toEqual([]);
-
-    grandparent.enabled = true;
-    expect(actorSystem.isActorActive(child)).toBe(true);
-    actorSystem.updateFrame({ timeMs: 16, deltaMs: 16, frameIndex: 1 });
-    expect(calls).toEqual(["child"]);
-  });
-
-  it("does not update a child after the parent disables it in the same frame", () => {
-    const actorSystem = new ActorSystem();
-    const registry = createRegistry(actorSystem);
-    const calls: string[] = [];
-    const parent = actorSystem.createActor({ id: "parent" });
-    const child = actorSystem.createActor({ id: "child", parent });
-    addComponent(registry, parent, {
-      id: "parent-component",
-      updateFrame: () => {
-        calls.push("parent");
-        child.enabled = false;
-      }
-    });
-    addComponent(registry, child, { id: "child-component", updateFrame: () => calls.push("child") });
-
-    actorSystem.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
-
-    expect(calls).toEqual(["parent"]);
-  });
-
-  it("does not update a child after the parent destroys it in the same frame", () => {
-    const actorSystem = new ActorSystem();
-    const registry = createRegistry(actorSystem);
-    const calls: string[] = [];
-    const parent = actorSystem.createActor({ id: "parent" });
-    const child = actorSystem.createActor({ id: "child", parent });
-    addComponent(registry, parent, {
-      id: "parent-component",
-      updateFrame: () => {
-        calls.push("parent");
-        actorSystem.destroyActor(child);
-      }
-    });
-    addComponent(registry, child, { id: "child-component", updateFrame: () => calls.push("child") });
-
-    actorSystem.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
-
-    expect(calls).toEqual(["parent"]);
-    expect(actorSystem.getActor("child")).toBeNull();
-  });
-
-  it("can destroy an actor during update without updating remaining components on that actor", () => {
-    const actorSystem = new ActorSystem();
-    const registry = createRegistry(actorSystem);
-    const calls: string[] = [];
-    const actorA = actorSystem.createActor({ id: "a" });
-    const actorB = actorSystem.createActor({ id: "b" });
-
-    addComponent(registry, actorA, { id: "destroyer", updateFrame: () => {
-      calls.push("destroyer");
-      actorSystem.destroyActor(actorA);
-    } });
-    addComponent(registry, actorA, {
-      id: "after-destroy",
-      updateFrame: () => calls.push("after-destroy")
-    });
-    addComponent(registry, actorB, { id: "b-1", updateFrame: () => calls.push("b-1") });
-
-    actorSystem.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
-
-    expect(calls).toEqual(["destroyer", "b-1"]);
-    expect(actorSystem.getActor("a")).toBeNull();
   });
 
   it("destroys an actor and disposes its components in reverse attach order", () => {

@@ -6,7 +6,7 @@ import type {
   GizmoStartEvent,
   ScreenPoint
 } from "gizmo-core";
-import type { Actor, Component } from "../actor-runtime";
+import type { Actor, Component } from "actor-core";
 import type { ActorInputHit } from "./actor-input-hit";
 
 export interface ActorInputHitContext {
@@ -42,3 +42,4 @@ export function isActorInputParticipant(component: Component): component is Acto
     typeof candidate.hitTestInput === "function"
   );
 }
+

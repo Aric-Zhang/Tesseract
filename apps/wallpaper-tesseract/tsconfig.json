@@ -8,7 +8,9 @@
   },
   "include": ["src", "vite.config.ts"],
   "references": [
+    { "path": "../../packages/actor-core" },
     { "path": "../../packages/gizmo-core" },
+    { "path": "../../packages/actor-input" },
     { "path": "../../packages/four-rotation" },
     { "path": "../../packages/four-camera" },
     { "path": "../../packages/four-camera-three" }

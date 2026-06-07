@@ -8,8 +8,8 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 
 | Target | Status | Phase | Clean Candidate Zones | Debt Zones | Blocked By |
 | --- | --- | --- | --- | --- | --- |
-| actor-core | blocked | Phase 2 | actor-core-candidate | actor-core-debt, actor-binding-debt, component-definition-installer-debt | actor-core-debt, actor-binding-debt, component-definition-installer-debt |
-| actor-input | blocked | Phase 2 | actor-input-candidate | actor-binding-debt | actor-binding-debt |
+| actor-core | allowed | Phase 2 | actor-core-candidate | (none) | (none) |
+| actor-input | allowed | Phase 2 | actor-input-candidate | (none) | (none) |
 | editor | deferred | Phase 6 | editor-candidate | runtime-ownership-debt, ui-state-binding-debt | runtime-ownership-debt, ui-state-binding-debt |
 | runtime-core | blocked | Phase 4 | (none) | state-domain-debt, runtime-ownership-debt | state-domain-debt, runtime-ownership-debt |
 | runtime-three | blocked | Phase 5 | (none) | runtime-ownership-debt | runtime-ownership-debt |
@@ -18,22 +18,21 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 
 ## Candidate Zones
 
-- actor-core-candidate: 2 files. Actor primitives that are already UI-free and scene-free.
-- actor-input-candidate: 9 files. Actor input and gizmo-core adapter candidates.
+- actor-core-candidate: 1 files. Actor primitives that are UI-free, scene-free, update-scheduler-free, and window-focus-free.
+- actor-input-candidate: 1 files. Actor input and gizmo-core adapter candidates.
 - app-composition: 8 files. Wallpaper app bootstrap and composition layer.
 - editor-candidate: 53 files. Concrete editor features and editor presentation components.
-- ui-framework-candidate: 50 files. Generic window, tab, dock, menu, and app shell UI candidates.
+- ui-framework-candidate: 51 files. Generic window, tab, dock, menu, and app shell UI candidates.
 
 ## Debt Zones
 
-- actor-binding-debt: 8 files. Actor component contracts that still carry app-local update, focus, or state binding ownership seams.
-- actor-core-debt: 4 files. Actor system and registry files that still depend on app-local update/runtime or component registry ownership concepts.
+- actor-binding-debt: 9 files. App-local attachment/runtime placement that still blocks actor-input and state/runtime extraction.
 - app-composition-debt: 3 files. Wallpaper app composition still knows concrete editor/runtime policy details.
 - app-runtime-debt: 8 files. Transitional app runtime context and registration ports.
-- component-definition-installer-debt: 1 files. Central component definition installer still shared by app and feature modules.
+- component-definition-installer-debt: 2 files. App-local component definition helper placement that still blocks package-owned installers.
 - runtime-ownership-debt: 21 files. Runtime-like world/camera/object code still owned by editor/app folders.
 - state-domain-debt: 10 files. Mixed scene/editor/ui state runtime that must split before runtime extraction.
-- ui-state-binding-debt: 41 files. Generic UI candidates still coupled to scene-runtime state/path/vector types.
+- ui-state-binding-debt: 42 files. Generic UI candidates still coupled to scene-runtime state/path/vector types.
 
 ## Dependency Matrix
 
@@ -47,11 +46,10 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 
 ## Debt Blockers
 
-- actor-core-debt: blocks actor-core extraction. Delete when: Actor core owns only actor identity, tree, enabled state, lifecycle, and component attachment primitives; app-local update scheduling and component context service wiring are moved behind package-owned ports outside the actor-core candidate.
-- actor-binding-debt: blocks actor-core extraction, actor-input extraction, state/runtime bridge split. Delete when: Component update scheduling, actor-window focus, and state observer binding ownership are expressed through package-owned ports outside the actor-core candidate, without actor-runtime importing runtime/ports.
+- actor-binding-debt: blocks state/runtime bridge split. Delete when: Update runtime and state observer binding are expressed through package-owned ports outside app-local glue.
 - ui-state-binding-debt: blocks ui-framework extraction. Delete when: UI receives state/path/vector/update services through UI-owned ports or a ui-layout-state package.
 - app-composition-debt: blocks app bootstrap thinning, package extraction handoff. Delete when: App composition imports public runtime/editor/UI installers and bootstrap ports only.
-- component-definition-installer-debt: blocks actor-core extraction, ui-framework extraction. Delete when: Component definitions are installed through package-owned installers instead of a central app surface.
+- component-definition-installer-debt: blocks ui-framework extraction, wallpaper app thinning. Delete when: The generic helper moves to the package that owns component registration, or app-local package installers stop depending on shared helper code.
 - app-runtime-debt: blocks app runtime deletion, package-owned port extraction. Delete when: Reusable ports move to the package that owns the contract; wallpaper app becomes thin composition.
 - state-domain-debt: blocks runtime-core extraction, ui-framework extraction, state/scheduler split. Delete when: runtime-state, editor-state, and ui-layout-state become separate facts with explicit adapters.
 - runtime-ownership-debt: blocks runtime-core extraction, runtime-three extraction. Delete when: Runtime worlds/cameras/projections expose command/query/frame-source ports consumed by editor Scene views.

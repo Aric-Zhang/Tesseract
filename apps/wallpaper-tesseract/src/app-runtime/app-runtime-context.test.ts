@@ -5,7 +5,6 @@ import { AppRuntimeContext, createRegisteredObject } from "./app-runtime-context
 import {
   componentType,
   createRegisteredActor,
-  type ActorWindowFocusService,
   type Component
 } from "../actor-runtime";
 
@@ -36,14 +35,15 @@ function createRegistration(label: string, calls: string[], failDispose?: Dispos
 function createSystems(options: {
   failAt?: FailurePoint;
   failDisposeAt?: DisposeFailurePoint;
-  actorWindowFocus?: ActorWindowFocusService;
   rollbackErrors?: unknown[][];
 } = {}) {
   const calls: string[] = [];
   const sceneRuntime = {
     register(object: RuntimeObject): RuntimeRegistration {
       calls.push(`scene-register:${object.id}`);
-      if (options.failAt === "scene" && object.id !== "actor-system") throw new Error("scene failed");
+      if (options.failAt === "scene" && object.id !== "frame-update-attachment-runtime") {
+        throw new Error("scene failed");
+      }
       return createRegistration("scene-dispose", calls, options.failDisposeAt);
     },
     dispose() {
@@ -75,7 +75,6 @@ function createSystems(options: {
     sceneRuntime,
     gizmoEventSystem,
     frameStateController,
-    actorWindowFocus: options.actorWindowFocus,
     onRollbackError: (errors) => options.rollbackErrors?.push([...errors])
   });
   calls.length = 0;
@@ -188,30 +187,16 @@ describe("AppRuntimeContext", () => {
     expect(calls).toEqual(["actor-component-dispose"]);
   });
 
-  it("injects actor window focus service into component contexts", () => {
+  it("does not inject app services into component contexts", () => {
     const calls: string[] = [];
-    const actorWindowFocus: ActorWindowFocusService = {
-      getEffectiveStackPriorityForActor(actor) {
-        calls.push(`priority:${actor.id}`);
-        return 700;
-      },
-      focusActorWindow(actor, reason) {
-        calls.push(`focus:${actor.id}:${reason}`);
-      },
-      requestFocusOnVisible(actor, reason) {
-        calls.push(`pending:${actor.id}:${reason}`);
-      }
-    };
-    const { context } = createSystems({ actorWindowFocus });
+    const { context } = createSystems();
     context.componentRegistry.registerDefinition({
       type: testActorComponentType,
       singleton: true,
       createId: () => "test-actor-component",
       create(actor, componentContext) {
-        expect(componentContext.services.actorWindowFocus).toBe(actorWindowFocus);
-        expect(componentContext.services.actorWindowFocus?.getEffectiveStackPriorityForActor(actor)).toBe(700);
-        componentContext.services.actorWindowFocus?.focusActorWindow(actor, "pointer-down");
-        componentContext.services.actorWindowFocus?.requestFocusOnVisible(actor, "menu-restore");
+        expect("services" in (componentContext as unknown as Record<string, unknown>)).toBe(false);
+        calls.push(`create:${actor.id}`);
         return {
           id: "test-actor-component",
           type: testActorComponentType,
@@ -224,11 +209,7 @@ describe("AppRuntimeContext", () => {
 
     context.componentRegistry.addComponent(actor, testActorComponentType);
 
-    expect(calls).toEqual([
-      "priority:actor",
-      "focus:actor:pointer-down",
-      "pending:actor:menu-restore"
-    ]);
+    expect(calls).toEqual(["create:actor"]);
   });
 
   it("disposes tracked objects before runtime systems", () => {

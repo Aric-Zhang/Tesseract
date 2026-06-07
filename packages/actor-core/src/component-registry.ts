@@ -4,7 +4,6 @@ import type {
   ComponentAttachmentRuntime
 } from "./component-attachment-runtime";
 import type {
-  ActorWindowFocusService,
   ActorSystemView,
   Component,
   ComponentContext,
@@ -21,7 +20,6 @@ import { ActorSystem, actorComponentMutationToken } from "./actor-system";
 export interface ComponentRegistryOptions {
   actorSystem: ActorSystem;
   attachmentRuntime?: ComponentAttachmentRuntime;
-  actorWindowFocus?: ActorWindowFocusService;
   onRollbackError?: RollbackErrorHandler;
 }
 
@@ -54,7 +52,6 @@ interface ComponentAddPlanBuildState {
 export class ComponentRegistry {
   private readonly actorSystem: ActorSystem;
   private readonly attachmentRuntime?: ComponentAttachmentRuntime;
-  private readonly actorWindowFocus?: ActorWindowFocusService;
   private readonly onRollbackError?: RollbackErrorHandler;
   private readonly actorSystemView: ActorSystemView;
   private readonly componentRegistryView: ComponentRegistryView;
@@ -64,7 +61,6 @@ export class ComponentRegistry {
   constructor(options: ComponentRegistryOptions) {
     this.actorSystem = options.actorSystem;
     this.attachmentRuntime = options.attachmentRuntime;
-    this.actorWindowFocus = options.actorWindowFocus;
     this.onRollbackError = options.onRollbackError;
     this.actorSystemView = {
       getActor: (id) => this.actorSystem.getActor(id),
@@ -338,10 +334,7 @@ export class ComponentRegistry {
   private createContext(_kind?: ComponentDefinitionKind): ComponentContext {
     return {
       actorSystem: this.actorSystemView,
-      componentRegistry: this.componentRegistryView,
-      services: {
-        actorWindowFocus: this.actorWindowFocus
-      }
+      componentRegistry: this.componentRegistryView
     };
   }
 }

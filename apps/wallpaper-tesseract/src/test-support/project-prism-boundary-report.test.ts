@@ -31,9 +31,14 @@ describe("Project Prism boundary report", () => {
     const targetsById = new Map(summary.packageTargets.map((target) => [target.id, target]));
 
     expect(targetsById.get("actor-core")).toMatchObject({
-      status: "blocked",
+      status: "allowed",
       cleanCandidateZones: ["actor-core-candidate"],
-      blockedBy: expect.arrayContaining(["actor-core-debt", "actor-binding-debt"])
+      blockedBy: []
+    });
+    expect(targetsById.get("actor-input")).toMatchObject({
+      status: "allowed",
+      cleanCandidateZones: ["actor-input-candidate"],
+      blockedBy: []
     });
     expect(targetsById.get("runtime-core")).toMatchObject({
       status: "blocked",

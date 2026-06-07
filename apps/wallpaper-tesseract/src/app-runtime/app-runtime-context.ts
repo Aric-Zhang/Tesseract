@@ -10,10 +10,10 @@ import {
   StateObserverAttachmentRuntime,
   type StateObserverRegistry
 } from "../state-runtime";
+import { FrameUpdateAttachmentRuntime } from "../update-runtime";
 import {
   ActorSystem,
   ComponentRegistry,
-  type ActorWindowFocusService,
   type Component,
   type RegisteredActor
 } from "../actor-runtime";
@@ -32,7 +32,6 @@ export interface AppRuntimeContextOptions {
   sceneRuntime: RuntimeObjectRegistry;
   frameStateController: StateObserverRegistry<SceneStateObserver> & SceneCommandSink;
   gizmoEventSystem: GizmoControllerRegistry;
-  actorWindowFocus?: ActorWindowFocusService;
   onRollbackError?: (errors: readonly unknown[]) => void;
 }
 
@@ -45,8 +44,9 @@ export class AppRuntimeContext {
   readonly actorSystem: ActorSystem;
   readonly componentRegistry: ComponentRegistry;
   private readonly onRollbackError?: (errors: readonly unknown[]) => void;
+  private readonly frameUpdateRuntime: FrameUpdateAttachmentRuntime;
   private readonly activeInputCancellationRuntime: ActiveInputCancellationRuntime;
-  private readonly actorSystemRegistration: RuntimeRegistration;
+  private readonly frameUpdateRuntimeRegistration: RuntimeRegistration;
   private readonly registeredObjects = new Set<object>();
   private readonly registeredIds = new Map<string, object>();
   private readonly trackedDisposables: TrackedDisposable[] = [];
@@ -58,8 +58,12 @@ export class AppRuntimeContext {
     this.gizmoEventSystem = options.gizmoEventSystem;
     this.onRollbackError = options.onRollbackError;
     this.actorSystem = new ActorSystem();
+    this.frameUpdateRuntime = new FrameUpdateAttachmentRuntime({
+      actorSystem: this.actorSystem
+    });
     this.activeInputCancellationRuntime = new ActiveInputCancellationRuntime();
     const componentAttachmentRuntime = new CompositeComponentAttachmentRuntime([
+      this.frameUpdateRuntime,
       new GizmoControllerAttachmentRuntime({ registry: this.gizmoEventSystem }),
       new StateObserverAttachmentRuntime({
         registry: this.frameStateController,
@@ -70,10 +74,9 @@ export class AppRuntimeContext {
     this.componentRegistry = new ComponentRegistry({
       actorSystem: this.actorSystem,
       attachmentRuntime: componentAttachmentRuntime,
-      actorWindowFocus: options.actorWindowFocus,
       onRollbackError: this.onRollbackError
     });
-    this.actorSystemRegistration = this.sceneRuntime.register(this.actorSystem);
+    this.frameUpdateRuntimeRegistration = this.sceneRuntime.register(this.frameUpdateRuntime);
   }
 
   get commandSink(): SceneCommandSink {
@@ -121,7 +124,8 @@ export class AppRuntimeContext {
     this.trackedDisposables.length = 0;
 
     safeDispose(this.actorSystem);
-    safeDispose(this.actorSystemRegistration);
+    safeDispose(this.frameUpdateRuntimeRegistration);
+    safeDispose(this.frameUpdateRuntime);
     safeDispose(this.gizmoEventSystem);
     safeDispose(this.frameStateController);
     safeDispose(this.sceneRuntime);

@@ -1,11 +1,4 @@
 import type { ComponentDefinition, ComponentRegistry } from "./actor-runtime";
-import { gizmoEventBindingComponentDefinition } from "./gizmo-runtime";
-import { stateObserverBindingComponentDefinition } from "./state-runtime";
-
-export function installCoreComponentDefinitions(componentRegistry: ComponentRegistry): void {
-  installComponentDefinition(componentRegistry, gizmoEventBindingComponentDefinition);
-  installComponentDefinition(componentRegistry, stateObserverBindingComponentDefinition);
-}
 
 export function installComponentDefinition(
   componentRegistry: ComponentRegistry,

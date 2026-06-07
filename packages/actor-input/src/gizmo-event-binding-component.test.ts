@@ -9,20 +9,47 @@ import type {
   ScreenPoint
 } from "gizmo-core";
 import { GizmoEventSystem as RuntimeGizmoEventSystem } from "gizmo-core";
-import { componentType } from "../actor-runtime";
-import type { ActorWindowFocusService, Component, ComponentDefinition } from "../actor-runtime";
-import type { RuntimeRegistration } from "../runtime/ports";
 import {
-  createRecordingRuntimeRegistration,
-  createTestComponentRegistry
-} from "../test-support";
+  ActorSystem,
+  ComponentRegistry,
+  componentType,
+  type Actor,
+  type Component,
+  type ComponentDefinition,
+  type ComponentRegistryOptions
+} from "actor-core";
 import { actorInputScopeRoutePriority, type ActorInputHit, type ActorInputHitRegion } from "./actor-input-hit";
 import type { ActorInputParticipant } from "./actor-input-participant";
 import { GizmoControllerAttachmentRuntime } from "./gizmo-controller-attachment-runtime";
 import { gizmoEventBindingComponentType } from "./gizmo-event-binding-component";
-import { gizmoEventBindingComponentDefinition } from "./gizmo-event-binding-definition";
+import { createGizmoEventBindingComponentDefinition } from "./gizmo-event-binding-definition";
+import type { ActorInputStackPrioritySource } from "./actor-input-stack-priority-source";
 
-function createRegistry(options: { actorWindowFocus?: ActorWindowFocusService } = {}) {
+interface RuntimeRegistration {
+  dispose(): void;
+}
+
+function createRecordingRuntimeRegistration(label: string, calls: string[]): RuntimeRegistration {
+  return {
+    dispose() {
+      calls.push(label);
+    }
+  };
+}
+
+function createTestComponentRegistry(options: Omit<ComponentRegistryOptions, "actorSystem"> = {}) {
+  const actorSystem = new ActorSystem();
+  const registry = new ComponentRegistry({
+    actorSystem,
+    ...options
+  });
+  return { actorSystem, registry };
+}
+
+function createRegistry(options: {
+  actorInputStackPriority?: ActorInputStackPrioritySource;
+  requestPointerFocus?: (actor: Actor) => void;
+} = {}) {
   const calls: string[] = [];
   const registered: GizmoController[] = [];
   const attachmentRuntime = new GizmoControllerAttachmentRuntime({
@@ -38,10 +65,12 @@ function createRegistry(options: { actorWindowFocus?: ActorWindowFocusService } 
     }
   });
   const { actorSystem, registry } = createTestComponentRegistry({
-    attachmentRuntime,
-    actorWindowFocus: options.actorWindowFocus
+    attachmentRuntime
   });
-  registry.registerDefinition(gizmoEventBindingComponentDefinition);
+  registry.registerDefinition(createGizmoEventBindingComponentDefinition({
+    actorInputStackPriority: options.actorInputStackPriority,
+    requestPointerFocus: options.requestPointerFocus
+  }));
   return { actorSystem, calls, registered, registry };
 }
 
@@ -482,12 +511,10 @@ describe("GizmoEventBindingComponent", () => {
 
   it("uses inherited owning window priority instead of local actor stack priority", () => {
     const { actorSystem, calls, registered, registry } = createRegistry({
-      actorWindowFocus: {
+      actorInputStackPriority: {
         getEffectiveStackPriorityForActor(actor) {
           return actor.id === "scene-child" ? 300 : null;
-        },
-        focusActorWindow(): void {},
-        requestFocusOnVisible(): void {}
+        }
       }
     });
     registry.registerDefinition(createActorInputParticipantDefinition(calls, "camera3", {
@@ -509,14 +536,12 @@ describe("GizmoEventBindingComponent", () => {
 
   it("does not let a high local-priority child actor beat a foreground window", () => {
     const { actorSystem, calls, registered, registry } = createRegistry({
-      actorWindowFocus: {
+      actorInputStackPriority: {
         getEffectiveStackPriorityForActor(actor) {
           if (actor.id === "scene-child") return 300;
           if (actor.id === "foreground-window") return 900;
           return null;
-        },
-        focusActorWindow(): void {},
-        requestFocusOnVisible(): void {}
+        }
       }
     });
     registry.registerDefinition(createActorInputParticipantDefinition(calls, "camera3", {
@@ -556,12 +581,10 @@ describe("GizmoEventBindingComponent", () => {
 
   it("keeps non-window actors such as App Menu on their own stack priority", () => {
     const { actorSystem, calls, registered, registry } = createRegistry({
-      actorWindowFocus: {
+      actorInputStackPriority: {
         getEffectiveStackPriorityForActor(actor) {
           return actor.id === "scene-child" ? 900 : null;
-        },
-        focusActorWindow(): void {},
-        requestFocusOnVisible(): void {}
+        }
       }
     });
     registry.registerDefinition(createActorInputParticipantDefinition(calls, "camera3", {
@@ -621,14 +644,8 @@ describe("GizmoEventBindingComponent", () => {
   it("focuses the owning window once when input starts", () => {
     const focusCalls: string[] = [];
     const { actorSystem, calls, registered, registry } = createRegistry({
-      actorWindowFocus: {
-        getEffectiveStackPriorityForActor() {
-          return null;
-        },
-        focusActorWindow(actor, reason): void {
-          focusCalls.push(`${actor.id}:${reason}`);
-        },
-        requestFocusOnVisible(): void {}
+      requestPointerFocus(actor): void {
+        focusCalls.push(`${actor.id}:pointer-down`);
       }
     });
     registry.registerDefinition(createActorInputParticipantDefinition(calls, "row"));
@@ -650,14 +667,8 @@ describe("GizmoEventBindingComponent", () => {
   it("does not focus or start input when actor becomes inactive before start", () => {
     const focusCalls: string[] = [];
     const { actorSystem, calls, registered, registry } = createRegistry({
-      actorWindowFocus: {
-        getEffectiveStackPriorityForActor() {
-          return null;
-        },
-        focusActorWindow(actor, reason): void {
-          focusCalls.push(`${actor.id}:${reason}`);
-        },
-        requestFocusOnVisible(): void {}
+      requestPointerFocus(actor): void {
+        focusCalls.push(`${actor.id}:pointer-down`);
       }
     });
     registry.registerDefinition(createActorInputParticipantDefinition(calls, "row"));
@@ -933,12 +944,10 @@ describe("GizmoEventBindingComponent", () => {
 
   it("routes Scene-window Camera3 overlay ahead of the Scene window content fallback", () => {
     const { actorSystem, calls, registered, registry } = createRegistry({
-      actorWindowFocus: {
+      actorInputStackPriority: {
         getEffectiveStackPriorityForActor(actor) {
           return actor.id === "scene-window" || actor.id === "camera3" ? 2000 : null;
-        },
-        focusActorWindow(): void {},
-        requestFocusOnVisible(): void {}
+        }
       }
     });
     registry.registerDefinition(createActorInputParticipantDefinition(calls, "camera3-orbit", {
@@ -1017,3 +1026,4 @@ describe("GizmoEventBindingComponent", () => {
     system.dispose();
   });
 });
+

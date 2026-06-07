@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../../actor-runtime";
-import { installCoreComponentDefinitions } from "../../component-definitions";
+import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { installDebugLogComponentDefinitions } from "../../debug";
 import { sceneParameterPaths, vec2 } from "../../scene-runtime";
 import { createTestComponentRegistry } from "../../test-support";
@@ -149,7 +150,8 @@ function isWindowContentAttachmentRequest(
 function createRegistry() {
   const setup = createTestComponentRegistry();
   const registry = setup.registry;
-  installCoreComponentDefinitions(registry);
+  installGizmoRuntimeComponentDefinitions(registry);
+  installStateRuntimeComponentDefinitions(registry);
   installWindowComponentDefinitions(registry);
   installDebugLogComponentDefinitions(registry);
   return setup;
@@ -248,3 +250,6 @@ describe("DebugLogContentComponent", () => {
     expect(contentSlot?.children).toEqual([component.content]);
   });
 });
+
+
+

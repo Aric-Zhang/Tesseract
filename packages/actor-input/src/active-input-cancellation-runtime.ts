@@ -5,8 +5,8 @@ import type {
   ComponentAttachmentDescriptor,
   ComponentAttachmentRegistration,
   ComponentAttachmentRuntime
-} from "../actor-runtime";
-import { componentAttachmentKind } from "../actor-runtime";
+} from "actor-core";
+import { componentAttachmentKind } from "actor-core";
 
 export const activeInputCancellationAttachmentKind = componentAttachmentKind("active-input-cancellation");
 
@@ -57,3 +57,4 @@ function assertActorInputCanceller(component: Component): Component & ActorInput
 const noopAttachmentRegistration: ComponentAttachmentRegistration = {
   dispose(): void {}
 };
+

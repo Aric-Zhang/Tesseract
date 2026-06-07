@@ -9,7 +9,8 @@ import type {
 } from "gizmo-core";
 import { AppRuntimeContext } from "../../../app-runtime";
 import type { Camera3CommandSink, Camera3ControlCommand } from "../../../camera3-control";
-import { installCoreComponentDefinitions } from "../../../component-definitions";
+import { installGizmoRuntimeComponentDefinitions } from "../../../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../../../state-runtime";
 import type { RuntimeObject, RuntimeRegistration, SceneStateObserver, SceneUpdateCommand } from "../../../scene-runtime";
 import {
   actorInputScopeRoutePriority,
@@ -70,7 +71,8 @@ function createContext() {
       }
     }
   });
-  installCoreComponentDefinitions(context.componentRegistry);
+  installGizmoRuntimeComponentDefinitions(context.componentRegistry);
+  installStateRuntimeComponentDefinitions(context.componentRegistry);
   installCamera3ComponentDefinitions(context.componentRegistry);
   return { calls, context, registeredGizmos };
 }
@@ -352,3 +354,6 @@ describe("createCamera3GizmoActor", () => {
     ]);
   });
 });
+
+
+

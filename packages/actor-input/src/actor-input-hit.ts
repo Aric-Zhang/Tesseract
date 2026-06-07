@@ -1,4 +1,4 @@
-import type { Component } from "../actor-runtime";
+import type { Component } from "actor-core";
 import type { ActorInputParticipant } from "./actor-input-participant";
 
 export type ActorInputHitKind = "chrome" | "content" | "control" | "scrollbar" | "overlay" | "custom";
@@ -56,3 +56,4 @@ export function getActorInputScopeRoutePriority(hit: ActorInputHit): number {
   if (hit.region === "window-content") return actorInputScopeRoutePriority.windowContent;
   return actorInputScopeRoutePriority.contentControl;
 }
+

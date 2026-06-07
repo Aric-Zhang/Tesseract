@@ -5,19 +5,15 @@ import {
 } from "./architecture-boundaries";
 
 export const projectPrismSourceZones = [
-  definePathZone("actor-core-candidate", "Actor primitives that are already UI-free and scene-free.", [
-    /^\.\/actor-runtime\/actor\.ts$/,
-    /^\.\/actor-runtime\/component-attachment-runtime\.ts$/
+  definePathZone("actor-core-candidate", "Actor primitives that are UI-free, scene-free, update-scheduler-free, and window-focus-free.", [
+    /^\.\/actor-runtime\//
   ]),
-  definePathZone("actor-core-debt", "Actor system and registry files that still depend on app-local update/runtime or component registry ownership concepts.", [
-    /^\.\/actor-runtime\/(?:actor-system|component-registry|component-transaction|registered-actor)\.ts$/
-  ], { debt: true }),
-  definePathZone("actor-binding-debt", "Actor component contracts that still carry app-local update, focus, or state binding ownership seams.", [
-    /^\.\/actor-runtime\/(?:component|index)\.ts$/,
+  definePathZone("actor-binding-debt", "App-local attachment/runtime placement that still blocks actor-input and state/runtime extraction.", [
+    /^\.\/update-runtime\//,
     /^\.\/state-runtime\//
   ], { debt: true }),
   definePathZone("actor-input-candidate", "Actor input and gizmo-core adapter candidates.", [
-    /^\.\/gizmo-runtime\//
+    /^\.\/gizmo-runtime\/index\.ts$/
   ]),
   definePathZone("ui-framework-candidate", "Generic window, tab, dock, menu, and app shell UI candidates.", [
     /^\.\/window-runtime\//,
@@ -48,8 +44,9 @@ export const projectPrismSourceZones = [
     /^\.\/app\/install-component-definitions\.ts$/,
     /^\.\/app\/workspace-mode\.ts$/
   ], { debt: true }),
-  definePathZone("component-definition-installer-debt", "Central component definition installer still shared by app and feature modules.", [
-    /^\.\/component-definitions\.ts$/
+  definePathZone("component-definition-installer-debt", "App-local component definition helper placement that still blocks package-owned installers.", [
+    /^\.\/component-definitions\.ts$/,
+    /^\.\/gizmo-runtime\/install-component-definitions\.ts$/
   ], { debt: true }),
   definePathZone("app-runtime-debt", "Transitional app runtime context and registration ports.", [
     /^\.\/app-runtime\//,
@@ -86,16 +83,10 @@ export interface ProjectPrismPackageTarget {
 
 export const projectPrismDebtBlockers = [
   {
-    zoneId: "actor-core-debt",
-    blocks: ["actor-core extraction"],
-    blocker: "Actor system, registry, transactions, and registered handles are free of domain attachment bridge ownership, but ActorSystem still implements the app-local RuntimeObject/UpdateFrame scheduling contract and ComponentRegistry still owns app-local component context/service wiring.",
-    deletionCondition: "Actor core owns only actor identity, tree, enabled state, lifecycle, and component attachment primitives; app-local update scheduling and component context service wiring are moved behind package-owned ports outside the actor-core candidate."
-  },
-  {
     zoneId: "actor-binding-debt",
-    blocks: ["actor-core extraction", "actor-input extraction", "state/runtime bridge split"],
-    blocker: "Component context no longer exposes SceneCommandSink, the legacy ComponentRuntimeBridge/capability metadata is removed, and active input cancellation is an explicit attachment; remaining binding debt is the UpdateFrame import from runtime/ports, actor-window focus context, and staged state observer binding ownership.",
-    deletionCondition: "Component update scheduling, actor-window focus, and state observer binding ownership are expressed through package-owned ports outside the actor-core candidate, without actor-runtime importing runtime/ports."
+    blocks: ["state/runtime bridge split"],
+    blocker: "Actor-core and actor-input no longer own app-local update scheduling or focus services. Remaining binding debt is package placement for update-runtime and staged state observer binding ownership.",
+    deletionCondition: "Update runtime and state observer binding are expressed through package-owned ports outside app-local glue."
   },
   {
     zoneId: "ui-state-binding-debt",
@@ -111,9 +102,9 @@ export const projectPrismDebtBlockers = [
   },
   {
     zoneId: "component-definition-installer-debt",
-    blocks: ["actor-core extraction", "ui-framework extraction"],
-    blocker: "A central app-level component definition installer is still shared by app and feature modules.",
-    deletionCondition: "Component definitions are installed through package-owned installers instead of a central app surface."
+    blocks: ["ui-framework extraction", "wallpaper app thinning"],
+    blocker: "The broad pseudo-core installer has been deleted, but the idempotent installComponentDefinition helper and app-local gizmo runtime installer still live in app-local source.",
+    deletionCondition: "The generic helper moves to the package that owns component registration, or app-local package installers stop depending on shared helper code."
   },
   {
     zoneId: "app-runtime-debt",
@@ -334,18 +325,18 @@ export const projectPrismPackageTargets = [
   {
     id: "actor-core",
     cleanCandidateZones: ["actor-core-candidate"],
-    debtZones: ["actor-core-debt", "actor-binding-debt", "component-definition-installer-debt"],
-    blockedBy: ["actor-core-debt", "actor-binding-debt", "component-definition-installer-debt"],
+    debtZones: [],
+    blockedBy: [],
     extractionPhase: "Phase 2",
-    extractionStatus: "blocked"
+    extractionStatus: "allowed"
   },
   {
     id: "actor-input",
     cleanCandidateZones: ["actor-input-candidate"],
-    debtZones: ["actor-binding-debt"],
-    blockedBy: ["actor-binding-debt"],
+    debtZones: [],
+    blockedBy: [],
     extractionPhase: "Phase 2",
-    extractionStatus: "blocked"
+    extractionStatus: "allowed"
   },
   {
     id: "ui-framework",

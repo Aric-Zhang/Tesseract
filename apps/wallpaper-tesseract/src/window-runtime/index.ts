@@ -25,8 +25,12 @@ export type {
   UiLayoutCommandSource,
   UiLayoutPath
 } from "./ui-layout-state";
-export { createActorWindowFocusServiceProxy } from "./actor-window-focus-service";
-export type { ActorWindowFocusServiceProxy } from "./actor-window-focus-service";
+export { createWindowFocusServiceProxy } from "./window-focus-service-proxy";
+export type { WindowFocusServiceProxy } from "./window-focus-service-proxy";
+export type {
+  WindowFocusCommandPort,
+  WindowFocusReason
+} from "./window-focus-command-port";
 export { createDockTargetRegionSource } from "./dock-target-region-source";
 export type {
   DockTargetRegionSource,

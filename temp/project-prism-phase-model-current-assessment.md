@@ -225,21 +225,45 @@ temp/project-prism-engine-modularization-outline.md
 
 has been updated to this revised model.
 
-## Immediate Next Step
+## Phase 2 Completion Update
 
-Continue Phase 1, not package extraction:
+Phase 2 has now completed the actor package extraction scope:
 
 ```text
-temp/project-prism-phase-1-shared-spine-implementation-plan.md
+packages/actor-core
+packages/actor-input
+```
+
+The generated package target matrix now marks `actor-core` and `actor-input`
+as `allowed`. This is intentionally narrow: it proves the actor skeleton and
+actor input adapter can stand as packages, not that UI/runtime/editor packages
+are ready.
+
+Phase 2 acceptance evidence:
+
+```text
+temp/project-prism-phase-2-acceptance-report.md
+temp/project-prism-phase2-browser-smoke.json
+temp/project-prism-phase2-browser-smoke.png
+```
+
+## Immediate Next Step
+
+Begin Phase 3, not runtime extraction:
+
+```text
+ui-framework port split and extraction planning
 ```
 
 Specifically:
 
-1. complete Step 1E by writing the Phase 1 acceptance report and refreshing
-   generated boundary facts;
-2. execute Step 1F to decide the remaining actor-core extraction blockers,
-   especially `UpdateFrame` ownership;
-3. only then begin Phase 2 actor-core / actor-input extraction planning.
+1. split UI layout state away from `scene-runtime`;
+2. move generic window/tab/dock/menu/frame lifecycle contracts toward a
+   product-agnostic UI boundary;
+3. keep Scene/Debug/Hierarchy/Inspector/Tesseract/Camera concrete content out
+   of the UI package;
+4. keep using Phase 0B/Phase 2 structured browser smoke for any UI/input
+   movement.
 
 Phase 0B is now a completed boundary baseline. Its smoke contract remains the
 browser evidence shape for later risky UI/input changes.

@@ -10,12 +10,12 @@ import type {
 } from "gizmo-core";
 import type {
   Actor,
-  ActorWindowFocusService,
   Component,
   ComponentLifecycleObserver,
   ComponentType
-} from "../actor-runtime";
+} from "actor-core";
 import type { ActorInputSelection } from "./actor-input-hit";
+import type { ActorInputStackPrioritySource } from "./actor-input-stack-priority-source";
 import { ActorInputRouter } from "./actor-input-router";
 
 export interface ActorInputSmokeCaptureEntry {
@@ -34,7 +34,8 @@ export interface GizmoEventBindingComponentOptions {
   actor: Actor;
   id: string;
   isActorActive?: () => boolean;
-  actorWindowFocus?: ActorWindowFocusService;
+  actorInputStackPriority?: ActorInputStackPrioritySource;
+  requestPointerFocus?: (actor: Actor) => void;
 }
 
 export class GizmoEventBindingComponent implements ComponentLifecycleObserver, GizmoController {
@@ -43,7 +44,8 @@ export class GizmoEventBindingComponent implements ComponentLifecycleObserver, G
   readonly actor: Actor;
   #enabled = true;
   readonly #isActorActive: () => boolean;
-  readonly #actorWindowFocus?: ActorWindowFocusService;
+  readonly #actorInputStackPriority?: ActorInputStackPrioritySource;
+  readonly #requestPointerFocus?: (actor: Actor) => void;
   private readonly router: ActorInputRouter;
   private readonly selectedHits = new WeakMap<GizmoHit, ActorInputSelection>();
 
@@ -51,7 +53,8 @@ export class GizmoEventBindingComponent implements ComponentLifecycleObserver, G
     this.actor = options.actor;
     this.id = options.id;
     this.#isActorActive = options.isActorActive ?? (() => this.actor.enabled);
-    this.#actorWindowFocus = options.actorWindowFocus;
+    this.#actorInputStackPriority = options.actorInputStackPriority;
+    this.#requestPointerFocus = options.requestPointerFocus;
     this.router = new ActorInputRouter({
       actor: options.actor,
       isActorActive: this.#isActorActive,
@@ -68,7 +71,7 @@ export class GizmoEventBindingComponent implements ComponentLifecycleObserver, G
   }
 
   get priority(): number {
-    return this.#actorWindowFocus?.getEffectiveStackPriorityForActor(this.actor) ??
+    return this.#actorInputStackPriority?.getEffectiveStackPriorityForActor(this.actor) ??
       this.router.getStackPriority();
   }
 
@@ -91,7 +94,7 @@ export class GizmoEventBindingComponent implements ComponentLifecycleObserver, G
     const selected = this.getSelectedSelection(event.hit);
     if (!selected) return;
     if (!this.enabled) return;
-    this.#actorWindowFocus?.focusActorWindow(this.actor, "pointer-down");
+    this.#requestPointerFocus?.(this.actor);
     this.router.start(selected, event);
   }
 
@@ -159,3 +162,4 @@ function captureActorInputSmokeHit(entry: ActorInputSmokeCaptureEntry): void {
     // Smoke capture is an observation-only test hook. It must never affect hit selection or routing.
   }
 }
+

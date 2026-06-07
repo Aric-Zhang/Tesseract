@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { GizmoController, GizmoEndEvent, GizmoHit, GizmoStartEvent } from "gizmo-core";
 import { AppRuntimeContext } from "../../app-runtime";
-import { installCoreComponentDefinitions } from "../../component-definitions";
+import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { installDebugLogComponentDefinitions } from "../../debug";
 import { installWindowComponentDefinitions } from "../../window-runtime";
 import {
@@ -148,6 +149,7 @@ function createContext() {
   const calls: string[] = [];
   const registeredGizmos: GizmoController[] = [];
   const observers: SceneStateObserver[] = [];
+  const runtimeObjects: RuntimeObject[] = [];
   const frameStateController = {
     submit(command: SceneUpdateCommand): void {
       calls.push(`frame-submit:${command.target}`);
@@ -165,6 +167,7 @@ function createContext() {
     sceneRuntime: {
       register(object: RuntimeObject): RuntimeRegistration {
         calls.push(`scene-register:${object.id}`);
+        runtimeObjects.push(object);
         return createRegistration(`scene-dispose:${object.id}`, calls);
       },
       dispose(): void {
@@ -183,7 +186,8 @@ function createContext() {
     },
     frameStateController
   });
-  installCoreComponentDefinitions(context.componentRegistry);
+  installGizmoRuntimeComponentDefinitions(context.componentRegistry);
+  installStateRuntimeComponentDefinitions(context.componentRegistry);
   installWindowComponentDefinitions(context.componentRegistry, {
     commandSink: {
       submit(command) {
@@ -192,7 +196,19 @@ function createContext() {
     }
   });
   installDebugLogComponentDefinitions(context.componentRegistry);
-  return { calls, context, frameStateController, observers, registeredGizmos };
+  return { calls, context, frameStateController, observers, registeredGizmos, runtimeObjects };
+}
+
+function updateRegisteredRuntimeObject(
+  runtimeObjects: readonly RuntimeObject[],
+  id: string,
+  frame = { timeMs: 0, deltaMs: 0, frameIndex: 0 }
+): void {
+  const object = runtimeObjects.find((candidate) => candidate.id === id);
+  if (!object?.updateFrame) {
+    throw new Error(`Missing runtime object with updateFrame: ${id}`);
+  }
+  object.updateFrame(frame);
 }
 
 describe("createDebugLogWindowActor", () => {
@@ -239,7 +255,7 @@ describe("createDebugLogWindowActor", () => {
   });
 
   it("mounts debug content into the floating window and preserves append/updateFrame behavior", () => {
-    const { context } = createContext();
+    const { context, runtimeObjects } = createContext();
     const document = new FakeDocument();
     const parent = document.createElement("div");
 
@@ -251,7 +267,7 @@ describe("createDebugLogWindowActor", () => {
     });
     handle.component.append({ type: "hit", message: "first", timeStamp: 1 });
     handle.component.append({ type: "move", message: "second", timeStamp: 2 });
-    context.actorSystem.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
+    updateRegisteredRuntimeObject(runtimeObjects, "frame-update-attachment-runtime");
 
     expect(handle.component.content.textContent).toBe("    2 second");
   });
@@ -366,3 +382,6 @@ describe("createDebugLogWindowActor", () => {
     expect(parent.children).toEqual([]);
   });
 });
+
+
+

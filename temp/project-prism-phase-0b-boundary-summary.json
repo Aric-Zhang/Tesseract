@@ -5,13 +5,13 @@
     "candidates": [
       {
         "id": "actor-core-candidate",
-        "description": "Actor primitives that are already UI-free and scene-free.",
-        "fileCount": 2
+        "description": "Actor primitives that are UI-free, scene-free, update-scheduler-free, and window-focus-free.",
+        "fileCount": 1
       },
       {
         "id": "actor-input-candidate",
         "description": "Actor input and gizmo-core adapter candidates.",
-        "fileCount": 9
+        "fileCount": 1
       },
       {
         "id": "app-composition",
@@ -26,19 +26,14 @@
       {
         "id": "ui-framework-candidate",
         "description": "Generic window, tab, dock, menu, and app shell UI candidates.",
-        "fileCount": 50
+        "fileCount": 51
       }
     ],
     "debt": [
       {
         "id": "actor-binding-debt",
-        "description": "Actor component contracts that still carry app-local update, focus, or state binding ownership seams.",
-        "fileCount": 8
-      },
-      {
-        "id": "actor-core-debt",
-        "description": "Actor system and registry files that still depend on app-local update/runtime or component registry ownership concepts.",
-        "fileCount": 4
+        "description": "App-local attachment/runtime placement that still blocks actor-input and state/runtime extraction.",
+        "fileCount": 9
       },
       {
         "id": "app-composition-debt",
@@ -52,8 +47,8 @@
       },
       {
         "id": "component-definition-installer-debt",
-        "description": "Central component definition installer still shared by app and feature modules.",
-        "fileCount": 1
+        "description": "App-local component definition helper placement that still blocks package-owned installers.",
+        "fileCount": 2
       },
       {
         "id": "runtime-ownership-debt",
@@ -68,42 +63,30 @@
       {
         "id": "ui-state-binding-debt",
         "description": "Generic UI candidates still coupled to scene-runtime state/path/vector types.",
-        "fileCount": 41
+        "fileCount": 42
       }
     ]
   },
   "packageTargets": [
     {
       "id": "actor-core",
-      "status": "blocked",
+      "status": "allowed",
       "phase": "Phase 2",
       "cleanCandidateZones": [
         "actor-core-candidate"
       ],
-      "debtZones": [
-        "actor-core-debt",
-        "actor-binding-debt",
-        "component-definition-installer-debt"
-      ],
-      "blockedBy": [
-        "actor-core-debt",
-        "actor-binding-debt",
-        "component-definition-installer-debt"
-      ]
+      "debtZones": [],
+      "blockedBy": []
     },
     {
       "id": "actor-input",
-      "status": "blocked",
+      "status": "allowed",
       "phase": "Phase 2",
       "cleanCandidateZones": [
         "actor-input-candidate"
       ],
-      "debtZones": [
-        "actor-binding-debt"
-      ],
-      "blockedBy": [
-        "actor-binding-debt"
-      ]
+      "debtZones": [],
+      "blockedBy": []
     },
     {
       "id": "editor",
@@ -191,22 +174,12 @@
   "extractionBlockers": {
     "debt": [
       {
-        "zoneId": "actor-core-debt",
-        "blocks": [
-          "actor-core extraction"
-        ],
-        "blocker": "Actor system, registry, transactions, and registered handles are free of domain attachment bridge ownership, but ActorSystem still implements the app-local RuntimeObject/UpdateFrame scheduling contract and ComponentRegistry still owns app-local component context/service wiring.",
-        "deletionCondition": "Actor core owns only actor identity, tree, enabled state, lifecycle, and component attachment primitives; app-local update scheduling and component context service wiring are moved behind package-owned ports outside the actor-core candidate."
-      },
-      {
         "zoneId": "actor-binding-debt",
         "blocks": [
-          "actor-core extraction",
-          "actor-input extraction",
           "state/runtime bridge split"
         ],
-        "blocker": "Component context no longer exposes SceneCommandSink, the legacy ComponentRuntimeBridge/capability metadata is removed, and active input cancellation is an explicit attachment; remaining binding debt is the UpdateFrame import from runtime/ports, actor-window focus context, and staged state observer binding ownership.",
-        "deletionCondition": "Component update scheduling, actor-window focus, and state observer binding ownership are expressed through package-owned ports outside the actor-core candidate, without actor-runtime importing runtime/ports."
+        "blocker": "Actor-core and actor-input no longer own app-local update scheduling or focus services. Remaining binding debt is package placement for update-runtime and staged state observer binding ownership.",
+        "deletionCondition": "Update runtime and state observer binding are expressed through package-owned ports outside app-local glue."
       },
       {
         "zoneId": "ui-state-binding-debt",
@@ -228,11 +201,11 @@
       {
         "zoneId": "component-definition-installer-debt",
         "blocks": [
-          "actor-core extraction",
-          "ui-framework extraction"
+          "ui-framework extraction",
+          "wallpaper app thinning"
         ],
-        "blocker": "A central app-level component definition installer is still shared by app and feature modules.",
-        "deletionCondition": "Component definitions are installed through package-owned installers instead of a central app surface."
+        "blocker": "The broad pseudo-core installer has been deleted, but the idempotent installComponentDefinition helper and app-local gizmo runtime installer still live in app-local source.",
+        "deletionCondition": "The generic helper moves to the package that owns component registration, or app-local package installers stop depending on shared helper code."
       },
       {
         "zoneId": "app-runtime-debt",

@@ -1,4 +1,5 @@
 import type { ComponentDefinition } from "../../actor-runtime";
+import { frameUpdateAttachment } from "../../update-runtime";
 import { findOwningWindowContentHost } from "../../window-runtime";
 import {
   DebugLogContentComponent,
@@ -10,6 +11,7 @@ export const debugLogContentComponentDefinition:
   ComponentDefinition<DebugLogContentComponent, DebugLogContentComponentOptions> = {
     type: debugLogContentComponentType,
     singleton: true,
+    attachments: [frameUpdateAttachment],
     requires: [],
     createId(_actor, options) {
       return options?.id ?? "debug-log-content";

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../actor-runtime";
-import { installCoreComponentDefinitions } from "../component-definitions";
+import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../state-runtime";
 import {
   sceneParameterPaths,
   type SceneStateChangedEvent,
@@ -531,7 +532,8 @@ describe("HierarchyPanelComponent definition", () => {
   it("requires an owning FloatingWindowComponent", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
-    installCoreComponentDefinitions(registry);
+    installGizmoRuntimeComponentDefinitions(registry);
+    installStateRuntimeComponentDefinitions(registry);
     installWindowComponentDefinitions(registry);
     registry.registerDefinition(hierarchyPanelComponentDefinition);
     const actor = actorSystem.createActor({ id: "hierarchy-actor" });
@@ -545,7 +547,8 @@ describe("HierarchyPanelComponent definition", () => {
   it("creates and mounts when the actor has a FloatingWindowComponent", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
-    installCoreComponentDefinitions(registry);
+    installGizmoRuntimeComponentDefinitions(registry);
+    installStateRuntimeComponentDefinitions(registry);
     installWindowComponentDefinitions(registry);
     registry.registerDefinition(hierarchyPanelComponentDefinition);
     const document = new FakeDocument();
@@ -573,3 +576,6 @@ describe("HierarchyPanelComponent definition", () => {
     expect(actor.hasComponent(hierarchyPanelComponentType)).toBe(true);
   });
 });
+
+
+

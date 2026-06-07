@@ -21,6 +21,8 @@ import {
 } from "./test-support/project-prism-boundary-facts";
 
 describe("architecture boundaries", () => {
+  const actorInputPackageSources = collectWorkspaceSourceFiles("packages/actor-input/src");
+
   it("parses static import and export-from edges for boundary checks", () => {
     const imports = parseStaticImports(`
       import "./side-effect";
@@ -78,10 +80,10 @@ describe("architecture boundaries", () => {
     expect(zoneMap.unclassified).toEqual([]);
     expect(zoneMap.ambiguousCandidateFiles).toEqual([]);
     expect(zoneMap.debtEntries.map((entry) => entry.file)).toEqual(expect.arrayContaining([
-      "./actor-runtime/component.ts",
       "./scene-runtime/parameter-paths.ts",
       "./app-runtime/app-runtime-context.ts",
       "./app/create-wallpaper-app.ts",
+      "./update-runtime/frame-update-attachment-runtime.ts",
       "./tesseract4/tesseract4-runtime-object.ts"
     ]));
   });
@@ -138,8 +140,7 @@ describe("architecture boundaries", () => {
       .sort();
 
     expect([...actorCoreCandidateFiles].sort()).toEqual([
-      "./actor-runtime/actor.ts",
-      "./actor-runtime/component-attachment-runtime.ts"
+      "./actor-runtime/index.ts"
     ]);
     expect(forbiddenEdges).toEqual([]);
     expect(forbiddenSymbols).toEqual([]);
@@ -265,7 +266,7 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps Project Prism legacy locks paired with replacement contracts", () => {
-    const actorInputRouterSource = sourceFiles["./gizmo-runtime/actor-input-router.ts"] ?? "";
+    const actorInputRouterSource = actorInputPackageSources["packages/actor-input/src/actor-input-router.ts"] ?? "";
     const renderableSceneViewSource = sourceFiles["./features/scene/renderable-scene-view.ts"] ?? "";
     const dockTargetRegionSource = sourceFiles["./window-runtime/dock-target-region-source.ts"] ?? "";
     const persistenceSource = sourceFiles["./window-runtime/window-workspace-layout-persistence.ts"] ?? "";
@@ -488,13 +489,16 @@ describe("architecture boundaries", () => {
   });
 
 
-  it("keeps window and hierarchy definitions out of core installer", () => {
+  it("does not keep a pseudo-core component definition installer", () => {
     const source = sourceFiles["./component-definitions.ts"] ?? "";
-    const coreBody = /export function installCoreComponentDefinitions[\s\S]*?\n}/.exec(source)?.[0] ?? "";
 
-    expect(coreBody).not.toMatch(/floatingWindowComponentDefinition/);
-    expect(coreBody).not.toMatch(/hierarchyPanelComponentDefinition/);
-    expect(coreBody).not.toMatch(/sceneViewportComponentDefinition/);
+    expect(source).not.toMatch(/\binstallCoreComponentDefinitions\b/);
+    expect(source).not.toMatch(/\binstallCommonComponentDefinitions\b/);
+    expect(source).not.toMatch(/gizmoEventBindingComponentDefinition/);
+    expect(source).not.toMatch(/stateObserverBindingComponentDefinition/);
+    expect(source).not.toMatch(/floatingWindowComponentDefinition/);
+    expect(source).not.toMatch(/hierarchyPanelComponentDefinition/);
+    expect(source).not.toMatch(/sceneViewportComponentDefinition/);
   });
 
   it("keeps scene feature components independent from app-runtime", () => {
@@ -633,15 +637,15 @@ describe("architecture boundaries", () => {
     const workspaceInstallerSource =
       sourceFiles["./features/window-workspace/install-window-workspace-feature.ts"] ?? "";
 
-    expect(appSource).toMatch(/\bcreateActorWindowFocusServiceProxy\b/);
+    expect(appSource).toMatch(/\bcreateWindowFocusServiceProxy\b/);
     expect(appSource).toMatch(/\binstallWindowWorkspaceFeature\b/);
     expect(appSource).not.toMatch(/\bnew\s+(WindowWorkspaceController|WindowViewFactoryRegistry|WindowDockPreviewController|WindowWorkspacePresentationController)\b/);
     expect(appSource).not.toMatch(/\bnew\s+WindowFramePortRegistry\b/);
     expect(appSource).not.toMatch(/\bcreateDockTargetRegionSource\b/);
     expect(workspaceInstallerSource).toMatch(/\bnew\s+WindowWorkspaceController\b/);
-    expect(workspaceInstallerSource).toMatch(/actorWindowFocus\.bind\s*\(\s*workspaceController\s*\)/);
-    expect(appSource).toMatch(/actorWindowFocus\.dispose\s*\(\s*\)/);
-    expect(appRuntimeSource).toMatch(/\bactorWindowFocus:\s*options\.actorWindowFocus\b/);
+    expect(workspaceInstallerSource).toMatch(/windowFocus\.bind\s*\(\s*workspaceController\s*\)/);
+    expect(appSource).toMatch(/windowFocus\.dispose\s*\(\s*\)/);
+    expect(appRuntimeSource).not.toMatch(/\bactorWindowFocus\b/);
   });
 
   it("keeps concrete window frame policy in feature modules instead of app composition", () => {
@@ -683,8 +687,8 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps actor-local input route scores out of gizmo-core hit priority", () => {
-    const bindingSource = sourceFiles["./gizmo-runtime/gizmo-event-binding-component.ts"] ?? "";
-    const routerSource = sourceFiles["./gizmo-runtime/actor-input-router.ts"] ?? "";
+    const bindingSource = actorInputPackageSources["packages/actor-input/src/gizmo-event-binding-component.ts"] ?? "";
+    const routerSource = actorInputPackageSources["packages/actor-input/src/actor-input-router.ts"] ?? "";
 
     expect(bindingSource).not.toMatch(/priority:\s*selection\.routeScore\b/);
     expect(bindingSource).toMatch(/priority:\s*selection\.scopeRouteScore\b/);
@@ -704,8 +708,10 @@ describe("architecture boundaries", () => {
 
     expect(coreSource).not.toMatch(/(?:camera3Gizmo|debugLogContent|hierarchyPanel|floatingWindow|tesseract4)ComponentDefinition/);
     expect(coreSource).not.toMatch(/install(?:Camera3|DebugLog|Hierarchy|Window|Tesseract4)ComponentDefinitions/);
+    expect(coreSource).not.toMatch(/\binstallCoreComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallWallpaperComponentDefinitions\b/);
-    expect(appInstallerSource).toMatch(/\binstallCoreComponentDefinitions\b/);
+    expect(appInstallerSource).toMatch(/\binstallGizmoRuntimeComponentDefinitions\b/);
+    expect(appInstallerSource).toMatch(/\binstallStateRuntimeComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallWindowComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallAppMenuComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallSceneComponentDefinitions\b/);
@@ -1114,6 +1120,16 @@ describe("architecture boundaries", () => {
     expect(actorRuntimeSceneFrameImports).toEqual([]);
   });
 
+  it("keeps actor-runtime independent from runtime ports", () => {
+    const actorRuntimePortImports = Object.entries(sourceFiles)
+      .filter(([file]) => file.startsWith("./actor-runtime/"))
+      .filter(([, source]) => /from\s+["'](?:\.\.\/)+runtime\/ports(?:\/index)?["']/.test(source))
+      .map(([file]) => file)
+      .sort();
+
+    expect(actorRuntimePortImports).toEqual([]);
+  });
+
   it("keeps window-runtime geometry independent from scene Vec2 helpers", () => {
     const sceneVec2Imports = Object.entries(sourceFiles)
       .filter(([file]) => file.startsWith("./window-runtime/"))
@@ -1197,8 +1213,8 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps active input cancellation behind an explicit attachment descriptor", () => {
-    const activeCancellationSource = sourceFiles["./gizmo-runtime/active-input-cancellation-runtime.ts"] ?? "";
-    const gizmoDefinitionSource = sourceFiles["./gizmo-runtime/gizmo-event-binding-definition.ts"] ?? "";
+    const activeCancellationSource = actorInputPackageSources["packages/actor-input/src/active-input-cancellation-runtime.ts"] ?? "";
+    const gizmoDefinitionSource = actorInputPackageSources["packages/actor-input/src/gizmo-event-binding-definition.ts"] ?? "";
 
     expect(activeCancellationSource).toMatch(/\bactiveInputCancellationAttachmentKind\b/);
     expect(activeCancellationSource).toMatch(/\battachments\.some\b/);
@@ -1206,16 +1222,20 @@ describe("architecture boundaries", () => {
     expect(gizmoDefinitionSource).toMatch(/\bactiveInputCancellationAttachment\b/);
   });
 
-  it("keeps actor-runtime focus service as a narrow port independent from window-runtime", () => {
+  it("keeps window focus and stack-priority facts out of actor-runtime", () => {
     const actorRuntimeWindowImports = Object.entries(sourceFiles)
       .filter(([file]) => file.startsWith("./actor-runtime/"))
       .filter(([, source]) => /from\s+["'](?:\.\.\/)+window-runtime/.test(source))
       .map(([file]) => file)
       .sort();
     const componentSource = sourceFiles["./actor-runtime/component.ts"] ?? "";
+    const actorRuntimeIndexSource = sourceFiles["./actor-runtime/index.ts"] ?? "";
 
     expect(actorRuntimeWindowImports).toEqual([]);
-    expect(componentSource).toMatch(/\binterface\s+ActorWindowFocusService\b/);
+    expect(componentSource).not.toMatch(/\bActorWindowFocus(Service|Reason)\b/);
+    expect(actorRuntimeIndexSource).not.toMatch(/\bActorWindowFocus(Service|Reason)\b/);
+    expect(componentSource).not.toMatch(/\bgetEffectiveStackPriorityForActor\b/);
+    expect(componentSource).not.toMatch(/\bfocusActorWindow\b/);
     expect(componentSource).not.toMatch(/\bFloatingWindowComponent\b/);
     expect(componentSource).not.toMatch(/\bWindowWorkspaceController\b/);
   });
@@ -1312,3 +1332,4 @@ describe("architecture boundaries", () => {
     ], allowedFiles)).toEqual([]);
   });
 });
+

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../../../actor-runtime";
 import { createTestComponentRegistry } from "../../../test-support";
+import { FrameUpdateAttachmentRuntime } from "../../../update-runtime";
 import {
   Camera3MotionComponent,
   camera3MotionComponentType
@@ -15,13 +16,17 @@ const frame = { timeMs: 16, deltaMs: 16, frameIndex: 1 };
 
 function createSubject() {
   const actorSystem = new ActorSystem();
-  const { registry } = createTestComponentRegistry({ actorSystem });
+  const updateRuntime = new FrameUpdateAttachmentRuntime({ actorSystem });
+  const { registry } = createTestComponentRegistry({
+    actorSystem,
+    attachmentRuntime: updateRuntime
+  });
   installCamera3FeatureComponentDefinitions(registry);
   const actor = actorSystem.createActor({ id: "scene-view" });
   const motion = registry.addComponent(actor, camera3MotionComponentType);
   const rig = registry.getComponent(actor, camera3RigComponentType);
   if (!rig) throw new Error("Expected Camera3RigComponent.");
-  return { actor, actorSystem, motion, registry, rig };
+  return { actor, actorSystem, motion, registry, rig, updateRuntime };
 }
 
 describe("Camera3 feature components", () => {
@@ -46,10 +51,10 @@ describe("Camera3 feature components", () => {
   });
 
   it("updates motion components through the actor system frame pass", () => {
-    const { actorSystem, motion, rig } = createSubject();
+    const { motion, rig, updateRuntime } = createSubject();
 
     motion.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 8, dy: 4 });
-    actorSystem.updateFrame(frame);
+    updateRuntime.updateFrame(frame);
 
     expect(rig.rig.yaw).toBeCloseTo(-8 * rig.rig.orbitSensitivity);
     expect(rig.rig.pitch).toBeCloseTo(4 * rig.rig.orbitSensitivity);

@@ -39,7 +39,7 @@ import {
 import { UpdateFrameClock } from "../runtime/ports";
 import type { StateObserverRegistry } from "../state-runtime";
 import {
-  createActorWindowFocusServiceProxy,
+  createWindowFocusServiceProxy,
   type UiLayoutCommandSink,
   WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY,
   WORKSPACE_ROOT_FRAME_ID
@@ -112,7 +112,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   };
 
   let debugLogWindow: { readonly component: DebugLogContentComponent } | null = null;
-  const actorWindowFocus = createActorWindowFocusServiceProxy();
+  const windowFocus = createWindowFocusServiceProxy();
   const gizmoEventSystem = new GizmoEventSystem({
     debug: true,
     debugConsole: true,
@@ -121,11 +121,14 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const runtimeContext = new AppRuntimeContext({
     sceneRuntime,
     frameStateController: frameStateBridge,
-    gizmoEventSystem,
-    actorWindowFocus
+    gizmoEventSystem
   });
 
   installWallpaperComponentDefinitions(runtimeContext.componentRegistry, {
+    gizmoEventBinding: {
+      actorInputStackPriority: windowFocus,
+      requestPointerFocus: (actor) => windowFocus.focusActorWindow(actor, "pointer-down")
+    },
     sceneCommandSink: frameStateBridge,
     uiLayoutCommandSink: createSceneBackedUiLayoutCommandSink(frameStateBridge)
   });
@@ -154,7 +157,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     sceneStore,
     floatingFrameParent,
     rootFrameParent: appShell.rootDockSlot,
-    actorWindowFocus,
+    windowFocus,
     cancelActiveInput: () => runtimeContext.cancelActiveActorInput(),
     floatingFramePolicies: new Map([
       createSceneWindowWorkspaceFloatingFramePolicy(sceneWindowState),
@@ -276,7 +279,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     workspaceModeController.dispose();
     closeLiveWindowFrames(windowWorkspace.lifecycle);
     windowWorkspace.dispose();
-    actorWindowFocus.dispose();
+    windowFocus.dispose();
     runtimeContext.dispose();
     appShell.dispose();
   }

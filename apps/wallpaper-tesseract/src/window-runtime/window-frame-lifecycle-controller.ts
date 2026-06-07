@@ -1,7 +1,5 @@
-import type {
-  Actor,
-  ActorWindowFocusService
-} from "../actor-runtime";
+import type { Actor } from "../actor-runtime";
+import type { WindowFocusCommandPort, WindowFocusReason } from "./window-focus-command-port";
 import { ActorSystem } from "../actor-runtime";
 import type {
   WindowDockCommitIntent,
@@ -92,7 +90,7 @@ type ManagedWindowViewFullscreenSession =
 export interface WindowFrameLifecycleControllerOptions {
   readonly actorSystem: ActorSystem;
   readonly factories: WindowViewFactoryRegistry;
-  readonly actorWindowFocus?: ActorWindowFocusService;
+  readonly windowFocus?: WindowFocusCommandPort;
   readonly cancelActiveInput?: () => void;
   readonly createFloatingFrame?: WindowFloatingFrameFactory;
   readonly framePorts?: WindowFramePortRegistryView;
@@ -107,7 +105,7 @@ export class DefaultWindowFrameLifecycleController implements
   WindowFrameLayoutSnapshotSource {
   readonly #actorSystem: ActorSystem;
   readonly #factories: WindowViewFactoryRegistry;
-  readonly #actorWindowFocus?: ActorWindowFocusService;
+  readonly #windowFocus?: WindowFocusCommandPort;
   readonly #cancelActiveInput?: () => void;
   readonly #createFloatingFrame?: WindowFloatingFrameFactory;
   readonly #framePorts?: WindowFramePortRegistryView;
@@ -118,7 +116,7 @@ export class DefaultWindowFrameLifecycleController implements
   constructor(options: WindowFrameLifecycleControllerOptions) {
     this.#actorSystem = options.actorSystem;
     this.#factories = options.factories;
-    this.#actorWindowFocus = options.actorWindowFocus;
+    this.#windowFocus = options.windowFocus;
     this.#cancelActiveInput = options.cancelActiveInput;
     this.#createFloatingFrame = options.createFloatingFrame;
     this.#framePorts = options.framePorts;
@@ -133,7 +131,7 @@ export class DefaultWindowFrameLifecycleController implements
     if (liveView) {
       liveView.framePort.activateTab(liveView.viewActor.id);
       this.recordViewActivation(liveView);
-      this.#actorWindowFocus?.focusActorWindow(liveView.frameActor, toActorWindowFocusReason(reason));
+      this.#windowFocus?.focusActorWindow(liveView.frameActor, toWindowFocusReason(reason));
       return;
     }
     if (options.preferredFrameId && this.tryOpenViewRuntimeInFrame(viewKey, options.preferredFrameId, reason)) {
@@ -194,7 +192,7 @@ export class DefaultWindowFrameLifecycleController implements
     if (!liveView) return false;
     liveView.framePort.activateTab(liveView.viewActor.id);
     this.recordViewActivation(liveView);
-    this.#actorWindowFocus?.focusActorWindow(liveView.frameActor, toActorWindowFocusReason(reason));
+    this.#windowFocus?.focusActorWindow(liveView.frameActor, toWindowFocusReason(reason));
     return true;
   }
 
@@ -384,7 +382,7 @@ export class DefaultWindowFrameLifecycleController implements
         this.recordViewActivation(nextLiveView);
       }
     }
-    this.#actorWindowFocus?.focusActorWindow(sourceFrame, toActorWindowFocusReason("programmatic"));
+    this.#windowFocus?.focusActorWindow(sourceFrame, toWindowFocusReason("programmatic"));
     return {
       closed: true,
       sourceFrameId,
@@ -403,7 +401,7 @@ export class DefaultWindowFrameLifecycleController implements
     if (!liveView || liveView.frameActor.id !== frameId) return;
     liveView.framePort.activateTab(viewActorId);
     this.recordViewActivation(liveView);
-    this.#actorWindowFocus?.focusActorWindow(liveView.frameActor, toActorWindowFocusReason(reason));
+    this.#windowFocus?.focusActorWindow(liveView.frameActor, toWindowFocusReason(reason));
   }
 
   validateDockCommit(intent: WindowDockCommitIntent): WindowDockCommitValidationResult {
@@ -503,7 +501,7 @@ export class DefaultWindowFrameLifecycleController implements
       sourceView.framePort = targetPort;
       this.#actorSystem.setParent(sourceView.viewActor, targetFrame);
       this.recordViewActivation(sourceView);
-      this.#actorWindowFocus?.focusActorWindow(targetFrame, toActorWindowFocusReason(intent.reason));
+      this.#windowFocus?.focusActorWindow(targetFrame, toWindowFocusReason(intent.reason));
     } catch (error) {
       this.rollbackMerge(sourceView, rollback);
       return { committed: false, reason: describeError(error, "dock merge failed") };
@@ -700,7 +698,7 @@ export class DefaultWindowFrameLifecycleController implements
       if (activeLiveView) {
         this.recordViewActivation(activeLiveView);
       }
-      this.#actorWindowFocus?.focusActorWindow(targetFrame, toActorWindowFocusReason(reason));
+      this.#windowFocus?.focusActorWindow(targetFrame, toWindowFocusReason(reason));
     }
 
     const destroyedFrameIds: string[] = [];
@@ -740,7 +738,7 @@ export class DefaultWindowFrameLifecycleController implements
     const liveView = this.getLiveViewByActorId(viewActorId);
     if (!liveView) return;
     this.recordViewActivation(liveView);
-    this.#actorWindowFocus?.focusActorWindow(liveView.frameActor, toActorWindowFocusReason(reason));
+    this.#windowFocus?.focusActorWindow(liveView.frameActor, toWindowFocusReason(reason));
   }
 
   setOwnerPresentation(
@@ -781,7 +779,7 @@ export class DefaultWindowFrameLifecycleController implements
         previousPresentation: liveView.framePort.presentation
       });
       liveView.framePort.setPresentation("fullscreen");
-      this.#actorWindowFocus?.focusActorWindow(liveView.frameActor, toActorWindowFocusReason("programmatic"));
+      this.#windowFocus?.focusActorWindow(liveView.frameActor, toWindowFocusReason("programmatic"));
       return;
     }
     this.enterIsolatedViewFullscreen(liveView, sourceRoot, reason);
@@ -891,7 +889,7 @@ export class DefaultWindowFrameLifecycleController implements
         restore,
         tab: sourceTab
       });
-      this.#actorWindowFocus?.focusActorWindow(createdFrame.frameActor, toActorWindowFocusReason("programmatic"));
+      this.#windowFocus?.focusActorWindow(createdFrame.frameActor, toWindowFocusReason("programmatic"));
     } catch {
       if (createdFrame && this.#actorSystem.hasActor(createdFrame.frameActor)) {
         this.#actorSystem.destroyActor(createdFrame.frameActor);
@@ -934,7 +932,7 @@ export class DefaultWindowFrameLifecycleController implements
       liveView.frameActor = sourceFrame;
       liveView.framePort = sourcePort;
       this.#actorSystem.setParent(liveView.viewActor, sourceFrame);
-      this.#actorWindowFocus?.focusActorWindow(sourceFrame, toActorWindowFocusReason("programmatic"));
+      this.#windowFocus?.focusActorWindow(sourceFrame, toWindowFocusReason("programmatic"));
       if (fullscreenFrame && this.#actorSystem.hasActor(fullscreenFrame)) {
         this.#actorSystem.destroyActor(fullscreenFrame);
       }
@@ -978,7 +976,7 @@ export class DefaultWindowFrameLifecycleController implements
           this.#actorSystem.setParent(liveView.viewActor, created.frameActor);
         }
         created.framePort.setPresentation("windowed");
-        this.#actorWindowFocus?.focusActorWindow(created.frameActor, toActorWindowFocusReason("programmatic"));
+        this.#windowFocus?.focusActorWindow(created.frameActor, toWindowFocusReason("programmatic"));
         if (fullscreenFrame && this.#actorSystem.hasActor(fullscreenFrame)) {
           this.#actorSystem.destroyActor(fullscreenFrame);
         }
@@ -1001,7 +999,7 @@ export class DefaultWindowFrameLifecycleController implements
         this.#actorSystem.setParent(liveView.viewActor, fullscreenFrame);
       }
       fullscreenPort.setPresentation("windowed");
-      this.#actorWindowFocus?.focusActorWindow(fullscreenFrame, toActorWindowFocusReason("programmatic"));
+      this.#windowFocus?.focusActorWindow(fullscreenFrame, toWindowFocusReason("programmatic"));
     }
   }
 
@@ -1065,7 +1063,7 @@ export class DefaultWindowFrameLifecycleController implements
         this.#actorSystem.setParent(created.viewActor, targetFrameActor);
       }
       this.trackCreatedViewRuntime(viewKey, created, targetFrameActor, targetFramePort);
-      this.#actorWindowFocus?.focusActorWindow(targetFrameActor, toActorWindowFocusReason(reason));
+      this.#windowFocus?.focusActorWindow(targetFrameActor, toWindowFocusReason(reason));
     } catch (error) {
       if (targetFramePort.hasTab(created.viewActor.id)) {
         try {
@@ -1326,7 +1324,7 @@ export class DefaultWindowFrameLifecycleController implements
       sourceView.framePort = createdFrame.framePort;
       this.#actorSystem.setParent(sourceView.viewActor, createdFrame.frameActor);
       this.recordViewActivation(sourceView);
-      this.#actorWindowFocus?.focusActorWindow(createdFrame.frameActor, toActorWindowFocusReason(intent.reason));
+      this.#windowFocus?.focusActorWindow(createdFrame.frameActor, toWindowFocusReason(intent.reason));
     } catch (error) {
       this.rollbackFloat(sourceView, rollback, createdFrame);
       return { committed: false, reason: describeError(error, "dock float failed") };
@@ -1380,7 +1378,7 @@ export class DefaultWindowFrameLifecycleController implements
       sourceView.framePort = targetPort;
       this.#actorSystem.setParent(sourceView.viewActor, targetFrame);
       this.recordViewActivation(sourceView);
-      this.#actorWindowFocus?.focusActorWindow(targetFrame, toActorWindowFocusReason(intent.reason));
+      this.#windowFocus?.focusActorWindow(targetFrame, toWindowFocusReason(intent.reason));
     } catch (error) {
       this.rollbackMerge(sourceView, rollback);
       return { committed: false, reason: describeError(error, "dock split failed") };
@@ -1610,9 +1608,9 @@ function toLiveViewKey(liveView: LiveWindowView): string {
   return createWindowViewIdentityKey(liveView.identity);
 }
 
-function toActorWindowFocusReason(
+function toWindowFocusReason(
   reason: Extract<WindowFrameLifecycleReason, "dock-drop" | "menu" | "tab-click" | "programmatic">
-): "menu-restore" | "programmatic" {
+): Extract<WindowFocusReason, "menu-restore" | "programmatic"> {
   return reason === "menu" ? "menu-restore" : "programmatic";
 }
 

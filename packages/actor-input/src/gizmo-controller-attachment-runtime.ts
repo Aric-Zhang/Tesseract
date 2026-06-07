@@ -5,8 +5,8 @@ import type {
   ComponentAttachmentDescriptor,
   ComponentAttachmentRegistration,
   ComponentAttachmentRuntime
-} from "../actor-runtime";
-import { componentAttachmentKind } from "../actor-runtime";
+} from "actor-core";
+import { componentAttachmentKind } from "actor-core";
 import type { GizmoControllerRegistry } from "./gizmo-controller-registry";
 
 export const gizmoControllerAttachmentKind = componentAttachmentKind("gizmo-controller-binding");
@@ -55,4 +55,5 @@ function assertGizmoController(component: Component): Component & GizmoControlle
 const noopAttachmentRegistration: ComponentAttachmentRegistration = {
   dispose(): void {}
 };
+
 

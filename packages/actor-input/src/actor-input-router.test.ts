@@ -5,7 +5,7 @@ import type {
   GizmoMoveEvent,
   GizmoStartEvent
 } from "gizmo-core";
-import { componentType, type Actor, type Component } from "../actor-runtime";
+import { componentType, type Actor, type Component } from "actor-core";
 import type { ActorInputHit } from "./actor-input-hit";
 import { isActorInputParticipant, type ActorInputParticipant } from "./actor-input-participant";
 import { ActorInputRouter } from "./actor-input-router";
@@ -423,3 +423,4 @@ describe("ActorInputRouter", () => {
     ]);
   });
 });
+

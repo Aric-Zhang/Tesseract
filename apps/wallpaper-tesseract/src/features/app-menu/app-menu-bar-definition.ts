@@ -1,6 +1,7 @@
 import type { ComponentDefinition } from "../../actor-runtime";
 import { gizmoEventBindingComponentType } from "../../gizmo-runtime";
 import { stateObserverBindingComponentType } from "../../state-runtime";
+import { frameUpdateAttachment } from "../../update-runtime";
 import {
   AppMenuBarComponent,
   appMenuBarComponentType,
@@ -11,6 +12,7 @@ export const appMenuBarComponentDefinition:
   ComponentDefinition<AppMenuBarComponent, AppMenuBarComponentOptions> = {
     type: appMenuBarComponentType,
     singleton: true,
+    attachments: [frameUpdateAttachment],
     requires: [
       { type: gizmoEventBindingComponentType },
       { type: stateObserverBindingComponentType }

@@ -1,6 +1,7 @@
 import type { ComponentDefinition } from "../actor-runtime";
 import type { SceneCommandSink } from "../scene-runtime";
 import { gizmoEventBindingComponentType } from "../gizmo-runtime";
+import { frameUpdateAttachment } from "../update-runtime";
 import { findOwningWindowContentHost } from "../window-runtime";
 import {
   HierarchyPanelComponent,
@@ -18,6 +19,7 @@ export function createHierarchyPanelComponentDefinition(
   return {
     type: hierarchyPanelComponentType,
     singleton: true,
+    attachments: [frameUpdateAttachment],
     requires: [
       { type: gizmoEventBindingComponentType }
     ],

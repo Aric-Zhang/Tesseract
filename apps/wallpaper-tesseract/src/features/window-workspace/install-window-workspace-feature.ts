@@ -1,4 +1,3 @@
-import type { ActorWindowFocusServiceProxy } from "../../window-runtime";
 import {
   createDockTargetRegionSource,
   createWindowWorkspaceStackPriorityPort,
@@ -25,6 +24,7 @@ import {
   workspaceRootDockFrameComponentType,
   type FloatingWindowParameterPaths,
   type FloatingWindowState,
+  type WindowFocusServiceProxy,
   uiVec2,
   type UiVec2
 } from "../../window-runtime";
@@ -54,7 +54,7 @@ export interface InstallWindowWorkspaceFeatureOptions {
   readonly sceneStore: SceneParameterStore;
   readonly floatingFrameParent: HTMLElement;
   readonly rootFrameParent: HTMLElement;
-  readonly actorWindowFocus: ActorWindowFocusServiceProxy;
+  readonly windowFocus: WindowFocusServiceProxy;
   readonly cancelActiveInput: () => void;
   readonly floatingFramePolicies: ReadonlyMap<WindowViewKey, WindowWorkspaceFloatingFramePolicy>;
   readonly defaultOpenViews: readonly WindowWorkspaceDefaultOpenView[];
@@ -187,7 +187,7 @@ export function installWindowWorkspaceFeature(
   lifecycle = new DefaultWindowFrameLifecycleController({
     actorSystem: options.context.actorSystem,
     factories: viewFactories,
-    actorWindowFocus: options.actorWindowFocus,
+    windowFocus: options.windowFocus,
     cancelActiveInput: options.cancelActiveInput,
     createFloatingFrame: createFloatingFrameForView,
     framePorts
@@ -214,7 +214,7 @@ export function installWindowWorkspaceFeature(
     catalog,
     stackPriorityPort: createWindowWorkspaceStackPriorityPort(framePorts)
   });
-  options.actorWindowFocus.bind(workspaceController);
+  options.windowFocus.bind(workspaceController);
   options.registerRuntimeService(workspaceController);
   const presentationController = new WindowWorkspacePresentationController({
     framePorts,

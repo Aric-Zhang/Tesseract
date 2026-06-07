@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, type Actor } from "../actor-runtime";
-import { installCoreComponentDefinitions } from "../component-definitions";
+import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../state-runtime";
 import { parameterPath, vec2 } from "../scene-runtime";
 import { createTestComponentRegistry } from "../test-support";
 import {
@@ -101,7 +102,8 @@ function createWorkspace(options: CreateWorkspaceOptions) {
   const actorSystem = new ActorSystem();
   const document = new FakeDocument();
   const { registry } = createTestComponentRegistry({ actorSystem });
-  installCoreComponentDefinitions(registry);
+  installGizmoRuntimeComponentDefinitions(registry);
+  installStateRuntimeComponentDefinitions(registry);
   installWindowComponentDefinitions(registry);
   const framePorts = new WindowFramePortRegistry();
   const windows: Record<string, WindowFixture> = {};
@@ -393,3 +395,6 @@ function createFramePort(frameId: string): WindowFramePort {
     requestVisible() {}
   };
 }
+
+
+

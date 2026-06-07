@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "../actor-runtime";
-import type { Component } from "../actor-runtime";
+import { ActorSystem } from "actor-core";
+import type { Component } from "actor-core";
 import {
   activeInputCancellationAttachment,
   ActiveInputCancellationRuntime
@@ -68,3 +68,4 @@ describe("ActiveInputCancellationRuntime", () => {
     );
   });
 });
+

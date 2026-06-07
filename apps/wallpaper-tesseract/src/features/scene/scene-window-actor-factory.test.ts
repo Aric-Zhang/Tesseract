@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry, type Actor, type RegisteredActor } from "../../actor-runtime";
-import { installCoreComponentDefinitions } from "../../component-definitions";
+import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
 import { sceneParameterPaths, type SceneUpdateCommand } from "../../scene-runtime";
 import { floatingWindowComponentType, workspaceRootDockFrameComponentType } from "../../window-runtime";
@@ -89,7 +90,8 @@ function findChildByClass(element: FakeElement, className: string): FakeElement 
 function createContext(commands: SceneUpdateCommand[] = []) {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
-  installCoreComponentDefinitions(componentRegistry);
+  installGizmoRuntimeComponentDefinitions(componentRegistry);
+  installStateRuntimeComponentDefinitions(componentRegistry);
   installWindowComponentDefinitions(componentRegistry, {
     commandSink: { submit: (command) => commands.push(command as unknown as SceneUpdateCommand) }
   });
@@ -356,3 +358,6 @@ describe("createSceneViewActor", () => {
     expect(handle.modeToggle.hitTestInput({ x: 650, y: 520 })).toBeNull();
   });
 });
+
+
+

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry } from "../actor-runtime";
-import { installCoreComponentDefinitions } from "../component-definitions";
+import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../state-runtime";
 import { parameterPath, vec2 } from "../scene-runtime";
 import { createDockTargetRegionSource } from "./dock-target-region-source";
 import { floatingWindowComponentType } from "./floating-window-component";
@@ -73,7 +74,8 @@ function createRect(x: number, y: number, width: number, height: number): DOMRec
 
 function createRegistry(actorSystem: ActorSystem): ComponentRegistry {
   const registry = new ComponentRegistry({ actorSystem });
-  installCoreComponentDefinitions(registry);
+  installGizmoRuntimeComponentDefinitions(registry);
+  installStateRuntimeComponentDefinitions(registry);
   installWindowComponentDefinitions(registry);
   return registry;
 }
@@ -320,3 +322,6 @@ function createFramePort(frameId: string, bounds: DOMRectReadOnly): WindowFrameP
     requestVisible() {}
   };
 }
+
+
+

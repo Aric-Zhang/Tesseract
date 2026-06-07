@@ -1,7 +1,8 @@
 import { GizmoEventSystem, type GizmoController, type GizmoHit, type ScreenPoint } from "gizmo-core";
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../actor-runtime";
-import { installCoreComponentDefinitions } from "../component-definitions";
+import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../state-runtime";
 import { installWindowComponentDefinitions } from "./install-component-definitions";
 import {
   actorInputScopeRoutePriority,
@@ -1738,7 +1739,8 @@ describe("FloatingWindowComponent definition", () => {
   it("adds required binding components when added through the registry", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
-    installCoreComponentDefinitions(registry);
+    installGizmoRuntimeComponentDefinitions(registry);
+    installStateRuntimeComponentDefinitions(registry);
     installWindowComponentDefinitions(registry);
     const document = new FakeDocument();
     const parent = document.createElement("div");
@@ -1758,7 +1760,8 @@ describe("FloatingWindowComponent definition", () => {
   it("keeps binding priority and z-index aligned for overlapping windows", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
-    installCoreComponentDefinitions(registry);
+    installGizmoRuntimeComponentDefinitions(registry);
+    installStateRuntimeComponentDefinitions(registry);
     installWindowComponentDefinitions(registry);
     const document = new FakeDocument();
     const lowParent = document.createElement("div");
@@ -1802,7 +1805,8 @@ describe("FloatingWindowComponent definition", () => {
   it("rejects duplicate floating window components on one actor", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
-    installCoreComponentDefinitions(registry);
+    installGizmoRuntimeComponentDefinitions(registry);
+    installStateRuntimeComponentDefinitions(registry);
     installWindowComponentDefinitions(registry);
     const document = new FakeDocument();
     const parent = document.createElement("div");
@@ -1819,7 +1823,8 @@ describe("FloatingWindowComponent definition", () => {
   it("requires options.id", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
-    installCoreComponentDefinitions(registry);
+    installGizmoRuntimeComponentDefinitions(registry);
+    installStateRuntimeComponentDefinitions(registry);
     installWindowComponentDefinitions(registry);
     const actor = actorSystem.createActor({ id: "actor" });
 
@@ -1828,3 +1833,6 @@ describe("FloatingWindowComponent definition", () => {
     );
   });
 });
+
+
+

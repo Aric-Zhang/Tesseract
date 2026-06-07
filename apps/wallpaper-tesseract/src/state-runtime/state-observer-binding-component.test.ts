@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { componentType } from "../actor-runtime";
+import { ActorSystem, componentType } from "../actor-runtime";
 import type { ComponentDefinition } from "../actor-runtime";
-import { installCoreComponentDefinitions } from "../component-definitions";
+import { CompositeComponentAttachmentRuntime } from "../app-runtime/composite-component-attachment-runtime";
+import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../state-runtime";
 import type {
   RuntimeRegistration,
   SceneStateChangedEvent,
@@ -12,15 +14,22 @@ import {
   createTestComponentRegistry
 } from "../test-support";
 import {
+  FrameUpdateAttachmentRuntime,
+  frameUpdateAttachment,
+  type FrameUpdateParticipant
+} from "../update-runtime";
+import {
   stateObserverBindingComponentType
 } from "./state-observer-binding-component";
 import { StateObserverAttachmentRuntime } from "./state-observer-attachment-runtime";
 import type { StateObserverResponder } from "./state-observer-responder";
 
+interface TestStateObserverResponder extends StateObserverResponder, FrameUpdateParticipant {}
+
 function createRegistry() {
   const calls: string[] = [];
   const observers: SceneStateObserver[] = [];
-  const attachmentRuntime = new StateObserverAttachmentRuntime<SceneStateObserver>({
+  const stateAttachmentRuntime = new StateObserverAttachmentRuntime<SceneStateObserver>({
     registry: {
       subscribe(observer: SceneStateObserver): RuntimeRegistration {
         calls.push("observer-subscribe");
@@ -39,18 +48,26 @@ function createRegistry() {
       return observer as SceneStateObserver;
     }
   });
-  const { actorSystem, registry } = createTestComponentRegistry({ attachmentRuntime });
-  installCoreComponentDefinitions(registry);
-  return { actorSystem, calls, observers, registry };
+  const actorSystem = new ActorSystem();
+  const updateRuntime = new FrameUpdateAttachmentRuntime({ actorSystem });
+  const attachmentRuntime = new CompositeComponentAttachmentRuntime([
+    stateAttachmentRuntime,
+    updateRuntime
+  ]);
+  const { registry } = createTestComponentRegistry({ actorSystem, attachmentRuntime });
+  installGizmoRuntimeComponentDefinitions(registry);
+  installStateRuntimeComponentDefinitions(registry);
+  return { actorSystem, calls, observers, registry, updateRuntime };
 }
 
 function createResponderDefinition(
   calls: string[],
   label: string
-): ComponentDefinition<StateObserverResponder> {
-  const type = componentType<StateObserverResponder>(`state-responder-${label}`);
+): ComponentDefinition<TestStateObserverResponder> {
+  const type = componentType<TestStateObserverResponder>(`state-responder-${label}`);
   return {
     type,
+    attachments: [frameUpdateAttachment],
     requires: [{ type: stateObserverBindingComponentType }],
     createId() {
       return `${label}-state-responder`;
@@ -135,16 +152,19 @@ describe("StateObserverBindingComponent", () => {
   });
 
   it("does not run frame updates for disabled actors while state observers still receive events", () => {
-    const { actorSystem, calls, observers, registry } = createRegistry();
+    const { actorSystem, calls, observers, registry, updateRuntime } = createRegistry();
     registry.registerDefinition(createResponderDefinition(calls, "debug"));
     const actor = actorSystem.createActor({ id: "actor" });
     registry.addComponent(actor, componentType<StateObserverResponder>("state-responder-debug"));
     actor.enabled = false;
     calls.length = 0;
 
-    actorSystem.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
+    updateRuntime.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
     observers[0]?.onSceneStateChanged(createStateEvent());
 
     expect(calls).toEqual(["state:debug"]);
   });
 });
+
+
+

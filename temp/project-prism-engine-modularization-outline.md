@@ -14,6 +14,21 @@ Current Phase 2 implementation plan:
 temp/project-prism-phase-2-actor-core-extraction-implementation-plan.md
 ```
 
+Phase 2 acceptance report:
+
+```text
+temp/project-prism-phase-2-acceptance-report.md
+```
+
+Current execution status:
+
+```text
+Phase 0 complete as boundary baseline.
+Phase 1 complete as app-local shared-spine decoupling.
+Phase 2 complete for actor-core and actor-input package extraction.
+Next main line: Phase 3 UI framework port split and extraction planning.
+```
+
 ## Codename
 
 本次大重构代号：**Project Prism**。

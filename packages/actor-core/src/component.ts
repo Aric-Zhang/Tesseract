@@ -1,4 +1,3 @@
-import type { UpdateFrame } from "../runtime/ports";
 import type { Actor } from "./actor";
 import type { ComponentAttachmentDescriptor } from "./component-attachment-runtime";
 
@@ -11,7 +10,6 @@ export interface Component {
   readonly actor: Actor;
   enabled: boolean;
   onAttach?(): void;
-  updateFrame?(frame: UpdateFrame): void;
   onDetach?(): void;
   dispose?(): void;
 }
@@ -37,23 +35,9 @@ export interface ComponentRegistryView {
   hasComponent(actor: Actor, type: ComponentType): boolean;
 }
 
-export type ActorWindowFocusReason =
-  | "pointer-down"
-  | "menu-restore"
-  | "programmatic";
-
-export interface ActorWindowFocusService {
-  getEffectiveStackPriorityForActor(actor: Actor): number | null;
-  focusActorWindow(actor: Actor, reason: ActorWindowFocusReason): void;
-  requestFocusOnVisible(actor: Actor, reason: ActorWindowFocusReason): void;
-}
-
 export interface BusinessComponentContext {
   readonly actorSystem: ActorSystemView;
   readonly componentRegistry: ComponentRegistryView;
-  readonly services: {
-    readonly actorWindowFocus?: ActorWindowFocusService;
-  };
 }
 
 export interface BindingComponentContext extends BusinessComponentContext {}

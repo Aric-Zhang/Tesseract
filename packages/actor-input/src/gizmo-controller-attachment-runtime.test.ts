@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { GizmoController, GizmoHit, ScreenPoint } from "gizmo-core";
-import { ActorSystem } from "../actor-runtime";
-import type { Component } from "../actor-runtime";
-import { componentAttachmentKind } from "../actor-runtime";
+import { ActorSystem } from "actor-core";
+import type { Component } from "actor-core";
+import { componentAttachmentKind } from "actor-core";
 import {
   gizmoControllerAttachment,
   GizmoControllerAttachmentRuntime
@@ -90,4 +90,5 @@ describe("GizmoControllerAttachmentRuntime", () => {
     expect(() => runtime.attach(actor, component, [gizmoControllerAttachment])).toThrow(/GizmoController/);
   });
 });
+
 

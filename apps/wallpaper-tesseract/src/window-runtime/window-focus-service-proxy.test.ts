@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { Actor, ActorWindowFocusService } from "../actor-runtime";
+import type { Actor } from "../actor-runtime";
 import { ActorSystem } from "../actor-runtime";
-import { createActorWindowFocusServiceProxy } from "./actor-window-focus-service";
+import type { ActorInputStackPrioritySource } from "../gizmo-runtime";
+import type { WindowFocusCommandPort } from "./window-focus-command-port";
+import { createWindowFocusServiceProxy } from "./window-focus-service-proxy";
 
-function createRecordingService(calls: string[], priority = 123): ActorWindowFocusService {
+function createRecordingService(
+  calls: string[],
+  priority = 123
+): ActorInputStackPrioritySource & WindowFocusCommandPort {
   return {
     getEffectiveStackPriorityForActor(actor: Actor): number | null {
       calls.push(`priority:${actor.id}`);
@@ -18,10 +23,10 @@ function createRecordingService(calls: string[], priority = 123): ActorWindowFoc
   };
 }
 
-describe("ActorWindowFocusService proxy", () => {
+describe("WindowFocusService proxy", () => {
   it("is a safe no-op before a service is bound", () => {
     const actor = new ActorSystem().createActor({ id: "window" });
-    const proxy = createActorWindowFocusServiceProxy();
+    const proxy = createWindowFocusServiceProxy();
 
     expect(proxy.getEffectiveStackPriorityForActor(actor)).toBeNull();
     proxy.focusActorWindow(actor, "pointer-down");
@@ -31,7 +36,7 @@ describe("ActorWindowFocusService proxy", () => {
   it("delegates to the currently bound service", () => {
     const actor = new ActorSystem().createActor({ id: "window" });
     const calls: string[] = [];
-    const proxy = createActorWindowFocusServiceProxy();
+    const proxy = createWindowFocusServiceProxy();
 
     proxy.bind(createRecordingService(calls, 900));
 
@@ -48,7 +53,7 @@ describe("ActorWindowFocusService proxy", () => {
   it("can unbind and dispose without retaining the target service", () => {
     const actor = new ActorSystem().createActor({ id: "window" });
     const calls: string[] = [];
-    const proxy = createActorWindowFocusServiceProxy();
+    const proxy = createWindowFocusServiceProxy();
     proxy.bind(createRecordingService(calls));
 
     proxy.unbind();

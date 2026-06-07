@@ -1,5 +1,6 @@
 ﻿import { describe, expect, it } from "vitest";
-import { ActorSystem, type ActorWindowFocusService } from "../actor-runtime";
+import { ActorSystem } from "../actor-runtime";
+import type { WindowFocusCommandPort } from "./window-focus-command-port";
 import { DefaultWindowFrameLifecycleController } from "./window-frame-lifecycle-controller";
 import {
   createSingletonWindowViewIdentity,
@@ -17,9 +18,8 @@ import type {
 } from ".";
 import { WindowViewFactoryRegistry } from "./window-view-factory-registry";
 
-function createFocusRecorder(calls: string[]): ActorWindowFocusService {
+function createFocusRecorder(calls: string[]): WindowFocusCommandPort {
   return {
-    getEffectiveStackPriorityForActor: () => null,
     focusActorWindow(actor, reason): void {
       calls.push(`focus:${actor.id}:${reason}`);
     },
@@ -135,7 +135,7 @@ function createSubject(options: {
   const controller = new DefaultWindowFrameLifecycleController({
     actorSystem,
     factories: registry,
-    actorWindowFocus: createFocusRecorder(focusCalls),
+    windowFocus: createFocusRecorder(focusCalls),
     cancelActiveInput: () => cancelCalls.push("cancel"),
     createFloatingFrame: options.createFloatingFrame ??
       options.createFloatingFrameFactory?.(actorSystem) ??

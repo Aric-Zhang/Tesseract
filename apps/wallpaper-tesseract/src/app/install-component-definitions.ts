@@ -1,6 +1,10 @@
 import type { ComponentRegistry } from "../actor-runtime";
+import {
+  installGizmoRuntimeComponentDefinitions,
+  type GizmoEventBindingComponentDefinitionOptions
+} from "../gizmo-runtime";
+import { installStateRuntimeComponentDefinitions } from "../state-runtime";
 import type { SceneCommandSink } from "../scene-runtime";
-import { installCoreComponentDefinitions } from "../component-definitions";
 import { installDebugLogComponentDefinitions } from "../debug";
 import { installAppMenuComponentDefinitions } from "../features/app-menu";
 import { installCamera3FeatureComponentDefinitions } from "../features/camera3/components";
@@ -12,6 +16,7 @@ import { installTesseract4ComponentDefinitions } from "../tesseract4/components"
 import { installWindowComponentDefinitions, type UiLayoutCommandSink } from "../window-runtime";
 
 export interface InstallWallpaperComponentDefinitionsOptions {
+  readonly gizmoEventBinding?: GizmoEventBindingComponentDefinitionOptions;
   readonly sceneCommandSink?: SceneCommandSink;
   readonly uiLayoutCommandSink?: UiLayoutCommandSink;
 }
@@ -20,7 +25,10 @@ export function installWallpaperComponentDefinitions(
   componentRegistry: ComponentRegistry,
   options: InstallWallpaperComponentDefinitionsOptions = {}
 ): void {
-  installCoreComponentDefinitions(componentRegistry);
+  installGizmoRuntimeComponentDefinitions(componentRegistry, {
+    gizmoEventBinding: options.gizmoEventBinding
+  });
+  installStateRuntimeComponentDefinitions(componentRegistry);
   installWindowComponentDefinitions(componentRegistry, {
     commandSink: options.uiLayoutCommandSink
   });

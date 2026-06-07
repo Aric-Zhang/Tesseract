@@ -1,4 +1,5 @@
 import { cloneFloatingWindowState, type FloatingWindowState } from "./floating-window-state";
+import type { WindowViewIdentity } from "./window-view-identity";
 import type { WindowViewKey } from "./window-view-key";
 
 export type WindowWorkspaceSplitDirection = "horizontal" | "vertical";
@@ -9,6 +10,7 @@ export type WindowWorkspaceFramePresentation = "windowed" | "fullscreen";
 
 export interface WindowWorkspaceViewDescriptor {
   readonly viewKey: WindowViewKey;
+  readonly identity?: WindowViewIdentity;
   readonly actorId: string;
   readonly title?: string;
   readonly canDock?: boolean;

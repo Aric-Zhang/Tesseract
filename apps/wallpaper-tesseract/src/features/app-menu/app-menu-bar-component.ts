@@ -14,12 +14,14 @@ import type { StateObserverResponder } from "../../state-runtime";
 import type {
   WindowFrameIntentSink,
   WindowWorkspaceViewCatalog,
-  WindowViewKey
+  WindowViewIdentity,
+  WindowViewTypeKey
 } from "../../window-runtime";
 import {
   createWindowMenuItems,
   type AppMenuItemViewModel,
-  type AppMenuLeadingAccessory
+  type AppMenuLeadingAccessory,
+  type AppMenuWindowAction
 } from "./app-menu-model";
 
 export const appMenuBarComponentType =
@@ -41,15 +43,15 @@ export interface AppMenuBarComponentOptions {
 export interface AppMenuBarComponentServices {}
 
 interface MenuRow {
-  readonly kind: "open-view";
-  readonly viewKey: WindowViewKey;
+  readonly kind: "window-command";
+  readonly action: AppMenuWindowAction;
   readonly actorId: string | null;
   readonly enabled: boolean;
   readonly element: HTMLButtonElement;
 }
 
 type AppMenuHitData =
-  | { readonly kind: "open-view"; readonly viewKey: WindowViewKey };
+  | { readonly kind: "window-command"; readonly action: AppMenuWindowAction };
 
 const DEFAULT_APP_MENU_BAR_COMPONENT_ID = "app-menu-bar";
 
@@ -138,9 +140,9 @@ export class AppMenuBarComponent
     if (this.#menuOpen) {
       for (const row of this.#rows) {
         if (!isPointInsideRect(point, row.element.getBoundingClientRect())) continue;
-        return this.createHit("open-view-item", 70, {
-          kind: "open-view",
-          viewKey: row.viewKey
+        return this.createHit("window-command-item", 70, {
+          kind: "window-command",
+          action: row.action
         });
       }
       if (isPointInsideRect(point, this.#menu.getBoundingClientRect())) {
@@ -161,12 +163,12 @@ export class AppMenuBarComponent
       this.setMenuOpen(false);
       return;
     }
-    if (event.hit.partId !== "open-view-item") return;
-    const hitData = readOpenViewHitData(event.hit);
+    if (event.hit.partId !== "window-command-item") return;
+    const hitData = readWindowCommandHitData(event.hit);
     if (!hitData) return;
-    const row = this.#rows.find((candidate) => candidate.viewKey === hitData.viewKey);
+    const row = this.#rows.find((candidate) => areWindowActionsEqual(candidate.action, hitData.action));
     if (!row?.enabled) return;
-    this.activateOpenViewRow(row, event.timeStamp);
+    this.activateWindowCommandRow(row, event.timeStamp);
   }
 
   dispose(): void {
@@ -200,13 +202,23 @@ export class AppMenuBarComponent
       }
       const row = this.#rows[this.#activeRowIndex];
       if (row?.enabled) {
-        this.activateOpenViewRow(row, event.timeStamp);
+        this.activateWindowCommandRow(row, event.timeStamp);
       }
     }
   }
 
-  private activateOpenViewRow(row: MenuRow, _timeStamp?: number): void {
-    this.#windowFrameIntents?.requestOpenView(row.viewKey, "menu");
+  private activateWindowCommandRow(row: MenuRow, _timeStamp?: number): void {
+    if (row.action.kind === "open-or-focus-type") {
+      if (this.#windowFrameIntents?.requestOpenOrFocusViewType) {
+        this.#windowFrameIntents.requestOpenOrFocusViewType(row.action.typeKey, "menu");
+      }
+      return this.setMenuOpen(false);
+    }
+    if (row.action.kind === "new-instance") {
+      this.#windowFrameIntents?.requestCreateViewInstance?.(row.action.typeKey, "menu");
+      return this.setMenuOpen(false);
+    }
+    this.#windowFrameIntents?.requestFocusViewInstance?.(row.action.identity, "menu");
     this.setMenuOpen(false);
   }
 
@@ -224,10 +236,10 @@ export class AppMenuBarComponent
     for (const item of items) {
       const row = this.createMenuItemElement(item);
       this.#menu.append(row);
-      if (item.kind === "open-view") {
+      if (item.kind === "window-command") {
         this.#rows.push({
           kind: item.kind,
-          viewKey: item.viewKey,
+          action: item.action,
           actorId: item.actorId,
           enabled: item.enabled,
           element: row
@@ -274,14 +286,22 @@ export class AppMenuBarComponent
     row.type = "button";
     row.dataset.menuItemId = item.id;
     row.dataset.itemKind = item.kind;
-    if (item.kind === "open-view") {
-      row.dataset.viewKey = item.viewKey;
+    if (item.kind === "window-command") {
+      row.dataset.actionKind = item.action.kind;
+      row.dataset.typeKey = "typeKey" in item.action ? item.action.typeKey : item.action.identity.typeKey;
+      if (item.viewKey) {
+        row.dataset.viewKey = item.viewKey;
+      } else {
+        delete row.dataset.viewKey;
+      }
       row.dataset.live = String(item.live);
     } else {
+      delete row.dataset.actionKind;
+      delete row.dataset.typeKey;
       delete row.dataset.viewKey;
       delete row.dataset.live;
     }
-    if (item.kind === "open-view" && item.actorId) {
+    if (item.kind === "window-command" && item.actorId) {
       row.dataset.actorId = item.actorId;
     } else {
       delete row.dataset.actorId;
@@ -342,7 +362,7 @@ export class AppMenuBarComponent
       hitPriority,
       path: [{
         componentId: this.id,
-        role: partId === "open-view-item" || partId === "menu-dismiss" ? "control" : "container",
+        role: partId === "window-command-item" || partId === "menu-dismiss" ? "control" : "container",
         partId
       }],
       data
@@ -382,33 +402,77 @@ function createMenuItemsSignature(items: readonly AppMenuItemViewModel[]): strin
   return JSON.stringify(items.map((item) => [
     item.kind,
     item.id,
-    item.kind === "open-view" ? item.viewKey : item.commandId,
+    item.kind === "window-command" ? item.action.kind : item.commandId,
+    item.kind === "window-command" && "typeKey" in item.action ? item.action.typeKey : null,
+    item.kind === "window-command" && "identity" in item.action ? item.action.identity.instanceId : null,
+    item.kind === "window-command" ? item.viewKey : null,
+    item.kind === "window-command" ? item.actorId : null,
     item.label,
     item.enabled,
-    item.kind === "open-view" ? item.live : item.checked,
+    item.kind === "window-command" ? item.live : item.checked,
     item.leading.kind,
     item.leading.kind === "icon" ? item.leading.name : null,
     item.shortcutLabel ?? null
   ]));
 }
 
-function readOpenViewHitData(hit: ActorInputHit): AppMenuHitData | null {
+function readWindowCommandHitData(hit: ActorInputHit): AppMenuHitData | null {
   const data = hit.data;
   if (
     typeof data !== "object" ||
     data === null ||
     !("kind" in data) ||
-    !("viewKey" in data)
+    !("action" in data)
   ) return null;
-  const candidate = data as { kind?: unknown; viewKey?: unknown };
-  if (
-    candidate.kind !== "open-view" ||
-    typeof candidate.viewKey !== "string"
-  ) return null;
+  const candidate = data as { kind?: unknown; action?: unknown };
+  if (candidate.kind !== "window-command") return null;
+  const action = readWindowAction(candidate.action);
+  if (!action) return null;
   return {
-    kind: "open-view",
-    viewKey: candidate.viewKey as WindowViewKey
+    kind: "window-command",
+    action
   };
+}
+
+function readWindowAction(value: unknown): AppMenuWindowAction | null {
+  if (typeof value !== "object" || value === null || !("kind" in value)) return null;
+  const candidate = value as {
+    readonly kind?: unknown;
+    readonly typeKey?: unknown;
+    readonly identity?: unknown;
+  };
+  if (
+    (candidate.kind === "open-or-focus-type" || candidate.kind === "new-instance") &&
+    typeof candidate.typeKey === "string"
+  ) {
+    return { kind: candidate.kind, typeKey: candidate.typeKey as WindowViewTypeKey };
+  }
+  if (candidate.kind === "focus-instance" && isWindowViewIdentity(candidate.identity)) {
+    return { kind: "focus-instance", identity: candidate.identity };
+  }
+  return null;
+}
+
+function isWindowViewIdentity(value: unknown): value is WindowViewIdentity {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "typeKey" in value &&
+    "instanceId" in value &&
+    typeof (value as { readonly typeKey?: unknown }).typeKey === "string" &&
+    typeof (value as { readonly instanceId?: unknown }).instanceId === "string"
+  );
+}
+
+function areWindowActionsEqual(a: AppMenuWindowAction, b: AppMenuWindowAction): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "focus-instance" && b.kind === "focus-instance") {
+    return a.identity.instanceId === b.identity.instanceId;
+  }
+  if ("typeKey" in a && "typeKey" in b) {
+    return a.typeKey === b.typeKey;
+  }
+  return false;
 }
 
 function getMenuItemRole(item: AppMenuItemViewModel): string {

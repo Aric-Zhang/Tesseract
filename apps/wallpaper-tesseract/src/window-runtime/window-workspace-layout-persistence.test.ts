@@ -8,26 +8,38 @@ import {
 } from "./window-workspace-layout";
 import {
   hydrateWindowWorkspaceFrameLayout,
+  getPersistedViewDescriptorIdentity,
+  getPersistedViewDescriptorRuntimeViewKey,
   parsePersistedWindowWorkspaceFrameLayout,
-  serializeWindowWorkspaceFrameLayout
+  serializeWindowWorkspaceFrameLayout,
+  WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION,
+  WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION,
+  type PersistedWindowWorkspaceViewDescriptor
 } from "./window-workspace-layout-persistence";
+import { windowViewInstanceId, windowViewTypeKey } from "./window-view-identity";
+import { windowViewKey } from "./window-view-key";
 
 describe("window workspace frame layout persistence", () => {
-  it("serializes logical view keys without storing runtime actor ids in frame roots", () => {
+  it("serializes logical view instance identities without storing runtime actor ids", () => {
     const layout = createSubjectLayout();
 
     const persisted = serializeWindowWorkspaceFrameLayout(layout);
 
-    expect(persisted.version).toBe(1);
+    expect(persisted.version).toBe(WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION);
     expect(persisted.views).toEqual([
-      { viewKey: "scene", title: "Scene", canDock: undefined },
-      { viewKey: "debug", title: "Debug Log", canDock: undefined },
-      { viewKey: "hierarchy", title: "Hierarchy", canDock: undefined }
+      { typeKey: "scene", instanceId: "scene:default", title: "Scene", canDock: undefined, singleton: true },
+      { typeKey: "debug", instanceId: "debug:default", title: "Debug Log", canDock: undefined, singleton: true },
+      { typeKey: "hierarchy", instanceId: "hierarchy:default", title: "Hierarchy", canDock: undefined, singleton: true }
     ]);
     expect(JSON.stringify(persisted)).not.toContain("scene-view-actor");
     expect(JSON.stringify(persisted)).not.toContain("debug-view-actor");
-    expect(expectTabset(expectSplit(persisted.frames[0]?.root).first).tabs).toEqual(["scene"]);
-    expect(expectTabset(expectSplit(persisted.frames[0]?.root).second).tabs).toEqual(["debug", "hierarchy"]);
+    expect(JSON.stringify(persisted)).not.toContain("actorId");
+    expect(JSON.stringify(persisted)).not.toContain("viewActorId");
+    expect(JSON.stringify(persisted)).not.toContain("frameActorId");
+    expect(expectPersistedTabset(expectPersistedSplit(persisted.frames[0]?.root).first).tabs)
+      .toEqual(["scene:default"]);
+    expect(expectPersistedTabset(expectPersistedSplit(persisted.frames[0]?.root).second).tabs)
+      .toEqual(["debug:default", "hierarchy:default"]);
   });
 
   it("hydrates persisted logical layout with fresh runtime actor ids", () => {
@@ -44,6 +56,110 @@ describe("window workspace frame layout persistence", () => {
     expect(hydrated.views["hierarchy"]?.actorId).toBe("hierarchy-view-actor-2");
     expect(expectTabset(expectSplit(hydrated.frames[0]?.root).first).tabs).toEqual(["scene"]);
     expect(expectTabset(expectSplit(hydrated.frames[0]?.root).second).tabs).toEqual(["debug", "hierarchy"]);
+  });
+
+  it("round trips v2 layouts with two instances of the same view type", () => {
+    const inspectorType = windowViewTypeKey("inspector");
+    const inspectorA = windowViewInstanceId("inspector:a");
+    const inspectorB = windowViewInstanceId("inspector:b");
+    const layout = createWindowWorkspaceFrameLayout({
+      views: [
+        {
+          viewKey: windowViewKey("inspector:a"),
+          identity: {
+            viewKey: windowViewKey("inspector:a"),
+            typeKey: inspectorType,
+            instanceId: inspectorA,
+            multiplicity: "multi-instance"
+          },
+          actorId: "inspector-a-view-actor",
+          title: "Inspector A"
+        },
+        {
+          viewKey: windowViewKey("inspector:b"),
+          identity: {
+            viewKey: windowViewKey("inspector:b"),
+            typeKey: inspectorType,
+            instanceId: inspectorB,
+            multiplicity: "multi-instance"
+          },
+          actorId: "inspector-b-view-actor",
+          title: "Inspector B"
+        }
+      ],
+      frames: [{
+        frameId: "inspector-frame",
+        bounds: {
+          position: { x: 20, y: 30 },
+          size: { x: 420, y: 260 },
+          visible: true
+        },
+        presentation: "windowed",
+        root: {
+          kind: "tabset",
+          id: "inspectors",
+          tabs: [windowViewKey("inspector:a"), windowViewKey("inspector:b")],
+          activeTabId: windowViewKey("inspector:b")
+        }
+      }]
+    });
+
+    const persisted = serializeWindowWorkspaceFrameLayout(layout);
+
+    expect(persisted.version).toBe(WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION);
+    expect(persisted.views.map((view) => getPersistedViewDescriptorIdentity(view).typeKey))
+      .toEqual(["inspector", "inspector"]);
+    expect(persisted.views.map((view) => getPersistedViewDescriptorIdentity(view).instanceId))
+      .toEqual(["inspector:a", "inspector:b"]);
+    expect(expectPersistedTabset(persisted.frames[0]?.root).tabs).toEqual(["inspector:a", "inspector:b"]);
+    expect(JSON.stringify(persisted)).not.toContain("inspector-a-view-actor");
+    expect(JSON.stringify(persisted)).not.toContain("inspector-b-view-actor");
+
+    const hydrated = hydrateWindowWorkspaceFrameLayout(persisted, [
+      {
+        viewKey: windowViewKey("runtime-inspector-a"),
+        identity: {
+          viewKey: windowViewKey("runtime-inspector-a"),
+          typeKey: inspectorType,
+          instanceId: inspectorA,
+          multiplicity: "multi-instance"
+        },
+        actorId: "fresh-a-view-actor",
+        title: "Fresh Inspector A"
+      },
+      {
+        viewKey: windowViewKey("runtime-inspector-b"),
+        identity: {
+          viewKey: windowViewKey("runtime-inspector-b"),
+          typeKey: inspectorType,
+          instanceId: inspectorB,
+          multiplicity: "multi-instance"
+        },
+        actorId: "fresh-b-view-actor",
+        title: "Fresh Inspector B"
+      }
+    ]);
+
+    expect(Object.keys(hydrated.views)).toEqual(["runtime-inspector-a", "runtime-inspector-b"]);
+    expect(hydrated.views["runtime-inspector-a"]?.actorId).toBe("fresh-a-view-actor");
+    expect(hydrated.views["runtime-inspector-b"]?.actorId).toBe("fresh-b-view-actor");
+    expect(expectTabset(hydrated.frames[0]?.root).tabs)
+      .toEqual(["runtime-inspector-a", "runtime-inspector-b"]);
+    expect(expectTabset(hydrated.frames[0]?.root).activeTabId).toBe("runtime-inspector-b");
+  });
+
+  it("maps persisted v2 descriptors back to runtime keys without collapsing multi-instance rows", () => {
+    expect(getPersistedViewDescriptorRuntimeViewKey({
+      typeKey: windowViewTypeKey("scene"),
+      instanceId: windowViewInstanceId("scene:default"),
+      title: "Scene",
+      singleton: true
+    })).toBe("scene");
+    expect(getPersistedViewDescriptorRuntimeViewKey({
+      typeKey: windowViewTypeKey("inspector"),
+      instanceId: windowViewInstanceId("inspector:a"),
+      title: "Inspector 1"
+    })).toBe("inspector:a");
   });
 
   it("normalizes unknown views during hydration", () => {
@@ -147,16 +263,55 @@ describe("window workspace frame layout persistence", () => {
     expect(hydrated.hiddenViewKeys).toEqual([]);
   });
 
-  it("parses valid persisted JSON and rejects invalid versions", () => {
+  it("parses valid v2 persisted JSON and rejects invalid versions", () => {
     const persisted = serializeWindowWorkspaceFrameLayout(createSubjectLayout());
 
     const parsed = parsePersistedWindowWorkspaceFrameLayout(JSON.parse(JSON.stringify(persisted)));
 
-    expect(parsed?.version).toBe(1);
-    expect(parsed?.views.map((view) => view.viewKey)).toEqual(["scene", "debug", "hierarchy"]);
+    expect(parsed?.version).toBe(WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION);
+    expect(parsed?.views.map((view) => getPersistedViewDescriptorIdentity(view).instanceId))
+      .toEqual(["scene:default", "debug:default", "hierarchy:default"]);
     expect(parsed?.frames.map((frame) => frame.frameId)).toEqual(["frame:scene-tools"]);
     expect(parsePersistedWindowWorkspaceFrameLayout({ ...persisted, version: 999 })).toBeNull();
     expect(parsePersistedWindowWorkspaceFrameLayout("not layout")).toBeNull();
+  });
+
+  it("migrates v1 persisted view keys to singleton identities during hydration", () => {
+    const legacy = parsePersistedWindowWorkspaceFrameLayout({
+      version: WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION,
+      views: [
+        { viewKey: "scene", title: "Scene" },
+        { viewKey: "debug", title: "Debug Log" }
+      ],
+      frames: [{
+        frameId: "legacy-frame",
+        bounds: {
+          position: { x: 10, y: 20 },
+          size: { x: 500, y: 320 },
+          visible: true
+        },
+        presentation: "windowed",
+        root: {
+          kind: "tabset",
+          id: "legacy-tabset",
+          tabs: ["scene", "debug"],
+          activeTabId: "debug"
+        }
+      }],
+      hiddenViewKeys: []
+    });
+    expect(legacy).not.toBeNull();
+
+    const hydrated = hydrateWindowWorkspaceFrameLayout(legacy!, [
+      { viewKey: "scene", actorId: "scene-view-actor-2", title: "Scene Runtime 2" },
+      { viewKey: "debug", actorId: "debug-view-actor-2", title: "Debug Runtime 2" }
+    ]);
+
+    expect(hydrated.views.scene?.identity?.instanceId).toBe("scene:default");
+    expect(hydrated.views.debug?.identity?.instanceId).toBe("debug:default");
+    expect(expectTabset(hydrated.frames[0]?.root).tabs).toEqual(["scene", "debug"]);
+    expect(serializeWindowWorkspaceFrameLayout(hydrated).version)
+      .toBe(WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION);
   });
 
   it("parses top-level-valid payloads by pruning malformed entries", () => {
@@ -217,7 +372,7 @@ describe("window workspace frame layout persistence", () => {
       hiddenViewKeys: ["debug", "", 7]
     });
 
-    expect(parsed?.views.map((view) => view.viewKey)).toEqual(["scene"]);
+    expect(parsed?.views.map(getPersistedViewKeyForTest)).toEqual(["scene"]);
     expect(parsed?.frames.map((frame) => frame.frameId)).toEqual(["valid-frame"]);
     expect(parsed?.hiddenViewKeys).toEqual(["debug"]);
   });
@@ -276,6 +431,20 @@ function expectSplit(node: unknown): WindowFrameSplitNode {
 function expectTabset(node: unknown): WindowFrameTabsetNode {
   expect(node).toMatchObject({ kind: "tabset" });
   return node as WindowFrameTabsetNode;
+}
+
+function expectPersistedSplit(node: unknown): WindowFrameSplitNode {
+  expect(node).toMatchObject({ kind: "split" });
+  return node as WindowFrameSplitNode;
+}
+
+function expectPersistedTabset(node: unknown): { readonly tabs: readonly string[] } {
+  expect(node).toMatchObject({ kind: "tabset" });
+  return node as { readonly tabs: readonly string[] };
+}
+
+function getPersistedViewKeyForTest(view: PersistedWindowWorkspaceViewDescriptor): string {
+  return "viewKey" in view ? view.viewKey : view.typeKey;
 }
 
 function expectValidFrameLayout(layout: WindowWorkspaceFrameLayout): void {

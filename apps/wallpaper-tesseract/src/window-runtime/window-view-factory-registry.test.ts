@@ -35,7 +35,7 @@ describe("WindowViewFactoryRegistry", () => {
     expect(receivedIdentities).toEqual([{
       viewKey: "debug",
       typeKey: "debug",
-      instanceId: null,
+      instanceId: "debug:default",
       multiplicity: "singleton"
     }]);
     expect(created.viewActor.id).toBe("debug-view");
@@ -82,6 +82,7 @@ describe("WindowViewFactoryRegistry", () => {
 
     expect(registry.get("scene:preview")).toBe(factory);
     expect(registry.get("scene")).toBeNull();
+    expect(registry.listByType("scene")).toEqual([factory]);
     expect(registry.getIdentity("scene:preview")).toEqual({
       viewKey: "scene:preview",
       typeKey: "scene",

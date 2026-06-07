@@ -6,6 +6,7 @@ import {
   WindowWorkspaceFrameLayoutPersistenceController,
   type WindowWorkspaceFrameLayoutStorage
 } from "./window-workspace-layout-persistence-controller";
+import { getPersistedViewDescriptorRuntimeViewKey } from "./window-workspace-layout-persistence";
 
 describe("WindowWorkspaceFrameLayoutPersistenceController", () => {
   it("persists layout snapshots only when the serialized logical layout changes", () => {
@@ -143,7 +144,7 @@ describe("WindowWorkspaceFrameLayoutPersistenceController", () => {
 
     const loaded = loadPersistedWindowWorkspaceFrameLayout(storage);
 
-    expect(loaded?.views.map((view) => view.viewKey)).toEqual(["scene"]);
+    expect(loaded?.views.map(getPersistedViewDescriptorRuntimeViewKey)).toEqual(["scene"]);
     expect(loaded?.frames.map((frame) => frame.frameId)).toEqual(["scene-frame"]);
     expect(loaded?.hiddenViewKeys).toEqual(["debug"]);
     expect(storage.removeCalls).toEqual([]);

@@ -24,13 +24,18 @@ export interface RenderWindowFrameTabsetOptions {
 export function renderWindowFrameTabsetTabs(options: RenderWindowFrameTabsetOptions): void {
   const tabClassName = joinClassNames("window-frame-tab", options.tabClassName);
   const closeClassName = joinClassNames("window-frame-tab__close", options.closeClassName);
+  setAttributeIfSupported(options.target, "role", "tablist");
   for (const tab of options.tabs) {
     if (!options.tabset.tabs.includes(tab.viewActorId)) continue;
+    const selected = tab.viewActorId === options.tabset.activeViewActorId;
     const element = options.document.createElement("div");
     element.className = joinClassNames(
       tabClassName,
-      tab.viewActorId === options.tabset.activeViewActorId ? "is-active" : undefined
+      selected ? "is-active" : undefined
     );
+    setAttributeIfSupported(element, "role", "tab");
+    setAttributeIfSupported(element, "aria-selected", String(selected));
+    element.tabIndex = -1;
     element.textContent = tab.title;
     const close = options.document.createElement("button");
     close.className = closeClassName;
@@ -82,4 +87,8 @@ function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {
 
 function joinClassNames(...classNames: Array<string | undefined>): string {
   return classNames.filter(Boolean).join(" ");
+}
+
+function setAttributeIfSupported(element: Element, name: string, value: string): void {
+  element.setAttribute?.(name, value);
 }

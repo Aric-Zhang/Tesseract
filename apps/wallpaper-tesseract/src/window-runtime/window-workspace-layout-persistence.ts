@@ -12,24 +12,66 @@ import {
   type WindowWorkspaceFrameLayout,
   type WindowWorkspaceViewDescriptor
 } from "./window-workspace-layout";
+import {
+  createSingletonWindowViewIdentity,
+  createWindowViewKeyFromTypeAndInstance,
+  windowViewInstanceId,
+  windowViewTypeKey,
+  type WindowViewIdentity,
+  type WindowViewInstanceId,
+  type WindowViewTypeKey
+} from "./window-view-identity";
 
-export const WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION = 1;
+export const WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION = 2;
+export const WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION = 1;
 
-export interface PersistedWindowWorkspaceViewDescriptor {
+export interface PersistedWindowWorkspaceViewDescriptorV1 {
   readonly viewKey: WindowViewKey;
   readonly title?: string;
   readonly canDock?: boolean;
 }
 
+export interface PersistedWindowWorkspaceViewDescriptorV2 {
+  readonly typeKey: WindowViewTypeKey;
+  readonly instanceId: WindowViewInstanceId;
+  readonly title?: string;
+  readonly canDock?: boolean;
+  readonly singleton?: boolean;
+}
+
+export type PersistedWindowWorkspaceViewDescriptor =
+  | PersistedWindowWorkspaceViewDescriptorV1
+  | PersistedWindowWorkspaceViewDescriptorV2;
+
+export interface PersistedWindowFrameTabsetNode {
+  readonly kind: "tabset";
+  readonly id: string;
+  readonly tabs: readonly string[];
+  readonly activeTabId: string;
+}
+
+export interface PersistedWindowFrameSplitNode {
+  readonly kind: "split";
+  readonly id: string;
+  readonly direction: WindowFrameSplitNode["direction"];
+  readonly ratio: number;
+  readonly first: PersistedWindowFrameDockNode;
+  readonly second: PersistedWindowFrameDockNode;
+}
+
+export type PersistedWindowFrameDockNode =
+  | PersistedWindowFrameTabsetNode
+  | PersistedWindowFrameSplitNode;
+
 export interface PersistedWindowWorkspaceFrameDescriptor {
   readonly frameId: string;
   readonly bounds: FloatingWindowState;
   readonly presentation: WindowWorkspaceFrameDescriptor["presentation"];
-  readonly root: WindowFrameDockNode;
+  readonly root: PersistedWindowFrameDockNode;
 }
 
 export interface PersistedWindowWorkspaceFrameLayout {
-  readonly version: typeof WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION;
+  readonly version: typeof WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION | typeof WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION;
   readonly views: readonly PersistedWindowWorkspaceViewDescriptor[];
   readonly frames: readonly PersistedWindowWorkspaceFrameDescriptor[];
   readonly hiddenViewKeys: readonly WindowViewKey[];
@@ -39,20 +81,25 @@ export function serializeWindowWorkspaceFrameLayout(
   layout: WindowWorkspaceFrameLayout
 ): PersistedWindowWorkspaceFrameLayout {
   const normalized = normalizeWindowWorkspaceFrameLayout(layout);
+  const identitiesByViewKey = new Map(
+    Object.values(normalized.views).map((view) => [view.viewKey, getViewDescriptorIdentity(view)])
+  );
   return {
     version: WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION,
     views: Object.values(normalized.views).map((view) => ({
-      viewKey: view.viewKey,
+      typeKey: getViewDescriptorIdentity(view).typeKey,
+      instanceId: getViewDescriptorIdentity(view).instanceId,
       title: view.title,
-      canDock: view.canDock
+      canDock: view.canDock,
+      singleton: getViewDescriptorIdentity(view).multiplicity === "singleton" ? true : undefined
     })),
     frames: normalized.frames.map((frame) => ({
       frameId: frame.frameId,
       bounds: cloneFloatingWindowState(frame.bounds),
       presentation: frame.presentation,
-      root: cloneFrameDockNode(frame.root)
+      root: serializeFrameDockNode(frame.root, identitiesByViewKey)
     })),
-    hiddenViewKeys: [...normalized.hiddenViewKeys]
+    hiddenViewKeys: []
   };
 }
 
@@ -61,12 +108,21 @@ export function hydrateWindowWorkspaceFrameLayout(
   runtimeViews: readonly WindowWorkspaceViewDescriptor[]
 ): WindowWorkspaceFrameLayout {
   const runtimeViewsByKey = new Map(runtimeViews.map((view) => [view.viewKey, view]));
+  const runtimeViewsByInstanceId = new Map(
+    runtimeViews.map((view) => [getViewDescriptorIdentity(view).instanceId, view])
+  );
+  const runtimeViewKeyByPersistedTabId = new Map<string, WindowViewKey>();
   const views = persisted.views
     .map((persistedView): WindowWorkspaceViewDescriptor | null => {
-      const runtimeView = runtimeViewsByKey.get(persistedView.viewKey);
+      const identity = getPersistedViewDescriptorIdentity(persistedView);
+      const runtimeView = isPersistedViewDescriptorV2(persistedView)
+        ? runtimeViewsByInstanceId.get(identity.instanceId)
+        : runtimeViewsByKey.get(persistedView.viewKey);
       if (!runtimeView) return null;
+      runtimeViewKeyByPersistedTabId.set(getPersistedViewTabId(persistedView), runtimeView.viewKey);
       return {
         ...runtimeView,
+        identity,
         title: persistedView.title ?? runtimeView.title,
         canDock: persistedView.canDock ?? runtimeView.canDock
       };
@@ -79,9 +135,11 @@ export function hydrateWindowWorkspaceFrameLayout(
       frameId: frame.frameId,
       bounds: cloneFloatingWindowState(frame.bounds),
       presentation: frame.presentation,
-      root: cloneFrameDockNode(frame.root)
+      root: hydrateFrameDockNode(frame.root, runtimeViewKeyByPersistedTabId)
     })),
-    hiddenViewKeys: persisted.hiddenViewKeys.filter((viewKey) => runtimeViewsByKey.has(viewKey))
+    hiddenViewKeys: persisted.version === WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION
+      ? persisted.hiddenViewKeys.filter((viewKey) => runtimeViewsByKey.has(viewKey))
+      : []
   });
 }
 
@@ -89,12 +147,18 @@ export function parsePersistedWindowWorkspaceFrameLayout(
   value: unknown
 ): PersistedWindowWorkspaceFrameLayout | null {
   if (!isRecord(value)) return null;
-  if (value.version !== WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION) return null;
+  const version = value.version;
+  if (
+    version !== WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION &&
+    version !== WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION
+  ) {
+    return null;
+  }
   if (!Array.isArray(value.views) || !Array.isArray(value.frames) || !Array.isArray(value.hiddenViewKeys)) {
     return null;
   }
   const views = value.views
-    .map(parsePersistedViewDescriptor)
+    .map((view) => parsePersistedViewDescriptor(view, version))
     .filter((view): view is PersistedWindowWorkspaceViewDescriptor => view !== null);
   const frames = value.frames
     .map(parsePersistedFrameDescriptor)
@@ -103,19 +167,34 @@ export function parsePersistedWindowWorkspaceFrameLayout(
     .filter((item): item is string => typeof item === "string" && item.length > 0)
     .map(windowViewKey);
   return {
-    version: WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION,
+    version,
     views,
     frames,
     hiddenViewKeys
   };
 }
 
-function parsePersistedViewDescriptor(value: unknown): PersistedWindowWorkspaceViewDescriptor | null {
-  if (!isRecord(value) || typeof value.viewKey !== "string" || value.viewKey.length === 0) return null;
+function parsePersistedViewDescriptor(
+  value: unknown,
+  version: PersistedWindowWorkspaceFrameLayout["version"]
+): PersistedWindowWorkspaceViewDescriptor | null {
+  if (!isRecord(value)) return null;
+  if (version === WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION) {
+    if (typeof value.viewKey !== "string" || value.viewKey.length === 0) return null;
+    return {
+      viewKey: windowViewKey(value.viewKey),
+      title: typeof value.title === "string" ? value.title : undefined,
+      canDock: typeof value.canDock === "boolean" ? value.canDock : undefined
+    };
+  }
+  if (typeof value.typeKey !== "string" || value.typeKey.length === 0) return null;
+  if (typeof value.instanceId !== "string" || value.instanceId.length === 0) return null;
   return {
-    viewKey: windowViewKey(value.viewKey),
+    typeKey: windowViewTypeKey(value.typeKey),
+    instanceId: windowViewInstanceId(value.instanceId),
     title: typeof value.title === "string" ? value.title : undefined,
-    canDock: typeof value.canDock === "boolean" ? value.canDock : undefined
+    canDock: typeof value.canDock === "boolean" ? value.canDock : undefined,
+    singleton: typeof value.singleton === "boolean" ? value.singleton : undefined
   };
 }
 
@@ -134,16 +213,15 @@ function parsePersistedFrameDescriptor(value: unknown): PersistedWindowWorkspace
   };
 }
 
-function parseFrameDockNode(value: unknown): WindowFrameDockNode | null {
+function parseFrameDockNode(value: unknown): PersistedWindowFrameDockNode | null {
   if (!isRecord(value)) return null;
   if (value.kind === "tabset") {
     if (!Array.isArray(value.tabs)) return null;
     const tabs = value.tabs
-      .filter((item): item is string => typeof item === "string" && item.length > 0)
-      .map(windowViewKey);
+      .filter((item): item is string => typeof item === "string" && item.length > 0);
     if (tabs.length === 0) return null;
-    const activeTabId = typeof value.activeTabId === "string"
-      ? windowViewKey(value.activeTabId)
+    const activeTabId = typeof value.activeTabId === "string" && value.activeTabId.length > 0
+      ? value.activeTabId
       : tabs[0];
     return {
       kind: "tabset",
@@ -183,31 +261,103 @@ function parseFloatingWindowState(value: unknown): FloatingWindowState | null {
   };
 }
 
-function cloneFrameDockNode(node: WindowFrameDockNode): WindowFrameDockNode {
+function serializeFrameDockNode(
+  node: WindowFrameDockNode,
+  identitiesByViewKey: ReadonlyMap<WindowViewKey, WindowViewIdentity>
+): PersistedWindowFrameDockNode {
   if (node.kind === "tabset") {
-    return cloneFrameTabsetNode(node);
+    return serializeFrameTabsetNode(node, identitiesByViewKey);
   }
-  return cloneFrameSplitNode(node);
+  return serializeFrameSplitNode(node, identitiesByViewKey);
 }
 
-function cloneFrameTabsetNode(node: WindowFrameTabsetNode): WindowFrameTabsetNode {
+function serializeFrameTabsetNode(
+  node: WindowFrameTabsetNode,
+  identitiesByViewKey: ReadonlyMap<WindowViewKey, WindowViewIdentity>
+): PersistedWindowFrameTabsetNode {
   return {
     kind: "tabset",
     id: node.id,
-    tabs: [...node.tabs],
-    activeTabId: node.activeTabId
+    tabs: node.tabs.map((viewKey) => identitiesByViewKey.get(viewKey)?.instanceId ?? viewKey),
+    activeTabId: identitiesByViewKey.get(node.activeTabId)?.instanceId ?? node.activeTabId
   };
 }
 
-function cloneFrameSplitNode(node: WindowFrameSplitNode): WindowFrameSplitNode {
+function serializeFrameSplitNode(
+  node: WindowFrameSplitNode,
+  identitiesByViewKey: ReadonlyMap<WindowViewKey, WindowViewIdentity>
+): PersistedWindowFrameSplitNode {
   return {
     kind: "split",
     id: node.id,
     direction: node.direction,
     ratio: node.ratio,
-    first: cloneFrameDockNode(node.first),
-    second: cloneFrameDockNode(node.second)
+    first: serializeFrameDockNode(node.first, identitiesByViewKey),
+    second: serializeFrameDockNode(node.second, identitiesByViewKey)
   };
+}
+
+function hydrateFrameDockNode(
+  node: PersistedWindowFrameDockNode,
+  viewKeyByPersistedTabId: ReadonlyMap<string, WindowViewKey>
+): WindowFrameDockNode {
+  if (node.kind === "tabset") {
+    const tabs = node.tabs
+      .map((tabId) => viewKeyByPersistedTabId.get(tabId))
+      .filter((viewKey): viewKey is WindowViewKey => viewKey !== undefined);
+    const activeTabId = viewKeyByPersistedTabId.get(node.activeTabId) ?? tabs[0] ?? windowViewKey(node.activeTabId);
+    return {
+      kind: "tabset",
+      id: node.id,
+      tabs,
+      activeTabId
+    };
+  }
+  return {
+    kind: "split",
+    id: node.id,
+    direction: node.direction,
+    ratio: node.ratio,
+    first: hydrateFrameDockNode(node.first, viewKeyByPersistedTabId),
+    second: hydrateFrameDockNode(node.second, viewKeyByPersistedTabId)
+  };
+}
+
+function getViewDescriptorIdentity(view: WindowWorkspaceViewDescriptor): WindowViewIdentity {
+  return view.identity ?? createSingletonWindowViewIdentity(view.viewKey);
+}
+
+export function getPersistedViewDescriptorIdentity(
+  view: PersistedWindowWorkspaceViewDescriptor
+): WindowViewIdentity {
+  if (isPersistedViewDescriptorV2(view)) {
+    return {
+      viewKey: createWindowViewKeyFromTypeAndInstance(view.typeKey, view.instanceId),
+      typeKey: view.typeKey,
+      instanceId: view.instanceId,
+      multiplicity: view.singleton ? "singleton" : "multi-instance"
+    };
+  }
+  return createSingletonWindowViewIdentity(view.viewKey);
+}
+
+export function getPersistedViewDescriptorRuntimeViewKey(
+  view: PersistedWindowWorkspaceViewDescriptor
+): WindowViewKey {
+  if (!isPersistedViewDescriptorV2(view)) return view.viewKey;
+  return view.singleton
+    ? windowViewKey(view.typeKey)
+    : createWindowViewKeyFromTypeAndInstance(view.typeKey, view.instanceId);
+}
+
+function getPersistedViewTabId(view: PersistedWindowWorkspaceViewDescriptor): string {
+  return isPersistedViewDescriptorV2(view) ? view.instanceId : view.viewKey;
+}
+
+function isPersistedViewDescriptorV2(
+  view: PersistedWindowWorkspaceViewDescriptor
+): view is PersistedWindowWorkspaceViewDescriptorV2 {
+  return "instanceId" in view;
 }
 
 function readFiniteNumber(value: unknown): number | null {

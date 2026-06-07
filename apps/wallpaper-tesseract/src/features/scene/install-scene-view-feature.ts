@@ -1,15 +1,14 @@
 import type { FeatureActorContext } from "../../runtime/ports";
-import type { SceneParameterStore, Vec2 } from "../../scene-runtime";
 import { sceneParameterPaths, vec2 } from "../../scene-runtime";
 import type {
-  FloatingWindowParameterPaths,
-  FloatingWindowState,
-  WindowFrameIntentSink,
-  WindowFramePortRegistry,
-  WindowTabDragSink,
   WindowViewFactoryRegistry,
   WindowViewLocationSource
 } from "../../window-runtime";
+import type {
+  WindowWorkspaceDefaultOpenView,
+  WindowWorkspaceFloatingFramePolicy
+} from "../window-workspace";
+import { WORKSPACE_ROOT_FRAME_ID } from "../../window-runtime";
 import {
   createRenderableSceneView,
   CurrentRenderableSceneViewRegistry
@@ -18,22 +17,42 @@ import {
   installSceneViewContent,
   type SceneViewContentActorIds
 } from "./scene-view-content-installer";
+import {
+  SCENE_WINDOW_MIN_HEIGHT,
+  SCENE_WINDOW_MIN_WIDTH,
+  SCENE_WINDOW_PRIORITY_DEVELOP
+} from "./scene-window-state";
 
 export interface InstallSceneViewFeatureOptions {
   readonly context: FeatureActorContext;
   readonly mount: HTMLElement;
-  readonly sceneStore: SceneParameterStore;
-  readonly sceneWindowState: FloatingWindowState;
   readonly actorIds: SceneViewContentActorIds;
   readonly viewFactories: WindowViewFactoryRegistry;
   readonly locations: WindowViewLocationSource;
-  readonly frameIntentSink: WindowFrameIntentSink;
-  readonly framePortRegistry: WindowFramePortRegistry;
-  readonly tabDragSink: WindowTabDragSink;
 }
 
 export interface InstalledSceneViewFeature {
   readonly renderableSceneViews: CurrentRenderableSceneViewRegistry;
+}
+
+export function createSceneWindowWorkspaceFloatingFramePolicy(
+  fallbackState: WindowWorkspaceFloatingFramePolicy["fallbackState"]
+): readonly ["scene", WindowWorkspaceFloatingFramePolicy] {
+  return ["scene", {
+    preferredActorId: "scene-window",
+    preferredComponentId: "floating-window:scene",
+    paths: sceneParameterPaths.sceneWindow,
+    fallbackState,
+    minSize: vec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT),
+    className: "scene-window",
+    contentClassName: "scene-window__content",
+    priority: SCENE_WINDOW_PRIORITY_DEVELOP,
+    menuOrder: 0
+  }];
+}
+
+export function createSceneDefaultOpenView(): WindowWorkspaceDefaultOpenView {
+  return { viewKey: "scene", preferredFrameId: WORKSPACE_ROOT_FRAME_ID };
 }
 
 export function installSceneViewFeature(options: InstallSceneViewFeatureOptions): InstalledSceneViewFeature {
@@ -47,14 +66,7 @@ export function installSceneViewFeature(options: InstallSceneViewFeatureOptions)
         context: options.context,
         mount: options.mount,
         parentFrameActor: createOptions.parentFrameActor,
-        initialState: readFloatingWindowState(options.sceneStore, sceneParameterPaths.sceneWindow, {
-          fallback: options.sceneWindowState,
-          forceVisible: createOptions.reason === "menu"
-        }),
-        actorIds: options.actorIds,
-        frameIntentSink: options.frameIntentSink,
-        framePortRegistry: options.framePortRegistry,
-        tabDragSink: options.tabDragSink
+        actorIds: options.actorIds
       });
       const renderable = createRenderableSceneView({
         actorSystem: options.context.actorSystem,
@@ -75,27 +87,4 @@ export function installSceneViewFeature(options: InstallSceneViewFeatureOptions)
     }
   });
   return { renderableSceneViews };
-}
-
-function readFloatingWindowState(
-  store: SceneParameterStore,
-  paths: FloatingWindowParameterPaths,
-  options: {
-    readonly fallback: FloatingWindowState;
-    readonly forceVisible?: boolean;
-  }
-): FloatingWindowState {
-  const position = readVec2(store, paths.position, options.fallback.position);
-  const size = readVec2(store, paths.size, options.fallback.size);
-  const visible = options.forceVisible ? true : store.get<boolean>(paths.visible);
-  return { position, size, visible };
-}
-
-function readVec2(
-  store: SceneParameterStore,
-  path: FloatingWindowParameterPaths["position"] | FloatingWindowParameterPaths["size"],
-  fallback: Vec2
-): Vec2 {
-  const value = store.get<Vec2>(path);
-  return value ? vec2(value.x, value.y) : vec2(fallback.x, fallback.y);
 }

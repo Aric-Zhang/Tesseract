@@ -40,6 +40,10 @@ export interface WindowViewFactory {
   createViewRuntime(options: WindowViewRuntimeCreateOptions): WindowViewRuntimeFactoryResult;
 }
 
+export interface WindowViewTypeRegistration extends WindowViewFactory {
+  readonly typeKey: WindowViewTypeKey;
+}
+
 export function getWindowViewFactoryIdentity(factory: WindowViewFactory): WindowViewIdentity {
   return createWindowViewIdentity({
     viewKey: factory.viewKey,
@@ -51,16 +55,29 @@ export function getWindowViewFactoryIdentity(factory: WindowViewFactory): Window
 
 export class WindowViewFactoryRegistry {
   readonly #factories = new Map<WindowViewKey, WindowViewFactory>();
+  readonly #factoriesByType = new Map<WindowViewTypeKey, WindowViewFactory[]>();
 
   register(factory: WindowViewFactory): { dispose(): void } {
     if (this.#factories.has(factory.viewKey)) {
       throw new Error(`Window view factory is already registered: ${factory.viewKey}.`);
     }
+    const typeKey = getWindowViewFactoryIdentity(factory).typeKey;
     this.#factories.set(factory.viewKey, factory);
+    this.#factoriesByType.set(typeKey, [
+      ...(this.#factoriesByType.get(typeKey) ?? []),
+      factory
+    ]);
     return {
       dispose: () => {
         if (this.#factories.get(factory.viewKey) === factory) {
           this.#factories.delete(factory.viewKey);
+          const remaining = (this.#factoriesByType.get(typeKey) ?? [])
+            .filter((candidate) => candidate !== factory);
+          if (remaining.length > 0) {
+            this.#factoriesByType.set(typeKey, remaining);
+          } else {
+            this.#factoriesByType.delete(typeKey);
+          }
         }
       }
     };
@@ -76,6 +93,10 @@ export class WindowViewFactoryRegistry {
       throw new Error(`Window view factory is not registered: ${viewKey}.`);
     }
     return getWindowViewFactoryIdentity(factory);
+  }
+
+  listByType(typeKey: WindowViewTypeKey): readonly WindowViewFactory[] {
+    return [...(this.#factoriesByType.get(typeKey) ?? [])];
   }
 
   list(): readonly WindowViewFactory[] {

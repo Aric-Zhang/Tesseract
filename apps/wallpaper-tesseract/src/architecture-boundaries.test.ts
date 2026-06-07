@@ -1,48 +1,370 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-
-const sourceFiles = import.meta.glob("./**/*.ts", {
-  query: "?raw",
-  import: "default",
-  eager: true
-}) as Record<string, string>;
-
-function findForbiddenMethodCalls(
-  methodNames: readonly string[],
-  allowedFiles: ReadonlySet<string>
-): string[] {
-  const violations: string[] = [];
-  for (const [file, source] of Object.entries(sourceFiles)) {
-    if (file === "./architecture-boundaries.test.ts" || allowedFiles.has(file)) continue;
-    for (const methodName of methodNames) {
-      const pattern = new RegExp(`\\.${methodName}\\s*\\(`);
-      if (pattern.test(source)) {
-        violations.push(`${file}: ${methodName}`);
-      }
-    }
-  }
-  return violations.sort();
-}
-
-function findForbiddenSourceMatches(
-  pattern: RegExp,
-  allowedFiles: ReadonlySet<string> = new Set()
-): string[] {
-  const violations: string[] = [];
-  for (const [file, source] of Object.entries(sourceFiles)) {
-    if (file === "./architecture-boundaries.test.ts" || allowedFiles.has(file)) continue;
-    if (pattern.test(source)) {
-      violations.push(file);
-    }
-  }
-  return violations.sort();
-}
-
-function readSourceFile(relativePath: string): string {
-  return readFileSync(new URL(relativePath, import.meta.url), "utf8");
-}
+import {
+  collectWorkspaceSourceFiles,
+  createSourceZoneMap,
+  evaluateZoneDependencyMatrix,
+  findForbiddenMethodCalls,
+  findForbiddenSourceMatches,
+  listDynamicImports,
+  listModuleEdges,
+  parseStaticImports,
+  readSourceFile,
+  sourceFiles
+} from "./test-support/architecture-boundaries";
+import {
+  projectPrismAppCompositionBlockers,
+  projectPrismDebtBlockers,
+  projectPrismRuntimeExtractionBlockers,
+  projectPrismSourceZones,
+  projectPrismUiFrameworkExtractionBlockers,
+  projectPrismZoneDependencyRules
+} from "./test-support/project-prism-boundary-facts";
 
 describe("architecture boundaries", () => {
+  it("parses static import and export-from edges for boundary checks", () => {
+    const imports = parseStaticImports(`
+      import "./side-effect";
+      import type { Actor } from "./actor-runtime";
+      import { componentType } from "./actor-runtime/component";
+      export { WindowFramePort } from "./window-runtime";
+      export type { SceneFrame } from "./scene-runtime";
+    `);
+
+    expect(imports).toContainEqual({
+      specifier: "./side-effect",
+      kind: "import",
+      typeOnly: false,
+      sideEffectOnly: true
+    });
+    expect(imports).toContainEqual({
+      specifier: "./actor-runtime",
+      kind: "import",
+      typeOnly: true,
+      sideEffectOnly: false
+    });
+    expect(imports).toContainEqual({
+      specifier: "./window-runtime",
+      kind: "export",
+      typeOnly: false,
+      sideEffectOnly: false
+    });
+    expect(imports).toContainEqual({
+      specifier: "./scene-runtime",
+      kind: "export",
+      typeOnly: true,
+      sideEffectOnly: false
+    });
+  });
+
+  it("resolves relative barrel exports when building module edges", () => {
+    const edges = listModuleEdges({
+      "./feature/index.ts": 'export { value } from "./model";',
+      "./feature/model.ts": "export const value = 1;"
+    });
+
+    expect(edges).toContainEqual({
+      fromFile: "./feature/index.ts",
+      specifier: "./model",
+      resolvedFile: "./feature/model.ts",
+      kind: "export",
+      typeOnly: false,
+      sideEffectOnly: false
+    });
+  });
+
+  it("classifies every production source file into a Project Prism zone or explicit debt zone", () => {
+    const zoneMap = createSourceZoneMap(sourceFiles, projectPrismSourceZones);
+
+    expect(zoneMap.unclassified).toEqual([]);
+    expect(zoneMap.ambiguousCandidateFiles).toEqual([]);
+    expect(zoneMap.debtEntries.map((entry) => entry.file)).toEqual(expect.arrayContaining([
+      "./actor-runtime/component.ts",
+      "./actor-runtime/component-runtime-bridge.ts",
+      "./scene-runtime/parameter-paths.ts",
+      "./app-runtime/app-runtime-context.ts",
+      "./app/create-wallpaper-app.ts",
+      "./tesseract4/tesseract4-runtime-object.ts"
+    ]));
+  });
+
+  it("keeps Project Prism debt zones paired with blocker and deletion facts", () => {
+    const zoneMap = createSourceZoneMap(sourceFiles, projectPrismSourceZones);
+    const actualDebtZoneIds = [...new Set(
+      zoneMap.entries
+        .flatMap((entry) => entry.zones)
+        .filter((zone) => zone.debt === true)
+        .map((zone) => zone.id)
+    )].sort();
+    const blockerZoneIds = projectPrismDebtBlockers.map((blocker) => blocker.zoneId).sort();
+
+    expect(blockerZoneIds).toEqual(actualDebtZoneIds);
+    for (const blocker of projectPrismDebtBlockers) {
+      expect(blocker.blocks.length).toBeGreaterThan(0);
+      expect(blocker.blocker.length).toBeGreaterThan(20);
+      expect(blocker.deletionCondition.length).toBeGreaterThan(20);
+    }
+  });
+
+  it("keeps Project Prism candidate dependencies from pointing at future higher-level zones", () => {
+    expect(evaluateZoneDependencyMatrix(
+      sourceFiles,
+      projectPrismSourceZones,
+      projectPrismZoneDependencyRules
+    )).toEqual([]);
+  });
+
+  it("reports dynamic imports instead of silently ignoring them in boundary scans", () => {
+    expect(listDynamicImports(sourceFiles)).toEqual([]);
+  });
+
+  it("keeps Project Prism actor-core candidate free of scene, gizmo, window, and DOM dependencies", () => {
+    const zoneMap = createSourceZoneMap(sourceFiles, projectPrismSourceZones);
+    const actorCoreCandidateFiles = new Set(
+      zoneMap.entries
+        .filter((entry) => entry.zones.some((zone) => zone.id === "actor-core-candidate"))
+        .map((entry) => entry.file)
+    );
+    const forbiddenEdges = listModuleEdges(sourceFiles)
+      .filter((edge) => actorCoreCandidateFiles.has(edge.fromFile))
+      .filter((edge) => (
+        edge.specifier === "gizmo-core" ||
+        edge.specifier === "three" ||
+        edge.specifier.includes("scene-runtime") ||
+        edge.specifier.includes("window-runtime") ||
+        edge.specifier.includes("app-runtime")
+      ))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`);
+    const forbiddenSymbols = [...actorCoreCandidateFiles]
+      .filter((file) => /\b(?:HTMLElement|Document)\b/.test(sourceFiles[file] ?? ""))
+      .sort();
+
+    expect([...actorCoreCandidateFiles].sort()).toEqual(["./actor-runtime/actor.ts"]);
+    expect(forbiddenEdges).toEqual([]);
+    expect(forbiddenSymbols).toEqual([]);
+  });
+
+  it("keeps existing math/runtime foundation packages independent from app, editor, UI, and gizmo layers", () => {
+    const packageSources = collectWorkspaceSourceFiles("packages");
+    const productionPackageSources = Object.fromEntries(
+      Object.entries(packageSources)
+        .filter(([file]) => file.includes("/src/"))
+    );
+    const forbiddenAppLayerImports = listModuleEdges(productionPackageSources)
+      .filter((edge) => (
+        edge.specifier.includes("wallpaper-tesseract") ||
+        edge.specifier.includes("window-runtime") ||
+        edge.specifier.includes("features/app-menu") ||
+        edge.specifier.includes("features/scene") ||
+        /(?:^|\/)(?:debug|hierarchy)(?:\/|$)/.test(edge.specifier) ||
+        edge.specifier.includes("gizmos")
+      ))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+    const runtimeCorePackageViolations = Object.entries(productionPackageSources)
+      .filter(([file]) => (
+        file.startsWith("packages/four-rotation/src/") ||
+        file.startsWith("packages/four-camera/src/")
+      ))
+      .filter(([, source]) => (
+        /from\s+["'](?:three|gizmo-core)["']/.test(source) ||
+        /\b(?:HTMLElement|Document|window)\b/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+    const runtimeThreeViolations = Object.entries(productionPackageSources)
+      .filter(([file]) => file.startsWith("packages/four-camera-three/src/"))
+      .filter(([, source]) => (
+        /from\s+["'](?:gizmo-core)["']/.test(source) ||
+        /wallpaper-tesseract|window-runtime|features\/|gizmos/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+
+    expect(forbiddenAppLayerImports).toEqual([]);
+    expect(runtimeCorePackageViolations).toEqual([]);
+    expect(runtimeThreeViolations).toEqual([]);
+  });
+
+  it("keeps app-local runtime extraction blockers explicit instead of treating them as runtime-core", () => {
+    const zoneMap = createSourceZoneMap(sourceFiles, projectPrismSourceZones);
+    const zonesByFile = new Map(zoneMap.entries.map((entry) => [entry.file, entry.zones.map((zone) => zone.id)]));
+    const missingFiles = projectPrismRuntimeExtractionBlockers
+      .flatMap((blocker) => blocker.files)
+      .filter((file) => sourceFiles[file] === undefined)
+      .sort();
+    const unclassifiedBlockerFiles = projectPrismRuntimeExtractionBlockers
+      .flatMap((blocker) => blocker.files)
+      .filter((file) => !(zonesByFile.get(file) ?? []).includes("runtime-ownership-debt"))
+      .sort();
+    const incompleteBlockers = projectPrismRuntimeExtractionBlockers
+      .filter((blocker) => (
+        blocker.requiredPort.length < 10 ||
+        blocker.blocker.length < 20 ||
+        blocker.deletionCondition.length < 20
+      ))
+      .map((blocker) => blocker.id)
+      .sort();
+
+    expect(missingFiles).toEqual([]);
+    expect(unclassifiedBlockerFiles).toEqual([]);
+    expect(incompleteBlockers).toEqual([]);
+  });
+
+  it("keeps UI framework extraction blockers explicit until UI-owned state ports exist", () => {
+    const zoneMap = createSourceZoneMap(sourceFiles, projectPrismSourceZones);
+    const zonesByFile = new Map(zoneMap.entries.map((entry) => [entry.file, entry.zones.map((zone) => zone.id)]));
+    const missingFiles = projectPrismUiFrameworkExtractionBlockers
+      .flatMap((blocker) => blocker.files)
+      .filter((file) => sourceFiles[file] === undefined)
+      .sort();
+    const unclassifiedBlockerFiles = projectPrismUiFrameworkExtractionBlockers
+      .flatMap((blocker) => blocker.files)
+      .filter((file) => !(zonesByFile.get(file) ?? []).includes("ui-state-binding-debt"))
+      .sort();
+    const incompleteBlockers = projectPrismUiFrameworkExtractionBlockers
+      .filter((blocker) => (
+        blocker.requiredPort.length < 10 ||
+        blocker.blocker.length < 20 ||
+        blocker.deletionCondition.length < 20
+      ))
+      .map((blocker) => blocker.id)
+      .sort();
+
+    expect(missingFiles).toEqual([]);
+    expect(unclassifiedBlockerFiles).toEqual([]);
+    expect(incompleteBlockers).toEqual([]);
+  });
+
+  it("keeps app composition extraction blockers explicit until public installers own concrete policy", () => {
+    const zoneMap = createSourceZoneMap(sourceFiles, projectPrismSourceZones);
+    const zonesByFile = new Map(zoneMap.entries.map((entry) => [entry.file, entry.zones.map((zone) => zone.id)]));
+    const missingFiles = projectPrismAppCompositionBlockers
+      .flatMap((blocker) => blocker.files)
+      .filter((file) => sourceFiles[file] === undefined)
+      .sort();
+    const unclassifiedBlockerFiles = projectPrismAppCompositionBlockers
+      .flatMap((blocker) => blocker.files)
+      .filter((file) => !(zonesByFile.get(file) ?? []).some((zoneId) => (
+        zoneId === "app-composition-debt" ||
+        zoneId === "component-definition-installer-debt"
+      )))
+      .sort();
+    const incompleteBlockers = projectPrismAppCompositionBlockers
+      .filter((blocker) => (
+        blocker.blocker.length < 20 ||
+        blocker.deletionCondition.length < 20
+      ))
+      .map((blocker) => blocker.id)
+      .sort();
+
+    expect(missingFiles).toEqual([]);
+    expect(unclassifiedBlockerFiles).toEqual([]);
+    expect(incompleteBlockers).toEqual([]);
+  });
+
+  it("keeps Project Prism legacy locks paired with replacement contracts", () => {
+    const actorInputRouterSource = sourceFiles["./gizmo-runtime/actor-input-router.ts"] ?? "";
+    const renderableSceneViewSource = sourceFiles["./features/scene/renderable-scene-view.ts"] ?? "";
+    const dockTargetRegionSource = sourceFiles["./window-runtime/dock-target-region-source.ts"] ?? "";
+    const persistenceSource = sourceFiles["./window-runtime/window-workspace-layout-persistence.ts"] ?? "";
+    const appMenuModelSource = sourceFiles["./features/app-menu/app-menu-model.ts"] ?? "";
+
+    expect(findForbiddenSourceMatches(/\b(?:GizmoResponder|hitTestGizmo|gizmoPriority)\b/)).toEqual([]);
+    expect(actorInputRouterSource).toMatch(/\bActorInputRouter\b/);
+    expect(actorInputRouterSource).toMatch(/\bisActorInputParticipant\b/);
+
+    expect(findForbiddenSourceMatches(/\b(?:SceneViewRuntime|CurrentSceneViewSource)\b/)).toEqual([]);
+    expect(renderableSceneViewSource).toMatch(/\bRenderableSceneView\b/);
+    expect(renderableSceneViewSource).not.toMatch(/\bdispose\b/);
+
+    expect(findForbiddenSourceMatches(
+      /\b(?:WindowDockTargetFrame|DockTargetFrameSource|createDockTargetFrameSource|listDockTargetFrames)\b/
+    )).toEqual([]);
+    expect(dockTargetRegionSource).toMatch(/\bDockTargetRegionSource\b/);
+    expect(dockTargetRegionSource).toMatch(/\blistDockTargetRegions\b/);
+
+    expect(findForbiddenSourceMatches(
+      /\b(?:WindowWorkspaceLayout|createWindowWorkspaceLayout|dockWindowAsTab|findDockTabsetContaining|normalizeWindowWorkspaceLayout|removeWindowFromDock|removeWindowFromLayout|setActiveDockTab|splitDockTab|undockWindow)\b/
+    )).toEqual([]);
+    expect(persistenceSource).toMatch(/\btypeKey:\s*WindowViewTypeKey\b/);
+    expect(persistenceSource).toMatch(/\binstanceId:\s*WindowViewInstanceId\b/);
+    expect(persistenceSource).not.toMatch(/\b(?:viewActorId|frameActorId|actorId)\b/);
+
+    expect(sourceFiles["./window-runtime/window-control-source.ts"]).toBeUndefined();
+    expect(sourceFiles["./window-runtime/window-menu-view-source.ts"]).toBeUndefined();
+    expect(sourceFiles["./window-runtime/window-visibility-activation-controller.ts"]).toBeUndefined();
+    expect(appMenuModelSource).toMatch(/\bkind:\s*["']open-or-focus-type["']/);
+    expect(appMenuModelSource).toMatch(/\bkind:\s*["']focus-instance["']/);
+  });
+
+  it("keeps Project Prism app composition debt from reaching back into concrete internals", () => {
+    const appCompositionFiles = new Set([
+      "./app/create-wallpaper-app.ts",
+      "./app/install-component-definitions.ts",
+      "./app/workspace-mode.ts",
+      "./demo.ts"
+    ]);
+    const forbiddenResolvedTargets = [
+      /^\.\/debug\/components\//,
+      /^\.\/hierarchy\/hierarchy-panel-actor-factory\.ts$/,
+      /^\.\/features\/scene\/scene-view-content-installer\.ts$/,
+      /^\.\/features\/scene\/renderable-scene-view\.ts$/,
+      /^\.\/window-runtime\/floating-window-component\.ts$/,
+      /^\.\/window-runtime\/window-frame-lifecycle-controller\.ts$/,
+      /^\.\/window-runtime\/window-view-factory-registry\.ts$/,
+      /^\.\/tesseract4\/components\/tesseract4-actor-factory\.ts$/,
+      /^\.\/gizmos\/camera3\/components\/camera3-gizmo-actor-factory\.ts$/
+    ];
+    const violations = listModuleEdges(sourceFiles)
+      .filter((edge) => appCompositionFiles.has(edge.fromFile))
+      .filter((edge) => edge.resolvedFile !== null)
+      .filter((edge) => forbiddenResolvedTargets.some((pattern) => pattern.test(edge.resolvedFile ?? "")))
+      .map((edge) => `${edge.fromFile}: ${edge.resolvedFile}`)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps Project Prism UI scene-runtime coupling isolated to explicit UI state binding debt", () => {
+    const zoneMap = createSourceZoneMap(sourceFiles, projectPrismSourceZones);
+    const zonesByFile = new Map(zoneMap.entries.map((entry) => [entry.file, entry.zones]));
+    const violations = listModuleEdges(sourceFiles)
+      .filter((edge) => edge.resolvedFile?.startsWith("./scene-runtime/"))
+      .filter((edge) => {
+        const sourceZones = zonesByFile.get(edge.fromFile) ?? [];
+        const isUiCandidate = sourceZones.some((zone) => zone.id === "ui-framework-candidate");
+        const isUiStateDebt = sourceZones.some((zone) => zone.id === "ui-state-binding-debt");
+        return isUiCandidate && !isUiStateDebt;
+      })
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps UI framework candidates independent from concrete Scene, Camera, and Tesseract runtime facts", () => {
+    const uiCandidatePrefixes = [
+      "./window-runtime/",
+      "./features/app-menu/",
+      "./features/window-workspace/"
+    ];
+    const forbiddenRuntimeFeatureEdges = listModuleEdges(sourceFiles)
+      .filter((edge) => uiCandidatePrefixes.some((prefix) => edge.fromFile.startsWith(prefix)))
+      .filter((edge) => !edge.fromFile.endsWith(".test.ts"))
+      .filter((edge) => (
+        edge.specifier.includes("features/scene") ||
+        edge.specifier.includes("features/camera3") ||
+        edge.specifier.includes("camera3-control") ||
+        edge.specifier.includes("gizmos/camera3") ||
+        edge.specifier.includes("tesseract4") ||
+        edge.specifier === "three"
+      ))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+
+    expect(forbiddenRuntimeFeatureEdges).toEqual([]);
+  });
+
   it("removes deprecated AppRuntimeContext legacy registration calls", () => {
     expect(findForbiddenMethodCalls([
       "registerLegacyRuntimeObject",
@@ -209,7 +531,7 @@ describe("architecture boundaries", () => {
     expect(sceneFeatureInstallerSource).toMatch(/\binstallSceneViewContent\b/);
     expect(sceneFeatureInstallerSource).toMatch(/\bcreateRenderableSceneView\b/);
     expect(sceneFeatureInstallerSource).toMatch(/\bCurrentRenderableSceneViewRegistry\b/);
-    expect(sceneViewInstallerSource).toMatch(/\bcreateSceneWindowActor\b/);
+    expect(sceneViewInstallerSource).not.toMatch(/\bcreateSceneWindowActor\b/);
     expect(sceneViewInstallerSource).toMatch(/\bcreateSceneViewActor\b/);
     expect(renderableSceneViewSource).toMatch(/sceneView\.viewport\.render/);
   });
@@ -273,7 +595,8 @@ describe("architecture boundaries", () => {
     expect(appSource).not.toMatch(/content\.camera3Motion\.dispose\s*\(\s*\)/);
     expect(sceneViewInstallerSource).toMatch(/\btry\s*{/);
     expect(sceneViewInstallerSource).toMatch(/\bcatch\s*\(\s*error\s*\)/);
-    expect(sceneViewInstallerSource).toMatch(/\(sceneWindow\s*\?\?\s*sceneView\)\?\.dispose\s*\(\s*\)/);
+    expect(sceneViewInstallerSource).toMatch(/sceneView\?\.dispose\s*\(\s*\)/);
+    expect(sceneViewInstallerSource).not.toMatch(/\bsceneWindow\b/);
     expect(sceneViewInstallerSource).not.toMatch(/\bregisterLegacyRuntimeObject\b/);
     expect(sceneViewInstallerSource).not.toMatch(/\brender\s*\(\)\s*:/);
     expect(sceneViewInstallerSource).not.toMatch(/\bmeasureNow\s*\(\)\s*:/);
@@ -291,13 +614,14 @@ describe("architecture boundaries", () => {
     expect(camera3Styles).toMatch(/\.scene-window__overlay\s+\.camera3-gizmo\s*{[\s\S]*position:\s*absolute/);
   });
 
-  it("keeps the Scene window recoverable through ordinary Window menu control", () => {
-    const sceneWindowFactory = sourceFiles["./features/scene/scene-window-actor-factory.ts"] ?? "";
+  it("keeps the Scene view recoverable through the window lifecycle view factory", () => {
+    const sceneFeatureInstaller = sourceFiles["./features/scene/install-scene-view-feature.ts"] ?? "";
     const appMenuActorFactory = sourceFiles["./features/app-menu/app-menu-bar-actor-factory.ts"] ?? "";
 
-    expect(sceneWindowFactory).not.toMatch(/windowMenu:\s*{\s*include:\s*false/);
-    expect(sceneWindowFactory).toMatch(/activationMode:\s*["']visible["']/);
-    expect(sceneWindowFactory).toMatch(/order:\s*0/);
+    expect(sceneFeatureInstaller).toMatch(/viewKey:\s*["']scene["']/);
+    expect(sceneFeatureInstaller).toMatch(/order:\s*0/);
+    expect(sceneFeatureInstaller).toMatch(/\bcreateViewRuntime\b/);
+    expect(sceneFeatureInstaller).not.toMatch(/\bcreateSceneWindowActor\b/);
     expect(appMenuActorFactory).not.toMatch(/\bfloatingWindowComponentType\b/);
   });
 
@@ -316,6 +640,31 @@ describe("architecture boundaries", () => {
     expect(workspaceInstallerSource).toMatch(/actorWindowFocus\.bind\s*\(\s*workspaceController\s*\)/);
     expect(appSource).toMatch(/actorWindowFocus\.dispose\s*\(\s*\)/);
     expect(appRuntimeSource).toMatch(/\bactorWindowFocus:\s*options\.actorWindowFocus\b/);
+  });
+
+  it("keeps concrete window frame policy in feature modules instead of app composition", () => {
+    const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
+    const sceneInstallerSource = sourceFiles["./features/scene/install-scene-view-feature.ts"] ?? "";
+    const toolInstallerSource = sourceFiles["./features/tool-windows/install-tool-window-features.ts"] ?? "";
+
+    expect(appSource).toMatch(/\bcreateSceneWindowWorkspaceFloatingFramePolicy\b/);
+    expect(appSource).toMatch(/\bcreateToolWindowWorkspaceFloatingFramePolicies\b/);
+    expect(appSource).toMatch(/\bcreateSceneDefaultOpenView\b/);
+    expect(appSource).toMatch(/\bcreateToolWindowDefaultOpenViews\b/);
+    expect(appSource).not.toMatch(/\bSCENE_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
+    expect(appSource).not.toMatch(/\bDEBUG_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
+    expect(appSource).not.toMatch(/\bHIERARCHY_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
+    expect(appSource).not.toMatch(/sceneParameterPaths\.(?:sceneWindow|debugWindow|hierarchyWindow)/);
+    expect(appSource).not.toMatch(/floating-window:(?:scene|debug-log|hierarchy)/);
+    expect(appSource).not.toMatch(/className:\s*["'](?:scene-window|debug-log-window|hierarchy-window)["']/);
+
+    expect(sceneInstallerSource).toMatch(/sceneParameterPaths\.sceneWindow/);
+    expect(sceneInstallerSource).toMatch(/floating-window:scene/);
+    expect(sceneInstallerSource).toMatch(/\bSCENE_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
+    expect(toolInstallerSource).toMatch(/sceneParameterPaths\.(?:debugWindow|hierarchyWindow)/);
+    expect(toolInstallerSource).toMatch(/floating-window:(?:debug-log|hierarchy)/);
+    expect(toolInstallerSource).toMatch(/\bDEBUG_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
+    expect(toolInstallerSource).toMatch(/\bHIERARCHY_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
   });
 
   it("keeps run-mode fullscreen on the workspace presentation session path", () => {
@@ -407,8 +756,11 @@ describe("architecture boundaries", () => {
     expect(componentSource).not.toMatch(/document\.addEventListener\s*\(\s*["']click["']/);
     expect(componentSource).not.toMatch(/\.onclick\s*=/);
     expect(componentSource).toMatch(/\bmenu-dismiss\b/);
-    expect(componentSource).toMatch(/activateOpenViewRow\(row,\s*event\.timeStamp\)/);
-    expect(componentSource).toMatch(/requestOpenView\(row\.viewKey,\s*["']menu["']\)/);
+    expect(componentSource).toMatch(/activateWindowCommandRow\(row,\s*event\.timeStamp\)/);
+    expect(componentSource).toMatch(/requestOpenOrFocusViewType\(row\.action\.typeKey,\s*["']menu["']\)/);
+    expect(componentSource).toMatch(/requestCreateViewInstance\?\.\(row\.action\.typeKey,\s*["']menu["']\)/);
+    expect(componentSource).toMatch(/requestFocusViewInstance\?\.\(row\.action\.identity,\s*["']menu["']\)/);
+    expect(componentSource).not.toMatch(/requestOpenView\(row\.viewKey/);
     expect(componentSource).not.toMatch(/requestOpenView\([^)]*actorId/);
     expect(definitionSource).toMatch(/\bgizmoEventBindingComponentType\b/);
     expect(definitionSource).toMatch(/\bstateObserverBindingComponentType\b/);
@@ -418,7 +770,7 @@ describe("architecture boundaries", () => {
     const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
     const tabActionSource = sourceFiles["./window-runtime/window-tab-action.ts"] ?? "";
 
-    expect(floatingWindowSource).toMatch(/partId\s*===\s*["']window-tab-action["']/);
+    expect(floatingWindowSource).toMatch(/partId\s*===\s*WINDOW_FRAME_TAB_ACTION_PART_ID/);
     expect(floatingWindowSource).toMatch(/requestCloseView\(event\.hit\.data\.viewActorId,\s*["']tab-action["'],\s*\{/);
     expect(floatingWindowSource).toMatch(/ownerFrameId:\s*this\.#frameId/);
     expect(floatingWindowSource).toMatch(/viewKey:\s*event\.hit\.data\.viewKey/);
@@ -454,6 +806,44 @@ describe("architecture boundaries", () => {
     expect(installSource).toMatch(/windowFrameSurfaceComponentDefinition[\s\S]*workspaceRootDockFrameComponentDefinition/);
   });
 
+  it("keeps root and floating tab chrome on the same shared hit/action model", () => {
+    const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
+    const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
+    const surfaceSource = sourceFiles["./window-runtime/window-frame-surface-component.ts"] ?? "";
+    const tabChromeSource = sourceFiles["./window-runtime/window-frame-tab-chrome.ts"] ?? "";
+    const duplicatedChromeHelpers =
+      /\b(?:findWindowFrameTabActionAtPoint|findWindowFrameTabAtPoint|renderWindowFrameTabsetTabs|createWindowTabCloseAction)\b/;
+
+    expect(tabChromeSource).toMatch(/\bWINDOW_FRAME_TAB_ACTION_PART_ID\b/);
+    expect(tabChromeSource).toMatch(/\bcreateWindowTabCloseAction\s*\(\s*tab\s*\)/);
+    expect(surfaceSource).toMatch(/\bfindWindowFrameTabActionAtPoint\b/);
+    expect(surfaceSource).toMatch(/\bfindWindowFrameTabAtPoint\b/);
+    expect(surfaceSource).toMatch(/\brenderWindowFrameTabsetTabs\b/);
+    expect(floatingWindowSource).toMatch(/this\.#surface\.hitTest\s*\(\s*point\s*\)/);
+    expect(rootFrameSource).toMatch(/this\.#surface\.hitTest\s*\(\s*point\s*\)/);
+    expect(floatingWindowSource).not.toMatch(duplicatedChromeHelpers);
+    expect(rootFrameSource).not.toMatch(duplicatedChromeHelpers);
+    expect(floatingWindowSource).toMatch(/\bWINDOW_FRAME_TAB_ACTION_PART_ID\b/);
+    expect(rootFrameSource).toMatch(/\bWINDOW_FRAME_TAB_ACTION_PART_ID\b/);
+  });
+
+  it("keeps frame visual layer and actor input priority on the same frame projection", () => {
+    const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
+    const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
+    const registrySource = sourceFiles["./window-runtime/window-frame-port-registry.ts"] ?? "";
+    const workspaceControllerSource = sourceFiles["./window-runtime/window-workspace-controller.ts"] ?? "";
+
+    expect(registrySource).toMatch(/\bgetStackPriority:\s*\(\)\s*=>\s*number\b/);
+    expect(floatingWindowSource).toMatch(/getInputStackPriority:\s*\(\)\s*=>\s*this\.inputStackPriority/);
+    expect(floatingWindowSource).toMatch(/getStackPriority:\s*\(\)\s*=>\s*this\.inputStackPriority/);
+    expect(floatingWindowSource).toMatch(/style\.zIndex\s*=\s*String\s*\(\s*this\.#effectivePriority\s*\)/);
+    expect(floatingWindowSource).not.toMatch(/style\.zIndex\s*=\s*String\s*\(\s*this\.#basePriority\s*\)/);
+    expect(rootFrameSource).toMatch(/getInputStackPriority:\s*\(\)\s*=>\s*this\.inputStackPriority/);
+    expect(rootFrameSource).toMatch(/getStackPriority:\s*\(\)\s*=>\s*this\.inputStackPriority/);
+    expect(rootFrameSource).not.toMatch(/getInputStackPriority:\s*\(\)\s*=>\s*WORKSPACE_ROOT_FRAME_PRIORITY/);
+    expect(workspaceControllerSource).toMatch(/\bsetFrameStackPriority\b/);
+  });
+
   it("keeps the window workspace catalog as a read-only projection", () => {
     const catalogSource = sourceFiles["./window-runtime/window-workspace-view-catalog.ts"] ?? "";
     const controllerSource = sourceFiles["./window-runtime/window-workspace-controller.ts"] ?? "";
@@ -473,7 +863,12 @@ describe("architecture boundaries", () => {
       .sort();
 
     expect(appMenuModelSource).toMatch(/from\s+["']\.\.\/\.\.\/window-runtime["']/);
-    expect(appMenuModelSource).toMatch(/\bkind:\s*["']open-view["']/);
+    expect(appMenuModelSource).toMatch(/\bkind:\s*["']window-command["']/);
+    expect(appMenuModelSource).toMatch(/\bkind:\s*["']open-or-focus-type["']/);
+    expect(appMenuModelSource).toMatch(/\bkind:\s*["']new-instance["']/);
+    expect(appMenuModelSource).toMatch(/\bkind:\s*["']focus-instance["']/);
+    expect(appMenuModelSource).toMatch(/\bactivationSequence\b/);
+    expect(appMenuModelSource).toMatch(/\btypeKey\b/);
     expect(appMenuModelSource).toMatch(/\bviewKey\b/);
     expect(appMenuModelSource).toMatch(/\bWindowWorkspaceViewEntry\b/);
     expect(appMenuModelSource).not.toMatch(/\bdata\s*\?:\s*unknown\b/);
@@ -551,8 +946,11 @@ describe("architecture boundaries", () => {
       sourceFiles["./window-runtime/window-workspace-layout-persistence-controller.ts"] ?? "";
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
 
-    expect(persistenceSource).toMatch(/\bviewKey:\s*WindowViewKey\b/);
+    expect(persistenceSource).toMatch(/\btypeKey:\s*WindowViewTypeKey\b/);
+    expect(persistenceSource).toMatch(/\binstanceId:\s*WindowViewInstanceId\b/);
+    expect(persistenceSource).toMatch(/\bgetPersistedViewDescriptorIdentity\b/);
     expect(persistenceSource).not.toMatch(/\bviewActorId\b/);
+    expect(persistenceSource).not.toMatch(/\bactorId\b/);
     expect(persistenceSource).not.toMatch(/\bframeActorId\b/);
     expect(persistenceSource).not.toMatch(/\bFloatingWindowComponent\b/);
     expect(persistenceSource).not.toMatch(/\bSceneViewRuntime\b/);
@@ -561,6 +959,8 @@ describe("architecture boundaries", () => {
     expect(persistenceControllerSource).not.toMatch(/\bFloatingWindowComponent\b/);
     expect(appSource).not.toMatch(/\bloadPersistedWindowWorkspaceFrameLayout\b/);
     expect(appSource).not.toMatch(/\brestoreFrameLayout\b/);
+    expect(appSource).not.toMatch(/\b(?:localStorage|sessionStorage)\b/);
+    expect(appSource).toMatch(/\bcreateBrowserWindowWorkspaceFrameLayoutStorage\b/);
   });
 
   it("removes the actor-id workspace layout compatibility API from production code", () => {

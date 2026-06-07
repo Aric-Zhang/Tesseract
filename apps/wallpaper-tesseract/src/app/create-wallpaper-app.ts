@@ -2,47 +2,48 @@ import { GizmoEventSystem } from "gizmo-core";
 import { AppRuntimeContext } from "../app-runtime";
 import {
   createDefaultDebugWindowState,
-  DEBUG_WINDOW_MIN_HEIGHT,
-  DEBUG_WINDOW_MIN_WIDTH,
   registerDebugWindowParameters,
   type DebugLogContentComponent
 } from "../debug";
 import {
+  createSceneDefaultOpenView,
   createDefaultSceneWindowState,
+  createSceneWindowWorkspaceFloatingFramePolicy,
   installSceneViewFeature,
-  registerSceneWindowParameters,
-  SCENE_WINDOW_MIN_HEIGHT,
-  SCENE_WINDOW_MIN_WIDTH,
-  SCENE_WINDOW_PRIORITY_DEVELOP
+  registerSceneWindowParameters
 } from "../features/scene";
 import { installAppMenuFeature } from "../features/app-menu";
 import {
+  createInspectorWindowWorkspaceFloatingFramePolicies,
+  installInspectorFeature
+} from "../features/inspector";
+import {
   createActorHierarchyObjectSource,
   createDefaultHierarchyPanelState,
-  HIERARCHY_WINDOW_MIN_HEIGHT,
-  HIERARCHY_WINDOW_MIN_WIDTH,
   registerHierarchyPanelParameters
 } from "../hierarchy";
-import { installToolWindowFeatures } from "../features/tool-windows";
+import {
+  createToolWindowDefaultOpenViews,
+  createToolWindowWorkspaceFloatingFramePolicies,
+  installToolWindowFeatures
+} from "../features/tool-windows";
 import {
   FrameStateController,
   sceneParameterPaths,
   SceneFrameClock,
   SceneParameterStore,
-  SceneRuntime,
-  vec2
+  SceneRuntime
 } from "../scene-runtime";
 import type { SceneStateObserverRegistry } from "../runtime/ports";
 import {
   createActorWindowFocusServiceProxy,
-  type WindowViewKey,
-  WORKSPACE_ROOT_FRAME_ID,
-  type WindowWorkspaceFrameLayoutStorage
+  WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY,
+  WORKSPACE_ROOT_FRAME_ID
 } from "../window-runtime";
 import {
+  createBrowserWindowWorkspaceFrameLayoutStorage,
   installWindowWorkspaceFeature,
-  type InstalledWindowWorkspaceFeature,
-  type WindowWorkspaceFloatingFramePolicy
+  type InstalledWindowWorkspaceFeature
 } from "../features/window-workspace";
 import {
   APP_MENU_BAR_ACTOR_ID,
@@ -136,7 +137,11 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       [WORKSPACE_ROOT_FRAME_ID]: { label: "Workspace Root", order: 1030 }
     }
   });
-  const layoutStorage = resolveWindowWorkspaceLayoutStorage();
+  const layoutStorage = createBrowserWindowWorkspaceFrameLayoutStorage(window, {
+    resetKeys: shouldResetWindowWorkspaceLayout(window)
+      ? [WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY]
+      : []
+  });
   const windowWorkspace = installWindowWorkspaceFeature({
     context: runtimeContext,
     sceneStore,
@@ -144,15 +149,17 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     rootFrameParent: appShell.rootDockSlot,
     actorWindowFocus,
     cancelActiveInput: () => runtimeContext.cancelActiveActorInput(),
-    floatingFramePolicies: createFloatingFramePolicies({
-      scene: sceneWindowState,
-      debug: debugWindowState,
-      hierarchy: hierarchyPanelState.window
-    }),
+    floatingFramePolicies: new Map([
+      createSceneWindowWorkspaceFloatingFramePolicy(sceneWindowState),
+      ...createInspectorWindowWorkspaceFloatingFramePolicies(),
+      ...createToolWindowWorkspaceFloatingFramePolicies({
+        debugFallbackState: debugWindowState,
+        hierarchyFallbackState: hierarchyPanelState.window
+      })
+    ]),
     defaultOpenViews: [
-      { viewKey: "scene", preferredFrameId: WORKSPACE_ROOT_FRAME_ID },
-      { viewKey: "debug" },
-      { viewKey: "hierarchy" }
+      createSceneDefaultOpenView(),
+      ...createToolWindowDefaultOpenViews()
     ],
     layoutStorage,
     registerRuntimeService: (object) => runtimeContext.registerRuntimeService(object)
@@ -160,8 +167,6 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const sceneFeature = installSceneViewFeature({
     context: runtimeContext,
     mount: floatingFrameParent,
-    sceneStore,
-    sceneWindowState,
     actorIds: {
       sceneWindowActorId: SCENE_WINDOW_ACTOR_ID,
       sceneWindowActorName: SCENE_WINDOW_ACTOR_NAME,
@@ -171,10 +176,11 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       tesseract4ActorName: TESSERACT4_ACTOR_NAME
     },
     viewFactories: windowWorkspace.viewFactories,
-    locations: windowWorkspace.lifecycle,
-    frameIntentSink: windowWorkspace.frameIntents,
-    framePortRegistry: windowWorkspace.framePorts,
-    tabDragSink: windowWorkspace.tabDragSink
+    locations: windowWorkspace.lifecycle
+  });
+  installInspectorFeature({
+    context: runtimeContext,
+    viewFactories: windowWorkspace.viewFactories
   });
   installToolWindowFeatures({
     context: runtimeContext,
@@ -276,56 +282,20 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   return { dispose };
 }
 
+const RESET_WORKSPACE_LAYOUT_QUERY_PARAM = "resetWorkspaceLayout";
+
+function shouldResetWindowWorkspaceLayout(target: Pick<Window, "location">): boolean {
+  try {
+    return new URL(target.location.href).searchParams.has(RESET_WORKSPACE_LAYOUT_QUERY_PARAM);
+  } catch {
+    return false;
+  }
+}
+
 function closeLiveWindowFrames(controller: InstalledWindowWorkspaceFeature["lifecycle"]): void {
   if (!controller) return;
   const frameIds = new Set(controller.listLiveViews().map((view) => view.frameActor.id));
   for (const frameId of frameIds) {
     controller.closeFrame(frameId, "programmatic");
   }
-}
-
-function resolveWindowWorkspaceLayoutStorage(): WindowWorkspaceFrameLayoutStorage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
-function createFloatingFramePolicies(fallbackStates: {
-  readonly scene: ReturnType<typeof createDefaultSceneWindowState>;
-  readonly debug: ReturnType<typeof createDefaultDebugWindowState>;
-  readonly hierarchy: ReturnType<typeof createDefaultHierarchyPanelState>["window"];
-}): ReadonlyMap<WindowViewKey, WindowWorkspaceFloatingFramePolicy> {
-  return new Map<WindowViewKey, WindowWorkspaceFloatingFramePolicy>([
-    ["scene", {
-      preferredActorId: SCENE_WINDOW_ACTOR_ID,
-      preferredComponentId: "floating-window:scene",
-      paths: sceneParameterPaths.sceneWindow,
-      fallbackState: fallbackStates.scene,
-      minSize: vec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT),
-      className: "scene-window",
-      contentClassName: "scene-window__content",
-      priority: SCENE_WINDOW_PRIORITY_DEVELOP,
-      menuOrder: 0
-    }],
-    ["debug", {
-      preferredActorId: DEBUG_LOG_WINDOW_ACTOR_ID,
-      preferredComponentId: "floating-window:debug-log",
-      paths: sceneParameterPaths.debugWindow,
-      fallbackState: fallbackStates.debug,
-      minSize: vec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
-      className: "debug-log-window",
-      priority: 1000
-    }],
-    ["hierarchy", {
-      preferredActorId: HIERARCHY_PANEL_ACTOR_ID,
-      preferredComponentId: "floating-window:hierarchy",
-      paths: sceneParameterPaths.hierarchyWindow,
-      fallbackState: fallbackStates.hierarchy,
-      minSize: vec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT),
-      className: "hierarchy-window",
-      priority: 1100
-    }]
-  ]);
 }

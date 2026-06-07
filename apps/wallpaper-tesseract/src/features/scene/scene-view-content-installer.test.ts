@@ -6,7 +6,6 @@ import type {
   RuntimeRegistration,
   SceneStateObserver
 } from "../../scene-runtime";
-import { createDefaultSceneWindowState } from "./index";
 import type { SceneViewportRenderer } from "./components";
 import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
 import type {
@@ -23,6 +22,7 @@ import {
   type SceneViewContentActorIds
 } from "./index";
 import {
+  createSingletonWindowViewIdentity,
   workspaceRootDockFrameComponentType,
   type WindowViewLocationSource
 } from "../../window-runtime";
@@ -127,6 +127,21 @@ function createFakeRenderer(document: FakeDocument, calls: string[]): SceneViewp
   };
 }
 
+function createWorkspaceRootFrame(
+  runtimeContext: AppRuntimeContext,
+  mount: FakeElement,
+  document: FakeDocument,
+  actorId = "workspace-root-frame"
+) {
+  const actor = runtimeContext.actorSystem.createActor({ id: actorId });
+  runtimeContext.componentRegistry.addComponent(actor, workspaceRootDockFrameComponentType, {
+    id: `workspace-root:${actorId}`,
+    parent: mount as unknown as HTMLElement,
+    document: document as unknown as Document
+  });
+  return actor;
+}
+
 function createFakeCamera3Gizmo(document: FakeDocument, calls: string[]): Camera3GizmoViewFactory {
   return (options) => {
     const element = document.createElement("div");
@@ -221,26 +236,21 @@ function createSubject(options: CreateSubjectOptions = {}) {
   const { runtimeContext } = createRuntimeContext(calls);
   const sceneWindowActorId = options.actorIds?.sceneWindowActorId ?? "scene-window";
   const sceneViewActorId = `${sceneWindowActorId}:view`;
-  const rootFrameActor = options.rootFrameActorId
-    ? runtimeContext.actorSystem.createActor({ id: options.rootFrameActorId })
-    : null;
-  if (rootFrameActor) {
-    runtimeContext.componentRegistry.addComponent(rootFrameActor, workspaceRootDockFrameComponentType, {
-      id: "workspace-root:test",
-      parent: mount as unknown as HTMLElement,
-      document: document as unknown as Document
-    });
-  }
+  const rootFrameActor = createWorkspaceRootFrame(
+    runtimeContext,
+    mount,
+    document,
+    options.rootFrameActorId ?? "workspace-root-frame"
+  );
   const viewLocationSource = options.viewLocationSource ?? createSceneLocationSource(
     runtimeContext,
-    rootFrameActor?.id ?? sceneWindowActorId,
+    rootFrameActor.id,
     sceneViewActorId
   );
   const content = installSceneViewContent({
     context: runtimeContext,
     mount: mount as unknown as HTMLElement,
-    parentFrameActor: rootFrameActor ?? undefined,
-    initialState: createDefaultSceneWindowState({ viewportWidth: 800, viewportHeight: 600 }),
+    parentFrameActor: rootFrameActor,
     actorIds: {
       sceneWindowActorId: "scene-window",
       sceneWindowActorName: "Scene",
@@ -293,13 +303,7 @@ function createTestSceneViewHandle(
     sceneView: content.sceneView,
     camera3Motion: content.camera3Motion,
     get actor() {
-      return content.sceneWindow?.actor ?? content.sceneView.actor;
-    },
-    get sceneWindow() {
-      if (!content.sceneWindow) {
-        throw new Error("Scene view content is not owned by a floating Scene window.");
-      }
-      return content.sceneWindow;
+      return content.sceneView.actor;
     },
     get viewActorId() {
       return renderable.viewActorId;
@@ -366,6 +370,7 @@ function thisLocation(
   const activeInFrame = options.activeInFrame ?? true;
   return {
     viewKey: "scene",
+    identity: createSingletonWindowViewIdentity("scene"),
     viewActorId,
     ownerFrameActorId,
     ownerFrameVisiblePath: `${ownerFrameActorId}.visible` as never,
@@ -373,18 +378,19 @@ function thisLocation(
     ownerFrameActiveInHierarchy: context.actorSystem.isActorActive(ownerFrame),
     activeInFrame,
     visibleInFrame: options.visibleInFrame ?? (ownerFrameVisible && activeInFrame),
-    presentation: "windowed"
+    presentation: "windowed",
+    activationSequence: 0
   };
 }
 
 describe("Scene view content installer and renderable view", () => {
-  it("creates the Scene frame, Scene view, Camera3, and Tesseract actor tree", () => {
+  it("creates the Scene view, Camera3, and Tesseract actor tree inside an owner frame", () => {
     const subject = createSubject();
-    const sceneViewActor = subject.runtime.sceneWindow.viewport.actor;
+    const sceneViewActor = subject.runtime.sceneView.viewport.actor;
 
-    expect(subject.runtimeContext.actorSystem.getActor("scene-window")).toBe(subject.runtime.actor);
+    expect(subject.runtimeContext.actorSystem.getActor("scene-window")).toBeNull();
     expect(sceneViewActor.id).toBe("scene-window:view");
-    expect(subject.runtimeContext.actorSystem.getParentId(sceneViewActor)).toBe("scene-window");
+    expect(subject.runtimeContext.actorSystem.getParentId(sceneViewActor)).toBe("workspace-root-frame");
     expect(subject.runtimeContext.actorSystem.getParentId(subject.runtimeContext.actorSystem.getActor("camera-3")!))
       .toBe("scene-window:view");
     expect(subject.runtimeContext.actorSystem.getParentId(subject.runtimeContext.actorSystem.getActor("tesseract-4")!))
@@ -396,11 +402,10 @@ describe("Scene view content installer and renderable view", () => {
     subject.runtimeContext.dispose();
   });
 
-  it("creates a Scene view runtime directly inside an existing root frame", () => {
+  it("creates a Scene view runtime directly inside an explicitly named root frame", () => {
     const subject = createSubject({ rootFrameActorId: "workspace-root-frame" });
     const sceneViewActor = subject.runtime.sceneView.viewport.actor;
 
-    expect(() => subject.runtime.sceneWindow).toThrow("Scene view content is not owned by a floating Scene window.");
     expect(subject.runtimeContext.actorSystem.getActor("scene-window")).toBeNull();
     expect(sceneViewActor.id).toBe("scene-window:view");
     expect(subject.runtimeContext.actorSystem.getParentId(sceneViewActor)).toBe("workspace-root-frame");
@@ -418,7 +423,7 @@ describe("Scene view content installer and renderable view", () => {
   it("measures, renders, and disposes without leaking observers or actors", () => {
     const subject = createSubject();
     const root = subject.mount.children[0];
-    const content = findChildByClass(root, "floating-gizmo-window__content");
+    const content = findChildByClass(root, "workspace-root-dock-frame__content");
     const viewport = findChildByClass(content, "scene-window__viewport");
     viewport.rect = createRect(0, 0, 640, 360);
 
@@ -432,7 +437,7 @@ describe("Scene view content installer and renderable view", () => {
     expect(subject.rendererCalls).toContain("render");
     expect(subject.rendererCalls.at(-1)).toBe("dispose");
     expect(subject.resizeObserverCalls).toEqual(["observe:scene-window__viewport", "disconnect"]);
-    expect(subject.runtimeContext.actorSystem.getActor("scene-window")).toBeNull();
+    expect(subject.runtimeContext.actorSystem.getActor("workspace-root-frame")).toBeTruthy();
     expect(subject.runtimeContext.actorSystem.getActor("scene-window:view")).toBeNull();
     expect(subject.runtimeContext.actorSystem.getActor("camera-3")).toBeNull();
     expect(subject.runtimeContext.actorSystem.getActor("tesseract-4")).toBeNull();
@@ -441,9 +446,9 @@ describe("Scene view content installer and renderable view", () => {
     subject.runtimeContext.dispose();
   });
 
-  it("renders through the current owner after the original Scene frame is destroyed", () => {
+  it("renders through the current owner after the Scene view is reparented", () => {
     let subjectContext!: AppRuntimeContext;
-    let ownerFrameActorId = "scene-window";
+    let ownerFrameActorId = "workspace-root-frame";
     const subject = createSubject({
       viewLocationSource: {
         getLocationByViewKey: (viewKey) => (
@@ -464,13 +469,13 @@ describe("Scene view content installer and renderable view", () => {
     });
     subjectContext = subject.runtimeContext;
     const newOwner = subject.runtimeContext.actorSystem.createActor({ id: "debug-frame" });
-    subject.runtimeContext.actorSystem.setParent(subject.runtime.sceneWindow.viewport.actor, newOwner);
-    subject.runtimeContext.actorSystem.destroyActor(subject.runtime.sceneWindow.actor);
+    subject.runtimeContext.actorSystem.setParent(subject.runtime.sceneView.viewport.actor, newOwner);
+    subject.runtimeContext.actorSystem.destroyActor(subject.rootFrameActor);
     ownerFrameActorId = "debug-frame";
 
     subject.runtime.render();
 
-    expect(subject.runtimeContext.actorSystem.getActor("scene-window")).toBeNull();
+    expect(subject.runtimeContext.actorSystem.getActor("workspace-root-frame")).toBeNull();
     expect(subject.runtimeContext.actorSystem.getActor("scene-window:view")).toBeTruthy();
     expect(subject.rendererCalls).toContain("render");
 
@@ -486,6 +491,7 @@ describe("Scene view content installer and renderable view", () => {
     const calls: string[] = [];
     const rendererCalls: string[] = [];
     const { runtimeContext } = createRuntimeContext(calls);
+    const ownerFrame = createWorkspaceRootFrame(runtimeContext, mount, document, "scene-window");
     const viewLocationSource: WindowViewLocationSource = {
       getLocationByViewKey: (viewKey) => (
         viewKey === "scene"
@@ -505,7 +511,7 @@ describe("Scene view content installer and renderable view", () => {
     const content = installSceneViewContent({
       context: runtimeContext,
       mount: mount as unknown as HTMLElement,
-      initialState: createDefaultSceneWindowState({ viewportWidth: 800, viewportHeight: 600 }),
+      parentFrameActor: ownerFrame,
       actorIds: {
         sceneWindowActorId: "scene-window",
         sceneWindowActorName: "Scene",
@@ -545,7 +551,7 @@ describe("Scene view content installer and renderable view", () => {
 
     const second = createSubject();
 
-    expect(second.runtimeContext.actorSystem.getActor("scene-window")).toBeTruthy();
+    expect(second.runtimeContext.actorSystem.getActor("scene-window:view")).toBeTruthy();
     expect(second.runtimeContext.actorSystem.getActor("camera-3")).toBeTruthy();
     second.runtime.dispose();
     second.runtimeContext.dispose();
@@ -558,11 +564,12 @@ describe("Scene view content installer and renderable view", () => {
     const rendererCalls: string[] = [];
     const resizeObserverCalls: string[] = [];
     const { runtimeContext } = createRuntimeContext(calls);
+    const ownerFrame = createWorkspaceRootFrame(runtimeContext, mount, document);
 
     expect(() => installSceneViewContent({
       context: runtimeContext,
       mount: mount as unknown as HTMLElement,
-      initialState: createDefaultSceneWindowState({ viewportWidth: 800, viewportHeight: 600 }),
+      parentFrameActor: ownerFrame,
       actorIds: {
         sceneWindowActorId: "scene-window",
         sceneWindowActorName: "Scene",
@@ -589,7 +596,8 @@ describe("Scene view content installer and renderable view", () => {
     expect(runtimeContext.actorSystem.getActor("scene-window:view")).toBeNull();
     expect(runtimeContext.actorSystem.getActor("camera-3")).toBeNull();
     expect(runtimeContext.actorSystem.getActor("tesseract-4")).toBeNull();
-    expect(mount.children).toEqual([]);
+    expect(mount.children).toHaveLength(1);
+    expect(findChildByClass(mount.children[0], "workspace-root-dock-frame__content").children).toEqual([]);
     expect(resizeObserverCalls).toEqual(["observe:scene-window__viewport", "disconnect"]);
     expect(rendererCalls.at(-1)).toBe("dispose");
     expect(calls).not.toContain("runtime-register:camera3-motion-controller");
@@ -604,17 +612,18 @@ describe("Scene view content installer and renderable view", () => {
     const calls: string[] = [];
     const rendererCalls: string[] = [];
     const { runtimeContext } = createRuntimeContext(calls);
+    const ownerFrame = createWorkspaceRootFrame(runtimeContext, mount, document);
 
     expect(() => installSceneViewContent({
       context: runtimeContext,
       mount: mount as unknown as HTMLElement,
-      initialState: createDefaultSceneWindowState({ viewportWidth: 800, viewportHeight: 600 }),
+      parentFrameActor: ownerFrame,
       actorIds: {
         sceneWindowActorId: "scene-window",
         sceneWindowActorName: "Scene",
         camera3GizmoActorId: "camera-3",
         camera3GizmoActorName: "Camera3",
-        tesseract4ActorId: "scene-window",
+        tesseract4ActorId: "scene-window:view",
         tesseract4ActorName: "Tesseract4"
       },
       createRenderer: () => createFakeRenderer(document, rendererCalls),

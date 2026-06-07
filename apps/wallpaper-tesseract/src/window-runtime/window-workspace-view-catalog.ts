@@ -1,8 +1,5 @@
 import type { Actor, ActorSystemView } from "../actor-runtime";
-import {
-  createSingletonWindowViewIdentity,
-  type WindowViewIdentity
-} from "./window-view-identity";
+import type { WindowViewIdentity } from "./window-view-identity";
 import type { WindowViewKey } from "./window-view-key";
 import type { WindowViewFactoryRegistry } from "./window-view-factory-registry";
 import { getWindowViewFactoryIdentity } from "./window-view-factory-registry";
@@ -27,6 +24,7 @@ export interface WindowWorkspaceViewEntry {
   readonly ownerFrameVisible: boolean;
   readonly ownerFrameActiveInHierarchy: boolean;
   readonly presentation: WindowFramePresentation | null;
+  readonly activationSequence: number;
 }
 
 export interface WindowWorkspaceFrameEntry {
@@ -103,14 +101,15 @@ function listViewEntries(options: WindowWorkspaceViewCatalogOptions): readonly W
       visibleInFrame: location?.visibleInFrame ?? false,
       ownerFrameVisible: location?.ownerFrameVisible ?? false,
       ownerFrameActiveInHierarchy: location?.ownerFrameActiveInHierarchy ?? false,
-      presentation: location?.presentation ?? null
+      presentation: location?.presentation ?? null,
+      activationSequence: location?.activationSequence ?? 0
     });
   }
 
   for (const location of options.locations.listLocations()) {
     if (factoryByViewKey.has(location.viewKey)) continue;
     entries.push({
-      identity: createSingletonWindowViewIdentity(location.viewKey),
+      identity: location.identity,
       viewKey: location.viewKey,
       viewActorId: location.viewActorId,
       ownerFrameActorId: location.ownerFrameActorId,
@@ -124,7 +123,8 @@ function listViewEntries(options: WindowWorkspaceViewCatalogOptions): readonly W
       visibleInFrame: location.visibleInFrame,
       ownerFrameVisible: location.ownerFrameVisible,
       ownerFrameActiveInHierarchy: location.ownerFrameActiveInHierarchy,
-      presentation: location.presentation
+      presentation: location.presentation,
+      activationSequence: location.activationSequence
     });
   }
 

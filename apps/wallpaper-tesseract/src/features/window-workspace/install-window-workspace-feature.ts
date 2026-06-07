@@ -5,6 +5,8 @@ import {
   createWindowWorkspaceViewCatalog,
   DefaultWindowFrameLifecycleController,
   floatingWindowComponentType,
+  getPersistedViewDescriptorIdentity,
+  getPersistedViewDescriptorRuntimeViewKey,
   hydrateWindowWorkspaceFrameLayout,
   loadPersistedWindowWorkspaceFrameLayout,
   WindowDockPreviewController,
@@ -32,7 +34,7 @@ import type { WindowWorkspaceViewCatalog } from "../../window-runtime";
 export interface WindowWorkspaceFloatingFramePolicy {
   readonly preferredActorId: string;
   readonly preferredComponentId: string;
-  readonly paths: FloatingWindowParameterPaths;
+  readonly paths?: FloatingWindowParameterPaths;
   readonly fallbackState: FloatingWindowState;
   readonly minSize: Vec2;
   readonly className: string;
@@ -96,6 +98,15 @@ export function installWindowWorkspaceFeature(
     requestOpenView(viewKey, reason) {
       requireLifecycle().openView(viewKey, reason);
     },
+    requestOpenOrFocusViewType(typeKey, reason, openOptions) {
+      requireLifecycle().openOrFocusViewType(typeKey, reason, openOptions);
+    },
+    requestCreateViewInstance(typeKey, reason, openOptions) {
+      requireLifecycle().createViewInstance(typeKey, reason, openOptions);
+    },
+    requestFocusViewInstance(identity, reason) {
+      requireLifecycle().focusViewInstance(identity, reason);
+    },
     requestCloseFrame(frameId, reason) {
       requireLifecycle().closeFrame(frameId, reason);
     },
@@ -143,8 +154,8 @@ export function installWindowWorkspaceFeature(
         id: ids.componentId,
         parent: options.floatingFrameParent,
         title,
-        paths: createOptions.runtimeOnly ? undefined : frameOptions.paths,
-        stateBinding: createOptions.runtimeOnly ? { kind: "runtime" } : undefined,
+        paths: createOptions.runtimeOnly || !frameOptions.paths ? undefined : frameOptions.paths,
+        stateBinding: createOptions.runtimeOnly || !frameOptions.paths ? { kind: "runtime" } : undefined,
         initialState: frameOptions.initialState,
         minSize: frameOptions.minSize,
         className: frameOptions.className,
@@ -247,7 +258,7 @@ export function installWindowWorkspaceFeature(
 interface FloatingFrameShellOptions {
   readonly preferredActorId: string;
   readonly preferredComponentId: string;
-  readonly paths: FloatingWindowParameterPaths;
+  readonly paths?: FloatingWindowParameterPaths;
   readonly initialState: FloatingWindowState;
   readonly minSize: Vec2;
   readonly className: string;
@@ -276,10 +287,12 @@ function getFloatingFrameOptions(
   }
   const initialState = bounds
     ? createFloatingStateFromBounds(bounds, policy.minSize)
-    : readFloatingWindowState(store, policy.paths, {
-        fallback: policy.fallbackState,
-        forceVisible: reason === "menu"
-      });
+    : policy.paths
+      ? readFloatingWindowState(store, policy.paths, {
+          fallback: policy.fallbackState,
+          forceVisible: reason === "menu"
+        })
+      : cloneFloatingWindowStateWithVisibility(policy.fallbackState, reason === "menu" ? true : undefined);
   return {
     preferredActorId: policy.preferredActorId,
     preferredComponentId: policy.preferredComponentId,
@@ -296,6 +309,17 @@ function getFloatingFrameOptions(
       order: policy.menuOrder,
       activationMode: "visible"
     }
+  };
+}
+
+function cloneFloatingWindowStateWithVisibility(
+  state: FloatingWindowState,
+  visibleOverride?: boolean
+): FloatingWindowState {
+  return {
+    position: vec2(state.position.x, state.position.y),
+    size: vec2(state.size.x, state.size.y),
+    visible: visibleOverride ?? state.visible
   };
 }
 
@@ -359,8 +383,9 @@ function createHydratableFrameLayout(persisted: Parameters<typeof hydrateWindowW
   return hydrateWindowWorkspaceFrameLayout(
     persisted,
     persisted.views.map((view) => ({
-      viewKey: view.viewKey,
-      actorId: `persisted:${view.viewKey}`,
+      viewKey: getPersistedViewDescriptorRuntimeViewKey(view),
+      identity: getPersistedViewDescriptorIdentity(view),
+      actorId: `persisted:${getPersistedViewDescriptorIdentity(view).instanceId}`,
       title: view.title,
       canDock: view.canDock
     }))

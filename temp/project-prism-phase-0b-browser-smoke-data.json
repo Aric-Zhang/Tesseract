@@ -1,0 +1,818 @@
+{
+  "generatedAt": "2026-06-07T14:57:05.059Z",
+  "server": {
+    "url": "http://127.0.0.1:5183/",
+    "actualPort": 5183,
+    "pidFile": "temp/project-prism-phase-0b-vite.pid"
+  },
+  "layoutStorage": "resetWorkspaceLayout=1",
+  "smokeContract": "ProjectPrismSmokeEvidence[] with expectedTarget checks and actor-input capture hook",
+  "evidences": [
+    {
+      "url": "http://127.0.0.1:5183/?resetWorkspaceLayout=1&phase0bSmoke=desktop-overlap",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "consoleErrors": [],
+      "interactions": [
+        {
+          "name": "desktop-root-tab-uncovered",
+          "point": {
+            "x": 11,
+            "y": 42
+          },
+          "expected": "A visible, uncovered root Scene tab is routed to the workspace root frame tab participant.",
+          "expectedTarget": {
+            "actorId": "workspace-root-frame",
+            "partId": "window-tab",
+            "domClassIncludes": "window-frame-tab",
+            "actionResultContains": {
+              "rootTabHit": true
+            }
+          },
+          "domTop": {
+            "tag": "DIV",
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "role": "tab",
+            "aria": null,
+            "text": "Scenex"
+          },
+          "domStack": [
+            {
+              "tag": "DIV",
+              "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+              "role": "tab",
+              "aria": null,
+              "text": "Scenex"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame__tabs",
+              "role": "tablist",
+              "aria": null,
+              "text": "Scenex"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell__root-dock",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug LogxxGizmo debug "
+            },
+            {
+              "tag": "DIV",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug LogxxGizmo debug "
+            },
+            {
+              "tag": "BODY",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug LogxxGizmo debug "
+            },
+            {
+              "tag": "HTML",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": "Four Camera Tesseract * { box-sizing: border-box; } html, body, #app { width: 100%; height: 100%; ma"
+            }
+          ],
+          "actorInputHit": {
+            "actorId": "workspace-root-frame",
+            "partId": "window-tab"
+          },
+          "actionResult": {
+            "rootTabHit": true
+          },
+          "screenshotPath": "temp/project-prism-phase-0b-desktop-root-tab-uncovered.png"
+        },
+        {
+          "name": "desktop-floating-over-root-tab",
+          "point": {
+            "x": 80,
+            "y": 36
+          },
+          "expected": "A floating Hierarchy tab visually covering the root tab receives actor input instead of the root tab.",
+          "expectedTarget": {
+            "actorId": "hierarchy-panel",
+            "partId": "window-tab",
+            "domClassIncludes": "window-frame-tab",
+            "actionResultContains": {
+              "floatingAboveRoot": true
+            }
+          },
+          "domTop": {
+            "tag": "DIV",
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "role": "tab",
+            "aria": null,
+            "text": "Hierarchyx"
+          },
+          "domStack": [
+            {
+              "tag": "DIV",
+              "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+              "role": "tab",
+              "aria": null,
+              "text": "Hierarchyx"
+            },
+            {
+              "tag": "DIV",
+              "className": "floating-gizmo-window__titlebar",
+              "role": "tablist",
+              "aria": null,
+              "text": "Hierarchyxx"
+            },
+            {
+              "tag": "DIV",
+              "className": "floating-gizmo-window hierarchy-window",
+              "role": null,
+              "aria": null,
+              "text": "HierarchyxxDebug Log WindowDebug Log Window ViewHierarchy PanelHierarchy Panel ViewApp MenuWorkspace"
+            },
+            {
+              "tag": "DIV",
+              "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+              "role": "tab",
+              "aria": null,
+              "text": "Scenex"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame__tabs",
+              "role": "tablist",
+              "aria": null,
+              "text": "Scenex"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell__root-dock",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug Logxx 2334 pointe"
+            }
+          ],
+          "actorInputHit": {
+            "actorId": "hierarchy-panel",
+            "partId": "window-tab"
+          },
+          "actionResult": {
+            "floatingAboveRoot": true
+          },
+          "screenshotPath": "temp/project-prism-phase-0b-desktop-floating-over-root-tab.png"
+        },
+        {
+          "name": "desktop-scene-fullscreen",
+          "point": {
+            "x": 1238,
+            "y": 265
+          },
+          "expected": "Scene fullscreen control routes through the Scene view actor and enters fullscreen presentation.",
+          "expectedTarget": {
+            "actorId": "scene-window:view",
+            "partId": "scene-mode-toggle",
+            "actionResultContains": {
+              "fullscreen": true
+            }
+          },
+          "domTop": {
+            "tag": "BUTTON",
+            "className": "scene-window__mode-toggle-button scene-window__mode-toggle-button--fullscreen",
+            "role": null,
+            "aria": "Expand Scene to fullscreen",
+            "text": ""
+          },
+          "domStack": [
+            {
+              "tag": "BUTTON",
+              "className": "scene-window__mode-toggle-button scene-window__mode-toggle-button--fullscreen",
+              "role": null,
+              "aria": "Expand Scene to fullscreen",
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "scene-window__view-controls",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "CANVAS",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "scene-window__canvas-host",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "scene-window__viewport",
+              "role": null,
+              "aria": null,
+              "text": "< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame__content",
+              "role": null,
+              "aria": null,
+              "text": "< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell__root-dock",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            }
+          ],
+          "actorInputHit": {
+            "actorId": "scene-window:view",
+            "partId": "scene-mode-toggle"
+          },
+          "actionResult": {
+            "fullscreen": true,
+            "floatingVisibleCount": 1
+          },
+          "screenshotPath": "temp/project-prism-phase-0b-desktop-scene-fullscreen.png"
+        },
+        {
+          "name": "desktop-scene-restore",
+          "point": {
+            "x": 1238,
+            "y": 208
+          },
+          "expected": "Scene restore control routes through the same Scene view actor and returns to windowed/root presentation.",
+          "expectedTarget": {
+            "actorId": "scene-window:view",
+            "partId": "scene-mode-toggle",
+            "actionResultContains": {
+              "restored": true
+            }
+          },
+          "domTop": {
+            "tag": "BUTTON",
+            "className": "scene-window__mode-toggle-button scene-window__mode-toggle-button--windowed",
+            "role": null,
+            "aria": "Shrink Scene to window",
+            "text": ""
+          },
+          "domStack": [
+            {
+              "tag": "BUTTON",
+              "className": "scene-window__mode-toggle-button scene-window__mode-toggle-button--windowed",
+              "role": null,
+              "aria": "Shrink Scene to window",
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "scene-window__view-controls",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "CANVAS",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "scene-window__canvas-host",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "scene-window__viewport",
+              "role": null,
+              "aria": null,
+              "text": "< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "floating-gizmo-window__content scene-window__content",
+              "role": null,
+              "aria": null,
+              "text": "< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "floating-gizmo-window scene-window floating-gizmo-window--fullscreen",
+              "role": null,
+              "aria": null,
+              "text": "Scenexx< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame__content",
+              "role": null,
+              "aria": null,
+              "text": ""
+            }
+          ],
+          "actorInputHit": {
+            "actorId": "scene-window:view",
+            "partId": "scene-mode-toggle"
+          },
+          "actionResult": {
+            "restored": true,
+            "floatingVisibleCount": 2
+          },
+          "screenshotPath": "temp/project-prism-phase-0b-desktop-scene-restore.png"
+        },
+        {
+          "name": "desktop-app-menu-button",
+          "point": {
+            "x": 1234,
+            "y": 23
+          },
+          "expected": "The app menu opens through the app-menu actor input participant.",
+          "expectedTarget": {
+            "actorId": "app-menu-bar",
+            "partId": "menu-button",
+            "actionResultContains": {
+              "menuOpen": true
+            }
+          },
+          "domTop": {
+            "tag": "DIV",
+            "className": "app-shell__menu",
+            "role": null,
+            "aria": null,
+            "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew Inspector"
+          },
+          "domStack": [
+            {
+              "tag": "DIV",
+              "className": "app-shell__menu",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew Inspector"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug Logxx 2334 pointe"
+            },
+            {
+              "tag": "DIV",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug Logxx 2334 pointe"
+            },
+            {
+              "tag": "BODY",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug Logxx 2334 pointe"
+            },
+            {
+              "tag": "HTML",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": "Four Camera Tesseract * { box-sizing: border-box; } html, body, #app { width: 100%; height: 100%; ma"
+            }
+          ],
+          "actorInputHit": {
+            "actorId": "app-menu-bar",
+            "partId": "menu-button"
+          },
+          "actionResult": {
+            "menuOpen": true
+          },
+          "screenshotPath": "temp/project-prism-phase-0b-desktop-app-menu-button.png"
+        },
+        {
+          "name": "desktop-app-menu-scene-focus",
+          "point": {
+            "x": 1184,
+            "y": 58
+          },
+          "expected": "The Window > Scene row routes through app-menu command input rather than DOM click mutation.",
+          "expectedTarget": {
+            "actorId": "app-menu-bar",
+            "partId": "window-command-item",
+            "actionResultContains": {
+              "sceneTabVisible": true
+            }
+          },
+          "domTop": {
+            "tag": "CANVAS",
+            "className": "",
+            "role": null,
+            "aria": null,
+            "text": ""
+          },
+          "domStack": [
+            {
+              "tag": "CANVAS",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "scene-window__canvas-host",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "scene-window__viewport",
+              "role": null,
+              "aria": null,
+              "text": "< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame__content",
+              "role": null,
+              "aria": null,
+              "text": "< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell__root-dock",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug Logxx 2334 pointe"
+            },
+            {
+              "tag": "DIV",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug Logxx 2334 pointe"
+            }
+          ],
+          "actorInputHit": {
+            "actorId": "app-menu-bar",
+            "partId": "window-command-item"
+          },
+          "actionResult": {
+            "sceneTabVisible": true
+          },
+          "screenshotPath": "temp/project-prism-phase-0b-desktop-app-menu-scene-focus.png"
+        }
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5183/?resetWorkspaceLayout=1&phase0bSmoke=mobile-tab-close",
+      "viewport": {
+        "width": 390,
+        "height": 720
+      },
+      "consoleErrors": [],
+      "interactions": [
+        {
+          "name": "mobile-floating-tab-close",
+          "point": {
+            "x": 161,
+            "y": 30
+          },
+          "expected": "On a narrow viewport, a floating tab close button stays inside its tab rect and routes to the window tab action participant.",
+          "expectedTarget": {
+            "actorId": "hierarchy-panel",
+            "partId": "window-tab-action",
+            "domClassIncludes": "window-frame-tab__close",
+            "actionResultContains": {
+              "hierarchyClosed": true,
+              "closeInsideTab": true
+            }
+          },
+          "domTop": {
+            "tag": "BUTTON",
+            "className": "window-frame-tab__close floating-gizmo-window__tab-close",
+            "role": null,
+            "aria": "Close Hierarchy",
+            "text": "x"
+          },
+          "domStack": [
+            {
+              "tag": "BUTTON",
+              "className": "window-frame-tab__close floating-gizmo-window__tab-close",
+              "role": null,
+              "aria": "Close Hierarchy",
+              "text": "x"
+            },
+            {
+              "tag": "DIV",
+              "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+              "role": "tab",
+              "aria": null,
+              "text": "Hierarchyx"
+            },
+            {
+              "tag": "DIV",
+              "className": "floating-gizmo-window__titlebar",
+              "role": "tablist",
+              "aria": null,
+              "text": "Hierarchyxx"
+            },
+            {
+              "tag": "DIV",
+              "className": "floating-gizmo-window hierarchy-window",
+              "role": null,
+              "aria": null,
+              "text": "HierarchyxxDebug Log WindowDebug Log Window ViewHierarchy PanelHierarchy Panel ViewApp MenuWorkspace"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame__tabs",
+              "role": "tablist",
+              "aria": null,
+              "text": "Scenex"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell__root-dock",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug LogxxGizmo debug "
+            }
+          ],
+          "actorInputHit": {
+            "actorId": "hierarchy-panel",
+            "partId": "window-tab-action"
+          },
+          "actionResult": {
+            "hierarchyClosed": true,
+            "closeInsideTab": true,
+            "preClickCloseRect": {
+              "x": 153,
+              "y": 21.5,
+              "width": 16,
+              "height": 16
+            },
+            "preClickTabRect": {
+              "x": 25,
+              "y": 17.5,
+              "width": 150,
+              "height": 24
+            }
+          },
+          "screenshotPath": "temp/project-prism-phase-0b-mobile-floating-tab-close.png"
+        },
+        {
+          "name": "mobile-app-menu-button",
+          "point": {
+            "x": 344,
+            "y": 23
+          },
+          "expected": "The mobile viewport keeps the app menu reachable after closing a floating window.",
+          "expectedTarget": {
+            "actorId": "app-menu-bar",
+            "partId": "menu-button",
+            "actionResultContains": {
+              "menuOpen": true
+            }
+          },
+          "domTop": {
+            "tag": "DIV",
+            "className": "app-shell__menu",
+            "role": null,
+            "aria": null,
+            "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew Inspector"
+          },
+          "domStack": [
+            {
+              "tag": "DIV",
+              "className": "app-shell__menu",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew Inspector"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug Logxx 2178 pointe"
+            },
+            {
+              "tag": "DIV",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug Logxx 2178 pointe"
+            },
+            {
+              "tag": "BODY",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDebug Logxx 2178 pointe"
+            },
+            {
+              "tag": "HTML",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": "Four Camera Tesseract * { box-sizing: border-box; } html, body, #app { width: 100%; height: 100%; ma"
+            }
+          ],
+          "actorInputHit": {
+            "actorId": "app-menu-bar",
+            "partId": "menu-button"
+          },
+          "actionResult": {
+            "menuOpen": true
+          },
+          "screenshotPath": "temp/project-prism-phase-0b-mobile-app-menu-button.png"
+        },
+        {
+          "name": "mobile-app-menu-hierarchy-restore",
+          "point": {
+            "x": 294,
+            "y": 106
+          },
+          "expected": "The Window > Hierarchy row restores a closed window through app-menu command input.",
+          "expectedTarget": {
+            "actorId": "app-menu-bar",
+            "partId": "window-command-item",
+            "actionResultContains": {
+              "hierarchyRestored": true
+            }
+          },
+          "domTop": {
+            "tag": "CANVAS",
+            "className": "camera3-gizmo__canvas",
+            "role": null,
+            "aria": null,
+            "text": ""
+          },
+          "domStack": [
+            {
+              "tag": "CANVAS",
+              "className": "camera3-gizmo__canvas",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "camera3-gizmo",
+              "role": null,
+              "aria": null,
+              "text": "< Persp"
+            },
+            {
+              "tag": "CANVAS",
+              "className": "",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "scene-window__canvas-host",
+              "role": null,
+              "aria": null,
+              "text": ""
+            },
+            {
+              "tag": "DIV",
+              "className": "scene-window__viewport",
+              "role": null,
+              "aria": null,
+              "text": "< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame__content",
+              "role": null,
+              "aria": null,
+              "text": "< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "workspace-root-dock-frame",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            },
+            {
+              "tag": "DIV",
+              "className": "app-shell__root-dock",
+              "role": null,
+              "aria": null,
+              "text": "Scenex< Persp"
+            }
+          ],
+          "actorInputHit": {
+            "actorId": "app-menu-bar",
+            "partId": "window-command-item"
+          },
+          "actionResult": {
+            "hierarchyRestored": true
+          },
+          "screenshotPath": "temp/project-prism-phase-0b-mobile-app-menu-hierarchy-restore.png"
+        }
+      ]
+    }
+  ],
+  "validationErrors": [],
+  "geometryCorrection": {
+    "reason": "mobile close geometry must be measured before the click because the tab is removed after successful close",
+    "closeInsideTab": true,
+    "closeBox": {
+      "x": 153,
+      "y": 21.5,
+      "width": 16,
+      "height": 16
+    },
+    "tabBox": {
+      "x": 25,
+      "y": 17.5,
+      "width": 150,
+      "height": 24
+    }
+  }
+}

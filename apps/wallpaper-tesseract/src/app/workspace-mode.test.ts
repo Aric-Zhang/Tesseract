@@ -16,7 +16,11 @@ import {
   type WorkspaceSceneViewPort,
   type WorkspaceMode
 } from "./workspace-mode";
-import type { WindowFramePresentation, WindowViewLocation } from "../window-runtime";
+import {
+  createSingletonWindowViewIdentity,
+  type WindowFramePresentation,
+  type WindowViewLocation
+} from "../window-runtime";
 
 function createChangedEvent(changes: SceneStateChangedEvent["changes"]): SceneStateChangedEvent {
   return {
@@ -41,6 +45,7 @@ function createSceneViewPort(options: {
     ? null
     : {
         viewKey: "scene",
+        identity: createSingletonWindowViewIdentity("scene"),
         viewActorId,
         ownerFrameActorId: options.ownerFrameActorId ?? "scene-frame",
         ownerFrameVisiblePath: options.visiblePath ?? sceneParameterPaths.sceneWindow.visible,
@@ -48,7 +53,8 @@ function createSceneViewPort(options: {
         ownerFrameActiveInHierarchy: true,
         activeInFrame: true,
         visibleInFrame: true,
-        presentation: (presentations.at(-1)?.split(":").at(-1) as WindowFramePresentation | undefined) ?? "windowed"
+        presentation: (presentations.at(-1)?.split(":").at(-1) as WindowFramePresentation | undefined) ?? "windowed",
+        activationSequence: 0
       };
   const sceneView: WorkspaceSceneViewPort = {
     viewKey: "scene",
@@ -490,6 +496,7 @@ describe("WorkspaceModeController", () => {
         getLocationByViewKey: (viewKey) => viewKey === "scene"
           ? {
               viewKey: "scene",
+              identity: createSingletonWindowViewIdentity("scene"),
               viewActorId: "scene-view",
               ownerFrameActorId: isolated ? "floating-scene-view" : "scene-frame",
               ownerFrameVisiblePath: isolated ? null : sceneParameterPaths.sceneWindow.visible,
@@ -497,7 +504,8 @@ describe("WorkspaceModeController", () => {
               ownerFrameActiveInHierarchy: true,
               activeInFrame: true,
               visibleInFrame: true,
-              presentation: isolated ? "fullscreen" : "windowed"
+              presentation: isolated ? "fullscreen" : "windowed",
+              activationSequence: 0
             }
           : null,
         getLocationByViewActorId: () => null,

@@ -1,0 +1,1006 @@
+{
+  "date": "2026-06-07",
+  "url": "http://127.0.0.1:5173/",
+  "server": {
+    "port": 5173,
+    "pid": 48636,
+    "outLog": "temp/project-prism-phase-0-interaction-host-vite.out.log",
+    "errLog": "temp/project-prism-phase-0-interaction-host-vite.err.log"
+  },
+  "staticBoundaryTests": {
+    "command": "npm run test -w wallpaper-tesseract -- architecture-boundaries",
+    "result": "passed",
+    "tests": 69
+  },
+  "targetedWindowTests": {
+    "command": "npm run test -w wallpaper-tesseract -- floating-window-component workspace-root-dock-frame-component window-frame-tab-chrome",
+    "result": "passed",
+    "files": 3,
+    "tests": 63
+  },
+  "typecheck": {
+    "command": "npm run typecheck -w wallpaper-tesseract",
+    "result": "passed"
+  },
+  "initialState": {
+    "buttons": [
+      {
+        "aria": "",
+        "cls": "app-menu-bar__button",
+        "hidden": false,
+        "rect": {
+          "bottom": 36,
+          "height": 26,
+          "right": 581.6000366210938,
+          "width": 68,
+          "x": 513.6000366210938,
+          "y": 10
+        },
+        "role": "menuitem",
+        "tag": "BUTTON",
+        "text": "Window",
+        "title": "",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "Close Scene",
+        "cls": "window-frame-tab__close floating-gizmo-window__tab-close",
+        "hidden": false,
+        "rect": {
+          "bottom": 156.40000915527344,
+          "height": 16,
+          "right": 250,
+          "width": 16,
+          "x": 234,
+          "y": 140.40000915527344
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "x",
+        "title": "",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "Close Scene",
+        "cls": "floating-gizmo-window__close",
+        "hidden": false,
+        "rect": {
+          "bottom": 159.40000915527344,
+          "height": 22,
+          "right": 491.20001220703125,
+          "width": 22,
+          "x": 469.20001220703125,
+          "y": 137.40000915527344
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "x",
+        "title": "",
+        "zIndex": "3"
+      },
+      {
+        "aria": "Expand Scene to fullscreen",
+        "cls": "scene-window__mode-toggle-button scene-window__mode-toggle-button--fullscreen",
+        "hidden": false,
+        "rect": {
+          "bottom": 391.8000183105469,
+          "height": 40,
+          "right": 476.20001220703125,
+          "width": 40,
+          "x": 436.20001220703125,
+          "y": 351.8000183105469
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "",
+        "title": "Expand Scene to fullscreen",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "",
+        "cls": "camera3-gizmo__mode",
+        "hidden": false,
+        "rect": {
+          "bottom": 335.8000183105469,
+          "height": 18,
+          "right": 476.20001220703125,
+          "width": 132,
+          "x": 344.20001220703125,
+          "y": 317.8000183105469
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "< Persp",
+        "title": "",
+        "zIndex": "auto"
+      }
+    ],
+    "camera": {
+      "aria": "",
+      "cls": "camera3-gizmo",
+      "hidden": false,
+      "rect": {
+        "bottom": 335.8000030517578,
+        "height": 150,
+        "right": 476.20001220703125,
+        "width": 132,
+        "x": 344.20001220703125,
+        "y": 185.8000030517578
+      },
+      "role": "",
+      "tag": "DIV",
+      "text": "< Persp",
+      "title": "",
+      "zIndex": "1"
+    },
+    "canvases": [
+      {
+        "aria": "",
+        "cls": "",
+        "hidden": false,
+        "rect": {
+          "bottom": 565.1999969482422,
+          "height": 401.3999938964844,
+          "right": 498.1999969482422,
+          "width": 402.3999938964844,
+          "x": 95.80000305175781,
+          "y": 163.8000030517578
+        },
+        "role": "",
+        "tag": "CANVAS",
+        "text": "",
+        "title": "",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "",
+        "cls": "camera3-gizmo__canvas",
+        "hidden": false,
+        "rect": {
+          "bottom": 317.8000030517578,
+          "height": 132,
+          "right": 476.20001220703125,
+          "width": 132,
+          "x": 344.20001220703125,
+          "y": 185.8000030517578
+        },
+        "role": "",
+        "tag": "CANVAS",
+        "text": "",
+        "title": "",
+        "zIndex": "auto"
+      }
+    ],
+    "floatingFrames": [
+      {
+        "aria": "",
+        "cls": "floating-gizmo-window scene-window",
+        "hidden": false,
+        "rect": {
+          "bottom": 566,
+          "height": 433,
+          "right": 499,
+          "width": 404,
+          "x": 95,
+          "y": 133
+        },
+        "role": "",
+        "tag": "DIV",
+        "text": "Scenexx< Persp",
+        "title": "",
+        "zIndex": "2000"
+      }
+    ],
+    "rootFrame": {
+      "aria": "",
+      "cls": "workspace-root-dock-frame",
+      "hidden": false,
+      "rect": {
+        "bottom": 697.6000366210938,
+        "height": 669.6000366210938,
+        "right": 593.6000366210938,
+        "width": 593.6000366210938,
+        "x": 0,
+        "y": 28
+      },
+      "role": "",
+      "tag": "DIV",
+      "text": "",
+      "title": "",
+      "zIndex": "auto"
+    },
+    "tabs": [
+      {
+        "aria": "",
+        "cls": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "hidden": false,
+        "rect": {
+          "bottom": 160.40000915527344,
+          "height": 24,
+          "right": 255.8000030517578,
+          "width": 150,
+          "x": 105.80000305175781,
+          "y": 136.40000915527344
+        },
+        "role": "tab",
+        "tag": "DIV",
+        "text": "Scenex",
+        "title": "",
+        "zIndex": "auto"
+      }
+    ],
+    "viewport": {
+      "devicePixelRatio": 1.25,
+      "height": 698,
+      "width": 594
+    }
+  },
+  "afterRootDockAttempt": {
+    "buttons": [
+      {
+        "aria": "",
+        "cls": "app-menu-bar__button",
+        "hidden": false,
+        "rect": {
+          "bottom": 36,
+          "height": 26,
+          "right": 581.6000366210938,
+          "width": 68,
+          "x": 513.6000366210938,
+          "y": 10
+        },
+        "role": "menuitem",
+        "tag": "BUTTON",
+        "text": "Window",
+        "title": "",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "Close Scene",
+        "cls": "window-frame-tab__close floating-gizmo-window__tab-close",
+        "hidden": false,
+        "rect": {
+          "bottom": 156.40000915527344,
+          "height": 16,
+          "right": 250,
+          "width": 16,
+          "x": 234,
+          "y": 140.40000915527344
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "x",
+        "title": "",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "Close Scene",
+        "cls": "floating-gizmo-window__close",
+        "hidden": false,
+        "rect": {
+          "bottom": 159.40000915527344,
+          "height": 22,
+          "right": 491.20001220703125,
+          "width": 22,
+          "x": 469.20001220703125,
+          "y": 137.40000915527344
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "x",
+        "title": "",
+        "zIndex": "3"
+      },
+      {
+        "aria": "Expand Scene to fullscreen",
+        "cls": "scene-window__mode-toggle-button scene-window__mode-toggle-button--fullscreen",
+        "hidden": false,
+        "rect": {
+          "bottom": 391.8000183105469,
+          "height": 40,
+          "right": 476.20001220703125,
+          "width": 40,
+          "x": 436.20001220703125,
+          "y": 351.8000183105469
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "",
+        "title": "Expand Scene to fullscreen",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "",
+        "cls": "camera3-gizmo__mode",
+        "hidden": false,
+        "rect": {
+          "bottom": 335.8000183105469,
+          "height": 18,
+          "right": 476.20001220703125,
+          "width": 132,
+          "x": 344.20001220703125,
+          "y": 317.8000183105469
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "< Persp",
+        "title": "",
+        "zIndex": "auto"
+      }
+    ],
+    "camera": {
+      "aria": "",
+      "cls": "camera3-gizmo",
+      "hidden": false,
+      "rect": {
+        "bottom": 335.8000030517578,
+        "height": 150,
+        "right": 476.20001220703125,
+        "width": 132,
+        "x": 344.20001220703125,
+        "y": 185.8000030517578
+      },
+      "role": "",
+      "tag": "DIV",
+      "text": "< Persp",
+      "title": "",
+      "zIndex": "1"
+    },
+    "canvases": [
+      {
+        "aria": "",
+        "cls": "",
+        "hidden": false,
+        "rect": {
+          "bottom": 565.1999969482422,
+          "height": 401.3999938964844,
+          "right": 498.1999969482422,
+          "width": 402.3999938964844,
+          "x": 95.80000305175781,
+          "y": 163.8000030517578
+        },
+        "role": "",
+        "tag": "CANVAS",
+        "text": "",
+        "title": "",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "",
+        "cls": "camera3-gizmo__canvas",
+        "hidden": false,
+        "rect": {
+          "bottom": 317.8000030517578,
+          "height": 132,
+          "right": 476.20001220703125,
+          "width": 132,
+          "x": 344.20001220703125,
+          "y": 185.8000030517578
+        },
+        "role": "",
+        "tag": "CANVAS",
+        "text": "",
+        "title": "",
+        "zIndex": "auto"
+      }
+    ],
+    "floatingFrames": [
+      {
+        "aria": "",
+        "cls": "floating-gizmo-window scene-window",
+        "hidden": false,
+        "rect": {
+          "bottom": 566,
+          "height": 433,
+          "right": 499,
+          "width": 404,
+          "x": 95,
+          "y": 133
+        },
+        "role": "",
+        "tag": "DIV",
+        "text": "Scenexx< Persp",
+        "title": "",
+        "zIndex": "2000"
+      }
+    ],
+    "rootFrame": {
+      "aria": "",
+      "cls": "workspace-root-dock-frame",
+      "hidden": false,
+      "rect": {
+        "bottom": 697.6000366210938,
+        "height": 669.6000366210938,
+        "right": 593.6000366210938,
+        "width": 593.6000366210938,
+        "x": 0,
+        "y": 28
+      },
+      "role": "",
+      "tag": "DIV",
+      "text": "",
+      "title": "",
+      "zIndex": "auto"
+    },
+    "tabs": [
+      {
+        "aria": "",
+        "cls": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "hidden": false,
+        "rect": {
+          "bottom": 160.40000915527344,
+          "height": 24,
+          "right": 255.8000030517578,
+          "width": 150,
+          "x": 105.80000305175781,
+          "y": 136.40000915527344
+        },
+        "role": "tab",
+        "tag": "DIV",
+        "text": "Scenex",
+        "title": "",
+        "zIndex": "auto"
+      }
+    ],
+    "viewport": {
+      "devicePixelRatio": 1.25,
+      "height": 698,
+      "width": 594
+    }
+  },
+  "rootSpecificSmoke": {
+    "status": "blocked-by-current-persisted-layout",
+    "reason": "The current browser layout starts with Scene as a floating frame and an empty workspace root. A real drag attempt did not dock Scene back into root, so floating-over-root-tab remains a required follow-up smoke before Phase 0 complete.",
+    "priorObservation": "Previous manual/browser check found a visible root Scene tab close button at x=142,y=42 whose DOM top target and actor input hit were the floating Hierarchy titlebar, proving the gate is relevant."
+  },
+  "sceneFullscreenRestoreLoop": {
+    "iterations": 10,
+    "failures": [],
+    "samples": [
+      {
+        "i": 0,
+        "ok": true,
+        "expandMs": 374,
+        "restoreMs": 370,
+        "expanded": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 22
+          },
+          "canvasRect": {
+            "height": 697.6000366210938,
+            "width": 593.6000366210938,
+            "x": 0,
+            "y": 0
+          },
+          "expandVisible": false,
+          "mode": "fullscreen",
+          "shrinkVisible": true,
+          "tabs": []
+        },
+        "restored": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 344.20001220703125,
+            "y": 185.8000030517578
+          },
+          "canvasRect": {
+            "height": 401.3999938964844,
+            "width": 402.3999938964844,
+            "x": 95.80000305175781,
+            "y": 163.8000030517578
+          },
+          "expandVisible": true,
+          "mode": "windowed",
+          "shrinkVisible": false,
+          "tabs": [
+            "Scenex"
+          ]
+        }
+      },
+      {
+        "i": 1,
+        "ok": true,
+        "expandMs": 380,
+        "restoreMs": 361,
+        "expanded": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 22
+          },
+          "canvasRect": {
+            "height": 697.6000366210938,
+            "width": 593.6000366210938,
+            "x": 0,
+            "y": 0
+          },
+          "expandVisible": false,
+          "mode": "fullscreen",
+          "shrinkVisible": true,
+          "tabs": []
+        },
+        "restored": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 344.20001220703125,
+            "y": 185.8000030517578
+          },
+          "canvasRect": {
+            "height": 401.3999938964844,
+            "width": 402.3999938964844,
+            "x": 95.80000305175781,
+            "y": 163.8000030517578
+          },
+          "expandVisible": true,
+          "mode": "windowed",
+          "shrinkVisible": false,
+          "tabs": [
+            "Scenex"
+          ]
+        }
+      }
+    ],
+    "tail": [
+      {
+        "i": 8,
+        "ok": true,
+        "expandMs": 371,
+        "restoreMs": 373,
+        "expanded": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 22
+          },
+          "canvasRect": {
+            "height": 697.6000366210938,
+            "width": 593.6000366210938,
+            "x": 0,
+            "y": 0
+          },
+          "expandVisible": false,
+          "mode": "fullscreen",
+          "shrinkVisible": true,
+          "tabs": []
+        },
+        "restored": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 344.20001220703125,
+            "y": 185.8000030517578
+          },
+          "canvasRect": {
+            "height": 401.3999938964844,
+            "width": 402.3999938964844,
+            "x": 95.80000305175781,
+            "y": 163.8000030517578
+          },
+          "expandVisible": true,
+          "mode": "windowed",
+          "shrinkVisible": false,
+          "tabs": [
+            "Scenex"
+          ]
+        }
+      },
+      {
+        "i": 9,
+        "ok": true,
+        "expandMs": 356,
+        "restoreMs": 359,
+        "expanded": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 22
+          },
+          "canvasRect": {
+            "height": 697.6000366210938,
+            "width": 593.6000366210938,
+            "x": 0,
+            "y": 0
+          },
+          "expandVisible": false,
+          "mode": "fullscreen",
+          "shrinkVisible": true,
+          "tabs": []
+        },
+        "restored": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 344.20001220703125,
+            "y": 185.8000030517578
+          },
+          "canvasRect": {
+            "height": 401.3999938964844,
+            "width": 402.3999938964844,
+            "x": 95.80000305175781,
+            "y": 163.8000030517578
+          },
+          "expandVisible": true,
+          "mode": "windowed",
+          "shrinkVisible": false,
+          "tabs": [
+            "Scenex"
+          ]
+        }
+      }
+    ]
+  },
+  "sceneCloseReopenLoop": {
+    "iterations": 10,
+    "failures": [],
+    "samples": [
+      {
+        "i": 0,
+        "ok": true,
+        "closeMs": 393,
+        "reopenMs": 810,
+        "closed": {
+          "cameraRect": null,
+          "cameraVisible": false,
+          "canvasRect": null,
+          "canvasVisible": false,
+          "sceneTabVisible": false,
+          "tabs": []
+        },
+        "reopened": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 344.20001220703125,
+            "y": 185.8000030517578
+          },
+          "cameraVisible": true,
+          "canvasRect": {
+            "height": 401.3999938964844,
+            "width": 402.3999938964844,
+            "x": 95.80000305175781,
+            "y": 163.8000030517578
+          },
+          "canvasVisible": true,
+          "sceneTabVisible": true,
+          "tabs": [
+            "Scenex"
+          ]
+        }
+      },
+      {
+        "i": 1,
+        "ok": true,
+        "closeMs": 354,
+        "reopenMs": 1033,
+        "closed": {
+          "cameraRect": null,
+          "cameraVisible": false,
+          "canvasRect": null,
+          "canvasVisible": false,
+          "sceneTabVisible": false,
+          "tabs": []
+        },
+        "reopened": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 344.20001220703125,
+            "y": 185.8000030517578
+          },
+          "cameraVisible": true,
+          "canvasRect": {
+            "height": 401.3999938964844,
+            "width": 402.3999938964844,
+            "x": 95.80000305175781,
+            "y": 163.8000030517578
+          },
+          "canvasVisible": true,
+          "sceneTabVisible": true,
+          "tabs": [
+            "Scenex"
+          ]
+        }
+      }
+    ],
+    "tail": [
+      {
+        "i": 8,
+        "ok": true,
+        "closeMs": 361,
+        "reopenMs": 832,
+        "closed": {
+          "cameraRect": null,
+          "cameraVisible": false,
+          "canvasRect": null,
+          "canvasVisible": false,
+          "sceneTabVisible": false,
+          "tabs": []
+        },
+        "reopened": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 344.20001220703125,
+            "y": 185.8000030517578
+          },
+          "cameraVisible": true,
+          "canvasRect": {
+            "height": 401.3999938964844,
+            "width": 402.3999938964844,
+            "x": 95.80000305175781,
+            "y": 163.8000030517578
+          },
+          "canvasVisible": true,
+          "sceneTabVisible": true,
+          "tabs": [
+            "Scenex"
+          ]
+        }
+      },
+      {
+        "i": 9,
+        "ok": true,
+        "closeMs": 373,
+        "reopenMs": 794,
+        "closed": {
+          "cameraRect": null,
+          "cameraVisible": false,
+          "canvasRect": null,
+          "canvasVisible": false,
+          "sceneTabVisible": false,
+          "tabs": []
+        },
+        "reopened": {
+          "cameraRect": {
+            "height": 150,
+            "width": 132,
+            "x": 344.20001220703125,
+            "y": 185.8000030517578
+          },
+          "cameraVisible": true,
+          "canvasRect": {
+            "height": 401.3999938964844,
+            "width": 402.3999938964844,
+            "x": 95.80000305175781,
+            "y": 163.8000030517578
+          },
+          "canvasVisible": true,
+          "sceneTabVisible": true,
+          "tabs": [
+            "Scenex"
+          ]
+        }
+      }
+    ]
+  },
+  "consoleErrors": [],
+  "finalState": {
+    "buttons": [
+      {
+        "aria": "",
+        "cls": "app-menu-bar__button",
+        "hidden": false,
+        "rect": {
+          "bottom": 36,
+          "height": 26,
+          "right": 581.6000366210938,
+          "width": 68,
+          "x": 513.6000366210938,
+          "y": 10
+        },
+        "role": "menuitem",
+        "tag": "BUTTON",
+        "text": "Window",
+        "title": "",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "Close Scene",
+        "cls": "window-frame-tab__close floating-gizmo-window__tab-close",
+        "hidden": false,
+        "rect": {
+          "bottom": 156.40000915527344,
+          "height": 16,
+          "right": 250,
+          "width": 16,
+          "x": 234,
+          "y": 140.40000915527344
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "x",
+        "title": "",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "Close Scene",
+        "cls": "floating-gizmo-window__close",
+        "hidden": false,
+        "rect": {
+          "bottom": 159.40000915527344,
+          "height": 22,
+          "right": 491.20001220703125,
+          "width": 22,
+          "x": 469.20001220703125,
+          "y": 137.40000915527344
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "x",
+        "title": "",
+        "zIndex": "3"
+      },
+      {
+        "aria": "Expand Scene to fullscreen",
+        "cls": "scene-window__mode-toggle-button scene-window__mode-toggle-button--fullscreen",
+        "hidden": false,
+        "rect": {
+          "bottom": 391.8000183105469,
+          "height": 40,
+          "right": 476.20001220703125,
+          "width": 40,
+          "x": 436.20001220703125,
+          "y": 351.8000183105469
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "",
+        "title": "Expand Scene to fullscreen",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "",
+        "cls": "camera3-gizmo__mode",
+        "hidden": false,
+        "rect": {
+          "bottom": 335.8000183105469,
+          "height": 18,
+          "right": 476.20001220703125,
+          "width": 132,
+          "x": 344.20001220703125,
+          "y": 317.8000183105469
+        },
+        "role": "",
+        "tag": "BUTTON",
+        "text": "< Persp",
+        "title": "",
+        "zIndex": "auto"
+      }
+    ],
+    "camera": {
+      "aria": "",
+      "cls": "camera3-gizmo",
+      "hidden": false,
+      "rect": {
+        "bottom": 335.8000030517578,
+        "height": 150,
+        "right": 476.20001220703125,
+        "width": 132,
+        "x": 344.20001220703125,
+        "y": 185.8000030517578
+      },
+      "role": "",
+      "tag": "DIV",
+      "text": "< Persp",
+      "title": "",
+      "zIndex": "1"
+    },
+    "canvases": [
+      {
+        "aria": "",
+        "cls": "",
+        "hidden": false,
+        "rect": {
+          "bottom": 565.1999969482422,
+          "height": 401.3999938964844,
+          "right": 498.1999969482422,
+          "width": 402.3999938964844,
+          "x": 95.80000305175781,
+          "y": 163.8000030517578
+        },
+        "role": "",
+        "tag": "CANVAS",
+        "text": "",
+        "title": "",
+        "zIndex": "auto"
+      },
+      {
+        "aria": "",
+        "cls": "camera3-gizmo__canvas",
+        "hidden": false,
+        "rect": {
+          "bottom": 317.8000030517578,
+          "height": 132,
+          "right": 476.20001220703125,
+          "width": 132,
+          "x": 344.20001220703125,
+          "y": 185.8000030517578
+        },
+        "role": "",
+        "tag": "CANVAS",
+        "text": "",
+        "title": "",
+        "zIndex": "auto"
+      }
+    ],
+    "floatingFrames": [
+      {
+        "aria": "",
+        "cls": "floating-gizmo-window scene-window",
+        "hidden": false,
+        "rect": {
+          "bottom": 566,
+          "height": 433,
+          "right": 499,
+          "width": 404,
+          "x": 95,
+          "y": 133
+        },
+        "role": "",
+        "tag": "DIV",
+        "text": "Scenexx< Persp",
+        "title": "",
+        "zIndex": "2000"
+      }
+    ],
+    "rootFrame": {
+      "aria": "",
+      "cls": "workspace-root-dock-frame",
+      "hidden": false,
+      "rect": {
+        "bottom": 697.6000366210938,
+        "height": 669.6000366210938,
+        "right": 593.6000366210938,
+        "width": 593.6000366210938,
+        "x": 0,
+        "y": 28
+      },
+      "role": "",
+      "tag": "DIV",
+      "text": "",
+      "title": "",
+      "zIndex": "auto"
+    },
+    "tabs": [
+      {
+        "aria": "",
+        "cls": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "hidden": false,
+        "rect": {
+          "bottom": 160.40000915527344,
+          "height": 24,
+          "right": 255.8000030517578,
+          "width": 150,
+          "x": 105.80000305175781,
+          "y": 136.40000915527344
+        },
+        "role": "tab",
+        "tag": "DIV",
+        "text": "Scenex",
+        "title": "",
+        "zIndex": "auto"
+      }
+    ],
+    "viewport": {
+      "devicePixelRatio": 1.25,
+      "height": 698,
+      "width": 594
+    }
+  },
+  "screenshots": [
+    "temp/project-prism-phase-0-interaction-host-final.png"
+  ],
+  "knownLimitations": [
+    "Storage was not readable from the in-app browser read-only page scope, so this smoke used the current persisted browser layout.",
+    "Root-specific overlay smoke remains blocked until the test can reset/hydrate a root Scene layout or a deterministic root dock fixture exists.",
+    "A Statsig network timeout was emitted by the browser automation client, not by the application page; app console errors were empty via tab.dev.logs."
+  ]
+}

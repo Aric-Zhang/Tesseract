@@ -34,7 +34,8 @@ import type {
 import {
   createWindowViewIdentity,
   createWindowViewIdentityKey,
-  type WindowViewIdentity
+  type WindowViewIdentity,
+  type WindowViewTypeKey
 } from "./window-view-identity";
 import type { WindowViewKey } from "./window-view-key";
 import { vec2 } from "../scene-runtime";
@@ -54,6 +55,7 @@ export interface LiveWindowView {
   readonly viewActor: Actor;
   readonly content: WindowContentRehostable;
   readonly disposeViewRuntime?: () => void;
+  activationSequence: number;
 }
 
 type WindowFramePortTab = ReturnType<WindowFramePort["listTabs"]>[number];
@@ -111,6 +113,7 @@ export class DefaultWindowFrameLifecycleController implements
   readonly #framePorts?: WindowFramePortRegistryView;
   readonly #liveViews = new Map<string, LiveWindowView>();
   readonly #fullscreenSessionsByViewActorId = new Map<string, ManagedWindowViewFullscreenSession>();
+  #activationSequence = 0;
 
   constructor(options: WindowFrameLifecycleControllerOptions) {
     this.#actorSystem = options.actorSystem;
@@ -129,6 +132,7 @@ export class DefaultWindowFrameLifecycleController implements
     const liveView = this.getLiveView(viewKey);
     if (liveView) {
       liveView.framePort.activateTab(liveView.viewActor.id);
+      this.recordViewActivation(liveView);
       this.#actorWindowFocus?.focusActorWindow(liveView.frameActor, toActorWindowFocusReason(reason));
       return;
     }
@@ -155,6 +159,43 @@ export class DefaultWindowFrameLifecycleController implements
       }
       throw error;
     }
+  }
+
+  openOrFocusViewType(
+    typeKey: WindowViewTypeKey,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
+    options: WindowOpenViewOptions = {}
+  ): WindowViewIdentity | null {
+    const liveView = this.getMostRecentlyActivatedLiveViewByType(typeKey);
+    if (liveView) {
+      this.focusViewInstance(liveView.identity, reason);
+      return liveView.identity;
+    }
+    return this.createViewInstance(typeKey, reason, options);
+  }
+
+  createViewInstance(
+    typeKey: WindowViewTypeKey,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
+    options: WindowOpenViewOptions = {}
+  ): WindowViewIdentity | null {
+    const factories = this.#factories.listByType(typeKey);
+    const factory = factories.find((candidate) => !this.getLiveViewByViewKey(candidate.viewKey)) ?? factories[0];
+    if (!factory) return null;
+    this.openView(factory.viewKey, reason, options);
+    return this.#factories.getIdentity(factory.viewKey);
+  }
+
+  focusViewInstance(
+    identity: WindowViewIdentity,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic" | "tab-click">
+  ): boolean {
+    const liveView = this.getLiveViewByIdentity(identity);
+    if (!liveView) return false;
+    liveView.framePort.activateTab(liveView.viewActor.id);
+    this.recordViewActivation(liveView);
+    this.#actorWindowFocus?.focusActorWindow(liveView.frameActor, toActorWindowFocusReason(reason));
+    return true;
   }
 
   closeFrame(
@@ -338,6 +379,10 @@ export class DefaultWindowFrameLifecycleController implements
 
     if (nextActiveViewActorId && sourcePort.hasTab(nextActiveViewActorId)) {
       sourcePort.activateTab(nextActiveViewActorId);
+      const nextLiveView = this.getLiveViewByActorId(nextActiveViewActorId);
+      if (nextLiveView) {
+        this.recordViewActivation(nextLiveView);
+      }
     }
     this.#actorWindowFocus?.focusActorWindow(sourceFrame, toActorWindowFocusReason("programmatic"));
     return {
@@ -357,6 +402,7 @@ export class DefaultWindowFrameLifecycleController implements
     const liveView = this.getLiveViewByActorId(viewActorId);
     if (!liveView || liveView.frameActor.id !== frameId) return;
     liveView.framePort.activateTab(viewActorId);
+    this.recordViewActivation(liveView);
     this.#actorWindowFocus?.focusActorWindow(liveView.frameActor, toActorWindowFocusReason(reason));
   }
 
@@ -456,6 +502,7 @@ export class DefaultWindowFrameLifecycleController implements
       sourceView.frameActor = targetFrame;
       sourceView.framePort = targetPort;
       this.#actorSystem.setParent(sourceView.viewActor, targetFrame);
+      this.recordViewActivation(sourceView);
       this.#actorWindowFocus?.focusActorWindow(targetFrame, toActorWindowFocusReason(intent.reason));
     } catch (error) {
       this.rollbackMerge(sourceView, rollback);
@@ -649,6 +696,10 @@ export class DefaultWindowFrameLifecycleController implements
         }
         restoredViewKeys.add(liveView.viewKey);
       }
+      const activeLiveView = activeViewActorId ? this.getLiveViewByActorId(activeViewActorId) : null;
+      if (activeLiveView) {
+        this.recordViewActivation(activeLiveView);
+      }
       this.#actorWindowFocus?.focusActorWindow(targetFrame, toActorWindowFocusReason(reason));
     }
 
@@ -688,6 +739,7 @@ export class DefaultWindowFrameLifecycleController implements
   ): void {
     const liveView = this.getLiveViewByActorId(viewActorId);
     if (!liveView) return;
+    this.recordViewActivation(liveView);
     this.#actorWindowFocus?.focusActorWindow(liveView.frameActor, toActorWindowFocusReason(reason));
   }
 
@@ -967,7 +1019,8 @@ export class DefaultWindowFrameLifecycleController implements
       framePort,
       viewActor: created.viewActor,
       content: created.content,
-      disposeViewRuntime: created.disposeViewRuntime
+      disposeViewRuntime: created.disposeViewRuntime,
+      activationSequence: this.nextActivationSequence()
     });
   }
 
@@ -998,6 +1051,7 @@ export class DefaultWindowFrameLifecycleController implements
     });
     const tab: WindowFramePortTab = {
       viewActorId: created.viewActor.id,
+      identity: this.getIdentityForViewKey(viewKey),
       viewKey,
       title: created.title ?? this.#factories.get(viewKey)?.label ?? viewKey
     };
@@ -1066,6 +1120,9 @@ export class DefaultWindowFrameLifecycleController implements
     if (options.viewKey !== undefined && options.viewKey !== liveView.viewKey) {
       return { valid: false, reason: "view key mismatch" };
     }
+    if (options.identity !== undefined && createWindowViewIdentityKey(options.identity) !== toLiveViewKey(liveView)) {
+      return { valid: false, reason: "view identity mismatch" };
+    }
     if (options.ownerFrameId !== undefined && options.ownerFrameId !== liveView.frameActor.id) {
       return { valid: false, reason: "owner frame mismatch" };
     }
@@ -1080,6 +1137,7 @@ export class DefaultWindowFrameLifecycleController implements
   private toLocation(liveView: LiveWindowView): WindowViewLocation {
     return {
       viewKey: liveView.viewKey,
+      identity: liveView.identity,
       viewActorId: liveView.viewActor.id,
       ownerFrameActorId: liveView.frameActor.id,
       ownerFrameVisiblePath: liveView.framePort.visiblePath,
@@ -1087,8 +1145,18 @@ export class DefaultWindowFrameLifecycleController implements
       ownerFrameActiveInHierarchy: this.#actorSystem.isActorActive(liveView.frameActor),
       activeInFrame: liveView.framePort.isViewActiveInFrame(liveView.viewActor.id),
       visibleInFrame: liveView.framePort.isViewVisibleInFrame(liveView.viewActor.id),
-      presentation: liveView.framePort.presentation
+      presentation: liveView.framePort.presentation,
+      activationSequence: liveView.activationSequence
     };
+  }
+
+  private recordViewActivation(liveView: LiveWindowView): void {
+    liveView.activationSequence = this.nextActivationSequence();
+  }
+
+  private nextActivationSequence(): number {
+    this.#activationSequence += 1;
+    return this.#activationSequence;
   }
 
   private toViewDescriptor(liveView: LiveWindowView): WindowWorkspaceViewDescriptor {
@@ -1096,6 +1164,7 @@ export class DefaultWindowFrameLifecycleController implements
       .find((candidate) => candidate.viewActorId === liveView.viewActor.id);
     return {
       viewKey: liveView.viewKey,
+      identity: liveView.identity,
       actorId: liveView.viewActor.id,
       title: tab?.title
     };
@@ -1163,6 +1232,16 @@ export class DefaultWindowFrameLifecycleController implements
       return this.#liveViews.get(createWindowViewIdentityKey(this.#factories.getIdentity(viewKey))) ?? null;
     }
     return [...this.#liveViews.values()].find((liveView) => liveView.viewKey === viewKey) ?? null;
+  }
+
+  private getLiveViewByIdentity(identity: WindowViewIdentity): LiveWindowView | null {
+    return this.#liveViews.get(createWindowViewIdentityKey(identity)) ?? null;
+  }
+
+  private getMostRecentlyActivatedLiveViewByType(typeKey: WindowViewTypeKey): LiveWindowView | null {
+    return [...this.#liveViews.values()]
+      .filter((liveView) => liveView.identity.typeKey === typeKey)
+      .sort((a, b) => b.activationSequence - a.activationSequence)[0] ?? null;
   }
 
   private rollbackMerge(
@@ -1246,6 +1325,7 @@ export class DefaultWindowFrameLifecycleController implements
       sourceView.frameActor = createdFrame.frameActor;
       sourceView.framePort = createdFrame.framePort;
       this.#actorSystem.setParent(sourceView.viewActor, createdFrame.frameActor);
+      this.recordViewActivation(sourceView);
       this.#actorWindowFocus?.focusActorWindow(createdFrame.frameActor, toActorWindowFocusReason(intent.reason));
     } catch (error) {
       this.rollbackFloat(sourceView, rollback, createdFrame);
@@ -1299,6 +1379,7 @@ export class DefaultWindowFrameLifecycleController implements
       sourceView.frameActor = targetFrame;
       sourceView.framePort = targetPort;
       this.#actorSystem.setParent(sourceView.viewActor, targetFrame);
+      this.recordViewActivation(sourceView);
       this.#actorWindowFocus?.focusActorWindow(targetFrame, toActorWindowFocusReason(intent.reason));
     } catch (error) {
       this.rollbackMerge(sourceView, rollback);
@@ -1470,6 +1551,7 @@ function createFrameTabFromLiveView(
     .find((tab) => tab.viewActorId === liveView.viewActor.id);
   return {
     viewActorId: liveView.viewActor.id,
+    identity: liveView.identity,
     viewKey: liveView.viewKey,
     title: layout.views[liveView.viewKey]?.title ?? currentTab?.title ?? liveView.viewKey
   };

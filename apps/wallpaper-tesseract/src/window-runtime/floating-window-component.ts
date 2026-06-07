@@ -50,7 +50,12 @@ import type {
 } from "./window-frame-port";
 import type { WindowViewKey } from "./window-view-key";
 import { windowViewKey } from "./window-view-key";
+import { createSingletonWindowViewIdentity } from "./window-view-identity";
 import { isWindowTabAction } from "./window-tab-action";
+import {
+  WINDOW_FRAME_TAB_ACTION_PART_ID,
+  WINDOW_FRAME_TAB_PART_ID
+} from "./window-frame-tab-chrome";
 import { rectFromDomRect, type WindowDockSplitPlacement } from "./window-dock-targets";
 import type {
   WindowFrameSurfaceComponent,
@@ -123,8 +128,8 @@ export interface FloatingWindowComponentServices {
 export const DEFAULT_FLOATING_WINDOW_PRIORITY = 1000;
 
 type FloatingWindowPartId =
-  | "window-tab"
-  | "window-tab-action"
+  | typeof WINDOW_FRAME_TAB_PART_ID
+  | typeof WINDOW_FRAME_TAB_ACTION_PART_ID
   | "splitter"
   | "titlebar-empty"
   | "window-content"
@@ -538,10 +543,10 @@ export class FloatingWindowComponent
     }
     const surfaceHit = this.#surface.hitTest(point);
     if (surfaceHit?.part === "tab-action") {
-      return this.createHit("window-tab-action", 25, surfaceHit.data);
+      return this.createHit(WINDOW_FRAME_TAB_ACTION_PART_ID, 25, surfaceHit.data);
     }
     if (surfaceHit?.part === "tab") {
-      return this.createHit("window-tab", 20, surfaceHit.data);
+      return this.createHit(WINDOW_FRAME_TAB_PART_ID, 20, surfaceHit.data);
     }
     if (isPointInsideRect(point, this.#titlebar.getBoundingClientRect())) {
       return this.createHit("titlebar-empty", 20);
@@ -561,7 +566,7 @@ export class FloatingWindowComponent
   onInputStart(_event: ActorInputStartEvent): void {
     this.#dragStartState = cloneFloatingWindowState(this.state);
     this.#surface.endSplitResize();
-    if (_event.hit.partId === "window-tab") {
+    if (_event.hit.partId === WINDOW_FRAME_TAB_PART_ID) {
       const source = readWindowTabDragSource(this.#frameId, _event.hit);
       if (source) {
         this.#tabDragSink?.beginTabDrag(source, _event.point);
@@ -580,7 +585,7 @@ export class FloatingWindowComponent
         dragStartState.position.x + event.totalDelta.dx,
         dragStartState.position.y + event.totalDelta.dy
       ));
-    } else if (partId === "window-tab") {
+    } else if (partId === WINDOW_FRAME_TAB_PART_ID) {
       this.#tabDragSink?.moveTabDrag(event.point);
     } else if (partId === "splitter") {
       this.#surface.updateSplitRatioFromDrag(event);
@@ -596,16 +601,17 @@ export class FloatingWindowComponent
   onInputEnd(event: ActorInputEndEvent): void {
     this.#dragStartState = null;
     this.#surface.endSplitResize();
-    if (event.hit.partId === "window-tab-action") {
+    if (event.hit.partId === WINDOW_FRAME_TAB_ACTION_PART_ID) {
       if (event.wasClick && this.#frameIntentSink?.requestCloseView && isWindowTabAction(event.hit.data)) {
         this.#frameIntentSink.requestCloseView(event.hit.data.viewActorId, "tab-action", {
           ownerFrameId: this.#frameId,
+          identity: event.hit.data.identity,
           viewKey: event.hit.data.viewKey
         });
       }
       return;
     }
-    if (event.hit.partId === "window-tab") {
+    if (event.hit.partId === WINDOW_FRAME_TAB_PART_ID) {
       if (event.wasClick) {
         const source = readWindowTabDragSource(this.#frameId, event.hit);
         if (source) {
@@ -656,7 +662,7 @@ export class FloatingWindowComponent
   onInputCancel(_event: ActorInputCancelEvent): void {
     this.#dragStartState = null;
     this.#surface.endSplitResize();
-    if (_event.hit.partId === "window-tab") {
+    if (_event.hit.partId === WINDOW_FRAME_TAB_PART_ID) {
       this.#tabDragSink?.cancelTabDrag();
     }
   }
@@ -900,9 +906,11 @@ function createInitialTabs(options: FloatingWindowComponentOptions): WindowFrame
   if (options.tabs !== undefined) {
     return options.tabs.map((tab) => ({ ...tab }));
   }
+  const viewKey = options.activeViewKey ?? options.windowMenu?.viewKey ?? windowViewKey(options.id);
   return [{
     viewActorId: options.activeViewActorId ?? `${options.id}:view`,
-    viewKey: options.activeViewKey ?? options.windowMenu?.viewKey ?? windowViewKey(options.id),
+    identity: createSingletonWindowViewIdentity(viewKey),
+    viewKey,
     title: options.title
   }];
 }
@@ -913,13 +921,26 @@ function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {
 
 function isResizePart(partId: FloatingWindowPartId): partId is Exclude<
   FloatingWindowPartId,
-  "window-tab" | "window-tab-action" | "splitter" | "titlebar-empty" | "close" | "window-content"
+  typeof WINDOW_FRAME_TAB_PART_ID |
+  typeof WINDOW_FRAME_TAB_ACTION_PART_ID |
+  "splitter" |
+  "titlebar-empty" |
+  "close" |
+  "window-content"
 > {
   return partId.startsWith("resize-");
 }
 
 function getResizeState(
-  partId: Exclude<FloatingWindowPartId, "window-tab" | "window-tab-action" | "splitter" | "titlebar-empty" | "close" | "window-content">,
+  partId: Exclude<
+    FloatingWindowPartId,
+    typeof WINDOW_FRAME_TAB_PART_ID |
+    typeof WINDOW_FRAME_TAB_ACTION_PART_ID |
+    "splitter" |
+    "titlebar-empty" |
+    "close" |
+    "window-content"
+  >,
   start: FloatingWindowState,
   dx: number,
   dy: number,

@@ -1,13 +1,24 @@
 import {
   createDebugLogViewActor,
-  type DebugLogContentComponent
+  DEBUG_WINDOW_MIN_HEIGHT,
+  DEBUG_WINDOW_MIN_WIDTH,
+  type DebugLogContentComponent,
+  type DebugWindowState
 } from "../../debug";
 import {
   createHierarchyPanelViewActor,
+  HIERARCHY_WINDOW_MIN_HEIGHT,
+  HIERARCHY_WINDOW_MIN_WIDTH,
+  type HierarchyPanelInitialState,
   type HierarchyObjectSource
 } from "../../hierarchy";
 import type { FeatureActorContext } from "../../runtime/ports";
+import { sceneParameterPaths, vec2 } from "../../scene-runtime";
 import type { WindowViewFactoryRegistry } from "../../window-runtime";
+import type {
+  WindowWorkspaceDefaultOpenView,
+  WindowWorkspaceFloatingFramePolicy
+} from "../window-workspace";
 
 export interface ToolWindowActorIds {
   readonly debugLogViewActorId: string;
@@ -24,6 +35,40 @@ export interface InstallToolWindowFeaturesOptions {
   readonly hierarchyLabel: string;
   readonly hierarchyObjectSource: HierarchyObjectSource;
   readonly onDebugLogContentChanged?: (component: DebugLogContentComponent | null) => void;
+}
+
+export function createToolWindowWorkspaceFloatingFramePolicies(options: {
+  readonly debugFallbackState: DebugWindowState;
+  readonly hierarchyFallbackState: HierarchyPanelInitialState["window"];
+}): ReadonlyArray<readonly [string, WindowWorkspaceFloatingFramePolicy]> {
+  return [
+    ["debug", {
+      preferredActorId: "debug-log-window",
+      preferredComponentId: "floating-window:debug-log",
+      paths: sceneParameterPaths.debugWindow,
+      fallbackState: options.debugFallbackState,
+      minSize: vec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
+      className: "debug-log-window",
+      priority: 1000,
+      menuOrder: 1000
+    }],
+    ["hierarchy", {
+      preferredActorId: "hierarchy-panel",
+      preferredComponentId: "floating-window:hierarchy",
+      paths: sceneParameterPaths.hierarchyWindow,
+      fallbackState: options.hierarchyFallbackState,
+      minSize: vec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT),
+      className: "hierarchy-window",
+      priority: 1100
+    }]
+  ];
+}
+
+export function createToolWindowDefaultOpenViews(): readonly WindowWorkspaceDefaultOpenView[] {
+  return [
+    { viewKey: "debug" },
+    { viewKey: "hierarchy" }
+  ];
 }
 
 export function installToolWindowFeatures(options: InstallToolWindowFeaturesOptions): void {

@@ -12,20 +12,12 @@ import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
 import type { FeatureActorContext } from "../../runtime/ports";
 import { createTesseract4Actor } from "../../tesseract4";
 import type {
-  FloatingWindowState,
-  WindowFrameIntentSink,
-  WindowFramePortRegistry,
-  WindowTabDragSink
-} from "../../window-runtime";
-import type {
   SceneViewportRendererFactory,
   SceneViewportResizeObserverFactory
 } from "./components";
 import {
   createSceneViewActor,
-  createSceneWindowActor,
-  type RegisteredSceneViewActor,
-  type RegisteredSceneWindowActor
+  type RegisteredSceneViewActor
 } from "./scene-window-actor-factory";
 
 export interface SceneViewContentActorIds {
@@ -40,21 +32,16 @@ export interface SceneViewContentActorIds {
 export interface InstallSceneViewContentOptions {
   readonly context: FeatureActorContext;
   readonly mount: HTMLElement;
-  readonly parentFrameActor?: Actor;
-  readonly initialState: FloatingWindowState;
+  readonly parentFrameActor: Actor;
   readonly actorIds: SceneViewContentActorIds;
   readonly createRenderer?: SceneViewportRendererFactory;
   readonly createResizeObserver?: SceneViewportResizeObserverFactory;
   readonly createCamera3GizmoView?: Camera3GizmoViewFactory;
   readonly devicePixelRatio?: () => number;
-  readonly frameIntentSink?: WindowFrameIntentSink;
-  readonly framePortRegistry?: WindowFramePortRegistry;
-  readonly tabDragSink?: WindowTabDragSink;
 }
 
 export interface InstalledSceneViewContent {
   readonly sceneView: RegisteredSceneViewActor;
-  readonly sceneWindow: RegisteredSceneWindowActor | null;
   readonly camera3Motion: Camera3MotionComponent;
   disposeActorTree(): void;
 }
@@ -62,34 +49,17 @@ export interface InstalledSceneViewContent {
 export function installSceneViewContent(options: InstallSceneViewContentOptions): InstalledSceneViewContent {
   const { actorIds, context } = options;
   let sceneView: RegisteredSceneViewActor | null = null;
-  let sceneWindow: RegisteredSceneWindowActor | null = null;
 
   try {
-    if (options.parentFrameActor) {
-      sceneView = createSceneViewActor(context, {
-        actorId: `${actorIds.sceneWindowActorId}:view`,
-        actorName: `${actorIds.sceneWindowActorName} View`,
-        parentActor: options.parentFrameActor,
-        document: options.mount.ownerDocument ?? undefined,
-        createRenderer: options.createRenderer,
-        createResizeObserver: options.createResizeObserver,
-        devicePixelRatio: options.devicePixelRatio
-      });
-    } else {
-      sceneWindow = createSceneWindowActor(context, {
-        actorId: actorIds.sceneWindowActorId,
-        actorName: actorIds.sceneWindowActorName,
-        parent: options.mount,
-        initialState: options.initialState,
-        createRenderer: options.createRenderer,
-        createResizeObserver: options.createResizeObserver,
-        devicePixelRatio: options.devicePixelRatio,
-        frameIntentSink: options.frameIntentSink,
-        framePortRegistry: options.framePortRegistry,
-        tabDragSink: options.tabDragSink
-      });
-      sceneView = sceneWindow;
-    }
+    sceneView = createSceneViewActor(context, {
+      actorId: `${actorIds.sceneWindowActorId}:view`,
+      actorName: `${actorIds.sceneWindowActorName} View`,
+      parentActor: options.parentFrameActor,
+      document: options.mount.ownerDocument ?? undefined,
+      createRenderer: options.createRenderer,
+      createResizeObserver: options.createResizeObserver,
+      devicePixelRatio: options.devicePixelRatio
+    });
 
     context.componentRegistry.addComponent(sceneView.viewport.actor, camera3RigComponentType, { distance: 6 });
     const camera3Motion = context.componentRegistry.addComponent(
@@ -116,17 +86,15 @@ export function installSceneViewContent(options: InstallSceneViewContentOptions)
     });
 
     const installedSceneView = sceneView;
-    const installedSceneWindow = sceneWindow;
     return {
       sceneView: installedSceneView,
-      sceneWindow,
       camera3Motion,
       disposeActorTree() {
-        (installedSceneWindow ?? installedSceneView).dispose();
+        installedSceneView.dispose();
       }
     };
   } catch (error) {
-    (sceneWindow ?? sceneView)?.dispose();
+    sceneView?.dispose();
     throw error;
   }
 }

@@ -1,16 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem, ComponentRegistry, type RegisteredActor } from "../../actor-runtime";
+import { ActorSystem, ComponentRegistry, type Actor, type RegisteredActor } from "../../actor-runtime";
 import { installCoreComponentDefinitions } from "../../component-definitions";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
 import { sceneParameterPaths, type SceneUpdateCommand } from "../../scene-runtime";
-import { floatingWindowComponentType } from "../../window-runtime";
+import { floatingWindowComponentType, workspaceRootDockFrameComponentType } from "../../window-runtime";
 import { installWindowComponentDefinitions } from "../../window-runtime";
 import { createActorInputEndEvent } from "../../test-support";
-import {
-  createDefaultSceneWindowState,
-  createSceneWindowActor,
-  SCENE_WINDOW_PRIORITY_DEVELOP
-} from ".";
+import { createDefaultSceneWindowState, createSceneViewActor } from ".";
 import {
   installSceneComponentDefinitions,
   sceneModeToggleComponentType,
@@ -46,6 +42,7 @@ class FakeElement {
 
   append(...children: FakeElement[]): void {
     for (const child of children) {
+      child.remove();
       child.parentElement = this;
       this.children.push(child);
     }
@@ -107,6 +104,21 @@ function createContext(commands: SceneUpdateCommand[] = []) {
   };
 }
 
+function createWorkspaceRootFrame(
+  context: ReturnType<typeof createContext>,
+  parent: FakeElement,
+  document: FakeDocument,
+  actorId = "workspace-root-frame"
+): Actor {
+  const actor = context.actorSystem.createActor({ id: actorId });
+  context.componentRegistry.addComponent(actor, workspaceRootDockFrameComponentType, {
+    id: `workspace-root:${actorId}`,
+    parent: parent as unknown as HTMLElement,
+    document: document as unknown as Document
+  });
+  return actor;
+}
+
 function createFakeRenderer(document: FakeDocument, calls: string[] = []): SceneViewportRenderer {
   return {
     domElement: document.createElement("canvas") as unknown as HTMLElement,
@@ -128,40 +140,27 @@ function createFakeRenderer(document: FakeDocument, calls: string[] = []): Scene
   };
 }
 
-describe("createSceneWindowActor", () => {
-  it("creates a Scene actor with a floating window and viewport component", () => {
+describe("createSceneViewActor", () => {
+  it("creates a Scene view actor under an owning frame actor", () => {
     const context = createContext();
     const document = new FakeDocument();
     const parent = document.createElement("div");
+    const ownerFrame = createWorkspaceRootFrame(context, parent, document);
     const rendererCalls: string[] = [];
 
-    const handle = createSceneWindowActor(context, {
-      actorId: "scene-actor",
-      parent: parent as unknown as HTMLElement,
+    const handle = createSceneViewActor(context, {
+      actorId: "scene-actor:view",
+      actorName: "Scene View",
+      parentActor: ownerFrame,
       document: document as unknown as Document,
-      initialState: createDefaultSceneWindowState({ viewportWidth: 1000, viewportHeight: 800 }),
       createRenderer: () => createFakeRenderer(document, rendererCalls)
     });
 
-    const viewActor = handle.viewport.actor;
-    expect(handle.actor.id).toBe("scene-actor");
-    expect(viewActor.id).toBe("scene-actor:view");
-    expect(context.actorSystem.getParentId(viewActor)).toBe("scene-actor");
+    expect(handle.actor.id).toBe("scene-actor:view");
+    expect(context.actorSystem.getParentId(handle.actor)).toBe("workspace-root-frame");
     expect(handle.component).toBe(handle.viewport);
-    expect(handle.actor.getComponent(floatingWindowComponentType)).toBe(handle.window);
-    expect(handle.actor.getComponent(sceneViewportComponentType)).toBeNull();
-    expect(handle.actor.getComponent(sceneModeToggleComponentType)).toBeNull();
-    expect(viewActor.getComponent(sceneViewportComponentType)).toBe(handle.viewport);
-    expect(viewActor.getComponent(sceneModeToggleComponentType)).toBe(handle.modeToggle);
-    expect(handle.window.inputStackPriority).toBe(SCENE_WINDOW_PRIORITY_DEVELOP);
-    expect(handle.window.menuDescriptor).toEqual({
-      include: true,
-      viewKey: "scene",
-      label: "Scene",
-      order: 0,
-      group: null,
-      activationMode: "visible"
-    });
+    expect(handle.actor.getComponent(sceneViewportComponentType)).toBe(handle.viewport);
+    expect(handle.actor.getComponent(sceneModeToggleComponentType)).toBe(handle.modeToggle);
     expect(handle.viewport.scene).toBeDefined();
     expect(handle.viewport.viewportElement.className).toBe("scene-window__viewport");
     expect(handle.viewport.canvasHostElement.className).toBe("scene-window__canvas-host");
@@ -171,7 +170,7 @@ describe("createSceneWindowActor", () => {
     expect(rendererCalls).toEqual(["setClearColor:461069:1"]);
 
     const root = parent.children[0];
-    const content = findChildByClass(root, "floating-gizmo-window__content");
+    const content = findChildByClass(root, "workspace-root-dock-frame__content");
     expect(content.children).toEqual([handle.viewport.viewportElement as unknown as FakeElement]);
     expect((handle.viewport.canvasHostElement as unknown as FakeElement).children).toHaveLength(1);
     expect((handle.viewport.overlayElement as unknown as FakeElement).children).toEqual([
@@ -179,18 +178,7 @@ describe("createSceneWindowActor", () => {
     ]);
   });
 
-  it("requires an owning FloatingWindowComponent", () => {
-    const context = createContext();
-    const document = new FakeDocument();
-    const actor = context.actorSystem.createActor({ id: "scene-actor" });
-
-    expect(() => context.componentRegistry.addComponent(actor, sceneViewportComponentType, {
-      document: document as unknown as Document,
-      createRenderer: () => createFakeRenderer(document)
-    })).toThrow(/requires an owning FloatingWindowComponent/);
-  });
-
-  it("can untrack runtime ownership without destroying the Scene actor tree", () => {
+  it("can untrack runtime ownership without destroying the Scene view actor tree", () => {
     const context = createContext();
     const untrackCalls: string[] = [];
     context.trackRegisteredActor = () => ({
@@ -198,11 +186,12 @@ describe("createSceneWindowActor", () => {
     });
     const document = new FakeDocument();
     const parent = document.createElement("div");
-    const handle = createSceneWindowActor(context, {
-      actorId: "scene-actor",
-      parent: parent as unknown as HTMLElement,
+    const ownerFrame = createWorkspaceRootFrame(context, parent, document);
+    const handle = createSceneViewActor(context, {
+      actorId: "scene-actor:view",
+      actorName: "Scene View",
+      parentActor: ownerFrame,
       document: document as unknown as Document,
-      initialState: createDefaultSceneWindowState({ viewportWidth: 1000, viewportHeight: 800 }),
       createRenderer: () => createFakeRenderer(document)
     });
 
@@ -210,8 +199,7 @@ describe("createSceneWindowActor", () => {
     handle.disposeRuntimeTracking?.();
 
     expect(untrackCalls).toEqual(["untrack"]);
-    expect(context.actorSystem.getActor("scene-actor")).toBe(handle.actor);
-    expect(context.actorSystem.getActor("scene-actor:view")).toBe(handle.viewport.actor);
+    expect(context.actorSystem.getActor("scene-actor:view")).toBe(handle.actor);
     expect(parent.children).toHaveLength(1);
   });
 
@@ -219,14 +207,15 @@ describe("createSceneWindowActor", () => {
     const context = createContext();
     const document = new FakeDocument();
     const parent = document.createElement("div");
+    const ownerFrame = createWorkspaceRootFrame(context, parent, document);
     const rendererCalls: string[] = [];
     const resizeCallbacks: Array<() => void> = [];
     const observerCalls: string[] = [];
-    const handle = createSceneWindowActor(context, {
-      actorId: "scene-actor",
-      parent: parent as unknown as HTMLElement,
+    const handle = createSceneViewActor(context, {
+      actorId: "scene-actor:view",
+      actorName: "Scene View",
+      parentActor: ownerFrame,
       document: document as unknown as Document,
-      initialState: createDefaultSceneWindowState({ viewportWidth: 1000, viewportHeight: 800 }),
       createRenderer: () => createFakeRenderer(document, rendererCalls),
       createResizeObserver: (callback) => {
         resizeCallbacks.push(callback);
@@ -272,12 +261,13 @@ describe("createSceneWindowActor", () => {
     const context = createContext();
     const document = new FakeDocument();
     const parent = document.createElement("div");
+    const ownerFrame = createWorkspaceRootFrame(context, parent, document);
     const rendererCalls: string[] = [];
-    const handle = createSceneWindowActor(context, {
-      actorId: "scene-actor",
-      parent: parent as unknown as HTMLElement,
+    const handle = createSceneViewActor(context, {
+      actorId: "scene-actor:view",
+      actorName: "Scene View",
+      parentActor: ownerFrame,
       document: document as unknown as Document,
-      initialState: createDefaultSceneWindowState({ viewportWidth: 1000, viewportHeight: 800 }),
       createRenderer: () => createFakeRenderer(document, rendererCalls),
       devicePixelRatio: () => 1
     });
@@ -292,7 +282,7 @@ describe("createSceneWindowActor", () => {
     });
     const sourceRoot = parent.children[0];
     const targetRoot = parent.children[1];
-    const sourceContent = findChildByClass(sourceRoot, "floating-gizmo-window__content");
+    const sourceContent = findChildByClass(sourceRoot, "workspace-root-dock-frame__content");
     const targetContent = findChildByClass(targetRoot, "floating-gizmo-window__content");
     (handle.viewport.viewportElement as unknown as FakeElement).rect = createRect(0, 0, 500, 280);
 
@@ -313,11 +303,12 @@ describe("createSceneWindowActor", () => {
     const context = createContext(commands);
     const document = new FakeDocument();
     const parent = document.createElement("div");
-    const handle = createSceneWindowActor(context, {
-      actorId: "scene-actor",
-      parent: parent as unknown as HTMLElement,
+    const ownerFrame = createWorkspaceRootFrame(context, parent, document);
+    const handle = createSceneViewActor(context, {
+      actorId: "scene-actor:view",
+      actorName: "Scene View",
+      parentActor: ownerFrame,
       document: document as unknown as Document,
-      initialState: createDefaultSceneWindowState({ viewportWidth: 1000, viewportHeight: 800 }),
       createRenderer: () => createFakeRenderer(document)
     });
     (handle.modeToggle.buttonElement as unknown as FakeElement).rect = createRect(700, 500, 40, 40);

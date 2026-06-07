@@ -7,9 +7,14 @@ import {
 } from "../../scene-runtime";
 import { createActorInputEndEvent } from "../../test-support";
 import {
+  createWindowViewIdentity,
   createSingletonWindowViewIdentity,
+  windowViewInstanceId,
+  windowViewTypeKey,
   type WindowFrameIntentSink,
+  type WindowViewMultiplicity,
   type WindowViewKey,
+  type WindowViewTypeKey,
   type WindowWorkspaceViewCatalog,
   type WindowWorkspaceViewEntry
 } from "../../window-runtime";
@@ -158,7 +163,10 @@ function createSubject(options: CreateSubjectOptions = {}): Subject {
     requestActivateFrameTab: (frameId, viewActorId, reason) => (
       frameIntents.push(`activate:${frameId}:${viewActorId}:${reason}`)
     ),
-    requestCommitDock: () => frameIntents.push("commit-dock")
+    requestCommitDock: () => frameIntents.push("commit-dock"),
+    requestOpenOrFocusViewType: (typeKey, reason) => frameIntents.push(`open-type:${typeKey}:${reason}`),
+    requestCreateViewInstance: (typeKey, reason) => frameIntents.push(`new-instance:${typeKey}:${reason}`),
+    requestFocusViewInstance: (identity, reason) => frameIntents.push(`focus-instance:${identity.instanceId}:${reason}`)
   };
 
   const component = new AppMenuBarComponent(menuActor, {
@@ -194,9 +202,22 @@ function createViewEntry(options: {
   readonly sourceIndex?: number;
   readonly enabled?: boolean;
   readonly live?: boolean;
+  readonly typeKey?: WindowViewTypeKey;
+  readonly instanceId?: string;
+  readonly multiplicity?: WindowViewMultiplicity;
+  readonly activationSequence?: number;
 }): WindowWorkspaceViewEntry {
+  const typeKey = options.typeKey ?? windowViewTypeKey(options.viewKey);
+  const instanceId = options.instanceId ? windowViewInstanceId(options.instanceId) : undefined;
   return {
-    identity: createSingletonWindowViewIdentity(options.viewKey),
+    identity: options.typeKey || instanceId || options.multiplicity
+      ? createWindowViewIdentity({
+          viewKey: options.viewKey,
+          typeKey,
+          instanceId,
+          multiplicity: options.multiplicity
+        })
+      : createSingletonWindowViewIdentity(options.viewKey),
     viewKey: options.viewKey,
     viewActorId: options.viewActorId,
     ownerFrameActorId: options.viewActorId ? `${options.viewKey}-frame` : null,
@@ -210,7 +231,8 @@ function createViewEntry(options: {
     visibleInFrame: true,
     ownerFrameVisible: true,
     ownerFrameActiveInHierarchy: true,
-    presentation: options.live === false ? null : "windowed"
+    presentation: options.live === false ? null : "windowed",
+    activationSequence: options.activationSequence ?? 0
   };
 }
 
@@ -291,8 +313,10 @@ describe("AppMenuBarComponent", () => {
     expect(menu(root).hidden).toBe(true);
     expect(rows(root).map(labelText)).toEqual(["Scene", "Debug Log", "Hierarchy"]);
     expect(rows(root)[0].dataset).toMatchObject({
-      menuItemId: "scene",
-      itemKind: "open-view",
+      menuItemId: "type:scene",
+      itemKind: "window-command",
+      actionKind: "open-or-focus-type",
+      typeKey: "scene",
       viewKey: "scene",
       actorId: "scene-view",
       live: "true",
@@ -302,8 +326,10 @@ describe("AppMenuBarComponent", () => {
     expect(rows(root)[0].getAttribute("aria-checked")).toBeNull();
     expect(childByClass(rows(root)[0], "app-menu-bar__menu-item-leading").children).toEqual([]);
     expect(rows(root)[2].dataset).toMatchObject({
-      menuItemId: "hierarchy",
-      itemKind: "open-view",
+      menuItemId: "type:hierarchy",
+      itemKind: "window-command",
+      actionKind: "open-or-focus-type",
+      typeKey: "hierarchy",
       viewKey: "hierarchy",
       live: "false",
       enabled: "true"
@@ -312,7 +338,7 @@ describe("AppMenuBarComponent", () => {
     expect(component.inputStackPriority).toBe(APP_MENU_PRIORITY);
   });
 
-  it("routes actor input to open-view intent by view key", () => {
+  it("routes actor input to open-or-focus type intent", () => {
     const { component, frameIntents, root } = createSubject();
     setMenuRects(root);
     const buttonHit = component.hitTestInput({ x: 735, y: 18 });
@@ -326,13 +352,13 @@ describe("AppMenuBarComponent", () => {
     expect(buttonHit.scopeRoutePriority).toBe(actorInputScopeRoutePriority.appOverlay);
     expect(sceneHit.scopeRoutePriority).toBe(actorInputScopeRoutePriority.appOverlay);
     expect(sceneHit.data).toEqual({
-      kind: "open-view",
-      viewKey: "scene"
+      kind: "window-command",
+      action: { kind: "open-or-focus-type", typeKey: "scene" }
     });
 
     component.onInputEnd(createActorInputEndEvent(sceneHit, { wasClick: true, timeStamp: 20 }));
 
-    expect(frameIntents).toEqual(["open:scene:menu"]);
+    expect(frameIntents).toEqual(["open-type:scene:menu"]);
     expect(menu(root).hidden).toBe(true);
   });
 
@@ -381,6 +407,49 @@ describe("AppMenuBarComponent", () => {
     expect(component.hitTestInput({ x: 120, y: 150 })).toBeNull();
   });
 
+  it("rerenders when the representative live instance changes for a type row", () => {
+    const inspectorType = windowViewTypeKey("inspector");
+    const entries = [
+      createViewEntry({
+        viewKey: "inspector:a",
+        typeKey: inspectorType,
+        instanceId: "inspector:a",
+        multiplicity: "multi-instance",
+        viewActorId: "inspector-a-view",
+        label: "Inspector",
+        order: 30,
+        activationSequence: 1
+      }),
+      createViewEntry({
+        viewKey: "inspector:b",
+        typeKey: inspectorType,
+        instanceId: "inspector:b",
+        multiplicity: "multi-instance",
+        viewActorId: "inspector-b-view",
+        label: "Inspector",
+        order: 30,
+        activationSequence: 0
+      })
+    ];
+    const { component, entries: subjectEntries, root } = createSubject({ entries });
+
+    expect(rows(root)[0].dataset).toMatchObject({
+      actorId: "inspector-a-view",
+      viewKey: "inspector:a"
+    });
+
+    subjectEntries[1] = {
+      ...subjectEntries[1],
+      activationSequence: 4
+    };
+    component.updateFrame();
+
+    expect(rows(root)[0].dataset).toMatchObject({
+      actorId: "inspector-b-view",
+      viewKey: "inspector:b"
+    });
+  });
+
   it("opens, navigates, and activates menu rows from the keyboard", () => {
     const { frameIntents, root } = createSubject();
 
@@ -394,7 +463,7 @@ describe("AppMenuBarComponent", () => {
 
     expect(root.dispatchKeyDown("Enter", 13).defaultPrevented).toBe(true);
 
-    expect(frameIntents).toEqual(["open:hierarchy:menu"]);
+    expect(frameIntents).toEqual(["open-type:hierarchy:menu"]);
     expect(menu(root).hidden).toBe(true);
     expect(menuButton(root).getAttribute("aria-expanded")).toBe("false");
   });
@@ -414,7 +483,7 @@ describe("AppMenuBarComponent", () => {
 
     root.dispatchKeyDown("Enter", 22);
 
-    expect(frameIntents).toEqual(["open:hierarchy:menu"]);
+    expect(frameIntents).toEqual(["open-type:hierarchy:menu"]);
   });
 
   it("keeps the menu open for menu-surface hits and prioritizes rows over dismiss", () => {
@@ -431,7 +500,7 @@ describe("AppMenuBarComponent", () => {
       throw new Error("Expected menu hit priorities.");
     }
 
-    expect(rowHit.partId).toBe("open-view-item");
+    expect(rowHit.partId).toBe("window-command-item");
     expect(rowHit.hitPriority).toBeGreaterThan(surfaceHit.hitPriority);
     expect(surfaceHit.partId).toBe("menu-surface");
 

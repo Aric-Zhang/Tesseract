@@ -1,7 +1,11 @@
 ﻿import { describe, expect, it } from "vitest";
 import { ActorSystem, type ActorWindowFocusService } from "../actor-runtime";
 import { DefaultWindowFrameLifecycleController } from "./window-frame-lifecycle-controller";
-import { createWindowWorkspaceFrameLayout, WindowFramePortRegistry } from ".";
+import {
+  createSingletonWindowViewIdentity,
+  createWindowWorkspaceFrameLayout,
+  WindowFramePortRegistry
+} from ".";
 import type {
   WindowContentHost,
   WindowContentRehostable,
@@ -194,6 +198,65 @@ describe("DefaultWindowFrameLifecycleController", () => {
       instanceId: "inspector:b",
       multiplicity: "multi-instance"
     });
+  });
+
+  it("updates activation sequence from lifecycle focus and tab activation", () => {
+    const subject = createSubject();
+
+    subject.controller.openView("debug", "menu");
+    const debugAfterOpen = subject.controller.getLocationByViewKey("debug")?.activationSequence ?? 0;
+    subject.controller.openView("hierarchy", "menu");
+    const hierarchyAfterOpen = subject.controller.getLocationByViewKey("hierarchy")?.activationSequence ?? 0;
+    subject.controller.activateFrameTab("debug-frame-1", "debug-view-1", "tab-click");
+    const debugAfterActivate = subject.controller.getLocationByViewKey("debug")?.activationSequence ?? 0;
+
+    expect(debugAfterOpen).toBeGreaterThan(0);
+    expect(hierarchyAfterOpen).toBeGreaterThan(debugAfterOpen);
+    expect(debugAfterActivate).toBeGreaterThan(hierarchyAfterOpen);
+  });
+
+  it("opens or focuses a view type using the lifecycle activation sequence as MRU", () => {
+    const subject = createSubject();
+
+    expect(subject.controller.openOrFocusViewType("inspector", "menu")).toMatchObject({
+      viewKey: "inspector:a",
+      typeKey: "inspector",
+      instanceId: "inspector:a"
+    });
+    expect(subject.controller.createViewInstance("inspector", "menu")).toMatchObject({
+      viewKey: "inspector:b",
+      typeKey: "inspector",
+      instanceId: "inspector:b"
+    });
+    subject.controller.focusViewInstance(
+      subject.controller.getLiveViewByActorId("inspector:a-view")!.identity,
+      "menu"
+    );
+
+    expect(subject.controller.openOrFocusViewType("inspector", "menu")).toMatchObject({
+      viewKey: "inspector:a",
+      typeKey: "inspector",
+      instanceId: "inspector:a"
+    });
+    expect(subject.focusCalls.at(-1)).toBe("focus:inspector:a-frame-1:menu-restore");
+  });
+
+  it("rejects stale tab close identity even when the view actor id is live", () => {
+    const subject = createSubject();
+
+    subject.controller.openView("debug", "menu");
+    const result = subject.controller.closeView("debug-view-1", "tab-action", {
+      identity: createSingletonWindowViewIdentity("hierarchy"),
+      ownerFrameId: "debug-frame-1",
+      viewKey: "debug"
+    });
+
+    expect(result).toMatchObject({
+      closed: false,
+      reason: "view identity mismatch",
+      sourceFrameId: "debug-frame-1"
+    });
+    expect(subject.controller.getLiveViewByActorId("debug-view-1")).toBeTruthy();
   });
 
   it("opens a new view into a preferred registered frame when available", () => {

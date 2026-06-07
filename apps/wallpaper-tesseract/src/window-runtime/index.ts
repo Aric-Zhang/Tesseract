@@ -21,6 +21,7 @@ export { windowViewKey } from "./window-view-key";
 export type { WindowViewKey } from "./window-view-key";
 export {
   createSingletonWindowViewIdentity,
+  createWindowViewIdentity,
   createWindowViewKeyFromTypeAndInstance,
   windowViewInstanceId,
   windowViewTypeKey
@@ -186,6 +187,8 @@ export { installWindowComponentDefinitions } from "./install-component-definitio
 export type { RegisteredWindowActor } from "./registered-window-actor";
 export {
   hydrateWindowWorkspaceFrameLayout,
+  getPersistedViewDescriptorIdentity,
+  getPersistedViewDescriptorRuntimeViewKey,
   parsePersistedWindowWorkspaceFrameLayout,
   serializeWindowWorkspaceFrameLayout,
   WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION

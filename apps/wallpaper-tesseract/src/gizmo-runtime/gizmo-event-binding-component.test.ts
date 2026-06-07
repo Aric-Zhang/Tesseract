@@ -271,6 +271,86 @@ describe("GizmoEventBindingComponent", () => {
     expect(calls).toEqual(["input-hit:body", "input-start:body:body-participant:body"]);
   });
 
+  it("captures structured actor input hit evidence for browser smoke tests", () => {
+    type SmokeCaptureGlobal = typeof globalThis & {
+      __PROJECT_PRISM_ACTOR_INPUT_CAPTURE__?: (entry: unknown) => void;
+    };
+    const globalWithCapture = globalThis as SmokeCaptureGlobal;
+    const previousCapture = globalWithCapture.__PROJECT_PRISM_ACTOR_INPUT_CAPTURE__;
+    const captures: unknown[] = [];
+    const { actorSystem, calls, registered, registry } = createRegistry();
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "body", {
+      inputStackPriority: 10,
+      inputPriority: 10
+    }));
+    const actor = actorSystem.createActor({ id: "actor" });
+    registry.addComponent(actor, gizmoEventBindingComponentType);
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-body"));
+    const binding = getRegisteredBinding(registered);
+    calls.length = 0;
+
+    try {
+      globalWithCapture.__PROJECT_PRISM_ACTOR_INPUT_CAPTURE__ = (entry) => {
+        captures.push(entry);
+      };
+
+      const hit = binding.hitTest({ x: 4, y: 5 });
+
+      expect(hit?.partId).toBe("body");
+      expect(captures).toEqual([{
+        actorId: "actor",
+        bindingId: "actor:gizmo-event-binding",
+        partId: "body",
+        point: { x: 4, y: 5 },
+        targetComponentId: "body-participant"
+      }]);
+    } finally {
+      if (previousCapture) {
+        globalWithCapture.__PROJECT_PRISM_ACTOR_INPUT_CAPTURE__ = previousCapture;
+      } else {
+        delete globalWithCapture.__PROJECT_PRISM_ACTOR_INPUT_CAPTURE__;
+      }
+    }
+  });
+
+  it("keeps smoke capture failures from changing hit selection", () => {
+    type SmokeCaptureGlobal = typeof globalThis & {
+      __PROJECT_PRISM_ACTOR_INPUT_CAPTURE__?: (entry: unknown) => void;
+    };
+    const globalWithCapture = globalThis as SmokeCaptureGlobal;
+    const previousCapture = globalWithCapture.__PROJECT_PRISM_ACTOR_INPUT_CAPTURE__;
+    const { actorSystem, calls, registered, registry } = createRegistry();
+    registry.registerDefinition(createActorInputParticipantDefinition(calls, "body", {
+      inputStackPriority: 10,
+      inputPriority: 10
+    }));
+    const actor = actorSystem.createActor({ id: "actor" });
+    registry.addComponent(actor, gizmoEventBindingComponentType);
+    registry.addComponent(actor, componentType<ActorInputParticipant>("input-participant-body"));
+    const binding = getRegisteredBinding(registered);
+    calls.length = 0;
+
+    try {
+      globalWithCapture.__PROJECT_PRISM_ACTOR_INPUT_CAPTURE__ = () => {
+        throw new Error("smoke capture failed");
+      };
+
+      const hit = binding.hitTest({ x: 4, y: 5 });
+
+      expect(hit).toMatchObject({
+        gizmoId: "actor:gizmo-event-binding",
+        partId: "body"
+      });
+      expect(calls).toEqual(["input-hit:body"]);
+    } finally {
+      if (previousCapture) {
+        globalWithCapture.__PROJECT_PRISM_ACTOR_INPUT_CAPTURE__ = previousCapture;
+      } else {
+        delete globalWithCapture.__PROJECT_PRISM_ACTOR_INPUT_CAPTURE__;
+      }
+    }
+  });
+
   it("does not hit test when the actor is inactive through its parent", () => {
     const { actorSystem, calls, registered, registry } = createRegistry();
     registry.registerDefinition(createActorInputParticipantDefinition(calls, "body", {

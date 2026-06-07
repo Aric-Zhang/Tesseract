@@ -18,6 +18,18 @@ import type {
 import type { ActorInputSelection } from "./actor-input-hit";
 import { ActorInputRouter } from "./actor-input-router";
 
+export interface ActorInputSmokeCaptureEntry {
+  readonly actorId: string;
+  readonly bindingId: string;
+  readonly partId: string;
+  readonly targetComponentId: string;
+  readonly point: ScreenPoint;
+}
+
+interface ActorInputSmokeCaptureGlobal {
+  __PROJECT_PRISM_ACTOR_INPUT_CAPTURE__?: (entry: ActorInputSmokeCaptureEntry) => void;
+}
+
 export interface GizmoEventBindingComponentOptions {
   actor: Actor;
   id: string;
@@ -63,6 +75,13 @@ export class GizmoEventBindingComponent implements ComponentLifecycleObserver, G
   hitTest(point: ScreenPoint): GizmoHit | null {
     const selected = this.router.hitTest(point);
     if (!selected) return null;
+    captureActorInputSmokeHit({
+      actorId: this.actor.id,
+      bindingId: this.id,
+      partId: selected.hit.partId,
+      targetComponentId: selected.target.id,
+      point
+    });
     const bindingHit = this.createBindingHit(selected);
     this.selectedHits.set(bindingHit, selected);
     return bindingHit;
@@ -132,3 +151,11 @@ export class GizmoEventBindingComponent implements ComponentLifecycleObserver, G
 
 export const gizmoEventBindingComponentType: ComponentType<GizmoEventBindingComponent> =
   "gizmo-event-binding" as ComponentType<GizmoEventBindingComponent>;
+
+function captureActorInputSmokeHit(entry: ActorInputSmokeCaptureEntry): void {
+  try {
+    (globalThis as ActorInputSmokeCaptureGlobal).__PROJECT_PRISM_ACTOR_INPUT_CAPTURE__?.(entry);
+  } catch {
+    // Smoke capture is an observation-only test hook. It must never affect hit selection or routing.
+  }
+}

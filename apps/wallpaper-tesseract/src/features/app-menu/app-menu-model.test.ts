@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  createWindowViewIdentity,
   createSingletonWindowViewIdentity,
+  windowViewInstanceId,
+  windowViewTypeKey,
+  type WindowViewMultiplicity,
+  type WindowViewTypeKey,
   type WindowWorkspaceViewEntry
 } from "../../window-runtime";
 import { createWindowMenuItem, createWindowMenuItems } from "./app-menu-model";
@@ -16,9 +21,22 @@ function createViewEntry(options: {
   readonly live?: boolean;
   readonly activeSelf?: boolean;
   readonly activeInHierarchy?: boolean;
+  readonly typeKey?: WindowViewTypeKey;
+  readonly instanceId?: string;
+  readonly multiplicity?: WindowViewMultiplicity;
+  readonly activationSequence?: number;
 }): WindowWorkspaceViewEntry {
+  const typeKey = options.typeKey ?? windowViewTypeKey(options.viewKey);
+  const instanceId = options.instanceId ? windowViewInstanceId(options.instanceId) : undefined;
   return {
-    identity: createSingletonWindowViewIdentity(options.viewKey),
+    identity: options.typeKey || instanceId || options.multiplicity
+      ? createWindowViewIdentity({
+          viewKey: options.viewKey,
+          typeKey,
+          instanceId,
+          multiplicity: options.multiplicity
+        })
+      : createSingletonWindowViewIdentity(options.viewKey),
     viewKey: options.viewKey,
     viewActorId: options.viewActorId ?? null,
     ownerFrameActorId: options.ownerFrameActorId ?? null,
@@ -32,7 +50,8 @@ function createViewEntry(options: {
     visibleInFrame: true,
     ownerFrameVisible: true,
     ownerFrameActiveInHierarchy: options.activeInHierarchy ?? options.activeSelf ?? true,
-    presentation: options.live === false ? null : "windowed"
+    presentation: options.live === false ? null : "windowed",
+    activationSequence: options.activationSequence ?? 0
   };
 }
 
@@ -45,8 +64,10 @@ describe("app menu model", () => {
     }));
 
     expect(item).toEqual({
-      kind: "open-view",
-      id: "debug",
+      kind: "window-command",
+      id: "type:debug",
+      action: { kind: "open-or-focus-type", typeKey: "debug" },
+      typeKey: "debug",
       viewKey: "debug",
       actorId: "debug-log-view",
       label: "Debug Log",
@@ -67,7 +88,9 @@ describe("app menu model", () => {
     }));
 
     expect(item).toMatchObject({
-      id: "hierarchy",
+      id: "type:hierarchy",
+      action: { kind: "open-or-focus-type", typeKey: "hierarchy" },
+      typeKey: "hierarchy",
       viewKey: "hierarchy",
       actorId: null,
       label: "Hierarchy",
@@ -113,10 +136,10 @@ describe("app menu model", () => {
     ]);
 
     expect(items.map((item) => item.viewKey)).toEqual(["scene", "debug", "hierarchy"]);
-    expect(items.map((item) => item.kind)).toEqual(["open-view", "open-view", "open-view"]);
+    expect(items.map((item) => item.kind)).toEqual(["window-command", "window-command", "window-command"]);
   });
 
-  it("uses viewKey as the menu action identity instead of frame actor ids", () => {
+  it("uses type action identity instead of frame actor ids", () => {
     const items = createWindowMenuItems([
       createViewEntry({
         viewKey: "scene",
@@ -127,10 +150,50 @@ describe("app menu model", () => {
     ]);
 
     expect(items[0]).toMatchObject({
-      kind: "open-view",
-      id: "scene",
+      kind: "window-command",
+      id: "type:scene",
+      action: { kind: "open-or-focus-type", typeKey: "scene" },
       viewKey: "scene",
       actorId: "scene-view-42"
+    });
+  });
+
+  it("groups multi-instance entries by type and picks the most recently activated representative", () => {
+    const inspectorType = windowViewTypeKey("inspector");
+    const items = createWindowMenuItems([
+      createViewEntry({
+        viewKey: "inspector:a",
+        typeKey: inspectorType,
+        instanceId: "inspector:a",
+        multiplicity: "multi-instance",
+        viewActorId: "inspector-a-view",
+        label: "Inspector",
+        order: 30,
+        activationSequence: 1
+      }),
+      createViewEntry({
+        viewKey: "inspector:b",
+        typeKey: inspectorType,
+        instanceId: "inspector:b",
+        multiplicity: "multi-instance",
+        viewActorId: "inspector-b-view",
+        label: "Inspector",
+        order: 30,
+        activationSequence: 4
+      })
+    ]);
+
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({
+      id: "type:inspector",
+      action: { kind: "open-or-focus-type", typeKey: "inspector" },
+      viewKey: "inspector:b",
+      actorId: "inspector-b-view"
+    });
+    expect(items[1]).toMatchObject({
+      id: "new:inspector",
+      action: { kind: "new-instance", typeKey: "inspector" },
+      label: "New Inspector"
     });
   });
 });

@@ -1,0 +1,9 @@
+.inspector-window__content {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  color: #d7dde8;
+  background: #12171d;
+  font: 12px/1.45 system-ui, sans-serif;
+}

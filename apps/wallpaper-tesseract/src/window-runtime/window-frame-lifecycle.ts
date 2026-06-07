@@ -6,6 +6,7 @@ import type { WindowDockSplitPlacement } from "./window-dock-targets";
 import type { WindowTabDragSource } from "./window-tab-drag-session";
 import type { WindowFramePort, WindowFramePresentation, WindowFrameTab } from "./window-frame-port";
 import type { WindowWorkspaceFrameLayout } from "./window-workspace-layout";
+import type { WindowViewIdentity, WindowViewTypeKey } from "./window-view-identity";
 
 export type WindowFrameLifecycleReason =
   | "close-button"
@@ -21,6 +22,20 @@ export interface WindowFrameLifecycleController {
     reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
     options?: WindowOpenViewOptions
   ): void;
+  openOrFocusViewType(
+    typeKey: WindowViewTypeKey,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
+    options?: WindowOpenViewOptions
+  ): WindowViewIdentity | null;
+  createViewInstance(
+    typeKey: WindowViewTypeKey,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
+    options?: WindowOpenViewOptions
+  ): WindowViewIdentity | null;
+  focusViewInstance(
+    identity: WindowViewIdentity,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic" | "tab-click">
+  ): boolean;
   closeFrame(
     frameId: string,
     reason: Extract<WindowFrameLifecycleReason, "close-button" | "programmatic">
@@ -41,6 +56,7 @@ export interface WindowFrameLifecycleController {
 
 export interface WindowViewLocation {
   readonly viewKey: WindowViewKey;
+  readonly identity: WindowViewIdentity;
   readonly viewActorId: string;
   readonly ownerFrameActorId: string;
   readonly ownerFrameVisiblePath: ParameterPath<boolean> | null;
@@ -49,6 +65,7 @@ export interface WindowViewLocation {
   readonly activeInFrame: boolean;
   readonly visibleInFrame: boolean;
   readonly presentation: WindowFramePresentation;
+  readonly activationSequence: number;
 }
 
 export interface WindowOpenViewOptions {
@@ -161,6 +178,7 @@ export type WindowCloseViewResult =
 
 export interface WindowCloseViewOptions {
   readonly viewKey?: WindowViewKey;
+  readonly identity?: WindowViewIdentity;
   readonly ownerFrameId?: string;
 }
 
@@ -202,6 +220,20 @@ export interface WindowFrameIntentSink {
     viewKey: WindowViewKey,
     reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
     options?: WindowOpenViewOptions
+  ): void;
+  requestOpenOrFocusViewType?(
+    typeKey: WindowViewTypeKey,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
+    options?: WindowOpenViewOptions
+  ): void;
+  requestCreateViewInstance?(
+    typeKey: WindowViewTypeKey,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">,
+    options?: WindowOpenViewOptions
+  ): void;
+  requestFocusViewInstance?(
+    identity: WindowViewIdentity,
+    reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">
   ): void;
   requestCloseFrame(
     frameId: string,

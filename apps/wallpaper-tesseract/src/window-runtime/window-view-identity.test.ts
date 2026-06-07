@@ -11,14 +11,14 @@ describe("window view identity", () => {
     expect(createSingletonWindowViewIdentity("scene")).toEqual({
       viewKey: "scene",
       typeKey: "scene",
-      instanceId: null,
+      instanceId: "scene:default",
       multiplicity: "singleton"
     });
   });
 
-  it("can describe a future instance id without changing current singleton format", () => {
+  it("keeps instance id opaque when creating compatibility view keys", () => {
     const typeKey = windowViewTypeKey("inspector");
-    const instanceId = windowViewInstanceId("1");
+    const instanceId = windowViewInstanceId("inspector:1");
 
     expect(createWindowViewKeyFromTypeAndInstance(typeKey, instanceId)).toBe("inspector:1");
   });

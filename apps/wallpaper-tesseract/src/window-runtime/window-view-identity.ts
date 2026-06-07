@@ -20,10 +20,10 @@ export interface WindowViewIdentity {
    */
   readonly typeKey: WindowViewTypeKey;
   /**
-   * Future stable instance identity. Singleton views intentionally keep this
-   * null so current persisted layouts do not grow a second identity field yet.
+   * Stable logical instance identity. This id is globally opaque and must not
+   * be blindly concatenated with the type key.
    */
-  readonly instanceId: WindowViewInstanceId | null;
+  readonly instanceId: WindowViewInstanceId;
   readonly multiplicity: WindowViewMultiplicity;
 }
 
@@ -42,7 +42,7 @@ export function createSingletonWindowViewIdentity(
   return {
     viewKey,
     typeKey,
-    instanceId: null,
+    instanceId: windowViewInstanceId(`${typeKey}:default`),
     multiplicity: "singleton"
   };
 }
@@ -58,21 +58,29 @@ export function createWindowViewIdentity(options: {
   return {
     viewKey: options.viewKey,
     typeKey,
-    instanceId: options.instanceId ?? (multiplicity === "multi-instance"
-      ? windowViewInstanceId(options.viewKey)
-      : null),
+    instanceId: options.instanceId ?? multiplicityDefaultInstanceId(options.viewKey, typeKey, multiplicity),
     multiplicity
   };
 }
 
 export function createWindowViewIdentityKey(identity: WindowViewIdentity): WindowViewIdentityKey {
-  const instancePart = identity.instanceId ?? `singleton:${identity.viewKey}`;
-  return `${identity.typeKey}:${instancePart}` as WindowViewIdentityKey;
+  return `instance:${identity.instanceId}` as WindowViewIdentityKey;
 }
 
 export function createWindowViewKeyFromTypeAndInstance(
   typeKey: WindowViewTypeKey,
   instanceId: WindowViewInstanceId
 ): WindowViewKey {
-  return windowViewKey(`${typeKey}:${instanceId}`);
+  void typeKey;
+  return windowViewKey(instanceId);
+}
+
+function multiplicityDefaultInstanceId(
+  viewKey: WindowViewKey,
+  typeKey: WindowViewTypeKey,
+  multiplicity: WindowViewMultiplicity
+): WindowViewInstanceId {
+  return multiplicity === "multi-instance"
+    ? windowViewInstanceId(viewKey)
+    : windowViewInstanceId(`${typeKey}:default`);
 }

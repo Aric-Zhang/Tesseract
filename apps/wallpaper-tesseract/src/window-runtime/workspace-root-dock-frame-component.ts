@@ -334,6 +334,7 @@ export class WorkspaceRootDockFrameComponent
       if (isWindowTabAction(action) && action.kind === "close-view") {
         this.#frameIntentSink?.requestCloseView?.(action.viewActorId, "tab-action", {
           ownerFrameId: this.#frameId,
+          identity: action.identity,
           viewKey: action.viewKey
         });
       }

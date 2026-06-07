@@ -3,6 +3,7 @@ import { installCoreComponentDefinitions } from "../component-definitions";
 import { installDebugLogComponentDefinitions } from "../debug";
 import { installAppMenuComponentDefinitions } from "../features/app-menu";
 import { installCamera3FeatureComponentDefinitions } from "../features/camera3/components";
+import { installInspectorComponentDefinitions } from "../features/inspector";
 import { installSceneComponentDefinitions } from "../features/scene";
 import { installCamera3ComponentDefinitions } from "../gizmos/camera3/components";
 import { installHierarchyComponentDefinitions } from "../hierarchy";
@@ -13,6 +14,7 @@ export function installWallpaperComponentDefinitions(componentRegistry: Componen
   installCoreComponentDefinitions(componentRegistry);
   installWindowComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
+  installInspectorComponentDefinitions(componentRegistry);
   installSceneComponentDefinitions(componentRegistry);
   installCamera3FeatureComponentDefinitions(componentRegistry);
   installCamera3ComponentDefinitions(componentRegistry);

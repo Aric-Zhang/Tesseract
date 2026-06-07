@@ -10,14 +10,11 @@ export type {
   SceneWindowStateOptions
 } from "./scene-window-state";
 export {
-  createSceneViewActor,
-  createSceneWindowActor
+  createSceneViewActor
 } from "./scene-window-actor-factory";
 export type {
   RegisteredSceneViewActor,
-  RegisteredSceneWindowActor,
-  SceneViewActorOptions,
-  SceneWindowActorOptions
+  SceneViewActorOptions
 } from "./scene-window-actor-factory";
 export {
   installSceneComponentDefinitions,
@@ -43,7 +40,11 @@ export type {
   RenderableSceneViewRegistry,
   RenderableSceneViewSource
 } from "./renderable-scene-view";
-export { installSceneViewFeature } from "./install-scene-view-feature";
+export {
+  createSceneDefaultOpenView,
+  createSceneWindowWorkspaceFloatingFramePolicy,
+  installSceneViewFeature
+} from "./install-scene-view-feature";
 export type {
   InstalledSceneViewFeature,
   InstallSceneViewFeatureOptions

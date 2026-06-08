@@ -1,7 +1,0 @@
-npm error Lifecycle script `dev` failed with error:
-npm error code 4294967295
-npm error path D:\SteamLibrary\steamapps\common\wallpaper_engine\projects\myprojects\tesseract\apps\wallpaper-tesseract
-npm error workspace wallpaper-tesseract@0.1.0
-npm error location D:\SteamLibrary\steamapps\common\wallpaper_engine\projects\myprojects\tesseract\apps\wallpaper-tesseract
-npm error command failed
-npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vite --host 127.0.0.1 --host 127.0.0.1 --port 5184

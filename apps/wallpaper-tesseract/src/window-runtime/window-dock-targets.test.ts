@@ -103,6 +103,31 @@ describe("resolveWindowDockPreview", () => {
     });
   });
 
+  it("resolves same-frame content edge drops when the source tabset is known", () => {
+    expect(resolveWindowDockPreview({ x: 112, y: 210 }, [frame("source", 10)], {
+      sourceFrameId: "source",
+      sourceTabsetId: "frame-tabset:source"
+    })).toMatchObject({
+      kind: "split",
+      operation: "same-frame-split",
+      placement: "left",
+      targetFrameId: "source",
+      targetTabsetId: "frame-tabset:source"
+    });
+  });
+
+  it("marks same-tabset tabbar drops as no-op instead of cross-frame merge", () => {
+    expect(resolveWindowDockPreview({ x: 130, y: 116 }, [frame("source", 10)], {
+      sourceFrameId: "source",
+      sourceTabsetId: "frame-tabset:source"
+    })).toMatchObject({
+      kind: "merge-tabs",
+      operation: "no-op",
+      targetFrameId: "source",
+      targetTabsetId: "frame-tabset:source"
+    });
+  });
+
   it("chooses the highest stack priority overlapped target and excludes the source frame", () => {
     const preview = resolveWindowDockPreview({ x: 130, y: 116 }, [
       frame("source", 100),

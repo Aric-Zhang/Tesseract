@@ -1,0 +1,2907 @@
+{
+  "startedAt": "2026-06-08T03:42:02.788Z",
+  "url": "http://127.0.0.1:5175/?resetWorkspaceLayout=1",
+  "interactions": [
+    {
+      "name": "move-hierarchy-away-from-root-tabbar",
+      "point": {
+        "x": 253.19999408721924,
+        "y": 26.800000190734863
+      },
+      "target": {
+        "x": 520,
+        "y": 170
+      },
+      "domStackBefore": [
+        {
+          "aria": null,
+          "className": "app-shell__menu",
+          "role": null,
+          "tag": "DIV",
+          "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew Inspector"
+        },
+        {
+          "aria": null,
+          "className": "floating-gizmo-window__titlebar",
+          "role": "tablist",
+          "tag": "DIV",
+          "text": "Hierarchyxx"
+        },
+        {
+          "aria": null,
+          "className": "floating-gizmo-window hierarchy-window",
+          "role": null,
+          "tag": "DIV",
+          "text": "HierarchyxxDebug Log WindowDebug Log Window ViewHierarchy PanelHierarchy Panel V"
+        },
+        {
+          "aria": null,
+          "className": "app-shell",
+          "role": null,
+          "tag": "DIV",
+          "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDeb"
+        },
+        {
+          "aria": null,
+          "className": "",
+          "role": null,
+          "tag": "DIV",
+          "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDeb"
+        },
+        {
+          "aria": null,
+          "className": "",
+          "role": null,
+          "tag": "BODY",
+          "text": " WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDe"
+        },
+        {
+          "aria": null,
+          "className": "",
+          "role": null,
+          "tag": "HTML",
+          "text": " Four Camera Tesseract * { box-sizing: border-box; } html, body, #app { width: 1"
+        }
+      ],
+      "before": {
+        "canvasRects": [
+          {
+            "bottom": 697.5999870300293,
+            "height": 640.7999877929688,
+            "left": 0,
+            "right": 593.6000366210938,
+            "top": 56.79999923706055,
+            "width": 593.6000366210938,
+            "x": 0,
+            "y": 56.79999923706055
+          },
+          {
+            "bottom": 210.8000030517578,
+            "height": 132,
+            "left": 439.6000061035156,
+            "right": 571.6000061035156,
+            "top": 78.80000305175781,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 78.80000305175781
+          }
+        ],
+        "contents": [],
+        "debugTextTail": "Gizmo debug log enabled",
+        "floating": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window debug-log-window",
+            "rect": {
+              "bottom": 684,
+              "height": 240,
+              "left": 14,
+              "right": 579.6000366210938,
+              "top": 444,
+              "width": 565.6000366210938,
+              "x": 14,
+              "y": 444
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Debug LogxxGizmo debug log enabled"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "bottom": 374,
+              "height": 360,
+              "left": 14,
+              "right": 294,
+              "top": 14,
+              "width": 280,
+              "x": 14,
+              "y": 14
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "HierarchyxxDebug Log WindowDebug Log Window ViewHierarchy PanelHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesse"
+          }
+        ],
+        "floatingTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 471.3999938964844,
+              "height": 24,
+              "left": 24.80000114440918,
+              "right": 174.80000114440918,
+              "top": 447.3999938964844,
+              "width": 150,
+              "x": 24.80000114440918,
+              "y": 447.3999938964844
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          },
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 41.39999961853027,
+              "height": 24,
+              "left": 24.80000114440918,
+              "right": 174.80000114440918,
+              "top": 17.399999618530273,
+              "width": 150,
+              "x": 24.80000114440918,
+              "y": 17.399999618530273
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          }
+        ],
+        "floatingTitlebars": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 474.8000183105469,
+              "height": 30,
+              "left": 14.800000190734863,
+              "right": 578.8000001907349,
+              "top": 444.8000183105469,
+              "width": 564,
+              "x": 14.800000190734863,
+              "y": 444.8000183105469
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logxx"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 44.80000019073486,
+              "height": 30,
+              "left": 14.800000190734863,
+              "right": 293.19999408721924,
+              "top": 14.800000190734863,
+              "width": 278.3999938964844,
+              "x": 14.800000190734863,
+              "y": 14.800000190734863
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "label": "move-hierarchy-away-from-root-tabbar:before",
+        "root": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame",
+            "rect": {
+              "bottom": 697.6000366210938,
+              "height": 669.6000366210938,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Scenex< Persp"
+          }
+        ],
+        "rootTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 54,
+              "height": 24,
+              "left": 6,
+              "right": 156,
+              "top": 30,
+              "width": 150,
+              "x": 6,
+              "y": 30
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Scenex"
+          }
+        ],
+        "tabsets": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__tabs",
+            "rect": {
+              "bottom": 56.80000114440918,
+              "height": 28.80000114440918,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 474.8000183105469,
+              "height": 30,
+              "left": 14.800000190734863,
+              "right": 578.8000001907349,
+              "top": 444.8000183105469,
+              "width": 564,
+              "x": 14.800000190734863,
+              "y": 444.8000183105469
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logxx"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 44.80000019073486,
+              "height": 30,
+              "left": 14.800000190734863,
+              "right": 293.19999408721924,
+              "top": 14.800000190734863,
+              "width": 278.3999938964844,
+              "x": 14.800000190734863,
+              "y": 14.800000190734863
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "viewport": {
+          "height": 698,
+          "width": 594
+        }
+      },
+      "after": {
+        "canvasRects": [
+          {
+            "bottom": 697.5999870300293,
+            "height": 640.7999877929688,
+            "left": 0,
+            "right": 593.6000366210938,
+            "top": 56.79999923706055,
+            "width": 593.6000366210938,
+            "x": 0,
+            "y": 56.79999923706055
+          },
+          {
+            "bottom": 210.8000030517578,
+            "height": 132,
+            "left": 439.6000061035156,
+            "right": 571.6000061035156,
+            "top": 78.80000305175781,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 78.80000305175781
+          }
+        ],
+        "contents": [],
+        "debugTextTail": " 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27\n 2296 hit gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=253,27 capture=1\n 2296 start gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=253,27 capture=1\n 2309 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=387,98 d=133,72 td=133,72 drag=1 capture=0\n 2309 move gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=387,98 d=133,72 td=133,72 drag=1 capture=0\n 2327 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=520,170 d=133,72 td=267,143 drag=1 capture=0\n 2327 move gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=520,170 d=133,72 td=267,143 drag=1 capture=0\n 2341 pointerup pid=1 type=mouse button=0 buttons=0 xy=520,170\n 2341 end gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=0 xy=520,170 td=267,143 drag=1 capture=0",
+        "floating": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window debug-log-window",
+            "rect": {
+              "bottom": 684,
+              "height": 240,
+              "left": 14,
+              "right": 579.6000366210938,
+              "top": 444,
+              "width": 565.6000366210938,
+              "x": 14,
+              "y": 444
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Debug Logxx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 hit gizmo=hierarchy-panel:gizmo-event-bi"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "bottom": 517.1999969482422,
+              "height": 360,
+              "left": 280.8000183105469,
+              "right": 560.8000183105469,
+              "top": 157.1999969482422,
+              "width": 280,
+              "x": 280.8000183105469,
+              "y": 157.1999969482422
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "HierarchyxxDebug Log WindowDebug Log Window ViewHierarchy PanelHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesse"
+          }
+        ],
+        "floatingTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 471.3999938964844,
+              "height": 24,
+              "left": 24.80000114440918,
+              "right": 174.80000114440918,
+              "top": 447.3999938964844,
+              "width": 150,
+              "x": 24.80000114440918,
+              "y": 447.3999938964844
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          },
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 184.60000610351562,
+              "height": 24,
+              "left": 291.6000061035156,
+              "right": 441.6000061035156,
+              "top": 160.60000610351562,
+              "width": 150,
+              "x": 291.6000061035156,
+              "y": 160.60000610351562
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          }
+        ],
+        "floatingTitlebars": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 474.8000183105469,
+              "height": 30,
+              "left": 14.800000190734863,
+              "right": 578.8000001907349,
+              "top": 444.8000183105469,
+              "width": 564,
+              "x": 14.800000190734863,
+              "y": 444.8000183105469
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logxx"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "label": "move-hierarchy-away-from-root-tabbar:after",
+        "root": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame",
+            "rect": {
+              "bottom": 697.6000366210938,
+              "height": 669.6000366210938,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Scenex< Persp"
+          }
+        ],
+        "rootTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 54,
+              "height": 24,
+              "left": 6,
+              "right": 156,
+              "top": 30,
+              "width": 150,
+              "x": 6,
+              "y": 30
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Scenex"
+          }
+        ],
+        "tabsets": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__tabs",
+            "rect": {
+              "bottom": 56.80000114440918,
+              "height": 28.80000114440918,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 474.8000183105469,
+              "height": 30,
+              "left": 14.800000190734863,
+              "right": 578.8000001907349,
+              "top": 444.8000183105469,
+              "width": 564,
+              "x": 14.800000190734863,
+              "y": 444.8000183105469
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logxx"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "viewport": {
+          "height": 698,
+          "width": 594
+        }
+      }
+    },
+    {
+      "name": "cross-frame-debug-to-root-left",
+      "point": {
+        "x": 79.80000114440918,
+        "y": 459.3999938964844
+      },
+      "target": {
+        "x": 18,
+        "y": 396.2800201416016
+      },
+      "domStackBefore": [
+        {
+          "aria": null,
+          "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+          "role": "tab",
+          "tag": "DIV",
+          "text": "Debug Logx"
+        },
+        {
+          "aria": null,
+          "className": "floating-gizmo-window__titlebar",
+          "role": "tablist",
+          "tag": "DIV",
+          "text": "Debug Logxx"
+        },
+        {
+          "aria": null,
+          "className": "floating-gizmo-window debug-log-window",
+          "role": null,
+          "tag": "DIV",
+          "text": "Debug Logxx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 "
+        },
+        {
+          "aria": null,
+          "className": "",
+          "role": null,
+          "tag": "CANVAS",
+          "text": ""
+        },
+        {
+          "aria": null,
+          "className": "scene-window__canvas-host",
+          "role": null,
+          "tag": "DIV",
+          "text": ""
+        },
+        {
+          "aria": null,
+          "className": "scene-window__viewport",
+          "role": null,
+          "tag": "DIV",
+          "text": "< Persp"
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame__content",
+          "role": null,
+          "tag": "DIV",
+          "text": "< Persp"
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame",
+          "role": null,
+          "tag": "DIV",
+          "text": "Scenex< Persp"
+        }
+      ],
+      "before": {
+        "canvasRects": [
+          {
+            "bottom": 697.5999870300293,
+            "height": 640.7999877929688,
+            "left": 0,
+            "right": 593.6000366210938,
+            "top": 56.79999923706055,
+            "width": 593.6000366210938,
+            "x": 0,
+            "y": 56.79999923706055
+          },
+          {
+            "bottom": 210.8000030517578,
+            "height": 132,
+            "left": 439.6000061035156,
+            "right": 571.6000061035156,
+            "top": 78.80000305175781,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 78.80000305175781
+          }
+        ],
+        "contents": [],
+        "debugTextTail": " 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27\n 2296 hit gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=253,27 capture=1\n 2296 start gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=253,27 capture=1\n 2309 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=387,98 d=133,72 td=133,72 drag=1 capture=0\n 2309 move gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=387,98 d=133,72 td=133,72 drag=1 capture=0\n 2327 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=520,170 d=133,72 td=267,143 drag=1 capture=0\n 2327 move gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=520,170 d=133,72 td=267,143 drag=1 capture=0\n 2341 pointerup pid=1 type=mouse button=0 buttons=0 xy=520,170\n 2341 end gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=0 xy=520,170 td=267,143 drag=1 capture=0",
+        "floating": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window debug-log-window",
+            "rect": {
+              "bottom": 684,
+              "height": 240,
+              "left": 14,
+              "right": 579.6000366210938,
+              "top": 444,
+              "width": 565.6000366210938,
+              "x": 14,
+              "y": 444
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Debug Logxx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 hit gizmo=hierarchy-panel:gizmo-event-bi"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "bottom": 517.1999969482422,
+              "height": 360,
+              "left": 280.8000183105469,
+              "right": 560.8000183105469,
+              "top": 157.1999969482422,
+              "width": 280,
+              "x": 280.8000183105469,
+              "y": 157.1999969482422
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "HierarchyxxDebug Log WindowDebug Log Window ViewHierarchy PanelHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesse"
+          }
+        ],
+        "floatingTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 471.3999938964844,
+              "height": 24,
+              "left": 24.80000114440918,
+              "right": 174.80000114440918,
+              "top": 447.3999938964844,
+              "width": 150,
+              "x": 24.80000114440918,
+              "y": 447.3999938964844
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          },
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 184.60000610351562,
+              "height": 24,
+              "left": 291.6000061035156,
+              "right": 441.6000061035156,
+              "top": 160.60000610351562,
+              "width": 150,
+              "x": 291.6000061035156,
+              "y": 160.60000610351562
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          }
+        ],
+        "floatingTitlebars": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 474.8000183105469,
+              "height": 30,
+              "left": 14.800000190734863,
+              "right": 578.8000001907349,
+              "top": 444.8000183105469,
+              "width": 564,
+              "x": 14.800000190734863,
+              "y": 444.8000183105469
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logxx"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "label": "cross-frame-debug-to-root-left:before",
+        "root": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame",
+            "rect": {
+              "bottom": 697.6000366210938,
+              "height": 669.6000366210938,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Scenex< Persp"
+          }
+        ],
+        "rootTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 54,
+              "height": 24,
+              "left": 6,
+              "right": 156,
+              "top": 30,
+              "width": 150,
+              "x": 6,
+              "y": 30
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Scenex"
+          }
+        ],
+        "tabsets": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__tabs",
+            "rect": {
+              "bottom": 56.80000114440918,
+              "height": 28.80000114440918,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 474.8000183105469,
+              "height": 30,
+              "left": 14.800000190734863,
+              "right": 578.8000001907349,
+              "top": 444.8000183105469,
+              "width": 564,
+              "x": 14.800000190734863,
+              "y": 444.8000183105469
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logxx"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "viewport": {
+          "height": 698,
+          "width": 594
+        }
+      },
+      "after": {
+        "canvasRects": [
+          {
+            "bottom": 697.5999908447266,
+            "height": 612.7999877929688,
+            "left": 205.125,
+            "right": 593.6000061035156,
+            "top": 84.80000305175781,
+            "width": 388.4750061035156,
+            "x": 205.125,
+            "y": 84.80000305175781
+          },
+          {
+            "bottom": 238.8000030517578,
+            "height": 132,
+            "left": 439.6000061035156,
+            "right": 571.6000061035156,
+            "top": 106.80000305175781,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 106.80000305175781
+          }
+        ],
+        "contents": [],
+        "debugTextTail": " 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27\n 2296 hit gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=253,27 capture=1\n 2296 start gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=253,27 capture=1\n 2309 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=387,98 d=133,72 td=133,72 drag=1 capture=0\n 2309 move gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=387,98 d=133,72 td=133,72 drag=1 capture=0\n 2327 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=520,170 d=133,72 td=267,143 drag=1 capture=0\n 2327 move gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=520,170 d=133,72 td=267,143 drag=1 capture=0\n 2341 pointerup pid=1 type=mouse button=0 buttons=0 xy=520,170\n 2341 end gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=0 xy=520,170 td=267,143 drag=1 capture=0\n 3753 pointerdown pid=1 type=mouse button=0 buttons=1 xy=80,459\n 3753 hit gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=80,459 capture=1\n 3753 start gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=80,459 capture=1\n 3766 pointermove gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=49,428 d=-31,-32 td=-31,-32 drag=1 capture=0\n 3766 move gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=49,428 d=-31,-32 td=-31,-32 drag=1 capture=0\n 3781 pointermove gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=18,396 d=-31,-32 td=-62,-63 drag=1 capture=0\n 3781 move gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=18,396 d=-31,-32 td=-62,-63 drag=1 capture=0\n 3795 pointerup pid=1 type=mouse button=0 buttons=0 xy=18,396\n---- cancel reason=gizmo-disabled gizmo=debug-log-window:gizmo-event-binding part=window-tab capture=0\n 3795 end gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=18,396 td=-62,-63 drag=1 capture=0",
+        "floating": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "bottom": 517.1999969482422,
+              "height": 360,
+              "left": 280.8000183105469,
+              "right": 560.8000183105469,
+              "top": 157.1999969482422,
+              "width": 280,
+              "x": 280.8000183105469,
+              "y": 157.1999969482422
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "HierarchyxxHierarchy PanelHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesseract4Camera3Debug Log Window View"
+          }
+        ],
+        "floatingTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 184.60000610351562,
+              "height": 24,
+              "left": 291.6000061035156,
+              "right": 441.6000061035156,
+              "top": 160.60000610351562,
+              "width": 150,
+              "x": 291.6000061035156,
+              "y": 160.60000610351562
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          }
+        ],
+        "floatingTitlebars": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "label": "cross-frame-debug-to-root-left:after",
+        "root": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame",
+            "rect": {
+              "bottom": 697.6000366210938,
+              "height": 669.6000366210938,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Debug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 hit gizmo=hierarchy-panel:gizmo-event-bin"
+          }
+        ],
+        "rootTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 82,
+              "height": 24,
+              "left": 6,
+              "right": 156,
+              "top": 58,
+              "width": 150,
+              "x": 6,
+              "y": 58
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          },
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 82,
+              "height": 24,
+              "left": 211.125,
+              "right": 361.125,
+              "top": 58,
+              "width": 150,
+              "x": 211.125,
+              "y": 58
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Scenex"
+          }
+        ],
+        "tabsets": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__tabs",
+            "rect": {
+              "bottom": 56,
+              "height": 28,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": ""
+          },
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__pane-tabs",
+            "rect": {
+              "bottom": 84.80000114440918,
+              "height": 28.80000114440918,
+              "left": 0,
+              "right": 200.125,
+              "top": 56,
+              "width": 200.125,
+              "x": 0,
+              "y": 56
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          },
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__pane-tabs",
+            "rect": {
+              "bottom": 84.80000114440918,
+              "height": 28.80000114440918,
+              "left": 205.125,
+              "right": 593.6000061035156,
+              "top": 56,
+              "width": 388.4750061035156,
+              "x": 205.125,
+              "y": 56
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "viewport": {
+          "height": 698,
+          "width": 594
+        }
+      }
+    },
+    {
+      "name": "same-frame-root-debug-to-right",
+      "point": {
+        "x": 61,
+        "y": 70
+      },
+      "target": {
+        "x": 575.6000366210938,
+        "y": 416.3680212402343
+      },
+      "domStackBefore": [
+        {
+          "aria": null,
+          "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+          "role": "tab",
+          "tag": "DIV",
+          "text": "Debug Logx"
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame__pane-tabs",
+          "role": "tablist",
+          "tag": "DIV",
+          "text": "Debug Logx"
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame__pane",
+          "role": null,
+          "tag": "DIV",
+          "text": "Debug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 h"
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame__split workspace-root-dock-frame__split--horizontal",
+          "role": null,
+          "tag": "DIV",
+          "text": "Debug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 h"
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame__content",
+          "role": null,
+          "tag": "DIV",
+          "text": "Debug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 h"
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame",
+          "role": null,
+          "tag": "DIV",
+          "text": "Debug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 h"
+        },
+        {
+          "aria": null,
+          "className": "app-shell__root-dock",
+          "role": null,
+          "tag": "DIV",
+          "text": "Debug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 h"
+        },
+        {
+          "aria": null,
+          "className": "app-shell",
+          "role": null,
+          "tag": "DIV",
+          "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorDebug Logx 2296 "
+        }
+      ],
+      "before": {
+        "canvasRects": [
+          {
+            "bottom": 697.5999908447266,
+            "height": 612.7999877929688,
+            "left": 205.125,
+            "right": 593.6000061035156,
+            "top": 84.80000305175781,
+            "width": 388.4750061035156,
+            "x": 205.125,
+            "y": 84.80000305175781
+          },
+          {
+            "bottom": 238.8000030517578,
+            "height": 132,
+            "left": 439.6000061035156,
+            "right": 571.6000061035156,
+            "top": 106.80000305175781,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 106.80000305175781
+          }
+        ],
+        "contents": [],
+        "debugTextTail": " 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27\n 2296 hit gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=253,27 capture=1\n 2296 start gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=253,27 capture=1\n 2309 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=387,98 d=133,72 td=133,72 drag=1 capture=0\n 2309 move gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=387,98 d=133,72 td=133,72 drag=1 capture=0\n 2327 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=520,170 d=133,72 td=267,143 drag=1 capture=0\n 2327 move gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=1 xy=520,170 d=133,72 td=267,143 drag=1 capture=0\n 2341 pointerup pid=1 type=mouse button=0 buttons=0 xy=520,170\n 2341 end gizmo=hierarchy-panel:gizmo-event-binding part=titlebar-empty pid=1 type=mouse button=0 buttons=0 xy=520,170 td=267,143 drag=1 capture=0\n 3753 pointerdown pid=1 type=mouse button=0 buttons=1 xy=80,459\n 3753 hit gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=80,459 capture=1\n 3753 start gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=80,459 capture=1\n 3766 pointermove gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=49,428 d=-31,-32 td=-31,-32 drag=1 capture=0\n 3766 move gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=49,428 d=-31,-32 td=-31,-32 drag=1 capture=0\n 3781 pointermove gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=18,396 d=-31,-32 td=-62,-63 drag=1 capture=0\n 3781 move gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=18,396 d=-31,-32 td=-62,-63 drag=1 capture=0\n 3795 pointerup pid=1 type=mouse button=0 buttons=0 xy=18,396\n---- cancel reason=gizmo-disabled gizmo=debug-log-window:gizmo-event-binding part=window-tab capture=0\n 3795 end gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=18,396 td=-62,-63 drag=1 capture=0",
+        "floating": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "bottom": 517.1999969482422,
+              "height": 360,
+              "left": 280.8000183105469,
+              "right": 560.8000183105469,
+              "top": 157.1999969482422,
+              "width": 280,
+              "x": 280.8000183105469,
+              "y": 157.1999969482422
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "HierarchyxxHierarchy PanelHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesseract4Camera3Debug Log Window View"
+          }
+        ],
+        "floatingTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 184.60000610351562,
+              "height": 24,
+              "left": 291.6000061035156,
+              "right": 441.6000061035156,
+              "top": 160.60000610351562,
+              "width": 150,
+              "x": 291.6000061035156,
+              "y": 160.60000610351562
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          }
+        ],
+        "floatingTitlebars": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "label": "same-frame-root-debug-to-right:before",
+        "root": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame",
+            "rect": {
+              "bottom": 697.6000366210938,
+              "height": 669.6000366210938,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Debug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 hit gizmo=hierarchy-panel:gizmo-event-bin"
+          }
+        ],
+        "rootTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 82,
+              "height": 24,
+              "left": 6,
+              "right": 156,
+              "top": 58,
+              "width": 150,
+              "x": 6,
+              "y": 58
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          },
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 82,
+              "height": 24,
+              "left": 211.125,
+              "right": 361.125,
+              "top": 58,
+              "width": 150,
+              "x": 211.125,
+              "y": 58
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Scenex"
+          }
+        ],
+        "tabsets": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__tabs",
+            "rect": {
+              "bottom": 56,
+              "height": 28,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": ""
+          },
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__pane-tabs",
+            "rect": {
+              "bottom": 84.80000114440918,
+              "height": 28.80000114440918,
+              "left": 0,
+              "right": 200.125,
+              "top": 56,
+              "width": 200.125,
+              "x": 0,
+              "y": 56
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          },
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__pane-tabs",
+            "rect": {
+              "bottom": 84.80000114440918,
+              "height": 28.80000114440918,
+              "left": 205.125,
+              "right": 593.6000061035156,
+              "top": 56,
+              "width": 388.4750061035156,
+              "x": 205.125,
+              "y": 56
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "viewport": {
+          "height": 698,
+          "width": 594
+        }
+      },
+      "after": {
+        "canvasRects": [
+          {
+            "bottom": 697.5999908447266,
+            "height": 612.7999877929688,
+            "left": 0,
+            "right": 388.4750061035156,
+            "top": 84.80000305175781,
+            "width": 388.4750061035156,
+            "x": 0,
+            "y": 84.80000305175781
+          },
+          {
+            "bottom": 238.8000030517578,
+            "height": 132,
+            "left": 234.47500610351562,
+            "right": 366.4750061035156,
+            "top": 106.80000305175781,
+            "width": 132,
+            "x": 234.47500610351562,
+            "y": 106.80000305175781
+          }
+        ],
+        "contents": [],
+        "debugTextTail": "=mouse button=0 buttons=0 xy=520,170 td=267,143 drag=1 capture=0\n 3753 pointerdown pid=1 type=mouse button=0 buttons=1 xy=80,459\n 3753 hit gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=80,459 capture=1\n 3753 start gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=80,459 capture=1\n 3766 pointermove gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=49,428 d=-31,-32 td=-31,-32 drag=1 capture=0\n 3766 move gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=49,428 d=-31,-32 td=-31,-32 drag=1 capture=0\n 3781 pointermove gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=18,396 d=-31,-32 td=-62,-63 drag=1 capture=0\n 3781 move gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=18,396 d=-31,-32 td=-62,-63 drag=1 capture=0\n 3795 pointerup pid=1 type=mouse button=0 buttons=0 xy=18,396\n---- cancel reason=gizmo-disabled gizmo=debug-log-window:gizmo-event-binding part=window-tab capture=0\n 3795 end gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=18,396 td=-62,-63 drag=1 capture=0\n 5233 pointerdown pid=1 type=mouse button=0 buttons=1 xy=61,70\n 5233 hit gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=61,70 capture=1\n 5233 start gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=61,70 capture=1\n 5247 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=318,243 d=257,173 td=257,173 drag=1 capture=0\n 5247 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=318,243 d=257,173 td=257,173 drag=1 capture=0\n 5262 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=576,416 d=257,173 td=515,346 drag=1 capture=0\n 5262 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=576,416 d=257,173 td=515,346 drag=1 capture=0\n 5279 pointerup pid=1 type=mouse button=0 buttons=0 xy=576,416\n 5279 end gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=576,416 td=515,346 drag=1 capture=0",
+        "floating": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "bottom": 517.1999969482422,
+              "height": 360,
+              "left": 280.8000183105469,
+              "right": 560.8000183105469,
+              "top": 157.1999969482422,
+              "width": 280,
+              "x": 280.8000183105469,
+              "y": 157.1999969482422
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "HierarchyxxHierarchy PanelHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesseract4Camera3Debug Log Window View"
+          }
+        ],
+        "floatingTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 184.60000610351562,
+              "height": 24,
+              "left": 291.6000061035156,
+              "right": 441.6000061035156,
+              "top": 160.60000610351562,
+              "width": 150,
+              "x": 291.6000061035156,
+              "y": 160.60000610351562
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          }
+        ],
+        "floatingTitlebars": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "label": "same-frame-root-debug-to-right:after",
+        "root": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame",
+            "rect": {
+              "bottom": 697.6000366210938,
+              "height": 669.6000366210938,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Scenex< PerspDebug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 hit gizmo=hierarchy-panel:gi"
+          }
+        ],
+        "rootTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 82,
+              "height": 24,
+              "left": 6,
+              "right": 156,
+              "top": 58,
+              "width": 150,
+              "x": 6,
+              "y": 58
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 82,
+              "height": 24,
+              "left": 399.4750061035156,
+              "right": 549.4750061035156,
+              "top": 58,
+              "width": 150,
+              "x": 399.4750061035156,
+              "y": 58
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          }
+        ],
+        "tabsets": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__tabs",
+            "rect": {
+              "bottom": 56,
+              "height": 28,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": ""
+          },
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__pane-tabs",
+            "rect": {
+              "bottom": 84.80000114440918,
+              "height": 28.80000114440918,
+              "left": 0,
+              "right": 388.4750061035156,
+              "top": 56,
+              "width": 388.4750061035156,
+              "x": 0,
+              "y": 56
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__pane-tabs",
+            "rect": {
+              "bottom": 84.80000114440918,
+              "height": 28.80000114440918,
+              "left": 393.4750061035156,
+              "right": 593.6000061035156,
+              "top": 56,
+              "width": 200.125,
+              "x": 393.4750061035156,
+              "y": 56
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "viewport": {
+          "height": 698,
+          "width": 594
+        }
+      }
+    },
+    {
+      "name": "cross-frame-debug-to-floating-hierarchy-tabbar",
+      "point": {
+        "x": 454.4750061035156,
+        "y": 70
+      },
+      "target": {
+        "x": 346.6000061035156,
+        "y": 172.60000610351562
+      },
+      "domStackBefore": [
+        {
+          "aria": null,
+          "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+          "role": "tab",
+          "tag": "DIV",
+          "text": "Debug Logx"
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame__pane-tabs",
+          "role": "tablist",
+          "tag": "DIV",
+          "text": "Debug Logx"
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame__pane",
+          "role": null,
+          "tag": "DIV",
+          "text": "Debug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 h"
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame__split workspace-root-dock-frame__split--horizontal",
+          "role": null,
+          "tag": "DIV",
+          "text": "Scenex< PerspDebug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy="
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame__content",
+          "role": null,
+          "tag": "DIV",
+          "text": "Scenex< PerspDebug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy="
+        },
+        {
+          "aria": null,
+          "className": "workspace-root-dock-frame",
+          "role": null,
+          "tag": "DIV",
+          "text": "Scenex< PerspDebug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy="
+        },
+        {
+          "aria": null,
+          "className": "app-shell__root-dock",
+          "role": null,
+          "tag": "DIV",
+          "text": "Scenex< PerspDebug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy="
+        },
+        {
+          "aria": null,
+          "className": "app-shell",
+          "role": null,
+          "tag": "DIV",
+          "text": "WindowSceneDebug Log WindowHierarchy PanelInspectorNew InspectorScenex< PerspDeb"
+        }
+      ],
+      "before": {
+        "canvasRects": [
+          {
+            "bottom": 697.5999908447266,
+            "height": 612.7999877929688,
+            "left": 0,
+            "right": 388.4750061035156,
+            "top": 84.80000305175781,
+            "width": 388.4750061035156,
+            "x": 0,
+            "y": 84.80000305175781
+          },
+          {
+            "bottom": 238.8000030517578,
+            "height": 132,
+            "left": 234.47500610351562,
+            "right": 366.4750061035156,
+            "top": 106.80000305175781,
+            "width": 132,
+            "x": 234.47500610351562,
+            "y": 106.80000305175781
+          }
+        ],
+        "contents": [],
+        "debugTextTail": "=mouse button=0 buttons=0 xy=520,170 td=267,143 drag=1 capture=0\n 3753 pointerdown pid=1 type=mouse button=0 buttons=1 xy=80,459\n 3753 hit gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=80,459 capture=1\n 3753 start gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=80,459 capture=1\n 3766 pointermove gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=49,428 d=-31,-32 td=-31,-32 drag=1 capture=0\n 3766 move gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=49,428 d=-31,-32 td=-31,-32 drag=1 capture=0\n 3781 pointermove gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=18,396 d=-31,-32 td=-62,-63 drag=1 capture=0\n 3781 move gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=18,396 d=-31,-32 td=-62,-63 drag=1 capture=0\n 3795 pointerup pid=1 type=mouse button=0 buttons=0 xy=18,396\n---- cancel reason=gizmo-disabled gizmo=debug-log-window:gizmo-event-binding part=window-tab capture=0\n 3795 end gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=18,396 td=-62,-63 drag=1 capture=0\n 5233 pointerdown pid=1 type=mouse button=0 buttons=1 xy=61,70\n 5233 hit gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=61,70 capture=1\n 5233 start gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=61,70 capture=1\n 5247 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=318,243 d=257,173 td=257,173 drag=1 capture=0\n 5247 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=318,243 d=257,173 td=257,173 drag=1 capture=0\n 5262 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=576,416 d=257,173 td=515,346 drag=1 capture=0\n 5262 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=576,416 d=257,173 td=515,346 drag=1 capture=0\n 5279 pointerup pid=1 type=mouse button=0 buttons=0 xy=576,416\n 5279 end gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=576,416 td=515,346 drag=1 capture=0",
+        "floating": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "bottom": 517.1999969482422,
+              "height": 360,
+              "left": 280.8000183105469,
+              "right": 560.8000183105469,
+              "top": 157.1999969482422,
+              "width": 280,
+              "x": 280.8000183105469,
+              "y": 157.1999969482422
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "HierarchyxxHierarchy PanelHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesseract4Camera3Debug Log Window View"
+          }
+        ],
+        "floatingTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 184.60000610351562,
+              "height": 24,
+              "left": 291.6000061035156,
+              "right": 441.6000061035156,
+              "top": 160.60000610351562,
+              "width": 150,
+              "x": 291.6000061035156,
+              "y": 160.60000610351562
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          }
+        ],
+        "floatingTitlebars": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "label": "cross-frame-debug-to-floating-hierarchy-tabbar:before",
+        "root": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame",
+            "rect": {
+              "bottom": 697.6000366210938,
+              "height": 669.6000366210938,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Scenex< PerspDebug Logx 2296 pointerdown pid=1 type=mouse button=0 buttons=1 xy=253,27 2296 hit gizmo=hierarchy-panel:gi"
+          }
+        ],
+        "rootTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 82,
+              "height": 24,
+              "left": 6,
+              "right": 156,
+              "top": 58,
+              "width": 150,
+              "x": 6,
+              "y": 58
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 82,
+              "height": 24,
+              "left": 399.4750061035156,
+              "right": 549.4750061035156,
+              "top": 58,
+              "width": 150,
+              "x": 399.4750061035156,
+              "y": 58
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          }
+        ],
+        "tabsets": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__tabs",
+            "rect": {
+              "bottom": 56,
+              "height": 28,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": ""
+          },
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__pane-tabs",
+            "rect": {
+              "bottom": 84.80000114440918,
+              "height": 28.80000114440918,
+              "left": 0,
+              "right": 388.4750061035156,
+              "top": 56,
+              "width": 388.4750061035156,
+              "x": 0,
+              "y": 56
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__pane-tabs",
+            "rect": {
+              "bottom": 84.80000114440918,
+              "height": 28.80000114440918,
+              "left": 393.4750061035156,
+              "right": 593.6000061035156,
+              "top": 56,
+              "width": 200.125,
+              "x": 393.4750061035156,
+              "y": 56
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyxx"
+          }
+        ],
+        "viewport": {
+          "height": 698,
+          "width": 594
+        }
+      },
+      "after": {
+        "canvasRects": [
+          {
+            "bottom": 697.5999870300293,
+            "height": 640.7999877929688,
+            "left": 0,
+            "right": 593.6000366210938,
+            "top": 56.79999923706055,
+            "width": 593.6000366210938,
+            "x": 0,
+            "y": 56.79999923706055
+          },
+          {
+            "bottom": 210.8000030517578,
+            "height": 132,
+            "left": 439.6000061035156,
+            "right": 571.6000061035156,
+            "top": 78.80000305175781,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 78.80000305175781
+          }
+        ],
+        "contents": [],
+        "debugTextTail": "end gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=18,396 td=-62,-63 drag=1 capture=0\n 5233 pointerdown pid=1 type=mouse button=0 buttons=1 xy=61,70\n 5233 hit gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=61,70 capture=1\n 5233 start gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=61,70 capture=1\n 5247 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=318,243 d=257,173 td=257,173 drag=1 capture=0\n 5247 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=318,243 d=257,173 td=257,173 drag=1 capture=0\n 5262 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=576,416 d=257,173 td=515,346 drag=1 capture=0\n 5262 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=576,416 d=257,173 td=515,346 drag=1 capture=0\n 5279 pointerup pid=1 type=mouse button=0 buttons=0 xy=576,416\n 5279 end gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=576,416 td=515,346 drag=1 capture=0\n 6686 pointerdown pid=1 type=mouse button=0 buttons=1 xy=454,70\n 6686 hit gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=454,70 capture=1\n 6686 start gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=454,70 capture=1\n 6701 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=401,121 d=-54,51 td=-54,51 drag=1 capture=0\n 6701 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=401,121 d=-54,51 td=-54,51 drag=1 capture=0\n 6718 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=347,173 d=-54,51 td=-108,103 drag=1 capture=0\n 6718 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=347,173 d=-54,51 td=-108,103 drag=1 capture=0\n 6728 pointerup pid=1 type=mouse button=0 buttons=0 xy=347,173\n 6728 end gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=347,173 td=-108,103 drag=1 capture=0",
+        "floating": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "bottom": 517.1999969482422,
+              "height": 360,
+              "left": 280.8000183105469,
+              "right": 560.8000183105469,
+              "top": 157.1999969482422,
+              "width": 280,
+              "x": 280.8000183105469,
+              "y": 157.1999969482422
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "HierarchyxDebug LogxxHierarchy PanelDebug Log Window ViewHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesseract4C"
+          }
+        ],
+        "floatingTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab",
+            "rect": {
+              "bottom": 184.60000610351562,
+              "height": 24,
+              "left": 291.6000061035156,
+              "right": 408.58750915527344,
+              "top": 160.60000610351562,
+              "width": 116.98750305175781,
+              "x": 291.6000061035156,
+              "y": 160.60000610351562
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          },
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 184.60000610351562,
+              "height": 24,
+              "left": 414.5874938964844,
+              "right": 531.5749969482422,
+              "top": 160.60000610351562,
+              "width": 116.98750305175781,
+              "x": 414.5874938964844,
+              "y": 160.60000610351562
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          }
+        ],
+        "floatingTitlebars": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "HierarchyxDebug Logxx"
+          }
+        ],
+        "label": "cross-frame-debug-to-floating-hierarchy-tabbar:after",
+        "root": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame",
+            "rect": {
+              "bottom": 697.6000366210938,
+              "height": 669.6000366210938,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Scenex< Persp"
+          }
+        ],
+        "rootTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 54,
+              "height": 24,
+              "left": 6,
+              "right": 156,
+              "top": 30,
+              "width": 150,
+              "x": 6,
+              "y": 30
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Scenex"
+          }
+        ],
+        "tabsets": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__tabs",
+            "rect": {
+              "bottom": 56.80000114440918,
+              "height": 28.80000114440918,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "HierarchyxDebug Logxx"
+          }
+        ],
+        "viewport": {
+          "height": 698,
+          "width": 594
+        }
+      }
+    },
+    {
+      "name": "same-frame-floating-debug-to-bottom",
+      "point": {
+        "x": 469.5874938964844,
+        "y": 172.60000610351562
+      },
+      "target": {
+        "x": 420.8000183105469,
+        "y": 499.1999969482422
+      },
+      "domStackBefore": [
+        {
+          "aria": null,
+          "className": "camera3-gizmo__canvas",
+          "role": null,
+          "tag": "CANVAS",
+          "text": ""
+        },
+        {
+          "aria": null,
+          "className": "camera3-gizmo",
+          "role": null,
+          "tag": "DIV",
+          "text": "< Persp"
+        },
+        {
+          "aria": null,
+          "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+          "role": "tab",
+          "tag": "DIV",
+          "text": "Debug Logx"
+        },
+        {
+          "aria": null,
+          "className": "floating-gizmo-window__titlebar",
+          "role": "tablist",
+          "tag": "DIV",
+          "text": "HierarchyxDebug Logxx"
+        },
+        {
+          "aria": null,
+          "className": "floating-gizmo-window hierarchy-window",
+          "role": null,
+          "tag": "DIV",
+          "text": "HierarchyxDebug LogxxHierarchy PanelDebug Log Window ViewHierarchy Panel ViewApp"
+        },
+        {
+          "aria": null,
+          "className": "",
+          "role": null,
+          "tag": "CANVAS",
+          "text": ""
+        },
+        {
+          "aria": null,
+          "className": "scene-window__canvas-host",
+          "role": null,
+          "tag": "DIV",
+          "text": ""
+        },
+        {
+          "aria": null,
+          "className": "scene-window__viewport",
+          "role": null,
+          "tag": "DIV",
+          "text": "< Persp"
+        }
+      ],
+      "before": {
+        "canvasRects": [
+          {
+            "bottom": 697.5999870300293,
+            "height": 640.7999877929688,
+            "left": 0,
+            "right": 593.6000366210938,
+            "top": 56.79999923706055,
+            "width": 593.6000366210938,
+            "x": 0,
+            "y": 56.79999923706055
+          },
+          {
+            "bottom": 210.8000030517578,
+            "height": 132,
+            "left": 439.6000061035156,
+            "right": 571.6000061035156,
+            "top": 78.80000305175781,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 78.80000305175781
+          }
+        ],
+        "contents": [],
+        "debugTextTail": "end gizmo=debug-log-window:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=18,396 td=-62,-63 drag=1 capture=0\n 5233 pointerdown pid=1 type=mouse button=0 buttons=1 xy=61,70\n 5233 hit gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=61,70 capture=1\n 5233 start gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=61,70 capture=1\n 5247 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=318,243 d=257,173 td=257,173 drag=1 capture=0\n 5247 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=318,243 d=257,173 td=257,173 drag=1 capture=0\n 5262 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=576,416 d=257,173 td=515,346 drag=1 capture=0\n 5262 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=576,416 d=257,173 td=515,346 drag=1 capture=0\n 5279 pointerup pid=1 type=mouse button=0 buttons=0 xy=576,416\n 5279 end gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=576,416 td=515,346 drag=1 capture=0\n 6686 pointerdown pid=1 type=mouse button=0 buttons=1 xy=454,70\n 6686 hit gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=454,70 capture=1\n 6686 start gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=454,70 capture=1\n 6701 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=401,121 d=-54,51 td=-54,51 drag=1 capture=0\n 6701 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=401,121 d=-54,51 td=-54,51 drag=1 capture=0\n 6718 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=347,173 d=-54,51 td=-108,103 drag=1 capture=0\n 6718 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=347,173 d=-54,51 td=-108,103 drag=1 capture=0\n 6728 pointerup pid=1 type=mouse button=0 buttons=0 xy=347,173\n 6728 end gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=347,173 td=-108,103 drag=1 capture=0",
+        "floating": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "bottom": 517.1999969482422,
+              "height": 360,
+              "left": 280.8000183105469,
+              "right": 560.8000183105469,
+              "top": 157.1999969482422,
+              "width": 280,
+              "x": 280.8000183105469,
+              "y": 157.1999969482422
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "HierarchyxDebug LogxxHierarchy PanelDebug Log Window ViewHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesseract4C"
+          }
+        ],
+        "floatingTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab",
+            "rect": {
+              "bottom": 184.60000610351562,
+              "height": 24,
+              "left": 291.6000061035156,
+              "right": 408.58750915527344,
+              "top": 160.60000610351562,
+              "width": 116.98750305175781,
+              "x": 291.6000061035156,
+              "y": 160.60000610351562
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          },
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 184.60000610351562,
+              "height": 24,
+              "left": 414.5874938964844,
+              "right": 531.5749969482422,
+              "top": 160.60000610351562,
+              "width": 116.98750305175781,
+              "x": 414.5874938964844,
+              "y": 160.60000610351562
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          }
+        ],
+        "floatingTitlebars": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "HierarchyxDebug Logxx"
+          }
+        ],
+        "label": "same-frame-floating-debug-to-bottom:before",
+        "root": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame",
+            "rect": {
+              "bottom": 697.6000366210938,
+              "height": 669.6000366210938,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Scenex< Persp"
+          }
+        ],
+        "rootTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 54,
+              "height": 24,
+              "left": 6,
+              "right": 156,
+              "top": 30,
+              "width": 150,
+              "x": 6,
+              "y": 30
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Scenex"
+          }
+        ],
+        "tabsets": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__tabs",
+            "rect": {
+              "bottom": 56.80000114440918,
+              "height": 28.80000114440918,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "HierarchyxDebug Logxx"
+          }
+        ],
+        "viewport": {
+          "height": 698,
+          "width": 594
+        }
+      },
+      "after": {
+        "canvasRects": [
+          {
+            "bottom": 697.5999870300293,
+            "height": 640.7999877929688,
+            "left": 0,
+            "right": 593.6000366210938,
+            "top": 56.79999923706055,
+            "width": 593.6000366210938,
+            "x": 0,
+            "y": 56.79999923706055
+          },
+          {
+            "bottom": 210.8000030517578,
+            "height": 132,
+            "left": 439.6000061035156,
+            "right": 571.6000061035156,
+            "top": 78.80000305175781,
+            "width": 132,
+            "x": 439.6000061035156,
+            "y": 78.80000305175781
+          }
+        ],
+        "contents": [],
+        "debugTextTail": "tons=0 xy=576,416\n 5279 end gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=576,416 td=515,346 drag=1 capture=0\n 6686 pointerdown pid=1 type=mouse button=0 buttons=1 xy=454,70\n 6686 hit gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=454,70 capture=1\n 6686 start gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=454,70 capture=1\n 6701 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=401,121 d=-54,51 td=-54,51 drag=1 capture=0\n 6701 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=401,121 d=-54,51 td=-54,51 drag=1 capture=0\n 6718 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=347,173 d=-54,51 td=-108,103 drag=1 capture=0\n 6718 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=347,173 d=-54,51 td=-108,103 drag=1 capture=0\n 6728 pointerup pid=1 type=mouse button=0 buttons=0 xy=347,173\n 6728 end gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=347,173 td=-108,103 drag=1 capture=0\n 8152 pointerdown pid=1 type=mouse button=0 buttons=1 xy=470,173\n 8152 hit gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=470,173 capture=1\n 8152 start gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=470,173 capture=1\n 8171 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=445,336 d=-24,163 td=-24,163 drag=1 capture=0\n 8171 move gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=445,336 d=-24,163 td=-24,163 drag=1 capture=0\n 8184 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=421,499 d=-24,163 td=-49,327 drag=1 capture=0\n 8184 move gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=421,499 d=-24,163 td=-49,327 drag=1 capture=0\n 8198 pointerup pid=1 type=mouse button=0 buttons=0 xy=421,499\n 8198 end gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=421,499 td=-49,327 drag=1 capture=0",
+        "floating": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window hierarchy-window",
+            "rect": {
+              "bottom": 517.1999969482422,
+              "height": 360,
+              "left": 280.8000183105469,
+              "right": 560.8000183105469,
+              "top": 157.1999969482422,
+              "width": 280,
+              "x": 280.8000183105469,
+              "y": 157.1999969482422
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "xHierarchyxHierarchy PanelDebug Log Window ViewHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesseract4Camera3Debu"
+          }
+        ],
+        "floatingTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 214.8000030517578,
+              "height": 24,
+              "left": 288.3999938964844,
+              "right": 438.3999938964844,
+              "top": 190.8000030517578,
+              "width": 150,
+              "x": 288.3999938964844,
+              "y": 190.8000030517578
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          },
+          {
+            "aria": null,
+            "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+            "rect": {
+              "bottom": 433.4125061035156,
+              "height": 24,
+              "left": 288.3999938964844,
+              "right": 438.3999938964844,
+              "top": 409.4125061035156,
+              "width": 150,
+              "x": 288.3999938964844,
+              "y": 409.4125061035156
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          }
+        ],
+        "floatingTitlebars": [
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "x"
+          }
+        ],
+        "label": "same-frame-floating-debug-to-bottom:after",
+        "root": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame",
+            "rect": {
+              "bottom": 697.6000366210938,
+              "height": 669.6000366210938,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": null,
+            "tag": "DIV",
+            "text": "Scenex< Persp"
+          }
+        ],
+        "rootTabs": [
+          {
+            "aria": null,
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "rect": {
+              "bottom": 54,
+              "height": 24,
+              "left": 6,
+              "right": 156,
+              "top": 30,
+              "width": 150,
+              "x": 6,
+              "y": 30
+            },
+            "role": "tab",
+            "tag": "DIV",
+            "text": "Scenex"
+          }
+        ],
+        "tabsets": [
+          {
+            "aria": null,
+            "className": "workspace-root-dock-frame__tabs",
+            "rect": {
+              "bottom": 56.80000114440918,
+              "height": 28.80000114440918,
+              "left": 0,
+              "right": 593.6000366210938,
+              "top": 28,
+              "width": 593.6000366210938,
+              "x": 0,
+              "y": 28
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Scenex"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__titlebar",
+            "rect": {
+              "bottom": 188,
+              "height": 30,
+              "left": 281.6000061035156,
+              "right": 560,
+              "top": 158,
+              "width": 278.3999938964844,
+              "x": 281.6000061035156,
+              "y": 158
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "x"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__pane-tabs",
+            "rect": {
+              "bottom": 217.600004196167,
+              "height": 28.80000114440918,
+              "left": 282.3999938964844,
+              "right": 559.2000122070312,
+              "top": 188.8000030517578,
+              "width": 276.8000183105469,
+              "x": 282.3999938964844,
+              "y": 188.8000030517578
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Hierarchyx"
+          },
+          {
+            "aria": null,
+            "className": "floating-gizmo-window__pane-tabs",
+            "rect": {
+              "bottom": 436.2125072479248,
+              "height": 28.80000114440918,
+              "left": 282.3999938964844,
+              "right": 559.2000122070312,
+              "top": 407.4125061035156,
+              "width": 276.8000183105469,
+              "x": 282.3999938964844,
+              "y": 407.4125061035156
+            },
+            "role": "tablist",
+            "tag": "DIV",
+            "text": "Debug Logx"
+          }
+        ],
+        "viewport": {
+          "height": 698,
+          "width": 594
+        }
+      }
+    }
+  ],
+  "validationErrors": [],
+  "caveats": [
+    "In-app browser evaluate scope is read-only/non-extensible, so actor-input global smoke hook could not be installed.",
+    "In-app browser evaluate scope does not expose localStorage; persisted layout actor-id leak is covered by unit tests in this run."
+  ],
+  "initial": {
+    "canvasRects": [
+      {
+        "bottom": 697.5999870300293,
+        "height": 640.7999877929688,
+        "left": 0,
+        "right": 593.6000366210938,
+        "top": 56.79999923706055,
+        "width": 593.6000366210938,
+        "x": 0,
+        "y": 56.79999923706055
+      },
+      {
+        "bottom": 210.8000030517578,
+        "height": 132,
+        "left": 439.6000061035156,
+        "right": 571.6000061035156,
+        "top": 78.80000305175781,
+        "width": 132,
+        "x": 439.6000061035156,
+        "y": 78.80000305175781
+      }
+    ],
+    "contents": [],
+    "debugTextTail": "Gizmo debug log enabled",
+    "floating": [
+      {
+        "aria": null,
+        "className": "floating-gizmo-window debug-log-window",
+        "rect": {
+          "bottom": 684,
+          "height": 240,
+          "left": 14,
+          "right": 579.6000366210938,
+          "top": 444,
+          "width": 565.6000366210938,
+          "x": 14,
+          "y": 444
+        },
+        "role": null,
+        "tag": "DIV",
+        "text": "Debug LogxxGizmo debug log enabled"
+      },
+      {
+        "aria": null,
+        "className": "floating-gizmo-window hierarchy-window",
+        "rect": {
+          "bottom": 374,
+          "height": 360,
+          "left": 14,
+          "right": 294,
+          "top": 14,
+          "width": 280,
+          "x": 14,
+          "y": 14
+        },
+        "role": null,
+        "tag": "DIV",
+        "text": "HierarchyxxDebug Log WindowDebug Log Window ViewHierarchy PanelHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesse"
+      }
+    ],
+    "floatingTabs": [
+      {
+        "aria": null,
+        "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "bottom": 471.3999938964844,
+          "height": 24,
+          "left": 24.80000114440918,
+          "right": 174.80000114440918,
+          "top": 447.3999938964844,
+          "width": 150,
+          "x": 24.80000114440918,
+          "y": 447.3999938964844
+        },
+        "role": "tab",
+        "tag": "DIV",
+        "text": "Debug Logx"
+      },
+      {
+        "aria": null,
+        "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "bottom": 41.39999961853027,
+          "height": 24,
+          "left": 24.80000114440918,
+          "right": 174.80000114440918,
+          "top": 17.399999618530273,
+          "width": 150,
+          "x": 24.80000114440918,
+          "y": 17.399999618530273
+        },
+        "role": "tab",
+        "tag": "DIV",
+        "text": "Hierarchyx"
+      }
+    ],
+    "floatingTitlebars": [
+      {
+        "aria": null,
+        "className": "floating-gizmo-window__titlebar",
+        "rect": {
+          "bottom": 474.8000183105469,
+          "height": 30,
+          "left": 14.800000190734863,
+          "right": 578.8000001907349,
+          "top": 444.8000183105469,
+          "width": 564,
+          "x": 14.800000190734863,
+          "y": 444.8000183105469
+        },
+        "role": "tablist",
+        "tag": "DIV",
+        "text": "Debug Logxx"
+      },
+      {
+        "aria": null,
+        "className": "floating-gizmo-window__titlebar",
+        "rect": {
+          "bottom": 44.80000019073486,
+          "height": 30,
+          "left": 14.800000190734863,
+          "right": 293.19999408721924,
+          "top": 14.800000190734863,
+          "width": 278.3999938964844,
+          "x": 14.800000190734863,
+          "y": 14.800000190734863
+        },
+        "role": "tablist",
+        "tag": "DIV",
+        "text": "Hierarchyxx"
+      }
+    ],
+    "label": "initial",
+    "root": [
+      {
+        "aria": null,
+        "className": "workspace-root-dock-frame",
+        "rect": {
+          "bottom": 697.6000366210938,
+          "height": 669.6000366210938,
+          "left": 0,
+          "right": 593.6000366210938,
+          "top": 28,
+          "width": 593.6000366210938,
+          "x": 0,
+          "y": 28
+        },
+        "role": null,
+        "tag": "DIV",
+        "text": "Scenex< Persp"
+      }
+    ],
+    "rootTabs": [
+      {
+        "aria": null,
+        "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+        "rect": {
+          "bottom": 54,
+          "height": 24,
+          "left": 6,
+          "right": 156,
+          "top": 30,
+          "width": 150,
+          "x": 6,
+          "y": 30
+        },
+        "role": "tab",
+        "tag": "DIV",
+        "text": "Scenex"
+      }
+    ],
+    "tabsets": [
+      {
+        "aria": null,
+        "className": "workspace-root-dock-frame__tabs",
+        "rect": {
+          "bottom": 56.80000114440918,
+          "height": 28.80000114440918,
+          "left": 0,
+          "right": 593.6000366210938,
+          "top": 28,
+          "width": 593.6000366210938,
+          "x": 0,
+          "y": 28
+        },
+        "role": "tablist",
+        "tag": "DIV",
+        "text": "Scenex"
+      },
+      {
+        "aria": null,
+        "className": "floating-gizmo-window__titlebar",
+        "rect": {
+          "bottom": 474.8000183105469,
+          "height": 30,
+          "left": 14.800000190734863,
+          "right": 578.8000001907349,
+          "top": 444.8000183105469,
+          "width": 564,
+          "x": 14.800000190734863,
+          "y": 444.8000183105469
+        },
+        "role": "tablist",
+        "tag": "DIV",
+        "text": "Debug Logxx"
+      },
+      {
+        "aria": null,
+        "className": "floating-gizmo-window__titlebar",
+        "rect": {
+          "bottom": 44.80000019073486,
+          "height": 30,
+          "left": 14.800000190734863,
+          "right": 293.19999408721924,
+          "top": 14.800000190734863,
+          "width": 278.3999938964844,
+          "x": 14.800000190734863,
+          "y": 14.800000190734863
+        },
+        "role": "tablist",
+        "tag": "DIV",
+        "text": "Hierarchyxx"
+      }
+    ],
+    "viewport": {
+      "height": 698,
+      "width": 594
+    }
+  },
+  "final": {
+    "canvasRects": [
+      {
+        "bottom": 697.5999870300293,
+        "height": 640.7999877929688,
+        "left": 0,
+        "right": 593.6000366210938,
+        "top": 56.79999923706055,
+        "width": 593.6000366210938,
+        "x": 0,
+        "y": 56.79999923706055
+      },
+      {
+        "bottom": 210.8000030517578,
+        "height": 132,
+        "left": 439.6000061035156,
+        "right": 571.6000061035156,
+        "top": 78.80000305175781,
+        "width": 132,
+        "x": 439.6000061035156,
+        "y": 78.80000305175781
+      }
+    ],
+    "contents": [],
+    "debugTextTail": "tons=0 xy=576,416\n 5279 end gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=576,416 td=515,346 drag=1 capture=0\n 6686 pointerdown pid=1 type=mouse button=0 buttons=1 xy=454,70\n 6686 hit gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=454,70 capture=1\n 6686 start gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=454,70 capture=1\n 6701 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=401,121 d=-54,51 td=-54,51 drag=1 capture=0\n 6701 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=401,121 d=-54,51 td=-54,51 drag=1 capture=0\n 6718 pointermove gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=347,173 d=-54,51 td=-108,103 drag=1 capture=0\n 6718 move gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=347,173 d=-54,51 td=-108,103 drag=1 capture=0\n 6728 pointerup pid=1 type=mouse button=0 buttons=0 xy=347,173\n 6728 end gizmo=workspace-root-frame:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=347,173 td=-108,103 drag=1 capture=0\n 8152 pointerdown pid=1 type=mouse button=0 buttons=1 xy=470,173\n 8152 hit gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=470,173 capture=1\n 8152 start gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=470,173 capture=1\n 8171 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=445,336 d=-24,163 td=-24,163 drag=1 capture=0\n 8171 move gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=445,336 d=-24,163 td=-24,163 drag=1 capture=0\n 8184 pointermove gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=421,499 d=-24,163 td=-49,327 drag=1 capture=0\n 8184 move gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=1 xy=421,499 d=-24,163 td=-49,327 drag=1 capture=0\n 8198 pointerup pid=1 type=mouse button=0 buttons=0 xy=421,499\n 8198 end gizmo=hierarchy-panel:gizmo-event-binding part=window-tab pid=1 type=mouse button=0 buttons=0 xy=421,499 td=-49,327 drag=1 capture=0",
+    "floating": [
+      {
+        "aria": null,
+        "className": "floating-gizmo-window hierarchy-window",
+        "rect": {
+          "bottom": 517.1999969482422,
+          "height": 360,
+          "left": 280.8000183105469,
+          "right": 560.8000183105469,
+          "top": 157.1999969482422,
+          "width": 280,
+          "x": 280.8000183105469,
+          "y": 157.1999969482422
+        },
+        "role": null,
+        "tag": "DIV",
+        "text": "xHierarchyxHierarchy PanelDebug Log Window ViewHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesseract4Camera3Debu"
+      }
+    ],
+    "floatingTabs": [
+      {
+        "aria": null,
+        "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "bottom": 214.8000030517578,
+          "height": 24,
+          "left": 288.3999938964844,
+          "right": 438.3999938964844,
+          "top": 190.8000030517578,
+          "width": 150,
+          "x": 288.3999938964844,
+          "y": 190.8000030517578
+        },
+        "role": "tab",
+        "tag": "DIV",
+        "text": "Hierarchyx"
+      },
+      {
+        "aria": null,
+        "className": "window-frame-tab floating-gizmo-window__title floating-gizmo-window__tab is-active",
+        "rect": {
+          "bottom": 433.4125061035156,
+          "height": 24,
+          "left": 288.3999938964844,
+          "right": 438.3999938964844,
+          "top": 409.4125061035156,
+          "width": 150,
+          "x": 288.3999938964844,
+          "y": 409.4125061035156
+        },
+        "role": "tab",
+        "tag": "DIV",
+        "text": "Debug Logx"
+      }
+    ],
+    "floatingTitlebars": [
+      {
+        "aria": null,
+        "className": "floating-gizmo-window__titlebar",
+        "rect": {
+          "bottom": 188,
+          "height": 30,
+          "left": 281.6000061035156,
+          "right": 560,
+          "top": 158,
+          "width": 278.3999938964844,
+          "x": 281.6000061035156,
+          "y": 158
+        },
+        "role": "tablist",
+        "tag": "DIV",
+        "text": "x"
+      }
+    ],
+    "label": "final",
+    "root": [
+      {
+        "aria": null,
+        "className": "workspace-root-dock-frame",
+        "rect": {
+          "bottom": 697.6000366210938,
+          "height": 669.6000366210938,
+          "left": 0,
+          "right": 593.6000366210938,
+          "top": 28,
+          "width": 593.6000366210938,
+          "x": 0,
+          "y": 28
+        },
+        "role": null,
+        "tag": "DIV",
+        "text": "Scenex< Persp"
+      }
+    ],
+    "rootTabs": [
+      {
+        "aria": null,
+        "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+        "rect": {
+          "bottom": 54,
+          "height": 24,
+          "left": 6,
+          "right": 156,
+          "top": 30,
+          "width": 150,
+          "x": 6,
+          "y": 30
+        },
+        "role": "tab",
+        "tag": "DIV",
+        "text": "Scenex"
+      }
+    ],
+    "tabsets": [
+      {
+        "aria": null,
+        "className": "workspace-root-dock-frame__tabs",
+        "rect": {
+          "bottom": 56.80000114440918,
+          "height": 28.80000114440918,
+          "left": 0,
+          "right": 593.6000366210938,
+          "top": 28,
+          "width": 593.6000366210938,
+          "x": 0,
+          "y": 28
+        },
+        "role": "tablist",
+        "tag": "DIV",
+        "text": "Scenex"
+      },
+      {
+        "aria": null,
+        "className": "floating-gizmo-window__titlebar",
+        "rect": {
+          "bottom": 188,
+          "height": 30,
+          "left": 281.6000061035156,
+          "right": 560,
+          "top": 158,
+          "width": 278.3999938964844,
+          "x": 281.6000061035156,
+          "y": 158
+        },
+        "role": "tablist",
+        "tag": "DIV",
+        "text": "x"
+      },
+      {
+        "aria": null,
+        "className": "floating-gizmo-window__pane-tabs",
+        "rect": {
+          "bottom": 217.600004196167,
+          "height": 28.80000114440918,
+          "left": 282.3999938964844,
+          "right": 559.2000122070312,
+          "top": 188.8000030517578,
+          "width": 276.8000183105469,
+          "x": 282.3999938964844,
+          "y": 188.8000030517578
+        },
+        "role": "tablist",
+        "tag": "DIV",
+        "text": "Hierarchyx"
+      },
+      {
+        "aria": null,
+        "className": "floating-gizmo-window__pane-tabs",
+        "rect": {
+          "bottom": 436.2125072479248,
+          "height": 28.80000114440918,
+          "left": 282.3999938964844,
+          "right": 559.2000122070312,
+          "top": 407.4125061035156,
+          "width": 276.8000183105469,
+          "x": 282.3999938964844,
+          "y": 407.4125061035156
+        },
+        "role": "tablist",
+        "tag": "DIV",
+        "text": "Debug Logx"
+      }
+    ],
+    "viewport": {
+      "height": 698,
+      "width": 594
+    }
+  },
+  "consoleErrors": [],
+  "passed": true
+}

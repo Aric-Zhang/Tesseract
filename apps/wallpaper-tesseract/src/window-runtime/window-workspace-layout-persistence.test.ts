@@ -36,10 +36,15 @@ describe("window workspace frame layout persistence", () => {
     expect(JSON.stringify(persisted)).not.toContain("actorId");
     expect(JSON.stringify(persisted)).not.toContain("viewActorId");
     expect(JSON.stringify(persisted)).not.toContain("frameActorId");
-    expect(expectPersistedTabset(expectPersistedSplit(persisted.frames[0]?.root).first).tabs)
+    const persistedSplit = expectPersistedSplit(persisted.frames[0]?.root);
+    const persistedSceneTabset = expectPersistedTabset(persistedSplit.first);
+    const persistedToolsTabset = expectPersistedTabset(persistedSplit.second);
+    expect(persistedSceneTabset.tabs)
       .toEqual(["scene:default"]);
-    expect(expectPersistedTabset(expectPersistedSplit(persisted.frames[0]?.root).second).tabs)
+    expect(persistedSceneTabset.activeTabId).toBe("scene:default");
+    expect(persistedToolsTabset.tabs)
       .toEqual(["debug:default", "hierarchy:default"]);
+    expect(persistedToolsTabset.activeTabId).toBe("hierarchy:default");
   });
 
   it("hydrates persisted logical layout with fresh runtime actor ids", () => {
@@ -54,8 +59,15 @@ describe("window workspace frame layout persistence", () => {
     expect(hydrated.views["scene"]?.actorId).toBe("scene-view-actor-2");
     expect(hydrated.views["debug"]?.actorId).toBe("debug-view-actor-2");
     expect(hydrated.views["hierarchy"]?.actorId).toBe("hierarchy-view-actor-2");
-    expect(expectTabset(expectSplit(hydrated.frames[0]?.root).first).tabs).toEqual(["scene"]);
-    expect(expectTabset(expectSplit(hydrated.frames[0]?.root).second).tabs).toEqual(["debug", "hierarchy"]);
+    const hydratedSplit = expectSplit(hydrated.frames[0]?.root);
+    expect(expectTabset(hydratedSplit.first)).toMatchObject({
+      tabs: ["scene"],
+      activeTabId: "scene"
+    });
+    expect(expectTabset(hydratedSplit.second)).toMatchObject({
+      tabs: ["debug", "hierarchy"],
+      activeTabId: "hierarchy"
+    });
   });
 
   it("round trips v2 layouts with two instances of the same view type", () => {
@@ -438,9 +450,12 @@ function expectPersistedSplit(node: unknown): WindowFrameSplitNode {
   return node as WindowFrameSplitNode;
 }
 
-function expectPersistedTabset(node: unknown): { readonly tabs: readonly string[] } {
+function expectPersistedTabset(node: unknown): {
+  readonly tabs: readonly string[];
+  readonly activeTabId: string;
+} {
   expect(node).toMatchObject({ kind: "tabset" });
-  return node as { readonly tabs: readonly string[] };
+  return node as { readonly tabs: readonly string[]; readonly activeTabId: string };
 }
 
 function getPersistedViewKeyForTest(view: PersistedWindowWorkspaceViewDescriptor): string {

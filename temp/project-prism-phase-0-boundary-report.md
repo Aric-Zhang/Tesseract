@@ -13,7 +13,7 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 | editor | deferred | Phase 6 | editor-candidate | runtime-ownership-debt, ui-state-binding-debt | runtime-ownership-debt, ui-state-binding-debt |
 | runtime-core | blocked | Phase 4 | (none) | state-domain-debt, runtime-ownership-debt | state-domain-debt, runtime-ownership-debt |
 | runtime-three | blocked | Phase 5 | (none) | runtime-ownership-debt | runtime-ownership-debt |
-| ui-framework | blocked | Phase 3 | ui-framework-candidate | ui-state-binding-debt, dock-surface-truth-debt, component-definition-installer-debt | ui-state-binding-debt, dock-surface-truth-debt, component-definition-installer-debt |
+| ui-framework | blocked | Phase 3 | ui-framework-candidate | ui-state-binding-debt, component-definition-installer-debt | ui-state-binding-debt, component-definition-installer-debt |
 | wallpaper-app | blocked | Phase 7 | app-composition | app-composition-debt, app-runtime-debt, component-definition-installer-debt | app-composition-debt, app-runtime-debt, component-definition-installer-debt |
 
 ## Candidate Zones
@@ -30,7 +30,6 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 - app-composition-debt: 3 files. Wallpaper app composition still knows concrete editor/runtime policy details.
 - app-runtime-debt: 8 files. Transitional app runtime context and registration ports.
 - component-definition-installer-debt: 2 files. App-local component definition helper placement that still blocks package-owned installers.
-- dock-surface-truth-debt: 6 files. Dock/tab surface state still has frame-level active-tab and strict content-host invariants to resolve before UI framework extraction.
 - runtime-ownership-debt: 21 files. Runtime-like world/camera/object code still owned by editor/app folders.
 - state-domain-debt: 10 files. Mixed scene/editor/ui state runtime that must split before runtime extraction.
 - ui-state-binding-debt: 43 files. Generic UI candidates still coupled to scene-runtime state/path/vector types.
@@ -49,7 +48,6 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 
 - actor-binding-debt: blocks state/runtime bridge split. Delete when: Update runtime and state observer binding are expressed through package-owned ports outside app-local glue.
 - ui-state-binding-debt: blocks ui-framework extraction. Delete when: UI receives state/path/vector/update services through UI-owned ports or a ui-layout-state package.
-- dock-surface-truth-debt: blocks ui-framework extraction. Delete when: Dock tree tabset active ids are the only selected/visible content truth; frame-level focus is MRU-only; known view content never mounts to whole-frame primary content in split mode; same-frame tab split/reorder is explicit and tested for root/floating frames.
 - app-composition-debt: blocks app bootstrap thinning, package extraction handoff. Delete when: App composition imports public runtime/editor/UI installers and bootstrap ports only.
 - component-definition-installer-debt: blocks ui-framework extraction, wallpaper app thinning. Delete when: The generic helper moves to the package that owns component registration, or app-local package installers stop depending on shared helper code.
 - app-runtime-debt: blocks app runtime deletion, package-owned port extraction. Delete when: Reusable ports move to the package that owns the contract; wallpaper app becomes thin composition.
@@ -65,7 +63,6 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 
 ## UI Framework Extraction Blockers
 
-- dock-surface-truth-model: Root/floating split tab behavior still depends on single frame active-tab assumptions, permissive content fallback, and cross-frame-only dock commit semantics that reject root/floating same-frame edge splits. Required port: per-tabset dock surface truth model + same-frame dock operations + shared tab interaction state machine.
 - floating-window-scene-state-paths: Generic window state now uses UI-owned geometry, layout paths, and command sinks, but its persistent backing still goes through a scene-runtime state-store adapter. Required port: ui-layout-state path/value port.
 - workspace-runtime-service-registration: Workspace controllers are still registered as app scene runtime RuntimeObject services. Required port: ui-scheduler-port + workspace layout persistence port.
 

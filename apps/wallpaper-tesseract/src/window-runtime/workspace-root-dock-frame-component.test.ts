@@ -278,6 +278,7 @@ describe("WorkspaceRootDockFrameComponent", () => {
         source: dragSource,
         preview: {
           kind: "merge-tabs",
+          operation: "cross-frame-merge",
           targetFrameId: "target-frame",
           targetTabsetId: "target-frame:root",
           rect: createRect(300, 40, 200, 30)
@@ -302,6 +303,7 @@ describe("WorkspaceRootDockFrameComponent", () => {
     component.onInputEnd(createActorInputEndEvent(tabHit, { wasClick: false, point: { x: 340, y: 44 } }));
     expect(commitRequests).toEqual([{
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: dragSource,
       targetFrameId: "target-frame",
       targetTabsetId: "target-frame:root",
@@ -337,6 +339,7 @@ describe("WorkspaceRootDockFrameComponent", () => {
           source: dragSource,
           preview: {
             kind: "merge-tabs",
+            operation: "cross-frame-merge",
             targetFrameId: "target-frame",
             targetTabsetId: "target-frame:root",
             rect: createRect(300, 40, 200, 30)

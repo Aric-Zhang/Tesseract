@@ -67,10 +67,12 @@ export function handleWindowFrameTabInputEnd(
   return { handled: true, draggingTab: false };
 }
 
-export function createDockCommitIntent(result: WindowTabDragSessionEndResult): WindowDockCommitIntent {
+export function createDockCommitIntent(result: WindowTabDragSessionEndResult): WindowDockCommitIntent | null {
   if (result.preview.kind === "merge-tabs") {
+    if (result.preview.operation === "no-op") return null;
     return {
       kind: "merge-tabs",
+      operation: result.preview.operation,
       source: result.source,
       targetFrameId: result.preview.targetFrameId,
       targetTabsetId: result.preview.targetTabsetId,
@@ -80,6 +82,7 @@ export function createDockCommitIntent(result: WindowTabDragSessionEndResult): W
   if (result.preview.kind === "split") {
     return {
       kind: "split-tab",
+      operation: result.preview.operation,
       source: result.source,
       targetFrameId: result.preview.targetFrameId,
       targetTabsetId: result.preview.targetTabsetId,
@@ -89,6 +92,7 @@ export function createDockCommitIntent(result: WindowTabDragSessionEndResult): W
   }
   return {
     kind: "float-tab",
+    operation: result.preview.operation,
     source: result.source,
     bounds: result.preview.rect,
     reason: "dock-drop"

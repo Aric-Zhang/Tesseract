@@ -23,15 +23,25 @@ export interface WindowDockTargetRegion {
   readonly contentBounds: WindowDockRect;
 }
 
+export type WindowDockPreviewOperation =
+  | "cross-frame-merge"
+  | "cross-frame-split"
+  | "cross-frame-float"
+  | "same-frame-reorder"
+  | "same-frame-split"
+  | "no-op";
+
 export type WindowDockPreview =
   | {
       readonly kind: "merge-tabs";
+      readonly operation: Extract<WindowDockPreviewOperation, "cross-frame-merge" | "same-frame-reorder" | "no-op">;
       readonly targetFrameId: string;
       readonly targetTabsetId: string;
       readonly rect: WindowDockRect;
     }
   | {
       readonly kind: "split";
+      readonly operation: Extract<WindowDockPreviewOperation, "cross-frame-split" | "same-frame-split">;
       readonly targetFrameId: string;
       readonly targetTabsetId: string;
       readonly placement: WindowDockSplitPlacement;
@@ -39,11 +49,13 @@ export type WindowDockPreview =
     }
   | {
       readonly kind: "floating";
+      readonly operation: Extract<WindowDockPreviewOperation, "cross-frame-float">;
       readonly rect: WindowDockRect;
     };
 
 export interface ResolveWindowDockPreviewOptions {
   readonly sourceFrameId?: string;
+  readonly sourceTabsetId?: string;
   readonly floatingSize?: { readonly width: number; readonly height: number };
 }
 
@@ -56,7 +68,7 @@ export function resolveWindowDockPreview(
   options: ResolveWindowDockPreviewOptions = {}
 ): WindowDockPreview {
   const candidates = regions
-    .map((region, sourceOrder) => createDockPreviewCandidate(point, region, sourceOrder, options.sourceFrameId))
+    .map((region, sourceOrder) => createDockPreviewCandidate(point, region, sourceOrder, options))
     .filter((candidate): candidate is WindowDockPreviewCandidate => candidate !== null)
     .sort(compareDockPreviewCandidates);
   return candidates[0]?.preview ?? createFloatingPreview(point, options.floatingSize);
@@ -108,13 +120,35 @@ function createDockPreviewCandidate(
   point: WindowDockPoint,
   region: WindowDockTargetRegion,
   sourceOrder: number,
-  sourceFrameId: string | undefined
+  options: ResolveWindowDockPreviewOptions
 ): WindowDockPreviewCandidate | null {
-  if (region.frameId === sourceFrameId) return null;
+  const sameFrame = Boolean(options.sourceFrameId && region.frameId === options.sourceFrameId);
+  if (sameFrame && !options.sourceTabsetId) return null;
+  const sameTabset = Boolean(
+    sameFrame &&
+    options.sourceTabsetId &&
+    region.targetTabsetId === options.sourceTabsetId
+  );
   if (containsPoint(region.tabBounds, point)) {
+    if (sameTabset) {
+      return {
+        preview: {
+          kind: "merge-tabs",
+          operation: "no-op",
+          targetFrameId: region.frameId,
+          targetTabsetId: region.targetTabsetId,
+          rect: region.tabBounds
+        },
+        stackPriority: region.stackPriority,
+        kindRank: -1,
+        area: rectArea(region.tabBounds),
+        sourceOrder
+      };
+    }
     return {
       preview: {
         kind: "merge-tabs",
+        operation: sameFrame ? "same-frame-reorder" : "cross-frame-merge",
         targetFrameId: region.frameId,
         targetTabsetId: region.targetTabsetId,
         rect: region.tabBounds
@@ -131,6 +165,7 @@ function createDockPreviewCandidate(
   return {
     preview: {
       kind: "split",
+      operation: sameFrame ? "same-frame-split" : "cross-frame-split",
       targetFrameId: region.frameId,
       targetTabsetId: region.targetTabsetId,
       placement,
@@ -181,6 +216,7 @@ function createFloatingPreview(
 ): WindowDockPreview {
   return {
     kind: "floating",
+    operation: "cross-frame-float",
     rect: createRect(
       point.x - size.width / 2,
       point.y - 18,

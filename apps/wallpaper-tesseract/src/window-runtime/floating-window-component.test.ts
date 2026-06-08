@@ -1457,6 +1457,7 @@ describe("FloatingWindowComponent DOM shell", () => {
           },
           preview: {
             kind: "merge-tabs",
+            operation: "cross-frame-merge",
             targetFrameId: "target-frame",
             targetTabsetId: "frame-tabset:target",
             rect: createRect(400, 20, 160, 32)
@@ -1514,6 +1515,7 @@ describe("FloatingWindowComponent DOM shell", () => {
           },
           preview: {
             kind: "split",
+            operation: "cross-frame-split",
             targetFrameId: "target-frame",
             targetTabsetId: "frame-tabset:target",
             placement: "left",
@@ -1565,6 +1567,7 @@ describe("FloatingWindowComponent DOM shell", () => {
           },
           preview: {
             kind: "floating",
+            operation: "cross-frame-float",
             rect: createRect(440, 80, 260, 180)
           }
         }),

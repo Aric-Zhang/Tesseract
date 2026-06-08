@@ -17,6 +17,11 @@ import type {
   WindowFrameTab
 } from ".";
 import { WindowViewFactoryRegistry } from "./window-view-factory-registry";
+import {
+  cloneWindowFrameRuntimeDockRoot,
+  restoreWindowFrameDockTreeFromRuntimeRoot,
+  splitTabInWindowFrameDockTree
+} from "./window-frame-dock-tree";
 
 function createFocusRecorder(calls: string[]): WindowFocusCommandPort {
   return {
@@ -381,6 +386,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     expect(subject.controller.commitDock({
       kind: "float-tab",
+      operation: "cross-frame-float",
       source: {
         frameId: "workspace-root-frame",
         viewActorId: "debug-view-1",
@@ -595,6 +601,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("hierarchy", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "hierarchy-frame", viewActorId: "hierarchy-view", viewKey: "hierarchy" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -621,6 +628,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("hierarchy", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "hierarchy-frame", viewActorId: "hierarchy-view", viewKey: "hierarchy" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -654,6 +662,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("hierarchy", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "hierarchy-frame", viewActorId: "hierarchy-view", viewKey: "hierarchy" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -852,6 +861,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("debug", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -885,6 +895,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("debug", "programmatic");
     subject.controller.commitDock({
       kind: "split-tab",
+      operation: "cross-frame-split",
       source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -919,6 +930,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     expect(subject.controller.validateDockCommit({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -938,6 +950,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     expect(subject.controller.validateDockCommit({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "missing-view",
@@ -949,6 +962,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     })).toEqual({ valid: false, reason: "source view is not live" });
     expect(subject.controller.validateDockCommit({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -960,6 +974,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     })).toEqual({ valid: false, reason: "source view key mismatch" });
     expect(subject.controller.validateDockCommit({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "other-frame",
         viewActorId: "debug-view-1",
@@ -985,13 +1000,15 @@ describe("DefaultWindowFrameLifecycleController", () => {
     };
     expect(subject.controller.validateDockCommit({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source,
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
       reason: "dock-drop"
-    })).toEqual({ valid: false, reason: "target frame is source frame" });
+    })).toEqual({ valid: false, reason: "same-frame merge requires explicit same-frame operation" });
     expect(subject.controller.validateDockCommit({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source,
       targetFrameId: "missing-frame",
       targetTabsetId: "frame-tabset:target",
@@ -999,6 +1016,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     })).toEqual({ valid: false, reason: "target frame is missing" });
     expect(subject.controller.validateDockCommit({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source,
       targetFrameId: "empty-frame",
       targetTabsetId: "frame-tabset:target",
@@ -1006,11 +1024,12 @@ describe("DefaultWindowFrameLifecycleController", () => {
     })).toEqual({ valid: false, reason: "target frame has no live views" });
     expect(subject.controller.validateDockCommit({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source,
       targetFrameId: "debug-frame-1",
       targetTabsetId: "missing-tabset",
       reason: "dock-drop"
-    })).toEqual({ valid: false, reason: "target frame is source frame" });
+    })).toEqual({ valid: false, reason: "same-frame merge requires explicit same-frame operation" });
   });
 
   it("commits a tab merge into a registered empty target frame port", () => {
@@ -1027,6 +1046,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     expect(subject.controller.validateDockCommit({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1039,6 +1059,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1059,6 +1080,53 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(rootPort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
   });
 
+  it("commits a same-frame tab split without destroying or reparenting the frame", () => {
+    const subject = createSubject();
+    subject.controller.openView("debug", "programmatic");
+    subject.controller.openView("hierarchy", "programmatic");
+    subject.controller.commitDock({
+      kind: "merge-tabs",
+      operation: "cross-frame-merge",
+      source: { frameId: "hierarchy-frame", viewActorId: "hierarchy-view", viewKey: "hierarchy" },
+      targetFrameId: "debug-frame-1",
+      targetTabsetId: "frame-tabset:target",
+      reason: "dock-drop"
+    });
+    const liveView = subject.controller.getLiveViewByActorId("hierarchy-view");
+    if (!liveView) throw new Error("Expected live hierarchy view.");
+    const root = liveView.framePort.getRuntimeDockRoot();
+    if (root.kind !== "tabset") throw new Error("Expected merged tabset root.");
+    subject.cancelCalls.length = 0;
+
+    const result = subject.controller.commitDock({
+      kind: "split-tab",
+      operation: "same-frame-split",
+      source: {
+        frameId: "debug-frame-1",
+        sourceTabsetId: root.id,
+        viewActorId: "hierarchy-view",
+        viewKey: "hierarchy"
+      },
+      targetFrameId: "debug-frame-1",
+      targetTabsetId: root.id,
+      placement: "left",
+      reason: "dock-drop"
+    });
+
+    const splitRoot = liveView.framePort.getRuntimeDockRoot();
+    expect(result).toEqual({ committed: true, sourceFrameDestroyed: false });
+    expect(subject.cancelCalls).toEqual(["cancel"]);
+    expect(subject.actorSystem.getActor("debug-frame-1")).toBeTruthy();
+    expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("hierarchy-view")!))
+      .toBe("debug-frame-1");
+    expect(subject.controller.getLiveViewByActorId("hierarchy-view")).toMatchObject({
+      frameActor: subject.actorSystem.getActor("debug-frame-1")
+    });
+    expect(splitRoot.kind).toBe("split");
+    expect(liveView.framePort.listTabs().map((tab) => tab.viewActorId).sort())
+      .toEqual(["debug-view-1", "hierarchy-view"]);
+  });
+
   it("validates floating tab intents with finite positive bounds", () => {
     const subject = createSubject();
     subject.controller.openView("debug", "programmatic");
@@ -1070,12 +1138,14 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     expect(subject.controller.validateDockCommit({
       kind: "float-tab",
+      operation: "cross-frame-float",
       source,
       bounds: { left: 10, top: 20, right: 210, bottom: 140, width: 200, height: 120 },
       reason: "dock-drop"
     })).toEqual({ valid: true });
     expect(subject.controller.validateDockCommit({
       kind: "float-tab",
+      operation: "cross-frame-float",
       source,
       bounds: { left: 10, top: 20, right: 10, bottom: 140, width: 0, height: 120 },
       reason: "dock-drop"
@@ -1091,6 +1161,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1139,6 +1210,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "split-tab",
+      operation: "cross-frame-split",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1182,6 +1254,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("hierarchy", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1209,6 +1282,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("hierarchy", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -1216,6 +1290,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     });
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "hierarchy-frame", viewActorId: "hierarchy-view", viewKey: "hierarchy" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -1261,6 +1336,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("hierarchy", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -1268,6 +1344,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     });
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "hierarchy-frame", viewActorId: "hierarchy-view", viewKey: "hierarchy" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -1333,6 +1410,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
       expect(subject.controller.commitDock({
         kind: "merge-tabs",
+      operation: "cross-frame-merge",
         source: {
           frameId: debugLocation!.ownerFrameActorId,
           viewActorId: debugLocation!.viewActorId,
@@ -1348,6 +1426,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
       expect(subject.controller.commitDock({
         kind: "float-tab",
+      operation: "cross-frame-float",
         source: {
           frameId: "hierarchy-frame",
           viewActorId: `debug-view-${cycle}`,
@@ -1389,6 +1468,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1421,6 +1501,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1452,6 +1533,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1483,6 +1565,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("hierarchy", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1497,6 +1580,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "float-tab",
+      operation: "cross-frame-float",
       source: {
         frameId: "hierarchy-frame",
         viewActorId: "debug-view-1",
@@ -1532,6 +1616,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("hierarchy", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1560,6 +1645,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("hierarchy", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -1808,6 +1894,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("debug", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -1843,6 +1930,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("debug", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -1875,6 +1963,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
       const debugFrameId = `debug-frame-${cycle}`;
       expect(subject.controller.commitDock({
         kind: "merge-tabs",
+      operation: "cross-frame-merge",
         source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
         targetFrameId: debugFrameId,
         targetTabsetId: "frame-tabset:target",
@@ -1903,6 +1992,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
       expect(subject.controller.commitDock({
         kind: "float-tab",
+      operation: "cross-frame-float",
         source: { frameId: debugFrameId, viewActorId: "scene-view", viewKey: "scene" },
         bounds: { left: 80, top: 90 + cycle, right: 420, bottom: 290 + cycle, width: 340, height: 200 },
         reason: "dock-drop"
@@ -1942,6 +2032,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("debug", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -1964,6 +2055,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("debug", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -2008,6 +2100,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.openView("debug", "programmatic");
     subject.controller.commitDock({
       kind: "merge-tabs",
+      operation: "cross-frame-merge",
       source: { frameId: "scene-frame", viewActorId: "scene-view", viewKey: "scene" },
       targetFrameId: "debug-frame-1",
       targetTabsetId: "frame-tabset:target",
@@ -2037,6 +2130,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "float-tab",
+      operation: "cross-frame-float",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -2065,6 +2159,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "float-tab",
+      operation: "cross-frame-float",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -2095,6 +2190,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "float-tab",
+      operation: "cross-frame-float",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -2128,6 +2224,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const result = subject.controller.commitDock({
       kind: "float-tab",
+      operation: "cross-frame-float",
       source: {
         frameId: "debug-frame-1",
         viewActorId: "debug-view-1",
@@ -2236,7 +2333,14 @@ function createFramePort(
       if (options.active || !activeViewActorId) {
         activeViewActorId = tab.viewActorId;
       }
-      runtimeRoot = createTestRuntimeTabsetRoot(tabs, activeViewActorId);
+      const split = splitTabInWindowFrameDockTree(
+        restoreWindowFrameDockTreeFromRuntimeRoot(runtimeRoot),
+        tab.viewActorId,
+        options
+      );
+      runtimeRoot = split.node
+        ? cloneWindowFrameRuntimeDockRoot(split.node)
+        : createTestRuntimeTabsetRoot(tabs, activeViewActorId);
     },
     removeTab(viewActorId) {
       calls.push(`remove:${viewActorId}`);

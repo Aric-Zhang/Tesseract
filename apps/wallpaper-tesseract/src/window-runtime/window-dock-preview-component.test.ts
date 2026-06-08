@@ -95,6 +95,7 @@ describe("WindowDockPreviewComponent", () => {
 
     component.show({
       kind: "split",
+      operation: "cross-frame-split",
       targetFrameId: "target",
       targetTabsetId: "frame-tabset:target",
       placement: "left",

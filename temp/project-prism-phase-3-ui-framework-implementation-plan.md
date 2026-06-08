@@ -1,11 +1,12 @@
 # Project Prism Phase 3: UI Framework Port Split And Extraction
 
-Status: planned.
+Status: planned; detailed execution has been consolidated into
+`temp/project-prism-phase-3-detailed-implementation-plan.md`.
 
-This document is the executable Phase 3 plan. It expands the Phase 3 outline in
-`temp/project-prism-engine-modularization-outline.md` and includes the new
-same-frame dock split/reorder repair that was added after investigating the
-root left/right/top/bottom docking bug.
+This document is the Phase 3 master route. The step-by-step executable plan now
+lives in `temp/project-prism-phase-3-detailed-implementation-plan.md`, which
+merges the detailed Phase 3A state/scheduler/installer plan and expands Phase
+3B/3C/3D to the same granularity.
 
 Phase 3 must not start by moving files into a package. It starts by making the
 window/tab/dock/menu model product-agnostic and internally consistent. Only

@@ -15,6 +15,7 @@ export interface WindowTabDragSessionStart {
 
 export interface WindowTabDragSource {
   readonly frameId: string;
+  readonly sourceTabsetId?: string;
   readonly viewActorId: string;
   readonly viewKey: WindowViewKey;
 }
@@ -76,7 +77,8 @@ export class WindowTabDragSession {
     }
     this.#state = "dragging";
     this.#preview = resolveWindowDockPreview(point, regions, {
-      sourceFrameId: this.#source.frameId
+      sourceFrameId: this.#source.frameId,
+      sourceTabsetId: this.#source.sourceTabsetId
     });
     return { state: this.#state, preview: this.#preview, source: this.#source };
   }

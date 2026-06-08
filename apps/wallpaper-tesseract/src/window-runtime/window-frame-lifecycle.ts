@@ -1,7 +1,7 @@
 import type { Actor } from "../actor-runtime";
 import type { UiLayoutPath } from "./ui-layout-state";
 import type { WindowViewKey } from "./window-view-key";
-import type { WindowDockRect } from "./window-dock-targets";
+import type { WindowDockPreviewOperation, WindowDockRect } from "./window-dock-targets";
 import type { WindowDockSplitPlacement } from "./window-dock-targets";
 import type { WindowTabDragSource } from "./window-tab-drag-session";
 import type { WindowFramePort, WindowFramePresentation, WindowFrameTab } from "./window-frame-port";
@@ -128,6 +128,7 @@ export interface WindowFrameLayoutRestorePort {
 export type WindowDockCommitIntent =
   | {
     readonly kind: "merge-tabs";
+    readonly operation: Extract<WindowDockPreviewOperation, "cross-frame-merge" | "same-frame-reorder">;
     readonly source: WindowTabDragSource;
     readonly targetFrameId: string;
     readonly targetTabsetId: string;
@@ -135,6 +136,7 @@ export type WindowDockCommitIntent =
   }
   | {
       readonly kind: "split-tab";
+      readonly operation: Extract<WindowDockPreviewOperation, "cross-frame-split" | "same-frame-split">;
       readonly source: WindowTabDragSource;
       readonly targetFrameId: string;
       readonly targetTabsetId: string;
@@ -143,6 +145,7 @@ export type WindowDockCommitIntent =
     }
   | {
       readonly kind: "float-tab";
+      readonly operation: Extract<WindowDockPreviewOperation, "cross-frame-float">;
       readonly source: WindowTabDragSource;
       readonly bounds: WindowDockRect;
       readonly reason: Extract<WindowFrameLifecycleReason, "dock-drop">;

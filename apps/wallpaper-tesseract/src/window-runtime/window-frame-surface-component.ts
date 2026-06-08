@@ -306,7 +306,16 @@ export class WindowFrameSurfaceComponent implements Component {
     const tabAction = this.findTabActionAtPoint(point);
     if (tabAction) return { part: "tab-action", hitPriority: 100, data: tabAction };
     const tab = this.findTabAtPoint(point);
-    if (tab) return { part: "tab", hitPriority: 50, data: { tab } };
+    if (tab) {
+      return {
+        part: "tab",
+        hitPriority: 50,
+        data: {
+          tab,
+          tabsetId: this.#dockSurface.findTabsetContaining(tab.viewActorId)?.id
+        }
+      };
+    }
     const splitter = this.findSplitterAtPoint(point);
     if (splitter) return { part: "splitter", hitPriority: 90, data: splitter };
     if (this.hasInteractableContent()) return { part: "content", hitPriority: 1 };

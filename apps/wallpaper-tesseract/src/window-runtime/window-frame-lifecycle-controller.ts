@@ -427,8 +427,15 @@ export class DefaultWindowFrameLifecycleController implements
         : invalidDockCommit("floating bounds are invalid");
     }
 
-    if (intent.targetFrameId === intent.source.frameId) {
-      return invalidDockCommit("target frame is source frame");
+    const sameFrame = intent.targetFrameId === intent.source.frameId;
+    if (sameFrame && intent.kind === "split-tab" && intent.operation !== "same-frame-split") {
+      return invalidDockCommit("same-frame split requires explicit same-frame operation");
+    }
+    if (sameFrame && intent.kind === "merge-tabs" && intent.operation !== "same-frame-reorder") {
+      return invalidDockCommit("same-frame merge requires explicit same-frame operation");
+    }
+    if (!sameFrame && intent.operation?.startsWith("same-frame")) {
+      return invalidDockCommit("same-frame operation target is not the source frame");
     }
     const targetActor = this.#actorSystem.getActor(intent.targetFrameId);
     if (!targetActor) {
@@ -442,7 +449,10 @@ export class DefaultWindowFrameLifecycleController implements
     if (!targetPort.hasTabset(intent.targetTabsetId)) {
       return invalidDockCommit("target tabset is missing");
     }
-    if (targetPort.hasTab(intent.source.viewActorId)) {
+    if (sameFrame && intent.kind === "merge-tabs" && intent.source.sourceTabsetId === intent.targetTabsetId) {
+      return invalidDockCommit("same tabset drop is a no-op");
+    }
+    if (!sameFrame && targetPort.hasTab(intent.source.viewActorId)) {
       return invalidDockCommit("target frame already contains source tab");
     }
     return { valid: true };
@@ -476,6 +486,12 @@ export class DefaultWindowFrameLifecycleController implements
     }
     if (!targetPort) {
       return { committed: false, reason: "target frame port disappeared" };
+    }
+    if (targetFrame.id === sourceFrame.id) {
+      if (intent.kind === "split-tab") {
+        return this.commitSameFrameSplitTab(intent, sourceView, sourceTab, targetPort);
+      }
+      return this.commitSameFrameMergeTab(intent, sourceView, sourceTab, targetPort);
     }
     if (intent.kind === "split-tab") {
       return this.commitSplitTab(intent, sourceView, sourceTab, targetFrame, targetPort);
@@ -1348,6 +1364,80 @@ export class DefaultWindowFrameLifecycleController implements
     return { committed: true, sourceFrameDestroyed: destroy.destroyed };
   }
 
+  private commitSameFrameMergeTab(
+    intent: Extract<WindowDockCommitIntent, { readonly kind: "merge-tabs" }>,
+    sourceView: LiveWindowView,
+    sourceTab: ReturnType<WindowFramePort["listTabs"]>[number],
+    framePort: WindowFramePort
+  ): WindowDockCommitResult {
+    const rootBefore = framePort.getRuntimeDockRoot();
+    const tabsBefore = framePort.listTabs();
+    const focusedBefore = framePort.getFocusedViewActorId();
+
+    this.#cancelActiveInput?.();
+    try {
+      framePort.removeTab(sourceView.viewActor.id);
+      framePort.addTab(sourceTab, {
+        active: true,
+        targetTabsetId: intent.targetTabsetId
+      });
+      sourceView.content.rehostWindowContent(framePort.getContentHost(sourceView.viewActor.id));
+      this.recordViewActivation(sourceView);
+      this.#windowFocus?.focusActorWindow(sourceView.frameActor, toWindowFocusReason(intent.reason));
+    } catch (error) {
+      this.rollbackSameFrameDock(sourceView, framePort, rootBefore, tabsBefore, focusedBefore);
+      return { committed: false, reason: describeError(error, "same-frame dock merge failed") };
+    }
+
+    return { committed: true, sourceFrameDestroyed: false };
+  }
+
+  private commitSameFrameSplitTab(
+    intent: Extract<WindowDockCommitIntent, { readonly kind: "split-tab" }>,
+    sourceView: LiveWindowView,
+    sourceTab: ReturnType<WindowFramePort["listTabs"]>[number],
+    framePort: WindowFramePort
+  ): WindowDockCommitResult {
+    const rootBefore = framePort.getRuntimeDockRoot();
+    const tabsBefore = framePort.listTabs();
+    const focusedBefore = framePort.getFocusedViewActorId();
+
+    this.#cancelActiveInput?.();
+    try {
+      framePort.splitTab(sourceTab, {
+        active: true,
+        targetTabsetId: intent.targetTabsetId,
+        placement: intent.placement
+      });
+      sourceView.content.rehostWindowContent(framePort.getContentHost(sourceView.viewActor.id));
+      this.recordViewActivation(sourceView);
+      this.#windowFocus?.focusActorWindow(sourceView.frameActor, toWindowFocusReason(intent.reason));
+    } catch (error) {
+      this.rollbackSameFrameDock(sourceView, framePort, rootBefore, tabsBefore, focusedBefore);
+      return { committed: false, reason: describeError(error, "same-frame dock split failed") };
+    }
+
+    return { committed: true, sourceFrameDestroyed: false };
+  }
+
+  private rollbackSameFrameDock(
+    sourceView: LiveWindowView,
+    framePort: WindowFramePort,
+    rootBefore: ReturnType<WindowFramePort["getRuntimeDockRoot"]>,
+    tabsBefore: ReturnType<WindowFramePort["listTabs"]>,
+    focusedBefore: string | null
+  ): void {
+    try {
+      framePort.restoreRuntimeDockRoot(rootBefore, {
+        tabs: tabsBefore,
+        activeViewActorId: focusedBefore
+      });
+      sourceView.content.rehostWindowContent(framePort.getContentHost(sourceView.viewActor.id));
+    } catch {
+      // Best effort rollback. The caller returns the original mutation error.
+    }
+  }
+
   private commitSplitTab(
     intent: Extract<WindowDockCommitIntent, { readonly kind: "split-tab" }>,
     sourceView: LiveWindowView,
@@ -1592,18 +1682,70 @@ function findRuntimeDockRootNextActiveViewActorIdAfterRemove(
   root: WindowFrameRuntimeDockNode,
   viewActorId: string
 ): string | null {
+  return findRuntimeDockRootNextActiveViewActorIdAfterRemoveResult(root, viewActorId).nextActiveViewActorId;
+}
+
+function findRuntimeDockRootNextActiveViewActorIdAfterRemoveResult(
+  root: WindowFrameRuntimeDockNode,
+  viewActorId: string
+): {
+  readonly foundRemovedView: boolean;
+  readonly nextActiveViewActorId: string | null;
+  readonly remainingActiveViewActorId: string | null;
+} {
   if (root.kind === "tabset") {
-    if (!root.tabs.includes(viewActorId)) return null;
+    const currentActiveViewActorId = root.activeViewActorId ?? root.tabs[0] ?? null;
+    if (!root.tabs.includes(viewActorId)) {
+      return {
+        foundRemovedView: false,
+        nextActiveViewActorId: null,
+        remainingActiveViewActorId: currentActiveViewActorId
+      };
+    }
     const remainingTabs = root.tabs.filter((tab) => tab !== viewActorId);
-    if (remainingTabs.length === 0) return null;
+    if (remainingTabs.length === 0) {
+      return {
+        foundRemovedView: true,
+        nextActiveViewActorId: null,
+        remainingActiveViewActorId: null
+      };
+    }
     if (root.activeViewActorId && root.activeViewActorId !== viewActorId && remainingTabs.includes(root.activeViewActorId)) {
-      return root.activeViewActorId;
+      return {
+        foundRemovedView: true,
+        nextActiveViewActorId: root.activeViewActorId,
+        remainingActiveViewActorId: root.activeViewActorId
+      };
     }
     const removedIndex = root.tabs.indexOf(viewActorId);
-    return remainingTabs[Math.min(removedIndex, remainingTabs.length - 1)] ?? remainingTabs[0] ?? null;
+    const nextActiveViewActorId = remainingTabs[Math.min(removedIndex, remainingTabs.length - 1)] ?? remainingTabs[0] ?? null;
+    return {
+      foundRemovedView: true,
+      nextActiveViewActorId,
+      remainingActiveViewActorId: nextActiveViewActorId
+    };
   }
-  return findRuntimeDockRootNextActiveViewActorIdAfterRemove(root.first, viewActorId) ??
-    findRuntimeDockRootNextActiveViewActorIdAfterRemove(root.second, viewActorId);
+  const first = findRuntimeDockRootNextActiveViewActorIdAfterRemoveResult(root.first, viewActorId);
+  const second = findRuntimeDockRootNextActiveViewActorIdAfterRemoveResult(root.second, viewActorId);
+  if (first.foundRemovedView) {
+    return {
+      foundRemovedView: true,
+      nextActiveViewActorId: first.nextActiveViewActorId ?? second.remainingActiveViewActorId,
+      remainingActiveViewActorId: first.remainingActiveViewActorId ?? second.remainingActiveViewActorId
+    };
+  }
+  if (second.foundRemovedView) {
+    return {
+      foundRemovedView: true,
+      nextActiveViewActorId: second.nextActiveViewActorId ?? first.remainingActiveViewActorId,
+      remainingActiveViewActorId: first.remainingActiveViewActorId ?? second.remainingActiveViewActorId
+    };
+  }
+  return {
+    foundRemovedView: false,
+    nextActiveViewActorId: null,
+    remainingActiveViewActorId: first.remainingActiveViewActorId ?? second.remainingActiveViewActorId
+  };
 }
 
 function shouldRestoreFrameFullscreen(root: WindowFrameDockNode): boolean {

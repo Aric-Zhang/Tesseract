@@ -19,8 +19,13 @@ export function readWindowTabDragSource(frameId: string, hit: ActorInputHit): Wi
   ) {
     return null;
   }
+  const tabsetId = (data as { tabsetId?: unknown }).tabsetId;
+  const sourceTabsetId = typeof tabsetId === "string"
+    ? tabsetId
+    : undefined;
   return {
     frameId,
+    sourceTabsetId,
     viewActorId: tab.viewActorId,
     viewKey: tab.viewKey
   };

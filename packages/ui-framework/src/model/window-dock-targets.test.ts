@@ -52,7 +52,8 @@ function splitRegion(
 describe("resolveWindowDockPreview", () => {
   it("resolves tab/titlebar drops to merge preview", () => {
     const preview = resolveWindowDockPreview({ x: 130, y: 116 }, [frame("target", 1)], {
-      sourceFrameId: "source"
+      sourceFrameId: "source",
+      sourceViewActorId: "source-view"
     });
 
     expect(preview).toMatchObject({
@@ -100,7 +101,8 @@ describe("resolveWindowDockPreview", () => {
 
   it("treats drops over the source frame as floating so self-drops do not re-dock", () => {
     expect(resolveWindowDockPreview({ x: 130, y: 116 }, [frame("source", 10)], {
-      sourceFrameId: "source"
+      sourceFrameId: "source",
+      sourceViewActorId: "source-view"
     })).toMatchObject({
       kind: "floating"
     });
@@ -136,7 +138,8 @@ describe("resolveWindowDockPreview", () => {
   it("marks same-tabset tabbar drops as no-op instead of cross-frame merge", () => {
     expect(resolveWindowDockPreview({ x: 130, y: 116 }, [frame("source", 10)], {
       sourceFrameId: "source",
-      sourceTabsetId: "frame-tabset:source"
+      sourceTabsetId: "frame-tabset:source",
+      sourceViewActorId: "source-view"
     })).toMatchObject({
       kind: "merge-tabs",
       operation: "no-op",
@@ -150,12 +153,21 @@ describe("resolveWindowDockPreview", () => {
       frame("source", 100),
       frame("back", 10),
       frame("front", 20)
-    ], { sourceFrameId: "source" });
+    ], { sourceFrameId: "source", sourceViewActorId: "source-view" });
 
     expect(preview).toMatchObject({
       kind: "merge-tabs",
       targetFrameId: "front",
       targetTabsetId: "frame-tabset:front"
+    });
+  });
+
+  it("fails closed for same-frame drops when source tabset facts are incomplete", () => {
+    expect(resolveWindowDockPreview({ x: 112, y: 210 }, [frame("source", 10, 100, 100, ["source-view", "other-view"])], {
+      sourceFrameId: "source",
+      sourceViewActorId: "source-view"
+    })).toMatchObject({
+      kind: "floating"
     });
   });
 

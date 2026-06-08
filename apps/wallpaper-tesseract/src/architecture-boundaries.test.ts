@@ -943,6 +943,28 @@ describe("architecture boundaries", () => {
     expect(windowRuntimeViolations).toEqual([]);
   });
 
+  it("keeps UI framework public window identity models product-agnostic", () => {
+    const publicIdentitySources = [
+      uiFrameworkPackageSources["packages/ui-framework/src/model/window-view-key.ts"] ?? "",
+      uiFrameworkPackageSources["packages/ui-framework/src/model/window-view-identity.ts"] ?? "",
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-frame-lifecycle.ts"] ?? ""
+    ].join("\n");
+
+    expect(publicIdentitySources).not.toMatch(/["'](?:scene|debug|hierarchy|scene-toggle)["']/);
+    expect(publicIdentitySources).not.toMatch(/["']scene["']\s*\|\s*["']debug["']\s*\|\s*["']hierarchy["']/);
+  });
+
+  it("keeps dock preview source and target tabset facts explicit", () => {
+    const dockTargetsSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/model/window-dock-targets.ts"] ?? "";
+
+    expect(dockTargetsSource).toMatch(/readonly\s+targetTabsetTabs:\s+readonly\s+string\[\]/);
+    expect(dockTargetsSource).toMatch(/readonly\s+sourceViewActorId:\s+string/);
+    expect(dockTargetsSource).not.toMatch(/targetTabsetTabs\?:/);
+    expect(dockTargetsSource).not.toMatch(/sourceViewActorId\?:/);
+    expect(dockTargetsSource).toMatch(/\bfunction\s+getDockPreviewSource\b/);
+  });
+
   it("keeps old window source and visible-activation adapters deleted", () => {
     expect(sourceFiles["./window-runtime/window-control-source.ts"]).toBeUndefined();
     expect(sourceFiles["./window-runtime/window-menu-view-source.ts"]).toBeUndefined();

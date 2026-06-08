@@ -1,7 +1,7 @@
 import type { WindowViewKey } from "./window-view-key";
 import { windowViewKey } from "./window-view-key";
 
-export type WindowViewTypeKey = "scene" | "debug" | "hierarchy" | (string & {});
+export type WindowViewTypeKey = string & {};
 
 export type WindowViewInstanceId = string & { readonly __windowViewInstanceIdBrand: "WindowViewInstanceId" };
 export type WindowViewIdentityKey = string & { readonly __windowViewIdentityKeyBrand: "WindowViewIdentityKey" };

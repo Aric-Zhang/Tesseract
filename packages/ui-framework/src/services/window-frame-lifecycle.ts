@@ -91,7 +91,7 @@ export interface WindowViewOwnerCommandPort {
   requestOwnerVisible(viewActorId: string, visible: boolean, timeStamp?: number): void;
 }
 
-export type WindowViewFullscreenReason = "programmatic" | "scene-toggle";
+export type WindowViewFullscreenReason = "programmatic" | "toggle";
 
 export interface WindowViewFullscreenSession {
   readonly viewActorId: string;

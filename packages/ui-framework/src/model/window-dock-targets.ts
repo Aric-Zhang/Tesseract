@@ -17,7 +17,7 @@ export interface WindowDockRect {
 export interface WindowDockTargetRegion {
   readonly frameId: string;
   readonly targetTabsetId: string;
-  readonly targetTabsetTabs?: readonly string[];
+  readonly targetTabsetTabs: readonly string[];
   readonly stackPriority: number;
   readonly bounds: WindowDockRect;
   readonly tabBounds: WindowDockRect;
@@ -54,12 +54,21 @@ export type WindowDockPreview =
       readonly rect: WindowDockRect;
     };
 
-export interface ResolveWindowDockPreviewOptions {
-  readonly sourceFrameId?: string;
-  readonly sourceTabsetId?: string;
-  readonly sourceViewActorId?: string;
+interface ResolveWindowDockPreviewBaseOptions {
   readonly floatingSize?: { readonly width: number; readonly height: number };
 }
+
+interface ResolveWindowDockPreviewNoSourceOptions extends ResolveWindowDockPreviewBaseOptions {}
+
+interface ResolveWindowDockPreviewSourceOptions extends ResolveWindowDockPreviewBaseOptions {
+  readonly sourceFrameId: string;
+  readonly sourceTabsetId?: string;
+  readonly sourceViewActorId: string;
+}
+
+export type ResolveWindowDockPreviewOptions =
+  | ResolveWindowDockPreviewNoSourceOptions
+  | ResolveWindowDockPreviewSourceOptions;
 
 const CONTENT_EDGE_RATIO = 0.26;
 const DEFAULT_FLOATING_SIZE = { width: 260, height: 180 };
@@ -124,17 +133,16 @@ function createDockPreviewCandidate(
   sourceOrder: number,
   options: ResolveWindowDockPreviewOptions
 ): WindowDockPreviewCandidate | null {
-  const sameFrame = Boolean(options.sourceFrameId && region.frameId === options.sourceFrameId);
-  if (sameFrame && !options.sourceTabsetId) return null;
+  const source = getDockPreviewSource(options);
+  const sameFrame = Boolean(source && region.frameId === source.sourceFrameId);
+  if (sameFrame && !source?.sourceTabsetId) return null;
   const sameTabset = Boolean(
     sameFrame &&
-    options.sourceTabsetId &&
-    region.targetTabsetId === options.sourceTabsetId
+    source?.sourceTabsetId &&
+    region.targetTabsetId === source.sourceTabsetId
   );
   const sameTabsetCanSplit = !sameTabset ||
-    !options.sourceViewActorId ||
-    !region.targetTabsetTabs ||
-    region.targetTabsetTabs.some((viewActorId) => viewActorId !== options.sourceViewActorId);
+    region.targetTabsetTabs.some((viewActorId) => viewActorId !== source?.sourceViewActorId);
   if (containsPoint(region.tabBounds, point)) {
     if (sameTabset) {
       return {
@@ -197,6 +205,12 @@ function createDockPreviewCandidate(
     area: rectArea(region.contentBounds),
     sourceOrder
   };
+}
+
+function getDockPreviewSource(
+  options: ResolveWindowDockPreviewOptions
+): ResolveWindowDockPreviewSourceOptions | null {
+  return "sourceFrameId" in options ? options : null;
 }
 
 function compareDockPreviewCandidates(

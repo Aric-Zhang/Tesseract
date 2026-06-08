@@ -71,6 +71,7 @@ function createTargetFrame(
   return {
     frameId: actorId,
     targetTabsetId: `frame-tabset:${actorId}`,
+    targetTabsetTabs: [`${actorId}:view`],
     stackPriority: priority,
     bounds: rect(left, 100, 300, 220),
     tabBounds: rect(left + 10, 106, 80, 24),

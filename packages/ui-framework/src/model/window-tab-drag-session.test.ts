@@ -16,6 +16,7 @@ function rect(left: number, top: number, width: number, height: number) {
 const regions: WindowDockTargetRegion[] = [{
   frameId: "target",
   targetTabsetId: "frame-tabset:target",
+  targetTabsetTabs: ["target:view"],
   stackPriority: 10,
   bounds: rect(100, 100, 300, 220),
   tabBounds: rect(110, 106, 80, 24),

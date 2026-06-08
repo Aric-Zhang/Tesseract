@@ -203,9 +203,9 @@ export const projectPrismAppCompositionBlockers = [
     files: [
       "./app/install-component-definitions.ts"
     ],
-    blocks: ["actor-core extraction", "ui-framework extraction"],
-    blocker: "Component definition installation is still centralized at the app level.",
-    deletionCondition: "Each package owns and exports its component definition installer."
+    blocks: ["app bootstrap thinning", "editor/runtime package extraction"],
+    blocker: "App-local component definition installation still wires product feature adapters and editor/runtime integration components.",
+    deletionCondition: "Product features own their package installers and wallpaper app composes package-level installer functions only."
   },
   {
     id: "workspace-mode-app-controller",
@@ -299,7 +299,7 @@ export const projectPrismPackageTargets = [
     debtZones: [],
     blockedBy: [],
     extractionPhase: "Phase 3B/3C",
-    extractionStatus: "deferred"
+    extractionStatus: "allowed"
   },
   {
     id: "runtime-core",

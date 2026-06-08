@@ -1,6 +1,6 @@
 # Project Prism Phase 3 Detailed Implementation Plan
 
-Status: planned.
+Status: implemented through Phase 3D; accepted pending reviewer sign-off.
 
 This is the executable Phase 3 plan. It consolidates:
 
@@ -19,9 +19,8 @@ dual behavior, scene-state coupling, or app-local installer shortcuts.
 - Phase 2 is accepted for `actor-core` and `actor-input` extraction.
 - Phase 3.0 dock surface truth model cleanup is implemented and can be treated
   as the Phase 3 base model.
-- `ui-framework` remains blocked by:
-  - `ui-state-binding-debt`;
-  - `component-definition-installer-debt`.
+- `packages/ui-framework` now exists and is consumed by the wallpaper app.
+- `ui-framework` is allowed in the generated boundary facts.
 
 Phase 3 is not complete until:
 
@@ -1177,4 +1176,3 @@ Stop and revise the plan if:
 - Commit 5: Phase 3C component/lifecycle/menu extraction.
 - Commit 6: Phase 3C app import cleanup.
 - Commit 7: Phase 3D smoke parity and Phase 3 acceptance.
-

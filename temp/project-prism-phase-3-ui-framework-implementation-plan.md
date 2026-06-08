@@ -1,6 +1,6 @@
 # Project Prism Phase 3: UI Framework Port Split And Extraction
 
-Status: planned; detailed execution has been consolidated into
+Status: implemented through Phase 3D; detailed execution has been consolidated into
 `temp/project-prism-phase-3-detailed-implementation-plan.md`.
 
 This document is the Phase 3 master route. The step-by-step executable plan now
@@ -19,19 +19,15 @@ after the model runs in a product-free fixture should code move to a formal
 - Phase 1 is accepted as app-local shared-spine decoupling.
 - Phase 2 is accepted for `actor-core` and `actor-input` extraction.
 - `actor-core` and `actor-input` are package targets.
-- `ui-framework` remains blocked in the generated boundary matrix.
+- `ui-framework` is allowed in the generated boundary matrix.
 
 Current generated blockers for `ui-framework`:
 
-- `dock-surface-truth-debt`
-- `ui-state-binding-debt`
-- `component-definition-installer-debt`
+- none
 
 Current UI framework extraction blockers:
 
-- `dock-surface-truth-model`
-- `floating-window-scene-state-paths`
-- `workspace-runtime-service-registration`
+- none
 
 Phase 3 is complete only when the generated boundary facts mark the reusable UI
 framework boundary as clean enough to package and the browser smoke parity is

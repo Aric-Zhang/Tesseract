@@ -13,7 +13,7 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 | editor | deferred | Phase 6 | editor-candidate | runtime-ownership-debt | runtime-ownership-debt |
 | runtime-core | blocked | Phase 4 | (none) | state-domain-debt, runtime-ownership-debt | state-domain-debt, runtime-ownership-debt |
 | runtime-three | blocked | Phase 5 | (none) | runtime-ownership-debt | runtime-ownership-debt |
-| ui-framework | deferred | Phase 3B/3C | ui-framework-candidate | (none) | (none) |
+| ui-framework | allowed | Phase 3B/3C | ui-framework-candidate | (none) | (none) |
 | wallpaper-app | blocked | Phase 7 | app-composition | app-composition-debt, app-runtime-debt | app-composition-debt, app-runtime-debt |
 
 ## Candidate Zones
@@ -22,7 +22,7 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 - actor-input-candidate: 1 files. Actor input and gizmo-core adapter candidates.
 - app-composition: 8 files. Wallpaper app bootstrap and composition layer.
 - editor-candidate: 54 files. Concrete editor features and editor presentation components.
-- ui-framework-candidate: 59 files. Generic window, tab, dock, menu, and app shell UI candidates.
+- ui-framework-candidate: 43 files. Generic window, tab, dock, menu, and app shell UI candidates.
 
 ## Debt Zones
 
@@ -63,6 +63,6 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 ## App Composition Blockers
 
 - wallpaper-app-concrete-feature-policy: App composition still wires Scene/Debug/Hierarchy/Inspector state, actor ids, default views, floating policies, hierarchy metadata, and debug log sink policy.
-- central-component-definition-installer: Component definition installation is still centralized at the app level.
+- central-component-definition-installer: App-local component definition installation still wires product feature adapters and editor/runtime integration components.
 - workspace-mode-app-controller: Workspace mode presentation controller lives in app composition and coordinates editor/window presentation state.
 

@@ -26,7 +26,7 @@
       {
         "id": "ui-framework-candidate",
         "description": "Generic window, tab, dock, menu, and app shell UI candidates.",
-        "fileCount": 59
+        "fileCount": 43
       }
     ],
     "debt": [
@@ -120,7 +120,7 @@
     },
     {
       "id": "ui-framework",
-      "status": "deferred",
+      "status": "allowed",
       "phase": "Phase 3B/3C",
       "cleanCandidateZones": [
         "ui-framework-candidate"
@@ -281,11 +281,11 @@
           "./app/install-component-definitions.ts"
         ],
         "blocks": [
-          "actor-core extraction",
-          "ui-framework extraction"
+          "app bootstrap thinning",
+          "editor/runtime package extraction"
         ],
-        "blocker": "Component definition installation is still centralized at the app level.",
-        "deletionCondition": "Each package owns and exports its component definition installer."
+        "blocker": "App-local component definition installation still wires product feature adapters and editor/runtime integration components.",
+        "deletionCondition": "Product features own their package installers and wallpaper app composes package-level installer functions only."
       },
       {
         "id": "workspace-mode-app-controller",

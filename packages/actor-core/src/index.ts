@@ -29,6 +29,7 @@ export type {
 } from "./component-attachment-runtime";
 export { ComponentRegistry } from "./component-registry";
 export type { ComponentRegistryOptions } from "./component-registry";
+export { installComponentDefinition } from "./component-definition-installation";
 export { ComponentTransaction } from "./component-transaction";
 export type { RollbackErrorHandler } from "./component-transaction";
 export { createRegisteredActor } from "./registered-actor";

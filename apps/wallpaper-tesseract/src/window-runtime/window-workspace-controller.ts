@@ -1,6 +1,6 @@
 import type { Actor, ActorSystemView } from "../actor-runtime";
 import type { ActorInputStackPrioritySource } from "../gizmo-runtime";
-import type { RuntimeObject, UpdateFrame } from "../runtime/ports";
+import type { UiFrame, UiScheduledService } from "./ui-scheduler";
 import type { WindowFocusCommandPort, WindowFocusReason } from "./window-focus-command-port";
 import type {
   WindowWorkspaceFrameEntry,
@@ -34,7 +34,7 @@ interface IndexedWindowFrameEntry {
   readonly sourceIndex: number;
 }
 
-export class WindowWorkspaceController implements RuntimeObject, ActorInputStackPrioritySource, WindowFocusCommandPort {
+export class WindowWorkspaceController implements UiScheduledService, ActorInputStackPrioritySource, WindowFocusCommandPort {
   readonly id = WINDOW_WORKSPACE_CONTROLLER_ID;
   readonly priority = -100;
   enabled = true;
@@ -54,7 +54,7 @@ export class WindowWorkspaceController implements RuntimeObject, ActorInputStack
     this.reconcile();
   }
 
-  updateFrame(_frame: UpdateFrame): void {
+  updateFrame(_frame: UiFrame): void {
     // First-pass strategy: window counts are small, so polling keeps actor,
     // state, and source changes aligned. Once docking/layout grows, move this
     // to explicit invalidation from actor/window/source change events.

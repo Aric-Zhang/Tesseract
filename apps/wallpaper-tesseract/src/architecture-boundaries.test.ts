@@ -238,6 +238,17 @@ describe("architecture boundaries", () => {
     expect(incompleteBlockers).toEqual([]);
   });
 
+  it("keeps scene-backed UI state adapters out of window-runtime public API", () => {
+    const windowRuntimeIndex = sourceFiles["./window-runtime/index.ts"] ?? "";
+    const sceneBackedAdapter = sourceFiles["./editor/adapters/floating-window-scene-state-adapter.ts"] ?? "";
+
+    expect(sourceFiles["./window-runtime/floating-window-scene-state-adapter.ts"]).toBeUndefined();
+    expect(windowRuntimeIndex).not.toMatch(/floating-window-scene-state-adapter/);
+    expect(windowRuntimeIndex).not.toMatch(/\bregisterFloatingWindowParameters\b/);
+    expect(sceneBackedAdapter).toMatch(/\bSceneParameterStore\b/);
+    expect(sceneBackedAdapter).toMatch(/from\s+["']\.\.\/\.\.\/window-runtime["']/);
+  });
+
   it("keeps app composition extraction blockers explicit until public installers own concrete policy", () => {
     const zoneMap = createSourceZoneMap(sourceFiles, projectPrismSourceZones);
     const zonesByFile = new Map(zoneMap.entries.map((entry) => [entry.file, entry.zones.map((zone) => zone.id)]));
@@ -248,8 +259,7 @@ describe("architecture boundaries", () => {
     const unclassifiedBlockerFiles = projectPrismAppCompositionBlockers
       .flatMap((blocker) => blocker.files)
       .filter((file) => !(zonesByFile.get(file) ?? []).some((zoneId) => (
-        zoneId === "app-composition-debt" ||
-        zoneId === "component-definition-installer-debt"
+        zoneId === "app-composition-debt"
       )))
       .sort();
     const incompleteBlockers = projectPrismAppCompositionBlockers
@@ -328,16 +338,14 @@ describe("architecture boundaries", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps Project Prism UI scene-runtime coupling isolated to explicit UI state binding debt", () => {
+  it("keeps Project Prism UI candidates independent from scene-runtime", () => {
     const zoneMap = createSourceZoneMap(sourceFiles, projectPrismSourceZones);
     const zonesByFile = new Map(zoneMap.entries.map((entry) => [entry.file, entry.zones]));
     const violations = listModuleEdges(sourceFiles)
       .filter((edge) => edge.resolvedFile?.startsWith("./scene-runtime/"))
       .filter((edge) => {
         const sourceZones = zonesByFile.get(edge.fromFile) ?? [];
-        const isUiCandidate = sourceZones.some((zone) => zone.id === "ui-framework-candidate");
-        const isUiStateDebt = sourceZones.some((zone) => zone.id === "ui-state-binding-debt");
-        return isUiCandidate && !isUiStateDebt;
+        return sourceZones.some((zone) => zone.id === "ui-framework-candidate");
       })
       .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
       .sort();
@@ -490,15 +498,7 @@ describe("architecture boundaries", () => {
 
 
   it("does not keep a pseudo-core component definition installer", () => {
-    const source = sourceFiles["./component-definitions.ts"] ?? "";
-
-    expect(source).not.toMatch(/\binstallCoreComponentDefinitions\b/);
-    expect(source).not.toMatch(/\binstallCommonComponentDefinitions\b/);
-    expect(source).not.toMatch(/gizmoEventBindingComponentDefinition/);
-    expect(source).not.toMatch(/stateObserverBindingComponentDefinition/);
-    expect(source).not.toMatch(/floatingWindowComponentDefinition/);
-    expect(source).not.toMatch(/hierarchyPanelComponentDefinition/);
-    expect(source).not.toMatch(/sceneViewportComponentDefinition/);
+    expect(sourceFiles["./component-definitions.ts"]).toBeUndefined();
   });
 
   it("keeps scene feature components independent from app-runtime", () => {
@@ -703,12 +703,9 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps feature definition installation owned by features and composed by app", () => {
-    const coreSource = sourceFiles["./component-definitions.ts"] ?? "";
     const appInstallerSource = sourceFiles["./app/install-component-definitions.ts"] ?? "";
 
-    expect(coreSource).not.toMatch(/(?:camera3Gizmo|debugLogContent|hierarchyPanel|floatingWindow|tesseract4)ComponentDefinition/);
-    expect(coreSource).not.toMatch(/install(?:Camera3|DebugLog|Hierarchy|Window|Tesseract4)ComponentDefinitions/);
-    expect(coreSource).not.toMatch(/\binstallCoreComponentDefinitions\b/);
+    expect(sourceFiles["./component-definitions.ts"]).toBeUndefined();
     expect(appInstallerSource).toMatch(/\binstallWallpaperComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallGizmoRuntimeComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallStateRuntimeComponentDefinitions\b/);

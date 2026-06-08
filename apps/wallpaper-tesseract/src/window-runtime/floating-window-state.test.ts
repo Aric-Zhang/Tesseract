@@ -4,7 +4,7 @@ import {
   createDefaultFloatingWindowState,
   type FloatingWindowParameterPaths
 } from "./floating-window-state";
-import { registerFloatingWindowParameters } from "./floating-window-scene-state-adapter";
+import { registerFloatingWindowParameters } from "../editor/adapters/floating-window-scene-state-adapter";
 
 function createPaths(prefix: string): FloatingWindowParameterPaths {
   return {

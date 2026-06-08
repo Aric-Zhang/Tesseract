@@ -3,8 +3,6 @@ export {
   cloneFloatingWindowState,
   createDefaultFloatingWindowState
 } from "./floating-window-state";
-export { registerFloatingWindowParameters } from "./floating-window-scene-state-adapter";
-export type { RegisterFloatingWindowParametersOptions } from "./floating-window-scene-state-adapter";
 export {
   addUiVec2,
   assertUiVec2,
@@ -13,6 +11,16 @@ export {
   uiVec2
 } from "./ui-geometry";
 export { uiLayoutPath } from "./ui-layout-state";
+export type {
+  UiFrame,
+  UiScheduledService,
+  UiScheduler,
+  UiSchedulerRegistration
+} from "./ui-scheduler";
+export type {
+  UiActorContext,
+  UiActorContextRegistration
+} from "./ui-actor-context";
 export type {
   UiPoint,
   UiSize,
@@ -23,7 +31,10 @@ export type {
   UiLayoutCommandOperation,
   UiLayoutCommandSink,
   UiLayoutCommandSource,
-  UiLayoutPath
+  UiLayoutPath,
+  UiLayoutStateReader,
+  UiLayoutStateChange,
+  UiLayoutStateChangedEvent
 } from "./ui-layout-state";
 export { createWindowFocusServiceProxy } from "./window-focus-service-proxy";
 export type { WindowFocusServiceProxy } from "./window-focus-service-proxy";

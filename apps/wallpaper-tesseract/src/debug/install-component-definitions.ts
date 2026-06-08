@@ -1,5 +1,4 @@
-import type { ComponentRegistry } from "../actor-runtime";
-import { installComponentDefinition } from "../component-definitions";
+import { installComponentDefinition, type ComponentRegistry } from "../actor-runtime";
 import { debugLogContentComponentDefinition } from "./components";
 
 export function installDebugLogComponentDefinitions(componentRegistry: ComponentRegistry): void {

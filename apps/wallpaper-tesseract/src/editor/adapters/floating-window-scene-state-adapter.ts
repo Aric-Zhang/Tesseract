@@ -1,17 +1,15 @@
-import type { SceneParameterStore } from "../scene-runtime";
+import type { SceneParameterStore } from "../../scene-runtime";
 import {
   addUiVec2,
   assertUiVec2,
   cloneUiVec2,
-  equalsUiVec2,
-  type UiVec2
-} from "./ui-geometry";
-import type { UiLayoutPath } from "./ui-layout-state";
-import {
   DEFAULT_FLOATING_WINDOW_MIN_SIZE,
+  equalsUiVec2,
   type FloatingWindowParameterPaths,
-  type FloatingWindowState
-} from "./floating-window-state";
+  type FloatingWindowState,
+  type UiLayoutPath,
+  type UiVec2
+} from "../../window-runtime";
 
 export interface RegisterFloatingWindowParametersOptions {
   paths: FloatingWindowParameterPaths;

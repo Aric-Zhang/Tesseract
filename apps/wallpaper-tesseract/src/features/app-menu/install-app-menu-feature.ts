@@ -1,10 +1,9 @@
-import type { FeatureActorContext } from "../../runtime/ports";
-import type { UiLayoutPath, WindowFrameIntentSink, WindowWorkspaceViewCatalog } from "../../window-runtime";
+import type { UiActorContext, UiLayoutPath, WindowFrameIntentSink, WindowWorkspaceViewCatalog } from "../../window-runtime";
 import { createAppMenuBarActor } from "./app-menu-bar-actor-factory";
 import type { AppMenuWorkspaceMode } from "./app-menu-bar-component";
 
 export interface InstallAppMenuFeatureOptions {
-  readonly context: FeatureActorContext;
+  readonly context: UiActorContext;
   readonly actorId: string;
   readonly actorName: string;
   readonly parent: HTMLElement;

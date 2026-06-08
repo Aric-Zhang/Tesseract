@@ -1,4 +1,4 @@
-import type { RuntimeObject } from "../runtime/ports";
+import type { UiScheduledService } from "./ui-scheduler";
 import type {
   WindowViewFullscreenReason,
   WindowViewFullscreenSession,
@@ -33,7 +33,7 @@ export type WindowWorkspacePresentationResult =
       readonly reason: string;
     };
 
-export class WindowWorkspacePresentationController implements RuntimeObject {
+export class WindowWorkspacePresentationController implements UiScheduledService {
   readonly id = WINDOW_WORKSPACE_PRESENTATION_CONTROLLER_ID;
   readonly priority = -940;
   enabled = true;

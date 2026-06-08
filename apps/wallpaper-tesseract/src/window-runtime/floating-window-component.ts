@@ -1,7 +1,6 @@
 import type {
   ScreenPoint
 } from "gizmo-core";
-import type { StateChangedEvent } from "../runtime/ports";
 import { type Actor, type Component, type ComponentType } from "../actor-runtime";
 import { actorInputScopeRoutePriority } from "../gizmo-runtime";
 import type {
@@ -35,7 +34,7 @@ import {
   type FloatingWindowState
 } from "./floating-window-state";
 import { cloneUiVec2, uiVec2, type UiVec2 } from "./ui-geometry";
-import type { UiLayoutCommandSink, UiLayoutPath } from "./ui-layout-state";
+import type { UiLayoutCommandSink, UiLayoutPath, UiLayoutStateChangedEvent } from "./ui-layout-state";
 import type {
   WindowFramePort,
   WindowFramePresentation,
@@ -155,7 +154,7 @@ interface FloatingWindowStateBinding {
   requestPosition(state: FloatingWindowState, position: UiVec2, timeStamp?: number): boolean;
   requestSize(state: FloatingWindowState, size: UiVec2, timeStamp?: number): boolean;
   requestVisible(state: FloatingWindowState, visible: boolean, timeStamp?: number): boolean;
-  applyStateChanged(state: FloatingWindowState, event: StateChangedEvent): boolean;
+  applyStateChanged(state: FloatingWindowState, event: UiLayoutStateChangedEvent): boolean;
 }
 
 const FLOATING_WINDOW_SPLIT_MIN_PANE_SIZE = 80;
@@ -503,7 +502,7 @@ export class FloatingWindowComponent
     }
   }
 
-  onStateChanged(event: StateChangedEvent): void {
+  onStateChanged(event: UiLayoutStateChangedEvent): void {
     if (this.#stateBinding.applyStateChanged(this.state, event)) {
       this.applyLayout();
     }

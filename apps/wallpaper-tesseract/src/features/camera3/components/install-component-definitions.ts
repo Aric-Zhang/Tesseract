@@ -1,5 +1,4 @@
-import type { ComponentRegistry } from "../../../actor-runtime";
-import { installComponentDefinition } from "../../../component-definitions";
+import { installComponentDefinition, type ComponentRegistry } from "../../../actor-runtime";
 import { camera3MotionComponentDefinition } from "./camera3-motion-definition";
 import { camera3RigComponentDefinition } from "./camera3-rig-definition";
 import { sceneCamera3ViewportBindingComponentDefinition } from "./scene-camera3-viewport-binding-definition";

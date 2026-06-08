@@ -24,13 +24,14 @@ import {
   workspaceRootDockFrameComponentType,
   type FloatingWindowParameterPaths,
   type FloatingWindowState,
+  type UiActorContext,
+  type UiLayoutStateReader,
   type WindowFocusServiceProxy,
   uiVec2,
   type UiVec2
 } from "../../window-runtime";
-import { SceneParameterStore } from "../../scene-runtime";
-import type { FeatureActorContext, RuntimeObject, RuntimeRegistration } from "../../runtime/ports";
 import type { WindowWorkspaceViewCatalog } from "../../window-runtime";
+import type { UiScheduledService, UiSchedulerRegistration } from "../../window-runtime";
 
 export interface WindowWorkspaceFloatingFramePolicy {
   readonly preferredActorId: string;
@@ -50,8 +51,8 @@ export interface WindowWorkspaceDefaultOpenView {
 }
 
 export interface InstallWindowWorkspaceFeatureOptions {
-  readonly context: FeatureActorContext;
-  readonly sceneStore: SceneParameterStore;
+  readonly context: UiActorContext;
+  readonly layoutState: UiLayoutStateReader;
   readonly floatingFrameParent: HTMLElement;
   readonly rootFrameParent: HTMLElement;
   readonly windowFocus: WindowFocusServiceProxy;
@@ -59,7 +60,7 @@ export interface InstallWindowWorkspaceFeatureOptions {
   readonly floatingFramePolicies: ReadonlyMap<WindowViewKey, WindowWorkspaceFloatingFramePolicy>;
   readonly defaultOpenViews: readonly WindowWorkspaceDefaultOpenView[];
   readonly layoutStorage: WindowWorkspaceFrameLayoutStorage | null;
-  readonly registerRuntimeService: (object: RuntimeObject) => RuntimeRegistration;
+  readonly registerUiScheduledService: (service: UiScheduledService) => UiSchedulerRegistration;
 }
 
 export interface InstalledWindowWorkspaceFeature {
@@ -132,7 +133,7 @@ export function installWindowWorkspaceFeature(
     }
     const title = createOptions.title ?? createOptions.tab?.title ?? viewKey;
     const frameOptions = getFloatingFrameOptions(
-      options.sceneStore,
+      options.layoutState,
       options.floatingFramePolicies,
       viewKey,
       title,
@@ -215,13 +216,13 @@ export function installWindowWorkspaceFeature(
     stackPriorityPort: createWindowWorkspaceStackPriorityPort(framePorts)
   });
   options.windowFocus.bind(workspaceController);
-  options.registerRuntimeService(workspaceController);
+  options.registerUiScheduledService(workspaceController);
   const presentationController = new WindowWorkspacePresentationController({
     framePorts,
     presentation: lifecycle
   });
-  options.registerRuntimeService(presentationController);
-  options.registerRuntimeService(new WindowWorkspaceFrameLayoutPersistenceController({
+  options.registerUiScheduledService(presentationController);
+  options.registerUiScheduledService(new WindowWorkspaceFrameLayoutPersistenceController({
     source: lifecycle,
     storage: options.layoutStorage
   }));
@@ -275,7 +276,7 @@ interface FloatingFrameShellOptions {
 }
 
 function getFloatingFrameOptions(
-  store: SceneParameterStore,
+  store: UiLayoutStateReader,
   policies: ReadonlyMap<WindowViewKey, WindowWorkspaceFloatingFramePolicy>,
   viewKey: WindowViewKey,
   title: string,
@@ -358,7 +359,7 @@ function allocateFloatingFrameIds(
 }
 
 function readFloatingWindowState(
-  store: SceneParameterStore,
+  store: UiLayoutStateReader,
   paths: FloatingWindowParameterPaths,
   options: {
     readonly fallback: FloatingWindowState;
@@ -372,7 +373,7 @@ function readFloatingWindowState(
 }
 
 function readVec2(
-  store: SceneParameterStore,
+  store: UiLayoutStateReader,
   path: FloatingWindowParameterPaths["position"] | FloatingWindowParameterPaths["size"],
   fallback: UiVec2
 ): UiVec2 {

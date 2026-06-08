@@ -10,29 +10,27 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 | --- | --- | --- | --- | --- | --- |
 | actor-core | allowed | Phase 2 | actor-core-candidate | (none) | (none) |
 | actor-input | allowed | Phase 2 | actor-input-candidate | (none) | (none) |
-| editor | deferred | Phase 6 | editor-candidate | runtime-ownership-debt, ui-state-binding-debt | runtime-ownership-debt, ui-state-binding-debt |
+| editor | deferred | Phase 6 | editor-candidate | runtime-ownership-debt | runtime-ownership-debt |
 | runtime-core | blocked | Phase 4 | (none) | state-domain-debt, runtime-ownership-debt | state-domain-debt, runtime-ownership-debt |
 | runtime-three | blocked | Phase 5 | (none) | runtime-ownership-debt | runtime-ownership-debt |
-| ui-framework | blocked | Phase 3 | ui-framework-candidate | ui-state-binding-debt, component-definition-installer-debt | ui-state-binding-debt, component-definition-installer-debt |
-| wallpaper-app | blocked | Phase 7 | app-composition | app-composition-debt, app-runtime-debt, component-definition-installer-debt | app-composition-debt, app-runtime-debt, component-definition-installer-debt |
+| ui-framework | deferred | Phase 3B/3C | ui-framework-candidate | (none) | (none) |
+| wallpaper-app | blocked | Phase 7 | app-composition | app-composition-debt, app-runtime-debt | app-composition-debt, app-runtime-debt |
 
 ## Candidate Zones
 
 - actor-core-candidate: 1 files. Actor primitives that are UI-free, scene-free, update-scheduler-free, and window-focus-free.
 - actor-input-candidate: 1 files. Actor input and gizmo-core adapter candidates.
 - app-composition: 8 files. Wallpaper app bootstrap and composition layer.
-- editor-candidate: 53 files. Concrete editor features and editor presentation components.
-- ui-framework-candidate: 52 files. Generic window, tab, dock, menu, and app shell UI candidates.
+- editor-candidate: 54 files. Concrete editor features and editor presentation components.
+- ui-framework-candidate: 53 files. Generic window, tab, dock, menu, and app shell UI candidates.
 
 ## Debt Zones
 
-- actor-binding-debt: 9 files. App-local attachment/runtime placement that still blocks actor-input and state/runtime extraction.
-- app-composition-debt: 3 files. Wallpaper app composition still knows concrete editor/runtime policy details.
+- actor-binding-debt: 10 files. App-local attachment/runtime placement that still blocks actor-input and state/runtime extraction.
+- app-composition-debt: 4 files. Wallpaper app composition still knows concrete editor/runtime policy details.
 - app-runtime-debt: 8 files. Transitional app runtime context and registration ports.
-- component-definition-installer-debt: 2 files. App-local component definition helper placement that still blocks package-owned installers.
 - runtime-ownership-debt: 21 files. Runtime-like world/camera/object code still owned by editor/app folders.
 - state-domain-debt: 10 files. Mixed scene/editor/ui state runtime that must split before runtime extraction.
-- ui-state-binding-debt: 43 files. Generic UI candidates still coupled to scene-runtime state/path/vector types.
 
 ## Dependency Matrix
 
@@ -47,11 +45,9 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 ## Debt Blockers
 
 - actor-binding-debt: blocks state/runtime bridge split. Delete when: Update runtime and state observer binding are expressed through package-owned ports outside app-local glue.
-- ui-state-binding-debt: blocks ui-framework extraction. Delete when: UI receives state/path/vector/update services through UI-owned ports or a ui-layout-state package.
 - app-composition-debt: blocks app bootstrap thinning, package extraction handoff. Delete when: App composition imports public runtime/editor/UI installers and bootstrap ports only.
-- component-definition-installer-debt: blocks ui-framework extraction, wallpaper app thinning. Delete when: The generic helper moves to the package that owns component registration, or app-local package installers stop depending on shared helper code.
 - app-runtime-debt: blocks app runtime deletion, package-owned port extraction. Delete when: Reusable ports move to the package that owns the contract; wallpaper app becomes thin composition.
-- state-domain-debt: blocks runtime-core extraction, ui-framework extraction, state/scheduler split. Delete when: runtime-state, editor-state, and ui-layout-state become separate facts with explicit adapters.
+- state-domain-debt: blocks runtime-core extraction, state/scheduler split. Delete when: runtime-state, editor-state, and ui-layout-state become separate facts with explicit adapters.
 - runtime-ownership-debt: blocks runtime-core extraction, runtime-three extraction. Delete when: Runtime worlds/cameras/projections expose command/query/frame-source ports consumed by editor Scene views.
 
 ## Runtime Extraction Blockers
@@ -63,8 +59,6 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 
 ## UI Framework Extraction Blockers
 
-- floating-window-scene-state-paths: Generic window state now uses UI-owned geometry, layout paths, and command sinks, but its persistent backing still goes through a scene-runtime state-store adapter. Required port: ui-layout-state path/value port.
-- workspace-runtime-service-registration: Workspace controllers are still registered as app scene runtime RuntimeObject services. Required port: ui-scheduler-port + workspace layout persistence port.
 
 ## App Composition Blockers
 

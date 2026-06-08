@@ -1,4 +1,5 @@
-import type { ComponentDefinition, ComponentRegistry } from "./actor-runtime";
+import type { ComponentDefinition } from "./component";
+import type { ComponentRegistry } from "./component-registry";
 
 export function installComponentDefinition(
   componentRegistry: ComponentRegistry,

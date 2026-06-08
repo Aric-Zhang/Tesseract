@@ -1,4 +1,4 @@
-import type { RuntimeObject } from "../runtime/ports";
+import type { UiScheduledService } from "./ui-scheduler";
 import type { WindowFrameLayoutSnapshotSource } from "./window-frame-lifecycle";
 import {
   parsePersistedWindowWorkspaceFrameLayout,
@@ -25,7 +25,7 @@ export interface WindowWorkspaceFrameLayoutPersistenceControllerOptions {
   readonly onError?: (error: unknown) => void;
 }
 
-export class WindowWorkspaceFrameLayoutPersistenceController implements RuntimeObject {
+export class WindowWorkspaceFrameLayoutPersistenceController implements UiScheduledService {
   readonly id = WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_CONTROLLER_ID;
   readonly priority = 10_000;
   enabled = true;

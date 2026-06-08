@@ -1,6 +1,6 @@
 import { createRegisteredActor, type RegisteredActor } from "../../actor-runtime";
-import type { FeatureActorContext } from "../../runtime/ports";
 import type {
+  UiActorContext,
   UiLayoutPath,
   WindowFrameIntentSink,
   WindowWorkspaceViewCatalog
@@ -23,7 +23,7 @@ export interface AppMenuBarActorOptions {
 }
 
 export function createAppMenuBarActor(
-  context: FeatureActorContext,
+  context: UiActorContext,
   options: AppMenuBarActorOptions
 ): RegisteredActor<AppMenuBarComponent> {
   const actor = context.actorSystem.createActor({
@@ -40,7 +40,7 @@ export function createAppMenuBarActor(
       workspaceModePath: options.workspaceModePath,
       initialMode: options.initialMode
     });
-    let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
+    let untrack: ReturnType<UiActorContext["trackRegisteredActor"]> | null = null;
     const handle = createRegisteredActor({
       actorSystem: context.actorSystem,
       actor,

@@ -1,7 +1,7 @@
 import { sceneParameterPaths, vec2, type SceneParameterStore } from "../scene-runtime";
+import { registerFloatingWindowParameters } from "../editor/adapters/floating-window-scene-state-adapter";
 import {
   createDefaultFloatingWindowState,
-  registerFloatingWindowParameters,
   type FloatingWindowState
 } from "../window-runtime";
 

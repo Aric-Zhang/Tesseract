@@ -1,7 +1,6 @@
 import type { ScreenPoint } from "gizmo-core";
 import type { Actor, Component, ComponentType } from "../../actor-runtime";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
-import type { StateChangedEvent } from "../../runtime/ports";
 import type {
   ActorInputEndEvent,
   ActorInputHit,
@@ -10,6 +9,7 @@ import type {
 import type { StateObserverResponder } from "../../state-runtime";
 import type {
   WindowFrameIntentSink,
+  UiLayoutStateChangedEvent,
   UiLayoutPath,
   WindowWorkspaceViewCatalog,
   WindowViewIdentity,
@@ -126,7 +126,7 @@ export class AppMenuBarComponent
     this.renderIfChanged();
   }
 
-  onStateChanged(event: StateChangedEvent): void {
+  onStateChanged(event: UiLayoutStateChangedEvent): void {
     const modeChange = event.changes.find((change) => change.path === this.#workspaceModePath);
     if (!modeChange) return;
     this.#mode = modeChange.nextValue as AppMenuWorkspaceMode;

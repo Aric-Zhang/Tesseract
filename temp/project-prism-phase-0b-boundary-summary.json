@@ -21,34 +21,29 @@
       {
         "id": "editor-candidate",
         "description": "Concrete editor features and editor presentation components.",
-        "fileCount": 53
+        "fileCount": 54
       },
       {
         "id": "ui-framework-candidate",
         "description": "Generic window, tab, dock, menu, and app shell UI candidates.",
-        "fileCount": 52
+        "fileCount": 53
       }
     ],
     "debt": [
       {
         "id": "actor-binding-debt",
         "description": "App-local attachment/runtime placement that still blocks actor-input and state/runtime extraction.",
-        "fileCount": 9
+        "fileCount": 10
       },
       {
         "id": "app-composition-debt",
         "description": "Wallpaper app composition still knows concrete editor/runtime policy details.",
-        "fileCount": 3
+        "fileCount": 4
       },
       {
         "id": "app-runtime-debt",
         "description": "Transitional app runtime context and registration ports.",
         "fileCount": 8
-      },
-      {
-        "id": "component-definition-installer-debt",
-        "description": "App-local component definition helper placement that still blocks package-owned installers.",
-        "fileCount": 2
       },
       {
         "id": "runtime-ownership-debt",
@@ -59,11 +54,6 @@
         "id": "state-domain-debt",
         "description": "Mixed scene/editor/ui state runtime that must split before runtime extraction.",
         "fileCount": 10
-      },
-      {
-        "id": "ui-state-binding-debt",
-        "description": "Generic UI candidates still coupled to scene-runtime state/path/vector types.",
-        "fileCount": 43
       }
     ]
   },
@@ -96,12 +86,10 @@
         "editor-candidate"
       ],
       "debtZones": [
-        "runtime-ownership-debt",
-        "ui-state-binding-debt"
+        "runtime-ownership-debt"
       ],
       "blockedBy": [
-        "runtime-ownership-debt",
-        "ui-state-binding-debt"
+        "runtime-ownership-debt"
       ]
     },
     {
@@ -132,19 +120,13 @@
     },
     {
       "id": "ui-framework",
-      "status": "blocked",
-      "phase": "Phase 3",
+      "status": "deferred",
+      "phase": "Phase 3B/3C",
       "cleanCandidateZones": [
         "ui-framework-candidate"
       ],
-      "debtZones": [
-        "ui-state-binding-debt",
-        "component-definition-installer-debt"
-      ],
-      "blockedBy": [
-        "ui-state-binding-debt",
-        "component-definition-installer-debt"
-      ]
+      "debtZones": [],
+      "blockedBy": []
     },
     {
       "id": "wallpaper-app",
@@ -155,13 +137,11 @@
       ],
       "debtZones": [
         "app-composition-debt",
-        "app-runtime-debt",
-        "component-definition-installer-debt"
+        "app-runtime-debt"
       ],
       "blockedBy": [
         "app-composition-debt",
-        "app-runtime-debt",
-        "component-definition-installer-debt"
+        "app-runtime-debt"
       ]
     }
   ],
@@ -182,14 +162,6 @@
         "deletionCondition": "Update runtime and state observer binding are expressed through package-owned ports outside app-local glue."
       },
       {
-        "zoneId": "ui-state-binding-debt",
-        "blocks": [
-          "ui-framework extraction"
-        ],
-        "blocker": "Generic UI files still import scene-runtime state, vector, runtime object, or workspace mode facts.",
-        "deletionCondition": "UI receives state/path/vector/update services through UI-owned ports or a ui-layout-state package."
-      },
-      {
         "zoneId": "app-composition-debt",
         "blocks": [
           "app bootstrap thinning",
@@ -197,15 +169,6 @@
         ],
         "blocker": "App composition still wires concrete scene/debug/hierarchy/inspector policy and workspace mode presentation behavior.",
         "deletionCondition": "App composition imports public runtime/editor/UI installers and bootstrap ports only."
-      },
-      {
-        "zoneId": "component-definition-installer-debt",
-        "blocks": [
-          "ui-framework extraction",
-          "wallpaper app thinning"
-        ],
-        "blocker": "The broad pseudo-core installer has been deleted, but the idempotent installComponentDefinition helper and app-local gizmo runtime installer still live in app-local source.",
-        "deletionCondition": "The generic helper moves to the package that owns component registration, or app-local package installers stop depending on shared helper code."
       },
       {
         "zoneId": "app-runtime-debt",
@@ -220,7 +183,6 @@
         "zoneId": "state-domain-debt",
         "blocks": [
           "runtime-core extraction",
-          "ui-framework extraction",
           "state/scheduler split"
         ],
         "blocker": "scene-runtime mixes runtime state, editor state, UI layout state, scheduler, and observer facts.",
@@ -299,39 +261,7 @@
         "deletionCondition": "4D world/projection update is runtime-core; Three renderable adapter is runtime-three; actor/editor binding is an adapter."
       }
     ],
-    "uiFramework": [
-      {
-        "id": "floating-window-scene-state-paths",
-        "files": [
-          "./window-runtime/floating-window-state.ts",
-          "./window-runtime/floating-window-component.ts",
-          "./window-runtime/window-frame-lifecycle.ts",
-          "./window-runtime/window-frame-port.ts"
-        ],
-        "blocks": [
-          "ui-framework extraction"
-        ],
-        "requiredPort": "ui-layout-state path/value port",
-        "blocker": "Generic window state now uses UI-owned geometry, layout paths, and command sinks, but its persistent backing still goes through a scene-runtime state-store adapter.",
-        "deletionCondition": "Window persistence and observation depend on UI-owned layout state storage/observer contracts, not scene-runtime adapters."
-      },
-      {
-        "id": "workspace-runtime-service-registration",
-        "files": [
-          "./window-runtime/window-workspace-controller.ts",
-          "./window-runtime/window-workspace-layout-persistence-controller.ts",
-          "./window-runtime/window-workspace-presentation-controller.ts",
-          "./features/window-workspace/install-window-workspace-feature.ts"
-        ],
-        "blocks": [
-          "ui-framework extraction",
-          "state/scheduler split"
-        ],
-        "requiredPort": "ui-scheduler-port + workspace layout persistence port",
-        "blocker": "Workspace controllers are still registered as app scene runtime RuntimeObject services.",
-        "deletionCondition": "Workspace UI services use package-owned scheduling and persistence ports."
-      }
-    ],
+    "uiFramework": [],
     "appComposition": [
       {
         "id": "wallpaper-app-concrete-feature-policy",
@@ -348,8 +278,7 @@
       {
         "id": "central-component-definition-installer",
         "files": [
-          "./app/install-component-definitions.ts",
-          "./component-definitions.ts"
+          "./app/install-component-definitions.ts"
         ],
         "blocks": [
           "actor-core extraction",

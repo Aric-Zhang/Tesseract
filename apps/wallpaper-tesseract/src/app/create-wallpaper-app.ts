@@ -71,6 +71,7 @@ import {
   registerWorkspaceModeParameters,
   WorkspaceModeController
 } from "./workspace-mode";
+import { registerUiScheduledServiceWithRuntime } from "./adapters/ui-scheduler-runtime-adapter";
 
 export interface WallpaperApp {
   dispose(): void;
@@ -154,7 +155,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   });
   const windowWorkspace = installWindowWorkspaceFeature({
     context: runtimeContext,
-    sceneStore,
+    layoutState: sceneStore,
     floatingFrameParent,
     rootFrameParent: appShell.rootDockSlot,
     windowFocus,
@@ -172,7 +173,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       ...createToolWindowDefaultOpenViews()
     ],
     layoutStorage,
-    registerRuntimeService: (object) => runtimeContext.registerRuntimeService(object)
+    registerUiScheduledService: (service) => registerUiScheduledServiceWithRuntime(runtimeContext, service)
   });
   const sceneFeature = installSceneViewFeature({
     context: runtimeContext,

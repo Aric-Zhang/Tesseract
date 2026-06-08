@@ -283,7 +283,8 @@ describe("architecture boundaries", () => {
       uiFrameworkPackageSources["packages/ui-framework/src/ports/dock-target-region-source.ts"] ?? "";
     const persistenceSource =
       uiFrameworkPackageSources["packages/ui-framework/src/model/window-workspace-layout-persistence.ts"] ?? "";
-    const appMenuModelSource = sourceFiles["./features/app-menu/app-menu-model.ts"] ?? "";
+    const appMenuModelSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/model/app-menu-model.ts"] ?? "";
 
     expect(findForbiddenSourceMatches(/\b(?:GizmoResponder|hitTestGizmo|gizmoPriority)\b/)).toEqual([]);
     expect(actorInputRouterSource).toMatch(/\bActorInputRouter\b/);
@@ -916,15 +917,17 @@ describe("architecture boundaries", () => {
     expect(priorityPortSource).toMatch(/\bsetFrameStackPriority\b/);
   });
 
-  it("keeps App Menu model as a feature-level adapter over window runtime facts", () => {
-    const appMenuModelSource = sourceFiles["./features/app-menu/app-menu-model.ts"] ?? "";
+  it("keeps App Menu model product-free and feature component as the actor-input adapter", () => {
+    const appMenuModelSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/model/app-menu-model.ts"] ?? "";
+    const appMenuComponentSource = sourceFiles["./features/app-menu/app-menu-bar-component.ts"] ?? "";
     const windowRuntimeViolations = Object.entries(sourceFiles)
       .filter(([file]) => file.startsWith("./window-runtime/"))
       .filter(([, source]) => /features\/app-menu/.test(source))
       .map(([file]) => file)
       .sort();
 
-    expect(appMenuModelSource).toMatch(/from\s+["']\.\.\/\.\.\/window-runtime["']/);
+    expect(appMenuModelSource).not.toMatch(/features\/|window-runtime|scene-runtime|debug|hierarchy|tesseract|camera3/);
     expect(appMenuModelSource).toMatch(/\bkind:\s*["']window-command["']/);
     expect(appMenuModelSource).toMatch(/\bkind:\s*["']open-or-focus-type["']/);
     expect(appMenuModelSource).toMatch(/\bkind:\s*["']new-instance["']/);
@@ -934,6 +937,9 @@ describe("architecture boundaries", () => {
     expect(appMenuModelSource).toMatch(/\bviewKey\b/);
     expect(appMenuModelSource).toMatch(/\bWindowWorkspaceViewEntry\b/);
     expect(appMenuModelSource).not.toMatch(/\bdata\s*\?:\s*unknown\b/);
+    expect(appMenuComponentSource).toMatch(/\bActorInputParticipant\b/);
+    expect(appMenuComponentSource).toMatch(/\bStateObserverResponder\b/);
+    expect(appMenuComponentSource).toMatch(/from\s+["']\.\/app-menu-model["']/);
     expect(windowRuntimeViolations).toEqual([]);
   });
 

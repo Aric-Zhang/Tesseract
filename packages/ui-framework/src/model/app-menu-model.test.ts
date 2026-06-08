@@ -5,9 +5,9 @@ import {
   windowViewInstanceId,
   windowViewTypeKey,
   type WindowViewMultiplicity,
-  type WindowViewTypeKey,
-  type WindowWorkspaceViewEntry
-} from "../../window-runtime";
+  type WindowViewTypeKey
+} from "./window-view-identity";
+import type { WindowWorkspaceViewEntry } from "../services/window-workspace-view-catalog";
 import { createWindowMenuItem, createWindowMenuItems } from "./app-menu-model";
 
 function createViewEntry(options: {

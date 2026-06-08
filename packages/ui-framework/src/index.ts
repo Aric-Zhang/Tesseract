@@ -1,3 +1,4 @@
+export * from "./model/app-menu-model";
 export * from "./chrome/window-frame-surface-component";
 export * from "./chrome/window-frame-surface-definition";
 export * from "./chrome/window-frame-tab-chrome";

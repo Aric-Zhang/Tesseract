@@ -1010,7 +1010,9 @@ describe("architecture boundaries", () => {
     const persistenceSource =
       uiFrameworkPackageSources["packages/ui-framework/src/model/window-workspace-layout-persistence.ts"] ?? "";
     const persistenceControllerSource =
-      sourceFiles["./window-runtime/window-workspace-layout-persistence-controller.ts"] ?? "";
+      uiFrameworkPackageSources[
+        "packages/ui-framework/src/services/window-workspace-layout-persistence-controller.ts"
+      ] ?? "";
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
 
     expect(persistenceSource).toMatch(/\btypeKey:\s*WindowViewTypeKey\b/);

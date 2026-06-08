@@ -27,6 +27,7 @@ export * from "./services/window-focus-command-port";
 export * from "./services/window-frame-lifecycle";
 export * from "./services/window-frame-lifecycle-controller";
 export * from "./services/window-workspace-controller";
+export * from "./services/window-workspace-layout-persistence-controller";
 export * from "./services/window-workspace-presentation-controller";
 export * from "./services/window-workspace-stack-priority-port";
 export * from "./services/window-workspace-view-catalog";

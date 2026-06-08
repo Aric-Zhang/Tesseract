@@ -4,7 +4,7 @@ import {
   floatingWindowComponentDefinition,
   type FloatingWindowComponentDefinitionOptions
 } from "./floating-window-definition";
-import { windowFrameSurfaceComponentDefinition } from "./window-frame-surface-definition";
+import { windowFrameSurfaceComponentDefinition } from "ui-framework";
 import { workspaceRootDockFrameComponentDefinition } from "./workspace-root-dock-frame-definition";
 
 export type InstallWindowComponentDefinitionsOptions = FloatingWindowComponentDefinitionOptions;

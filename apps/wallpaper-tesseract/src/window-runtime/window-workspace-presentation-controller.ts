@@ -1,4 +1,4 @@
-import type { UiScheduledService } from "./ui-scheduler";
+import type { UiScheduledService } from "ui-framework";
 import type {
   WindowViewFullscreenReason,
   WindowViewFullscreenSession,

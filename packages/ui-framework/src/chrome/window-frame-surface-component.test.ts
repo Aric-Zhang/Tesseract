@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "../actor-runtime";
-import { createActorInputMoveEvent, createActorInputHit } from "../test-support";
+import { ActorSystem } from "actor-core";
+import type { ActorInputHit, ActorInputMoveEvent } from "actor-input";
 import { WindowFrameSurfaceComponent, type WindowFrameSurfaceHost } from "./window-frame-surface-component";
-import type { WindowFrameTab } from "./window-frame-port";
+import type { WindowFrameTab } from "../model/window-frame-tab";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -277,3 +277,45 @@ describe("WindowFrameSurfaceComponent", () => {
     expect(content.children).not.toContain(orphanContent);
   });
 });
+
+function createActorInputHit(
+  componentId: string,
+  options: Partial<ActorInputHit> = {}
+): ActorInputHit {
+  const partId = options.partId ?? componentId;
+  return {
+    componentId,
+    partId,
+    kind: options.kind ?? "control",
+    region: options.region ?? "content-control",
+    localRoutePriority: options.localRoutePriority ?? 0,
+    path: options.path ?? [{ componentId, role: "control", partId }],
+    ...options
+  };
+}
+
+function createActorInputMoveEvent(
+  hit: ActorInputHit,
+  options: {
+    readonly totalDelta?: { dx: number; dy: number };
+  } = {}
+): ActorInputMoveEvent {
+  const totalDelta = options.totalDelta ?? { dx: 0, dy: 0 };
+  return {
+    gizmo: {
+      id: hit.componentId,
+      priority: 0,
+      hitTest: () => null
+    } as ActorInputMoveEvent["gizmo"],
+    hit,
+    pointerId: 1,
+    pointerType: "mouse",
+    timeStamp: 20,
+    point: { x: 20 + totalDelta.dx, y: 36 + totalDelta.dy },
+    startPoint: { x: 20, y: 36 },
+    buttons: 1,
+    delta: totalDelta,
+    totalDelta,
+    isDragging: true
+  };
+}

@@ -1,6 +1,6 @@
 import type { Actor, ActorSystemView } from "../actor-runtime";
 import type { ActorInputStackPrioritySource } from "../gizmo-runtime";
-import type { UiFrame, UiScheduledService } from "./ui-scheduler";
+import type { UiFrame, UiScheduledService } from "ui-framework";
 import type { WindowFocusCommandPort, WindowFocusReason } from "./window-focus-command-port";
 import type {
   WindowWorkspaceFrameEntry,

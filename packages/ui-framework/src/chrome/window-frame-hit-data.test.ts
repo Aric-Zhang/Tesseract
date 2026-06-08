@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createActorInputHit } from "../test-support";
+import type { ActorInputHit } from "actor-input";
 import {
   readFloatingWindowSplitterHitData,
   readWindowTabDragSource
-} from "./floating-window-hit-data";
+} from "./window-frame-hit-data";
 
 describe("floating window hit data", () => {
   it("reads tab drag source identity from structured window-tab hits", () => {
@@ -60,3 +60,18 @@ describe("floating window hit data", () => {
     }))).toBeNull();
   });
 });
+
+function createActorInputHit(
+  componentId: string,
+  partial: Pick<ActorInputHit, "partId"> & Partial<ActorInputHit>
+): ActorInputHit {
+  return {
+    componentId,
+    partId: partial.partId,
+    kind: "chrome",
+    region: "window-frame",
+    localRoutePriority: 0,
+    path: [],
+    ...partial
+  };
+}

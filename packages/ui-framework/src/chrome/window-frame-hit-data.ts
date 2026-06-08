@@ -1,7 +1,7 @@
-import type { ActorInputHit } from "../gizmo-runtime";
-import type { WindowFrameDockTreeSplitDirection } from "./window-frame-dock-tree";
-import type { WindowFrameTab } from "./window-frame-port";
-import type { WindowTabDragSource } from "./window-tab-drag-session";
+import type { ActorInputHit } from "actor-input";
+import type { WindowFrameDockTreeSplitDirection } from "../model/window-frame-dock-tree";
+import type { WindowFrameTab } from "../model/window-frame-tab";
+import type { WindowTabDragSource } from "../model/window-tab-drag-session";
 
 export interface FloatingWindowSplitterHitData {
   readonly splitId: string;

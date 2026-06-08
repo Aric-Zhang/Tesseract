@@ -1,6 +1,6 @@
-import type { ScreenPoint } from "gizmo-core";
-import type { WindowFrameDockTreeTabsetNode } from "./window-frame-dock-tree";
-import type { WindowFrameTab } from "./window-frame-port";
+import type { UiPoint } from "../ports/ui-geometry";
+import type { WindowFrameDockTreeTabsetNode } from "../model/window-frame-dock-tree";
+import type { WindowFrameTab } from "../model/window-frame-tab";
 import { createWindowTabCloseAction, type WindowTabAction } from "./window-tab-action";
 
 export const WINDOW_FRAME_TAB_PART_ID = "window-tab";
@@ -53,7 +53,7 @@ export function renderWindowFrameTabsetTabs(options: RenderWindowFrameTabsetOpti
 export function findWindowFrameTabAtPoint(
   tabs: readonly WindowFrameTab[],
   elementsByViewActorId: ReadonlyMap<string, HTMLElement>,
-  point: ScreenPoint
+  point: UiPoint
 ): WindowFrameTab | null {
   for (const tab of tabs) {
     const element = elementsByViewActorId.get(tab.viewActorId);
@@ -67,7 +67,7 @@ export function findWindowFrameTabAtPoint(
 export function findWindowFrameTabActionAtPoint(
   tabs: readonly WindowFrameTab[],
   actionElementsByViewActorId: ReadonlyMap<string, HTMLElement>,
-  point: ScreenPoint
+  point: UiPoint
 ): WindowTabAction | null {
   for (const tab of tabs) {
     const element = actionElementsByViewActorId.get(tab.viewActorId);
@@ -78,7 +78,7 @@ export function findWindowFrameTabActionAtPoint(
   return null;
 }
 
-function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {
+function isPointInsideRect(point: UiPoint, rect: DOMRectReadOnly): boolean {
   return point.x >= rect.left &&
     point.x <= rect.right &&
     point.y >= rect.top &&

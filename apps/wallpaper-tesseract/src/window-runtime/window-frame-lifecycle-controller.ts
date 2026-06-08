@@ -34,9 +34,9 @@ import {
   createWindowViewIdentityKey,
   type WindowViewIdentity,
   type WindowViewTypeKey
-} from "./window-view-identity";
-import type { WindowViewKey } from "./window-view-key";
-import { uiVec2 } from "./ui-geometry";
+} from "ui-framework";
+import type { WindowViewKey } from "ui-framework";
+import { uiVec2 } from "ui-framework";
 import {
   collectFrameViewKeys,
   normalizeWindowWorkspaceFrameLayout,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderWindowFrameTabsetTabs } from "./window-frame-tab-chrome";
-import type { WindowFrameDockTreeTabsetNode } from "./window-frame-dock-tree";
-import type { WindowFrameTab } from "./window-frame-port";
+import type { WindowFrameDockTreeTabsetNode } from "../model/window-frame-dock-tree";
+import type { WindowFrameTab } from "../model/window-frame-tab";
 
 describe("renderWindowFrameTabsetTabs", () => {
   it("renders shared tab chrome with stable accessibility state", () => {

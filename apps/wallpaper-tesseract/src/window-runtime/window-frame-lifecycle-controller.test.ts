@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../actor-runtime";
 import type { WindowFocusCommandPort } from "./window-focus-command-port";
 import { DefaultWindowFrameLifecycleController } from "./window-frame-lifecycle-controller";
@@ -21,7 +21,7 @@ import {
   cloneWindowFrameRuntimeDockRoot,
   restoreWindowFrameDockTreeFromRuntimeRoot,
   splitTabInWindowFrameDockTree
-} from "./window-frame-dock-tree";
+} from "ui-framework";
 
 function createFocusRecorder(calls: string[]): WindowFocusCommandPort {
   return {

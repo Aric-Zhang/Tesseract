@@ -1,12 +1,12 @@
 import type { Actor } from "../actor-runtime";
-import type { UiLayoutPath } from "./ui-layout-state";
-import type { WindowViewKey } from "./window-view-key";
-import type { WindowDockPreviewOperation, WindowDockRect } from "./window-dock-targets";
-import type { WindowDockSplitPlacement } from "./window-dock-targets";
-import type { WindowTabDragSource } from "./window-tab-drag-session";
+import type { UiLayoutPath } from "ui-framework";
+import type { WindowViewKey } from "ui-framework";
+import type { WindowDockPreviewOperation, WindowDockRect } from "ui-framework";
+import type { WindowDockSplitPlacement } from "ui-framework";
+import type { WindowTabDragSource } from "ui-framework";
 import type { WindowFramePort, WindowFramePresentation, WindowFrameTab } from "./window-frame-port";
 import type { WindowWorkspaceFrameLayout } from "./window-workspace-layout";
-import type { WindowViewIdentity, WindowViewTypeKey } from "./window-view-identity";
+import type { WindowViewIdentity, WindowViewTypeKey } from "ui-framework";
 
 export type WindowFrameLifecycleReason =
   | "close-button"

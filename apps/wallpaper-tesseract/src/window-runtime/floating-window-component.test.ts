@@ -23,15 +23,15 @@ import {
   floatingWindowComponentType,
   type FloatingWindowMenuOptions
 } from "./floating-window-component";
-import { WindowFrameSurfaceComponent } from "./window-frame-surface-component";
-import type { FloatingWindowParameterPaths } from "./floating-window-state";
+import { WindowFrameSurfaceComponent } from "ui-framework";
+import type { FloatingWindowParameterPaths } from "ui-framework";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
 import type {
   WindowFrameRuntimeDockNode,
   WindowFrameRuntimeTabsetNode,
   WindowFrameTab
 } from "./window-frame-port";
-import { createWindowTabCloseAction } from "./window-tab-action";
+import { createWindowTabCloseAction } from "ui-framework";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
 
 class FakeDocument {

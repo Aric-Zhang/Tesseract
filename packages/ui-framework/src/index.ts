@@ -1,0 +1,27 @@
+export * from "./chrome/window-frame-surface-component";
+export * from "./chrome/window-frame-surface-definition";
+export * from "./chrome/window-frame-tab-chrome";
+export * from "./chrome/window-frame-hit-data";
+export * from "./chrome/window-tab-action";
+export * from "./chrome/window-dock-preview-component";
+export * from "./model/floating-window-state";
+export * from "./model/window-dock-targets";
+export * from "./model/window-dock-surface-model";
+export * from "./model/window-frame-dock-tree";
+export * from "./model/window-frame-tab";
+export * from "./model/window-tab-drag-session";
+export * from "./model/window-view-identity";
+export * from "./model/window-view-key";
+export * from "./model/window-workspace-layout";
+export * from "./model/window-workspace-layout-persistence";
+export * from "./ports/ui-actor-context";
+export * from "./ports/ui-geometry";
+export * from "./ports/ui-layout-state";
+export * from "./ports/ui-scheduler";
+export * from "./ports/dock-target-region-source";
+export * from "./ports/window-content-host";
+export * from "./ports/window-frame-port";
+export * from "./ports/window-frame-port-registry";
+export * from "./ports/window-view-factory-registry";
+
+export const uiFrameworkPackageName = "ui-framework";

@@ -1,6 +1,6 @@
 import type { Actor, ActorSystemView } from "../actor-runtime";
-import type { WindowViewIdentity } from "./window-view-identity";
-import type { WindowViewKey } from "./window-view-key";
+import type { WindowViewIdentity } from "ui-framework";
+import type { WindowViewKey } from "ui-framework";
 import type { WindowViewFactoryRegistry } from "./window-view-factory-registry";
 import { getWindowViewFactoryIdentity } from "./window-view-factory-registry";
 import type { WindowViewLocationSource } from "./window-frame-lifecycle";

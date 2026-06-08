@@ -5,7 +5,7 @@ import {
   workspaceRootDockFrameComponentType,
   type WorkspaceRootDockFrameComponentOptions
 } from "./workspace-root-dock-frame-component";
-import { windowFrameSurfaceComponentType } from "./window-frame-surface-component";
+import { windowFrameSurfaceComponentType } from "ui-framework";
 
 export const workspaceRootDockFrameComponentDefinition:
   ComponentDefinition<WorkspaceRootDockFrameComponent, WorkspaceRootDockFrameComponentOptions> = {

@@ -6,8 +6,8 @@ import {
   floatingWindowComponentType,
   type FloatingWindowComponentOptions
 } from "./floating-window-component";
-import type { UiLayoutCommandSink } from "./ui-layout-state";
-import { windowFrameSurfaceComponentType } from "./window-frame-surface-component";
+import type { UiLayoutCommandSink } from "ui-framework";
+import { windowFrameSurfaceComponentType } from "ui-framework";
 
 export interface FloatingWindowComponentDefinitionOptions {
   readonly commandSink?: UiLayoutCommandSink;

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { DockTargetRegionSource } from "./dock-target-region-source";
 import {
+  type DockTargetRegionSource,
   WindowDockPreviewComponent,
   WindowDockPreviewController
 } from "./window-dock-preview-component";
-import type { WindowDockTargetRegion } from "./window-dock-targets";
+import type { WindowDockTargetRegion } from "../model/window-dock-targets";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {

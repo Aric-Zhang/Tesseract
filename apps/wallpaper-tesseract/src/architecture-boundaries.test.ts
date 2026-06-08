@@ -22,6 +22,7 @@ import {
 
 describe("architecture boundaries", () => {
   const actorInputPackageSources = collectWorkspaceSourceFiles("packages/actor-input/src");
+  const uiFrameworkPackageSources = collectWorkspaceSourceFiles("packages/ui-framework/src");
 
   it("parses static import and export-from edges for boundary checks", () => {
     const imports = parseStaticImports(`
@@ -278,8 +279,10 @@ describe("architecture boundaries", () => {
   it("keeps Project Prism legacy locks paired with replacement contracts", () => {
     const actorInputRouterSource = actorInputPackageSources["packages/actor-input/src/actor-input-router.ts"] ?? "";
     const renderableSceneViewSource = sourceFiles["./features/scene/renderable-scene-view.ts"] ?? "";
-    const dockTargetRegionSource = sourceFiles["./window-runtime/dock-target-region-source.ts"] ?? "";
-    const persistenceSource = sourceFiles["./window-runtime/window-workspace-layout-persistence.ts"] ?? "";
+    const dockTargetRegionSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/ports/dock-target-region-source.ts"] ?? "";
+    const persistenceSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/model/window-workspace-layout-persistence.ts"] ?? "";
     const appMenuModelSource = sourceFiles["./features/app-menu/app-menu-model.ts"] ?? "";
 
     expect(findForbiddenSourceMatches(/\b(?:GizmoResponder|hitTestGizmo|gizmoPriority)\b/)).toEqual([]);
@@ -800,7 +803,7 @@ describe("architecture boundaries", () => {
     const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
     const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
     const tabInputSource = sourceFiles["./window-runtime/window-frame-tab-input.ts"] ?? "";
-    const tabActionSource = sourceFiles["./window-runtime/window-tab-action.ts"] ?? "";
+    const tabActionSource = uiFrameworkPackageSources["packages/ui-framework/src/chrome/window-tab-action.ts"] ?? "";
 
     expect(floatingWindowSource).toMatch(/\bhandleWindowFrameTabInputEnd\b/);
     expect(rootFrameSource).toMatch(/\bhandleWindowFrameTabInputEnd\b/);
@@ -822,7 +825,7 @@ describe("architecture boundaries", () => {
     const floatingDefinitionSource = sourceFiles["./window-runtime/floating-window-definition.ts"] ?? "";
     const rootDefinitionSource = sourceFiles["./window-runtime/workspace-root-dock-frame-definition.ts"] ?? "";
     const installSource = sourceFiles["./window-runtime/install-component-definitions.ts"] ?? "";
-    const surfaceSource = sourceFiles["./window-runtime/window-frame-surface-component.ts"] ?? "";
+    const surfaceSource = uiFrameworkPackageSources["packages/ui-framework/src/chrome/window-frame-surface-component.ts"] ?? "";
 
     expect(surfaceSource).toMatch(/\bWindowDockSurfaceModel\b/);
     expect(surfaceSource).toMatch(/\brenderWindowFrameTabsetTabs\b/);
@@ -844,8 +847,8 @@ describe("architecture boundaries", () => {
   it("keeps root and floating tab chrome on the same shared hit/action model", () => {
     const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
     const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
-    const surfaceSource = sourceFiles["./window-runtime/window-frame-surface-component.ts"] ?? "";
-    const tabChromeSource = sourceFiles["./window-runtime/window-frame-tab-chrome.ts"] ?? "";
+    const surfaceSource = uiFrameworkPackageSources["packages/ui-framework/src/chrome/window-frame-surface-component.ts"] ?? "";
+    const tabChromeSource = uiFrameworkPackageSources["packages/ui-framework/src/chrome/window-frame-tab-chrome.ts"] ?? "";
     const tabInputSource = sourceFiles["./window-runtime/window-frame-tab-input.ts"] ?? "";
     const duplicatedChromeHelpers =
       /\b(?:findWindowFrameTabActionAtPoint|findWindowFrameTabAtPoint|renderWindowFrameTabsetTabs|createWindowTabCloseAction)\b/;
@@ -869,9 +872,9 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps dock surface active-tab display truth inside tabset runtime roots", () => {
-    const framePortSource = sourceFiles["./window-runtime/window-frame-port.ts"] ?? "";
-    const dockSurfaceSource = sourceFiles["./window-runtime/window-dock-surface-model.ts"] ?? "";
-    const surfaceSource = sourceFiles["./window-runtime/window-frame-surface-component.ts"] ?? "";
+    const framePortSource = uiFrameworkPackageSources["packages/ui-framework/src/ports/window-frame-port.ts"] ?? "";
+    const dockSurfaceSource = uiFrameworkPackageSources["packages/ui-framework/src/model/window-dock-surface-model.ts"] ?? "";
+    const surfaceSource = uiFrameworkPackageSources["packages/ui-framework/src/chrome/window-frame-surface-component.ts"] ?? "";
 
     expect(framePortSource).not.toMatch(/\bgetActiveViewActorId\b/);
     expect(framePortSource).toMatch(/\bgetFocusedViewActorId\b/);
@@ -884,7 +887,8 @@ describe("architecture boundaries", () => {
   it("keeps frame visual layer and actor input priority on the same frame projection", () => {
     const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
     const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
-    const registrySource = sourceFiles["./window-runtime/window-frame-port-registry.ts"] ?? "";
+    const registrySource =
+      uiFrameworkPackageSources["packages/ui-framework/src/ports/window-frame-port-registry.ts"] ?? "";
     const workspaceControllerSource = sourceFiles["./window-runtime/window-workspace-controller.ts"] ?? "";
 
     expect(registrySource).toMatch(/\bgetStackPriority:\s*\(\)\s*=>\s*number\b/);
@@ -936,7 +940,8 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps window view factories limited to view runtime creation", () => {
-    const factoryRegistrySource = sourceFiles["./window-runtime/window-view-factory-registry.ts"] ?? "";
+    const factoryRegistrySource =
+      uiFrameworkPackageSources["packages/ui-framework/src/ports/window-view-factory-registry.ts"] ?? "";
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
 
     expect(factoryRegistrySource).not.toMatch(/\bWindowViewFactoryResult\b/);
@@ -978,7 +983,8 @@ describe("architecture boundaries", () => {
   it("keeps frame lifecycle mutation behind window-runtime intent ports", () => {
     const lifecycleSource = sourceFiles["./window-runtime/window-frame-lifecycle.ts"] ?? "";
     const controllerSource = sourceFiles["./window-runtime/window-frame-lifecycle-controller.ts"] ?? "";
-    const factoryRegistrySource = sourceFiles["./window-runtime/window-view-factory-registry.ts"] ?? "";
+    const factoryRegistrySource =
+      uiFrameworkPackageSources["packages/ui-framework/src/ports/window-view-factory-registry.ts"] ?? "";
     const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
 
     expect(lifecycleSource).toMatch(/\binterface\s+WindowFrameLifecycleController\b/);
@@ -995,7 +1001,8 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps persisted window frame layout keyed by logical view identity", () => {
-    const persistenceSource = sourceFiles["./window-runtime/window-workspace-layout-persistence.ts"] ?? "";
+    const persistenceSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/model/window-workspace-layout-persistence.ts"] ?? "";
     const persistenceControllerSource =
       sourceFiles["./window-runtime/window-workspace-layout-persistence-controller.ts"] ?? "";
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
@@ -1034,7 +1041,8 @@ describe("architecture boundaries", () => {
 
   it("keeps live window view tracking keyed by view identity instead of only view key", () => {
     const controllerSource = sourceFiles["./window-runtime/window-frame-lifecycle-controller.ts"] ?? "";
-    const factoryRegistrySource = sourceFiles["./window-runtime/window-view-factory-registry.ts"] ?? "";
+    const factoryRegistrySource =
+      uiFrameworkPackageSources["packages/ui-framework/src/ports/window-view-factory-registry.ts"] ?? "";
 
     expect(controllerSource).toMatch(/\bcreateWindowViewIdentityKey\b/);
     expect(controllerSource).not.toMatch(/new\s+Map\s*<\s*WindowViewKey\s*,\s*LiveWindowView\s*>/);
@@ -1058,12 +1066,16 @@ describe("architecture boundaries", () => {
 
   it("keeps future dock layout model pure and DOM-free", () => {
     const pureWindowLayoutFiles = new Set([
-      "./window-runtime/window-frame-dock-tree.ts",
+      "packages/ui-framework/src/model/window-frame-dock-tree.ts",
       "./window-runtime/window-workspace-layout.ts",
-      "./window-runtime/window-dock-targets.ts",
-      "./window-runtime/window-tab-drag-session.ts"
+      "packages/ui-framework/src/model/window-dock-targets.ts",
+      "packages/ui-framework/src/model/window-tab-drag-session.ts"
     ]);
-    const violations = Object.entries(sourceFiles)
+    const layoutSources = {
+      ...sourceFiles,
+      ...uiFrameworkPackageSources
+    };
+    const violations = Object.entries(layoutSources)
       .filter(([file]) => pureWindowLayoutFiles.has(file))
       .filter(([, source]) => (
         /\b(?:HTMLElement|HTMLDivElement|Document|Element|getBoundingClientRect|querySelector)\b/.test(source) ||
@@ -1075,7 +1087,7 @@ describe("architecture boundaries", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps the window frame dock tree model internal to window-runtime", () => {
+  it("keeps the window frame dock tree model behind the UI framework public API", () => {
     const violations = Object.entries(sourceFiles)
       .filter(([file]) => (
         file !== "./architecture-boundaries.test.ts" &&
@@ -1186,9 +1198,10 @@ describe("architecture boundaries", () => {
       ))
       .map(([file]) => file)
       .sort();
-    const uiGeometrySource = sourceFiles["./window-runtime/ui-geometry.ts"] ?? "";
+    const uiGeometrySource = uiFrameworkPackageSources["packages/ui-framework/src/ports/ui-geometry.ts"] ?? "";
 
     expect(uiGeometrySource).toMatch(/\binterface\s+UiVec2\b/);
+    expect(sourceFiles["./window-runtime/ui-geometry.ts"]).toBeUndefined();
     expect(sceneVec2Imports).toEqual([]);
   });
 
@@ -1208,9 +1221,10 @@ describe("architecture boundaries", () => {
       .filter(([, source]) => /\b(?:SceneCommandSink|ParameterPath|sceneParameterPaths)\b/.test(source))
       .map(([file]) => file)
       .sort();
-    const uiLayoutStateSource = sourceFiles["./window-runtime/ui-layout-state.ts"] ?? "";
+    const uiLayoutStateSource = uiFrameworkPackageSources["packages/ui-framework/src/ports/ui-layout-state.ts"] ?? "";
 
     expect(uiLayoutStateSource).toMatch(/\binterface\s+UiLayoutCommandSink\b/);
+    expect(sourceFiles["./window-runtime/ui-layout-state.ts"]).toBeUndefined();
     expect(sceneCommandOrPathImports).toEqual([]);
     expect(appMenuSceneCommandImports).toEqual([]);
   });

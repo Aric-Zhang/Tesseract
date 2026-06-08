@@ -4,7 +4,7 @@ import type {
   WindowFrameRuntimeSplitNode,
   WindowFrameRuntimeTabsetNode,
   WindowFrameTab
-} from "./window-frame-port";
+} from "./window-frame-tab";
 
 export type WindowFrameDockTreeSplitDirection = "horizontal" | "vertical";
 

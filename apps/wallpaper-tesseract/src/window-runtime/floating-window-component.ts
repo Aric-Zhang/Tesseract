@@ -22,7 +22,7 @@ import {
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
 import {
   readWindowTabDragSource
-} from "./floating-window-hit-data";
+} from "ui-framework";
 import type {
   RegisteredWindowFramePort,
   WindowFramePortRegistry
@@ -32,9 +32,9 @@ import {
   DEFAULT_FLOATING_WINDOW_MIN_SIZE,
   type FloatingWindowParameterPaths,
   type FloatingWindowState
-} from "./floating-window-state";
-import { cloneUiVec2, uiVec2, type UiVec2 } from "./ui-geometry";
-import type { UiLayoutCommandSink, UiLayoutPath, UiLayoutStateChangedEvent } from "./ui-layout-state";
+} from "ui-framework";
+import { cloneUiVec2, uiVec2, type UiVec2 } from "ui-framework";
+import type { UiLayoutCommandSink, UiLayoutPath, UiLayoutStateChangedEvent } from "ui-framework";
 import type {
   WindowFramePort,
   WindowFramePresentation,
@@ -42,19 +42,19 @@ import type {
   WindowFrameSuppressionReason,
   WindowFrameTab
 } from "./window-frame-port";
-import type { WindowViewKey } from "./window-view-key";
-import { windowViewKey } from "./window-view-key";
-import { createSingletonWindowViewIdentity } from "./window-view-identity";
+import type { WindowViewKey } from "ui-framework";
+import { windowViewKey } from "ui-framework";
+import { createSingletonWindowViewIdentity } from "ui-framework";
 import {
   WINDOW_FRAME_TAB_ACTION_PART_ID,
   WINDOW_FRAME_TAB_PART_ID
-} from "./window-frame-tab-chrome";
+} from "ui-framework";
 import { handleWindowFrameTabInputEnd } from "./window-frame-tab-input";
-import { rectFromDomRect, type WindowDockSplitPlacement } from "./window-dock-targets";
+import { rectFromDomRect, type WindowDockSplitPlacement } from "ui-framework";
 import type {
   WindowFrameSurfaceComponent,
   WindowFrameSurfaceHost
-} from "./window-frame-surface-component";
+} from "ui-framework";
 
 export const floatingWindowComponentType =
   "floating-window-component" as ComponentType<FloatingWindowComponent>;

@@ -1,6 +1,6 @@
-import type { WindowFrameTab } from "./window-frame-port";
-import { createSingletonWindowViewIdentity, type WindowViewIdentity } from "./window-view-identity";
-import type { WindowViewKey } from "./window-view-key";
+import type { WindowFrameTab } from "../model/window-frame-tab";
+import { createSingletonWindowViewIdentity, type WindowViewIdentity } from "../model/window-view-identity";
+import type { WindowViewKey } from "../model/window-view-key";
 
 export type WindowTabAction =
   | {

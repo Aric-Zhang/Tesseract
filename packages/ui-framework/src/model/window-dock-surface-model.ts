@@ -1,7 +1,7 @@
 import type {
   WindowFrameRuntimeDockNode,
   WindowFrameTab
-} from "./window-frame-port";
+} from "./window-frame-tab";
 import type { WindowDockSplitPlacement } from "./window-dock-targets";
 import {
   activateTabInWindowFrameDockTree,

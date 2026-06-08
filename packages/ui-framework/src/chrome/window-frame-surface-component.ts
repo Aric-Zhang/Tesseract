@@ -1,33 +1,33 @@
-import type { ScreenPoint } from "gizmo-core";
-import { type Actor, type Component, type ComponentType } from "../actor-runtime";
-import type { ActorInputMoveEvent } from "../gizmo-runtime";
+import { type Actor, type Component, type ComponentType } from "actor-core";
+import type { ActorInputMoveEvent } from "actor-input";
 import {
   createWindowContentAttachment,
-  type FloatingWindowContentAttachment,
+  type WindowContentAttachment,
   type WindowContentAttachmentRequest,
   type WindowContentHost
-} from "./floating-window-host";
+} from "../ports/window-content-host";
 import {
   readFloatingWindowSplitterHitData,
   type FloatingWindowSplitterHitData
-} from "./floating-window-hit-data";
+} from "./window-frame-hit-data";
 import type {
   WindowFrameDockTargetTabset,
   WindowFrameRuntimeDockNode,
   WindowFrameTab
-} from "./window-frame-port";
+} from "../model/window-frame-tab";
 import {
   type WindowFrameDockTreeNode,
   type WindowFrameDockTreeSplitDirection,
   type WindowFrameDockTreeTabsetNode
-} from "./window-frame-dock-tree";
-import { WindowDockSurfaceModel, type WindowDockSurfaceMutationResult } from "./window-dock-surface-model";
+} from "../model/window-frame-dock-tree";
+import { WindowDockSurfaceModel, type WindowDockSurfaceMutationResult } from "../model/window-dock-surface-model";
 import {
   findWindowFrameTabActionAtPoint,
   findWindowFrameTabAtPoint,
   renderWindowFrameTabsetTabs
 } from "./window-frame-tab-chrome";
-import { rectFromDomRect, type WindowDockRect, type WindowDockSplitPlacement } from "./window-dock-targets";
+import { rectFromDomRect, type WindowDockRect, type WindowDockSplitPlacement } from "../model/window-dock-targets";
+import type { UiPoint } from "../ports/ui-geometry";
 
 export const windowFrameSurfaceComponentType =
   "window-frame-surface-component" as ComponentType<WindowFrameSurfaceComponent>;
@@ -94,9 +94,9 @@ export class WindowFrameSurfaceComponent implements Component {
   readonly id: string;
   enabled = true;
 
-  readonly #contentAttachments = new Set<FloatingWindowContentAttachment>();
-  readonly #contentAttachmentsByViewActorId = new Map<string, FloatingWindowContentAttachment>();
-  readonly #contentViewActorIdsByAttachment = new WeakMap<FloatingWindowContentAttachment, string>();
+  readonly #contentAttachments = new Set<WindowContentAttachment>();
+  readonly #contentAttachmentsByViewActorId = new Map<string, WindowContentAttachment>();
+  readonly #contentViewActorIdsByAttachment = new WeakMap<WindowContentAttachment, string>();
   readonly #contentHostsByViewActorId = new Map<string, WindowContentHost>();
   readonly #tabElementsByViewActorId = new Map<string, HTMLElement>();
   readonly #tabActionElementsByViewActorId = new Map<string, HTMLElement>();
@@ -252,7 +252,7 @@ export class WindowFrameSurfaceComponent implements Component {
   mountContent(
     requestOrElement: HTMLElement | WindowContentAttachmentRequest,
     hostOverride?: WindowContentHost
-  ): FloatingWindowContentAttachment {
+  ): WindowContentAttachment {
     const viewActorId = readWindowContentViewActorId(requestOrElement);
     if (viewActorId) {
       this.#contentAttachmentsByViewActorId.get(viewActorId)?.dispose();
@@ -302,7 +302,7 @@ export class WindowFrameSurfaceComponent implements Component {
     return false;
   }
 
-  hitTest(point: ScreenPoint): WindowFrameSurfaceHit | null {
+  hitTest(point: UiPoint): WindowFrameSurfaceHit | null {
     const tabAction = this.findTabActionAtPoint(point);
     if (tabAction) return { part: "tab-action", hitPriority: 100, data: tabAction };
     const tab = this.findTabAtPoint(point);
@@ -506,7 +506,7 @@ export class WindowFrameSurfaceComponent implements Component {
     }
   }
 
-  private findTabAtPoint(point: ScreenPoint): WindowFrameTab | null {
+  private findTabAtPoint(point: UiPoint): WindowFrameTab | null {
     return findWindowFrameTabAtPoint(
       this.#dockSurface.listTabs(),
       this.#tabElementsByViewActorId,
@@ -514,7 +514,7 @@ export class WindowFrameSurfaceComponent implements Component {
     );
   }
 
-  private findTabActionAtPoint(point: ScreenPoint): ReturnType<typeof findWindowFrameTabActionAtPoint> {
+  private findTabActionAtPoint(point: UiPoint): ReturnType<typeof findWindowFrameTabActionAtPoint> {
     return findWindowFrameTabActionAtPoint(
       this.#dockSurface.listTabs(),
       this.#tabActionElementsByViewActorId,
@@ -522,7 +522,7 @@ export class WindowFrameSurfaceComponent implements Component {
     );
   }
 
-  private findSplitterAtPoint(point: ScreenPoint): FloatingWindowSplitterHitData | null {
+  private findSplitterAtPoint(point: UiPoint): FloatingWindowSplitterHitData | null {
     for (const [splitId, element] of this.#splitterElementsBySplitId) {
       if (!isPointInsideRect(point, element.getBoundingClientRect())) continue;
       const split = this.#dockSurface.findSplitById(splitId);
@@ -575,7 +575,7 @@ function readSurfaceSplitterHitData(hitData: unknown): FloatingWindowSplitterHit
   } as Parameters<typeof readFloatingWindowSplitterHitData>[0]);
 }
 
-function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {
+function isPointInsideRect(point: UiPoint, rect: DOMRectReadOnly): boolean {
   return point.x >= rect.left &&
     point.x <= rect.right &&
     point.y >= rect.top &&

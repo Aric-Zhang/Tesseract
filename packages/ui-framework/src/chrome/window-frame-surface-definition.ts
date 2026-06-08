@@ -1,4 +1,4 @@
-import type { ComponentDefinition } from "../actor-runtime";
+import type { ComponentDefinition } from "actor-core";
 import {
   WindowFrameSurfaceComponent,
   windowFrameSurfaceComponentType,
@@ -16,4 +16,3 @@ export const windowFrameSurfaceComponentDefinition:
       return new WindowFrameSurfaceComponent(actor, options);
     }
   };
-

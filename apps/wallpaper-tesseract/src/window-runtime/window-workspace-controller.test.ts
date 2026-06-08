@@ -11,7 +11,7 @@ import {
   type FloatingWindowPresentation
 } from "./floating-window-component";
 import { installWindowComponentDefinitions } from "./install-component-definitions";
-import type { FloatingWindowParameterPaths } from "./floating-window-state";
+import type { FloatingWindowParameterPaths } from "ui-framework";
 import type { WindowFramePort } from "./window-frame-port";
 import { WindowFramePortRegistry } from "./window-frame-port-registry";
 import { WindowViewFactoryRegistry } from "./window-view-factory-registry";

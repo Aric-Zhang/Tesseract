@@ -2,8 +2,8 @@ import {
   cloneUiVec2,
   uiVec2,
   type UiVec2
-} from "./ui-geometry";
-import type { UiLayoutPath } from "./ui-layout-state";
+} from "../ports/ui-geometry";
+import type { UiLayoutPath } from "../ports/ui-layout-state";
 
 export interface FloatingWindowState {
   position: UiVec2;

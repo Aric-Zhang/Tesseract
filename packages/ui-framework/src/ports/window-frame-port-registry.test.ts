@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "../actor-runtime";
+import { ActorSystem } from "actor-core";
 import type { WindowFramePort } from "./window-frame-port";
 import { WindowFramePortRegistry } from "./window-frame-port-registry";
 

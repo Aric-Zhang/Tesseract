@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "../actor-runtime";
-import type { WindowContentRehostable } from "./floating-window-host";
+import { ActorSystem } from "actor-core";
+import type { WindowContentRehostable } from "./window-content-host";
 import { getWindowViewFactoryIdentity, WindowViewFactoryRegistry } from "./window-view-factory-registry";
 
 describe("WindowViewFactoryRegistry", () => {

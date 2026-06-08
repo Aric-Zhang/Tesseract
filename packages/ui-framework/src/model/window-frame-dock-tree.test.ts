@@ -12,7 +12,7 @@ import {
   updateWindowFrameDockTreeSplitRatio,
   type WindowFrameDockTreeNode
 } from "./window-frame-dock-tree";
-import type { WindowFrameRuntimeDockNode, WindowFrameTab } from "./window-frame-port";
+import type { WindowFrameRuntimeDockNode, WindowFrameTab } from "./window-frame-tab";
 
 function tab(viewActorId: string): WindowFrameTab {
   return {

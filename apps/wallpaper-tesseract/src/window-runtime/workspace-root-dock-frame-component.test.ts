@@ -5,8 +5,8 @@ import type { WindowDockCommitIntent, WindowFrameIntentSink } from "./window-fra
 import type { WindowFramePort, WindowFrameRuntimeDockNode, WindowFrameTab } from "./window-frame-port";
 import { WindowFramePortRegistry } from "./window-frame-port-registry";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
-import type { WindowTabDragSource } from "./window-tab-drag-session";
-import { WindowFrameSurfaceComponent } from "./window-frame-surface-component";
+import type { WindowTabDragSource } from "ui-framework";
+import { WindowFrameSurfaceComponent } from "ui-framework";
 import {
   WORKSPACE_ROOT_FRAME_ID,
   WorkspaceRootDockFrameComponent

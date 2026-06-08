@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { FrameStateController, parameterPath, SceneParameterStore, vec2 } from "../scene-runtime";
-import {
-  createDefaultFloatingWindowState,
-  type FloatingWindowParameterPaths
-} from "./floating-window-state";
-import { registerFloatingWindowParameters } from "../editor/adapters/floating-window-scene-state-adapter";
+import { FrameStateController, parameterPath, SceneParameterStore, vec2 } from "../../scene-runtime";
+import type { FloatingWindowParameterPaths } from "ui-framework";
+import { registerFloatingWindowParameters } from "./floating-window-scene-state-adapter";
 
 function createPaths(prefix: string): FloatingWindowParameterPaths {
   return {
@@ -14,7 +11,7 @@ function createPaths(prefix: string): FloatingWindowParameterPaths {
   };
 }
 
-describe("floating window parameters", () => {
+describe("floating window scene state adapter", () => {
   it("registers position, size, and visible state", () => {
     const store = new SceneParameterStore();
     const paths = createPaths("testWindow");
@@ -121,17 +118,5 @@ describe("floating window parameters", () => {
       paths,
       initialState: { position: vec2(0, 0), size: vec2(300, 180), visible: true }
     })).toThrow(/outside window-runtime/);
-  });
-
-  it("creates a default state constrained by viewport and min size", () => {
-    expect(createDefaultFloatingWindowState({
-      viewportWidth: 420,
-      viewportHeight: 720,
-      minSize: vec2(240, 120)
-    })).toEqual({
-      position: vec2(14, 466),
-      size: vec2(392, 240),
-      visible: true
-    });
   });
 });

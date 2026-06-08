@@ -18,6 +18,7 @@ import {
   restoreWindowFrameDockTreeFromRuntimeRoot,
   splitTabInWindowFrameDockTree,
   updateWindowFrameDockTreeSplitRatio,
+  listActiveViewActorIdsInWindowFrameDockTree,
   type WindowFrameDockTreeNode,
   type WindowFrameDockTreeSplitNode,
   type WindowFrameDockTreeTabsetNode
@@ -30,19 +31,20 @@ export interface WindowDockSurfaceModelOptions {
 
 export interface WindowDockSurfaceMutationResult {
   readonly activeViewActorChanged: boolean;
+  readonly focusedViewActorChanged: boolean;
 }
 
 export class WindowDockSurfaceModel {
   #tabs: WindowFrameTab[];
-  #activeViewActorId: string | null;
+  #focusedViewActorId: string | null;
   #root: WindowFrameDockTreeNode;
 
   constructor(options: WindowDockSurfaceModelOptions) {
     this.#tabs = options.tabs.map((tab) => ({ ...tab }));
-    this.#activeViewActorId = resolveActiveViewActorId(this.#tabs, options.activeViewActorId);
+    this.#focusedViewActorId = resolveActiveViewActorId(this.#tabs, options.activeViewActorId);
     this.#root = createWindowFrameDockTreeTabset(
       this.#tabs.map((tab) => tab.viewActorId),
-      this.#activeViewActorId
+      this.#focusedViewActorId
     );
   }
 
@@ -50,8 +52,12 @@ export class WindowDockSurfaceModel {
     return this.#root;
   }
 
-  get activeViewActorId(): string | null {
-    return this.#activeViewActorId;
+  get focusedViewActorId(): string | null {
+    return this.#focusedViewActorId;
+  }
+
+  listActiveViewActorIds(): readonly string[] {
+    return listActiveViewActorIdsInWindowFrameDockTree(this.#root);
   }
 
   listTabs(): readonly WindowFrameTab[] {
@@ -81,7 +87,7 @@ export class WindowDockSurfaceModel {
     this.#tabs = nextTabs;
     this.#root = restoredRoot;
     const activeViewActorId = options.activeViewActorId ?? findActiveViewActorIdInWindowFrameDockTree(restoredRoot);
-    this.#activeViewActorId =
+    this.#focusedViewActorId =
       activeViewActorId && viewActorIds.includes(activeViewActorId)
         ? activeViewActorId
         : viewActorIds[0] ?? null;
@@ -94,17 +100,19 @@ export class WindowDockSurfaceModel {
       readonly targetTabsetId?: string;
     } = {}
   ): WindowDockSurfaceMutationResult {
-    const previousActiveViewActorId = this.#activeViewActorId;
+    const previousFocusedViewActorId = this.#focusedViewActorId;
     this.upsertTab(tab);
     this.#root = addTabToWindowFrameDockTree(this.#root, tab.viewActorId, {
       active: options.active,
       targetTabsetId: options.targetTabsetId
     });
-    if (options.active || !this.#activeViewActorId) {
-      this.#activeViewActorId = tab.viewActorId;
+    if (options.active || !this.#focusedViewActorId) {
+      this.#focusedViewActorId = tab.viewActorId;
     }
+    const focusedViewActorChanged = previousFocusedViewActorId !== this.#focusedViewActorId;
     return {
-      activeViewActorChanged: previousActiveViewActorId !== this.#activeViewActorId
+      activeViewActorChanged: focusedViewActorChanged,
+      focusedViewActorChanged
     };
   }
 
@@ -116,18 +124,20 @@ export class WindowDockSurfaceModel {
       readonly active?: boolean;
     }
   ): WindowDockSurfaceMutationResult {
-    const previousActiveViewActorId = this.#activeViewActorId;
+    const previousFocusedViewActorId = this.#focusedViewActorId;
     this.upsertTab(tab);
     const split = splitTabInWindowFrameDockTree(this.#root, tab.viewActorId, options);
     if (!split.split || !split.node) {
       throw new Error(`Target tabset not found: ${options.targetTabsetId}.`);
     }
     this.#root = split.node;
-    if (options.active || !this.#activeViewActorId) {
-      this.#activeViewActorId = tab.viewActorId;
+    if (options.active || !this.#focusedViewActorId) {
+      this.#focusedViewActorId = tab.viewActorId;
     }
+    const focusedViewActorChanged = previousFocusedViewActorId !== this.#focusedViewActorId;
     return {
-      activeViewActorChanged: previousActiveViewActorId !== this.#activeViewActorId
+      activeViewActorChanged: focusedViewActorChanged,
+      focusedViewActorChanged
     };
   }
 
@@ -140,19 +150,28 @@ export class WindowDockSurfaceModel {
       nextTabs.map((tab) => tab.viewActorId),
       nextTabs[0]?.viewActorId ?? null
     );
-    if (this.#activeViewActorId === viewActorId) {
-      this.#activeViewActorId = this.#tabs[0]?.viewActorId ?? null;
+    if (this.#focusedViewActorId === viewActorId) {
+      this.#focusedViewActorId = findActiveViewActorIdInWindowFrameDockTree(this.#root) ?? this.#tabs[0]?.viewActorId ?? null;
     }
     return true;
   }
 
   activateTab(viewActorId: string): WindowDockSurfaceMutationResult {
-    if (!this.hasTab(viewActorId) || this.#activeViewActorId === viewActorId) {
-      return { activeViewActorChanged: false };
+    if (!this.hasTab(viewActorId)) {
+      return {
+        activeViewActorChanged: false,
+        focusedViewActorChanged: false
+      };
     }
-    this.#activeViewActorId = viewActorId;
+    const wasActiveInTabset = this.isViewActorIdActiveInItsTabset(viewActorId);
+    const previousFocusedViewActorId = this.#focusedViewActorId;
+    this.#focusedViewActorId = viewActorId;
     this.#root = activateTabInWindowFrameDockTree(this.#root, viewActorId);
-    return { activeViewActorChanged: true };
+    const focusedViewActorChanged = previousFocusedViewActorId !== this.#focusedViewActorId;
+    return {
+      activeViewActorChanged: focusedViewActorChanged || !wasActiveInTabset,
+      focusedViewActorChanged
+    };
   }
 
   hasTab(viewActorId: string): boolean {
@@ -173,7 +192,7 @@ export class WindowDockSurfaceModel {
 
   isViewActorIdActiveInItsTabset(viewActorId: string): boolean {
     const tabset = this.findTabsetContaining(viewActorId);
-    return tabset ? tabset.activeViewActorId === viewActorId : this.#activeViewActorId === viewActorId;
+    return Boolean(tabset && tabset.activeViewActorId === viewActorId);
   }
 
   updateSplitRatio(splitId: string, ratio: number): void {
@@ -199,4 +218,3 @@ function resolveActiveViewActorId(
   }
   return tabs[0]?.viewActorId ?? null;
 }
-

@@ -865,7 +865,7 @@ describe("FloatingWindowComponent DOM shell", () => {
       { viewActorId: "debug-view", viewKey: "debug", title: "Debug" },
       { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" }
     ]);
-    expect(component.getActiveViewActorId()).toBe("debug-view");
+    expect(component.getFocusedViewActorId()).toBe("debug-view");
     const initialTabsetId = expectRuntimeTabsetContaining(
       component.getRuntimeDockRoot(),
       "debug-view"
@@ -876,7 +876,7 @@ describe("FloatingWindowComponent DOM shell", () => {
 
     component.activateTab("hierarchy-view");
 
-    expect(component.getActiveViewActorId()).toBe("hierarchy-view");
+    expect(component.getFocusedViewActorId()).toBe("hierarchy-view");
     expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "hierarchy-view").id)
       .toBe(initialTabsetId);
     const nextTabElements = titlebar.children.filter((child) => (
@@ -889,7 +889,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(component.listTabs()).toEqual([
       { viewActorId: "debug-view", viewKey: "debug", title: "Debug" }
     ]);
-    expect(component.getActiveViewActorId()).toBe("debug-view");
+    expect(component.getFocusedViewActorId()).toBe("debug-view");
     expect(expectRuntimeTabsetContaining(component.getRuntimeDockRoot(), "debug-view").id)
       .toBe(initialTabsetId);
   });
@@ -1254,7 +1254,7 @@ describe("FloatingWindowComponent DOM shell", () => {
     });
 
     expect(component.getRuntimeDockRoot()).toEqual(splitRoot);
-    expect(component.getActiveViewActorId()).toBe("debug-view");
+    expect(component.getFocusedViewActorId()).toBe("debug-view");
     expect(component.listTabs()).toEqual([debugTab, sceneTab, hierarchyTab]);
   });
 
@@ -1271,7 +1271,7 @@ describe("FloatingWindowComponent DOM shell", () => {
 
     expect(component.presentation).toBe("windowed");
     expect(root.className).not.toContain("floating-gizmo-window--fullscreen");
-    expect(component.getActiveViewActorId()).toBe("debug-view");
+    expect(component.getFocusedViewActorId()).toBe("debug-view");
   });
 
   it("sends tab activation intent when clicking an inactive tab", () => {
@@ -1307,7 +1307,7 @@ describe("FloatingWindowComponent DOM shell", () => {
 
     expect(hit.partId).toBe("window-tab");
     expect(frameIntents).toEqual(["activate:frame:test:hierarchy-view:tab-click"]);
-    expect(component.getActiveViewActorId()).toBe("debug-view");
+    expect(component.getFocusedViewActorId()).toBe("debug-view");
   });
 
   it("routes tab action hits to close-view intent without using frame close or tab drag", () => {

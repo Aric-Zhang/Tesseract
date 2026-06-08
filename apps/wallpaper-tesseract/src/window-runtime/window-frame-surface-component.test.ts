@@ -214,4 +214,66 @@ describe("WindowFrameSurfaceComponent", () => {
       expect(root.ratio).toBeGreaterThan(0.5);
     }
   });
+
+  it("activates tabs within their split pane without moving content to the frame root", () => {
+    const { content, document, host, surface } = createSubject();
+    surface.configure({ tabs: [createTab("debug-view", "Debug")] });
+    surface.attachHost(host);
+    const debugContent = document.createElement("section");
+    surface.getContentHost("debug-view").mountContent(debugContent as unknown as HTMLElement);
+
+    const initialRoot = surface.getRuntimeDockRoot();
+    if (initialRoot.kind !== "tabset") throw new Error("Expected initial tabset.");
+    surface.splitTab(createTab("scene-view", "Scene"), {
+      targetTabsetId: initialRoot.id,
+      placement: "right",
+      active: true
+    });
+    const splitRoot = surface.getRuntimeDockRoot();
+    if (splitRoot.kind !== "split" || splitRoot.second.kind !== "tabset") {
+      throw new Error("Expected right split tabset.");
+    }
+    const rightTabsetId = splitRoot.second.id;
+    const sceneContent = document.createElement("section");
+    surface.getContentHost("scene-view").mountContent(sceneContent as unknown as HTMLElement);
+    surface.addTab(createTab("hierarchy-view", "Hierarchy"), {
+      targetTabsetId: rightTabsetId,
+      active: false
+    });
+    const hierarchyContent = document.createElement("section");
+    surface.getContentHost("hierarchy-view").mountContent(hierarchyContent as unknown as HTMLElement);
+
+    const paneContents = findChildrenByClass(content, "pane-content");
+    expect(paneContents).toHaveLength(2);
+    expect(debugContent.parentElement).toBe(paneContents[0]);
+    expect(sceneContent.parentElement).toBe(paneContents[1]);
+    expect(hierarchyContent.parentElement).toBe(paneContents[1]);
+    expect(debugContent.hidden).toBe(false);
+    expect(sceneContent.hidden).toBe(false);
+    expect(hierarchyContent.hidden).toBe(true);
+
+    surface.activateTab("hierarchy-view");
+
+    const nextPaneContents = findChildrenByClass(content, "pane-content");
+    expect(nextPaneContents).toHaveLength(2);
+    expect(debugContent.parentElement).toBe(nextPaneContents[0]);
+    expect(sceneContent.parentElement).toBe(nextPaneContents[1]);
+    expect(hierarchyContent.parentElement).toBe(nextPaneContents[1]);
+    expect(debugContent.hidden).toBe(false);
+    expect(sceneContent.hidden).toBe(true);
+    expect(hierarchyContent.hidden).toBe(false);
+  });
+
+  it("does not mount known view content to primary content when its tabset target is missing", () => {
+    const { content, document, host, surface } = createSubject();
+    surface.configure({ tabs: [createTab("debug-view", "Debug")] });
+    surface.attachHost(host);
+
+    const orphanContent = document.createElement("section");
+    surface.getContentHost("missing-view").mountContent(orphanContent as unknown as HTMLElement);
+
+    expect(orphanContent.parentElement).toBeNull();
+    expect(orphanContent.hidden).toBe(true);
+    expect(content.children).not.toContain(orphanContent);
+  });
 });

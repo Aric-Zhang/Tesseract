@@ -26,6 +26,14 @@ export const projectPrismSourceZones = [
     /^\.\/features\/app-menu\/app-menu-bar-component\.ts$/,
     /^\.\/features\/window-workspace\/install-window-workspace-feature\.ts$/
   ], { debt: true }),
+  definePathZone("dock-surface-truth-debt", "Dock/tab surface state still has frame-level active-tab and strict content-host invariants to resolve before UI framework extraction.", [
+    /^\.\/window-runtime\/window-dock-surface-model\.ts$/,
+    /^\.\/window-runtime\/window-frame-port\.ts$/,
+    /^\.\/window-runtime\/window-frame-surface-component\.ts$/,
+    /^\.\/window-runtime\/window-frame-lifecycle-controller\.ts$/,
+    /^\.\/window-runtime\/floating-window-component\.ts$/,
+    /^\.\/window-runtime\/workspace-root-dock-frame-component\.ts$/
+  ], { debt: true }),
   definePathZone("editor-candidate", "Concrete editor features and editor presentation components.", [
     /^\.\/debug\//,
     /^\.\/hierarchy\//,
@@ -93,6 +101,12 @@ export const projectPrismDebtBlockers = [
     blocks: ["ui-framework extraction"],
     blocker: "Generic UI files still import scene-runtime state, vector, runtime object, or workspace mode facts.",
     deletionCondition: "UI receives state/path/vector/update services through UI-owned ports or a ui-layout-state package."
+  },
+  {
+    zoneId: "dock-surface-truth-debt",
+    blocks: ["ui-framework extraction"],
+    blocker: "Dock surface display and commit state still mix frame-level active assumptions, permissive content fallback, and cross-frame-only dock semantics; root/floating tabs cannot reliably split or reorder within their owning frame.",
+    deletionCondition: "Dock tree tabset active ids are the only selected/visible content truth; frame-level focus is MRU-only; known view content never mounts to whole-frame primary content in split mode; same-frame tab split/reorder is explicit and tested for root/floating frames."
   },
   {
     zoneId: "app-composition-debt",
@@ -196,6 +210,21 @@ export interface ProjectPrismUiFrameworkExtractionBlocker {
 }
 
 export const projectPrismUiFrameworkExtractionBlockers = [
+  {
+    id: "dock-surface-truth-model",
+    files: [
+      "./window-runtime/window-dock-surface-model.ts",
+      "./window-runtime/window-frame-port.ts",
+      "./window-runtime/window-frame-surface-component.ts",
+      "./window-runtime/window-frame-lifecycle-controller.ts",
+      "./window-runtime/floating-window-component.ts",
+      "./window-runtime/workspace-root-dock-frame-component.ts"
+    ],
+    blocks: ["ui-framework extraction"],
+    requiredPort: "per-tabset dock surface truth model + same-frame dock operations + shared tab interaction state machine",
+    blocker: "Root/floating split tab behavior still depends on single frame active-tab assumptions, permissive content fallback, and cross-frame-only dock commit semantics that reject root/floating same-frame edge splits.",
+    deletionCondition: "Per-tabset active ids drive rendering/content visibility, frame-level active is MRU-only, root/floating same-frame split/reorder is supported, and root/floating tab click/close/drag/cancel/commit share one actor-input state machine."
+  },
   {
     id: "floating-window-scene-state-paths",
     files: [
@@ -341,8 +370,8 @@ export const projectPrismPackageTargets = [
   {
     id: "ui-framework",
     cleanCandidateZones: ["ui-framework-candidate"],
-    debtZones: ["ui-state-binding-debt", "component-definition-installer-debt"],
-    blockedBy: ["ui-state-binding-debt", "component-definition-installer-debt"],
+    debtZones: ["ui-state-binding-debt", "dock-surface-truth-debt", "component-definition-installer-debt"],
+    blockedBy: ["ui-state-binding-debt", "dock-surface-truth-debt", "component-definition-installer-debt"],
     extractionPhase: "Phase 3",
     extractionStatus: "blocked"
   },

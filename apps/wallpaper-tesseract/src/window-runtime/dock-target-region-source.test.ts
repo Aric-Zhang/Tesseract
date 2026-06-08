@@ -292,7 +292,8 @@ function createFramePort(frameId: string, bounds: DOMRectReadOnly): WindowFrameP
         height: bounds.height - 24
       }
     }],
-    getActiveViewActorId: () => null,
+    getFocusedViewActorId: () => null,
+    getActiveViewActorIds: () => [],
     isViewActiveInFrame: () => false,
     isViewVisibleInFrame: () => false,
     addTab() {},

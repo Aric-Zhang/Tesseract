@@ -61,7 +61,8 @@ export interface WindowFramePort {
     readonly activeViewActorId?: string | null;
   }): void;
   listDockTargetTabsets(): readonly WindowFrameDockTargetTabset[];
-  getActiveViewActorId(): string | null;
+  getFocusedViewActorId(): string | null;
+  getActiveViewActorIds(): readonly string[];
   isViewActiveInFrame(viewActorId: string): boolean;
   isViewVisibleInFrame(viewActorId: string): boolean;
   addTab(tab: WindowFrameTab, options?: {

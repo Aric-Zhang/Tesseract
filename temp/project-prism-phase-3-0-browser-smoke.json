@@ -1,0 +1,271 @@
+{
+  "passed": true,
+  "validationErrors": [],
+  "url": "http://127.0.0.1:5198/?phase3Smoke=tabset-truth-playwright",
+  "seededLayout": {
+    "version": 2,
+    "views": [
+      {
+        "typeKey": "scene",
+        "instanceId": "scene:default",
+        "title": "Scene",
+        "singleton": true
+      },
+      {
+        "typeKey": "debug",
+        "instanceId": "debug:default",
+        "title": "Debug Log",
+        "singleton": true
+      }
+    ],
+    "frames": [
+      {
+        "frameId": "workspace-root-frame",
+        "bounds": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "x": 800,
+            "y": 600
+          },
+          "visible": true
+        },
+        "presentation": "windowed",
+        "root": {
+          "kind": "tabset",
+          "id": "root-tabset-smoke",
+          "tabs": [
+            "scene:default",
+            "debug:default"
+          ],
+          "activeTabId": "scene:default"
+        }
+      }
+    ],
+    "hiddenViewKeys": []
+  },
+  "initial": {
+    "label": "initial",
+    "rootTabs": [
+      {
+        "text": "Scenex",
+        "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+        "active": true,
+        "rect": {
+          "x": 6,
+          "y": 30,
+          "width": 150,
+          "height": 24
+        },
+        "topElement": {
+          "tag": "DIV",
+          "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+          "text": "Scenex"
+        }
+      },
+      {
+        "text": "Debug Logx",
+        "className": "window-frame-tab workspace-root-dock-frame__tab",
+        "active": false,
+        "rect": {
+          "x": 160,
+          "y": 30,
+          "width": 150,
+          "height": 24
+        },
+        "topElement": {
+          "tag": "DIV",
+          "className": "window-frame-tab workspace-root-dock-frame__tab",
+          "text": "Debug Logx"
+        }
+      }
+    ],
+    "floatingTabs": [],
+    "sceneViewport": {
+      "x": 0,
+      "y": 57,
+      "width": 960,
+      "height": 663,
+      "hidden": false,
+      "parentClass": "workspace-root-dock-frame__content"
+    },
+    "debugPanel": null,
+    "contentChildren": [
+      {
+        "tag": "DIV",
+        "className": "scene-window__viewport",
+        "hidden": false,
+        "text": "< Persp",
+        "rect": {
+          "x": 0,
+          "y": 57,
+          "width": 960,
+          "height": 663
+        }
+      },
+      {
+        "tag": "PRE",
+        "className": "debug-log-window__content",
+        "hidden": true,
+        "text": "Gizmo debug log enabled",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        }
+      }
+    ]
+  },
+  "clickResults": [
+    {
+      "label": "after-click-Debug",
+      "rootTabs": [
+        {
+          "text": "Scenex",
+          "className": "window-frame-tab workspace-root-dock-frame__tab",
+          "active": false,
+          "rect": {
+            "x": 6,
+            "y": 30,
+            "width": 150,
+            "height": 24
+          },
+          "topElement": {
+            "tag": "DIV",
+            "className": "window-frame-tab workspace-root-dock-frame__tab",
+            "text": "Scenex"
+          }
+        },
+        {
+          "text": "Debug Logx",
+          "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+          "active": true,
+          "rect": {
+            "x": 160,
+            "y": 30,
+            "width": 150,
+            "height": 24
+          },
+          "topElement": {
+            "tag": "DIV",
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "text": "Debug Logx"
+          }
+        }
+      ],
+      "floatingTabs": [],
+      "sceneViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "hidden": true,
+        "parentClass": "workspace-root-dock-frame__content"
+      },
+      "debugPanel": null,
+      "contentChildren": [
+        {
+          "tag": "DIV",
+          "className": "scene-window__viewport",
+          "hidden": true,
+          "text": "< Persp",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "tag": "PRE",
+          "className": "debug-log-window__content",
+          "hidden": false,
+          "text": "1887 pointerdown pid=1 type=mouse button=0 buttons=1 xy=192,",
+          "rect": {
+            "x": 0,
+            "y": 57,
+            "width": 960,
+            "height": 663
+          }
+        }
+      ]
+    },
+    {
+      "label": "after-click-Scene",
+      "rootTabs": [
+        {
+          "text": "Scenex",
+          "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+          "active": true,
+          "rect": {
+            "x": 6,
+            "y": 30,
+            "width": 150,
+            "height": 24
+          },
+          "topElement": {
+            "tag": "DIV",
+            "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+            "text": "Scenex"
+          }
+        },
+        {
+          "text": "Debug Logx",
+          "className": "window-frame-tab workspace-root-dock-frame__tab",
+          "active": false,
+          "rect": {
+            "x": 160,
+            "y": 30,
+            "width": 150,
+            "height": 24
+          },
+          "topElement": {
+            "tag": "DIV",
+            "className": "window-frame-tab workspace-root-dock-frame__tab",
+            "text": "Debug Logx"
+          }
+        }
+      ],
+      "floatingTabs": [],
+      "sceneViewport": {
+        "x": 0,
+        "y": 57,
+        "width": 960,
+        "height": 663,
+        "hidden": false,
+        "parentClass": "workspace-root-dock-frame__content"
+      },
+      "debugPanel": null,
+      "contentChildren": [
+        {
+          "tag": "DIV",
+          "className": "scene-window__viewport",
+          "hidden": false,
+          "text": "< Persp",
+          "rect": {
+            "x": 0,
+            "y": 57,
+            "width": 960,
+            "height": 663
+          }
+        },
+        {
+          "tag": "PRE",
+          "className": "debug-log-window__content",
+          "hidden": true,
+          "text": "1887 pointerdown pid=1 type=mouse button=0 buttons=1 xy=192,",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0
+          }
+        }
+      ]
+    }
+  ],
+  "consoleErrors": []
+}

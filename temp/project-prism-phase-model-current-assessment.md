@@ -156,6 +156,22 @@ Phase 3 consumes the shared ports established in Phase 1. Its job is to migrate
 window/app-menu/workspace implementation to UI-owned contracts and prove the UI
 framework can run without product features.
 
+Phase 3 must start with Phase 3.0 dock surface truth model cleanup before the
+port split:
+
+- dock tree tabset active ids become the only display truth for selected tabs
+  and content visibility;
+- frame-level active/focused view is allowed only as focus/MRU projection;
+- known view content cannot silently mount to whole-frame primary content when a
+  split/tabset target is missing;
+- root and floating frame tab click, close, drag, cancel, and dock commit use
+  one shared tab interaction state machine;
+- same-frame dock operations are first-class: dragging a tab inside its owning
+  root/floating frame to left/right/top/bottom content edges can split the
+  target tabset instead of being rejected as a same-frame no-op;
+- root/floating split-pane tab switching, menu focus, close, reload, mobile tab
+  close, and actor-input hit evidence must pass browser smoke.
+
 ### Phase 4: Runtime Core Contracts And Projection Graph
 
 Define runtime-core APIs before moving real ownership:
@@ -249,20 +265,21 @@ temp/project-prism-phase2-browser-smoke.png
 
 ## Immediate Next Step
 
-Begin Phase 3, not runtime extraction:
+Begin Phase 3.0, not runtime extraction and not Phase 3A package-boundary work:
 
 ```text
-ui-framework port split and extraction planning
+temp/project-prism-phase-3-ui-framework-implementation-plan.md
+temp/project-prism-phase-3-0-dock-surface-truth-model-plan.md
 ```
 
 Specifically:
 
-1. split UI layout state away from `scene-runtime`;
-2. move generic window/tab/dock/menu/frame lifecycle contracts toward a
-   product-agnostic UI boundary;
-3. keep Scene/Debug/Hierarchy/Inspector/Tesseract/Camera concrete content out
-   of the UI package;
-4. keep using Phase 0B/Phase 2 structured browser smoke for any UI/input
+1. freeze the current root/floating split tab bug as tests;
+2. remove frame-level active tab as display truth;
+3. make content placement strict for known view ids;
+4. make root/floating tab input use one shared state machine;
+5. validate persistence/reload of per-tabset active tabs;
+6. keep using Phase 0B/Phase 2 structured browser smoke for any UI/input
    movement.
 
 Phase 0B is now a completed boundary baseline. Its smoke contract remains the

@@ -1,0 +1,120 @@
+{
+  "passed": true,
+  "url": "http://127.0.0.1:56261/",
+  "layout": {
+    "version": 2,
+    "views": [
+      {
+        "typeKey": "debug",
+        "instanceId": "debug",
+        "title": "Debug Log",
+        "canDock": true,
+        "singleton": true
+      },
+      {
+        "typeKey": "scene",
+        "instanceId": "scene",
+        "title": "Scene",
+        "canDock": true,
+        "singleton": true
+      }
+    ],
+    "frames": [
+      {
+        "frameId": "workspace-root-frame",
+        "bounds": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "x": 1000,
+            "y": 700
+          },
+          "visible": true
+        },
+        "presentation": "windowed",
+        "root": {
+          "kind": "tabset",
+          "id": "root-debug-scene",
+          "tabs": [
+            "debug",
+            "scene"
+          ],
+          "activeTabId": "debug"
+        }
+      }
+    ],
+    "hiddenViewKeys": []
+  },
+  "before": [
+    {
+      "text": "Debug Logx",
+      "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+      "selected": "true",
+      "rect": {
+        "x": 6,
+        "y": 30,
+        "width": 150,
+        "height": 24
+      }
+    },
+    {
+      "text": "Scenex",
+      "className": "window-frame-tab workspace-root-dock-frame__tab",
+      "selected": "false",
+      "rect": {
+        "x": 160,
+        "y": 30,
+        "width": 150,
+        "height": 24
+      }
+    }
+  ],
+  "after": {
+    "tabs": [
+      {
+        "text": "Debug Logx",
+        "className": "window-frame-tab workspace-root-dock-frame__tab",
+        "selected": "false",
+        "rect": {
+          "x": 6,
+          "y": 30,
+          "width": 150,
+          "height": 24
+        }
+      },
+      {
+        "text": "Scenex",
+        "className": "window-frame-tab workspace-root-dock-frame__tab is-active",
+        "selected": "true",
+        "rect": {
+          "x": 160,
+          "y": 30,
+          "width": 150,
+          "height": 24
+        }
+      }
+    ],
+    "canvasRect": {
+      "x": 0,
+      "y": 57,
+      "width": 900,
+      "height": 463
+    },
+    "captures": [
+      {
+        "actorId": "workspace-root-frame",
+        "bindingId": "workspace-root-frame:gizmo-event-binding",
+        "partId": "window-tab",
+        "targetComponentId": "workspace-root-dock-frame:root",
+        "point": {
+          "x": 188,
+          "y": 42
+        }
+      }
+    ]
+  },
+  "validationErrors": [],
+  "errors": []
+}

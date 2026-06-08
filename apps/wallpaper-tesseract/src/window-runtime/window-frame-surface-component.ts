@@ -168,8 +168,12 @@ export class WindowFrameSurfaceComponent implements Component {
     });
   }
 
-  getActiveViewActorId(): string | null {
-    return this.#dockSurface.activeViewActorId;
+  getFocusedViewActorId(): string | null {
+    return this.#dockSurface.focusedViewActorId;
+  }
+
+  getActiveViewActorIds(): readonly string[] {
+    return this.#dockSurface.listActiveViewActorIds();
   }
 
   isViewActiveInFrame(viewActorId: string): boolean {
@@ -351,11 +355,11 @@ export class WindowFrameSurfaceComponent implements Component {
   }
 
   getActiveOrFirstTabBounds(fallback: HTMLElement): DOMRectReadOnly {
-    const activeViewActorId = this.#dockSurface.activeViewActorId;
-    const activeTab = activeViewActorId
-      ? this.#tabElementsByViewActorId.get(activeViewActorId)
+    const focusedViewActorId = this.#dockSurface.focusedViewActorId;
+    const focusedTab = focusedViewActorId
+      ? this.#tabElementsByViewActorId.get(focusedViewActorId)
       : null;
-    const firstTab = activeTab ?? this.#tabElementsByViewActorId.values().next().value as HTMLElement | undefined;
+    const firstTab = focusedTab ?? this.#tabElementsByViewActorId.values().next().value as HTMLElement | undefined;
     return (firstTab ?? fallback).getBoundingClientRect();
   }
 
@@ -477,7 +481,12 @@ export class WindowFrameSurfaceComponent implements Component {
     }
     const tabset = this.#dockSurface.findTabsetContaining(viewActorId);
     const target = tabset ? this.#tabsetTargetsById.get(tabset.id) : null;
-    (target?.content ?? host.primaryContent).append(element);
+    if (!target) {
+      element.hidden = true;
+      element.remove();
+      return;
+    }
+    target.content.append(element);
     element.hidden = !this.isEffectiveVisible() || !this.#dockSurface.isViewActorIdActiveInItsTabset(viewActorId);
   }
 

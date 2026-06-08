@@ -445,7 +445,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("hierarchy-view")!))
       .toBe("workspace-root-frame");
     expect(rootPort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1", "hierarchy-view"]);
-    expect(rootPort.getActiveViewActorId()).toBe("hierarchy-view");
+    expect(rootPort.getFocusedViewActorId()).toBe("hierarchy-view");
   });
 
   it("serializes non-empty root frames while omitting empty root shells", () => {
@@ -671,7 +671,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
       ownerFrameDestroyed: false,
       nextActiveViewActorId: "debug-view-1"
     });
-    expect(debugPort.getActiveViewActorId()).toBe("debug-view-1");
+    expect(debugPort.getFocusedViewActorId()).toBe("debug-view-1");
     expect(debugPort.calls).toContain("activate:debug-view-1");
     expect(subject.focusCalls).toEqual(["focus:debug-frame-1:programmatic"]);
   });
@@ -1116,7 +1116,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
       "hierarchy-view",
       "debug-view-1"
     ]);
-    expect(targetPort?.getActiveViewActorId()).toBe("debug-view-1");
+    expect(targetPort?.getFocusedViewActorId()).toBe("debug-view-1");
     expect(debugContent?.currentWindowContentHost?.id).toBe("hierarchy-frame:host:debug-view-1");
     expect(subject.controller.getLocationByViewKey("debug")).toMatchObject({
       viewKey: "debug",
@@ -1166,7 +1166,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
       "hierarchy-view",
       "debug-view-1"
     ]);
-    expect(targetPort?.getActiveViewActorId()).toBe("debug-view-1");
+    expect(targetPort?.getFocusedViewActorId()).toBe("debug-view-1");
     expect(debugContent?.currentWindowContentHost?.id).toBe("hierarchy-frame:host:debug-view-1");
     expect(subject.controller.getLocationByViewActorId("debug-view-1")).toMatchObject({
       viewKey: "debug",
@@ -1633,7 +1633,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(debugView?.frameActor.id).toBe("scene-frame");
     expect(sceneView?.frameActor.id).toBe("scene-frame");
     expect(scenePort?.listTabs().map((tab) => tab.viewActorId)).toEqual(["scene-view", "debug-view-1"]);
-    expect(scenePort?.getActiveViewActorId()).toBe("debug-view-1");
+    expect(scenePort?.getFocusedViewActorId()).toBe("debug-view-1");
     expect(scenePort?.getFloatingBounds()).toMatchObject({ left: 30, top: 40, width: 500, height: 300 });
     expect(debugContent?.currentWindowContentHost?.id).toBe("scene-frame:host:debug-view-1");
     expect(JSON.stringify(subject.controller.createFrameLayoutSnapshot())).not.toContain("stale-debug-view");
@@ -2207,7 +2207,8 @@ function createFramePort(
       tabBounds: { left: 0, top: 0, right: 100, bottom: 24, width: 100, height: 24 },
       contentBounds: { left: 0, top: 24, right: 100, bottom: 100, width: 100, height: 76 }
     }],
-    getActiveViewActorId: () => activeViewActorId,
+    getFocusedViewActorId: () => activeViewActorId,
+    getActiveViewActorIds: () => listActiveViewActorIdsInTestRuntimeRoot(runtimeRoot),
     isViewActiveInFrame: (viewActorId) => isViewActorIdActiveInTestRuntimeRoot(runtimeRoot, viewActorId),
     isViewVisibleInFrame: (viewActorId) => visible && !presentationSuppressed &&
       isViewActorIdActiveInTestRuntimeRoot(runtimeRoot, viewActorId),
@@ -2434,6 +2435,14 @@ function isViewActorIdActiveInTestRuntimeRoot(root: WindowFrameRuntimeDockNode, 
   if (root.kind === "tabset") return root.activeViewActorId === viewActorId;
   return isViewActorIdActiveInTestRuntimeRoot(root.first, viewActorId) ||
     isViewActorIdActiveInTestRuntimeRoot(root.second, viewActorId);
+}
+
+function listActiveViewActorIdsInTestRuntimeRoot(root: WindowFrameRuntimeDockNode): readonly string[] {
+  if (root.kind === "tabset") return root.activeViewActorId ? [root.activeViewActorId] : [];
+  return [
+    ...listActiveViewActorIdsInTestRuntimeRoot(root.first),
+    ...listActiveViewActorIdsInTestRuntimeRoot(root.second)
+  ];
 }
 
 function containsTestRuntimeViewActorId(root: WindowFrameRuntimeDockNode, viewActorId: string): boolean {

@@ -309,6 +309,63 @@ describe("WorkspaceRootDockFrameComponent", () => {
     }]);
   });
 
+  it("activates an inactive root tab on click without committing a dock drag", () => {
+    const activations: Array<{ frameId: string; viewActorId: string; reason: string }> = [];
+    const commitRequests: WindowDockCommitIntent[] = [];
+    const dragSource: WindowTabDragSource = {
+      frameId: WORKSPACE_ROOT_FRAME_ID,
+      viewActorId: "scene-view",
+      viewKey: "scene"
+    };
+    const frameIntentSink: WindowFrameIntentSink = {
+      requestOpenView() {},
+      requestCloseFrame() {},
+      requestActivateFrameTab(frameId, viewActorId, reason) {
+        activations.push({ frameId, viewActorId, reason });
+      },
+      requestCommitDock(intent) {
+        commitRequests.push(intent);
+      }
+    };
+    let dragEnded = 0;
+    const tabDragSink: WindowTabDragSink = {
+      beginTabDrag() {},
+      moveTabDrag() {},
+      endTabDrag: () => {
+        dragEnded += 1;
+        return {
+          source: dragSource,
+          preview: {
+            kind: "merge-tabs",
+            targetFrameId: "target-frame",
+            targetTabsetId: "target-frame:root",
+            rect: createRect(300, 40, 200, 30)
+          }
+        };
+      },
+      cancelTabDrag() {}
+    };
+    const { component, root } = createSubject({ frameIntentSink, tabDragSink });
+    component.addTab(createTab("debug-view", "Debug"), { active: true });
+    component.addTab(createTab("scene-view", "Scene"), { active: false });
+    setTabRects(root);
+
+    const sceneTabHit = component.hitTestInput({ x: 145, y: 34 });
+    expect(sceneTabHit?.partId).toBe("window-tab");
+    if (!sceneTabHit) throw new Error("Expected Scene tab hit.");
+
+    component.onInputStart(createActorInputStartEvent(sceneTabHit, { point: { x: 145, y: 34 } }));
+    component.onInputEnd(createActorInputEndEvent(sceneTabHit, { wasClick: true, point: { x: 145, y: 34 } }));
+
+    expect(activations).toEqual([{
+      frameId: WORKSPACE_ROOT_FRAME_ID,
+      viewActorId: "scene-view",
+      reason: "tab-click"
+    }]);
+    expect(dragEnded).toBe(1);
+    expect(commitRequests).toEqual([]);
+  });
+
   it("keeps root tab close hit targets inside narrow tab bounds", () => {
     const closeRequests: Array<{ viewActorId: string; ownerFrameId: string | undefined }> = [];
     const frameIntentSink: WindowFrameIntentSink = {

@@ -15,7 +15,6 @@ import {
   type WindowContentHost
 } from "./floating-window-host";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
-import type { WindowDockCommitIntent } from "./window-frame-lifecycle";
 import type {
   WindowFrameDockTargetTabset,
   WindowFramePort,
@@ -26,9 +25,8 @@ import type {
 } from "./window-frame-port";
 import type { RegisteredWindowFramePort, WindowFramePortRegistry } from "./window-frame-port-registry";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
-import type { WindowTabDragSessionEndResult } from "./window-tab-drag-session";
-import { isWindowTabAction } from "./window-tab-action";
 import { readWindowTabDragSource } from "./floating-window-hit-data";
+import { handleWindowFrameTabInputEnd } from "./window-frame-tab-input";
 import {
   WINDOW_FRAME_TAB_ACTION_PART_ID,
   WINDOW_FRAME_TAB_PART_ID
@@ -196,8 +194,12 @@ export class WorkspaceRootDockFrameComponent
     return this.#surface.listDockTargetTabsets();
   }
 
-  getActiveViewActorId(): string | null {
-    return this.#surface.getActiveViewActorId();
+  getFocusedViewActorId(): string | null {
+    return this.#surface.getFocusedViewActorId();
+  }
+
+  getActiveViewActorIds(): readonly string[] {
+    return this.#surface.getActiveViewActorIds();
   }
 
   isViewActiveInFrame(viewActorId: string): boolean {
@@ -316,29 +318,15 @@ export class WorkspaceRootDockFrameComponent
 
   onInputEnd(event: ActorInputEndEvent): void {
     this.#surface.endSplitResize();
-    if (event.hit.partId === WINDOW_FRAME_TAB_PART_ID && this.#draggingTab) {
-      const result = this.#tabDragSink?.endTabDrag() ?? null;
-      const intent = result && !event.wasClick ? createDockCommitIntent(result) : null;
-      if (intent) this.#frameIntentSink?.requestCommitDock?.(intent);
-      this.#draggingTab = false;
-      return;
-    }
-    if (event.hit.partId === WINDOW_FRAME_TAB_PART_ID && event.wasClick) {
-      const source = readWindowTabDragSource(this.#frameId, event.hit);
-      if (source) {
-        this.#frameIntentSink?.requestActivateFrameTab?.(this.#frameId, source.viewActorId, "tab-click");
-      }
-    }
-    if (event.hit.partId === WINDOW_FRAME_TAB_ACTION_PART_ID && event.wasClick) {
-      const action = event.hit.data;
-      if (isWindowTabAction(action) && action.kind === "close-view") {
-        this.#frameIntentSink?.requestCloseView?.(action.viewActorId, "tab-action", {
-          ownerFrameId: this.#frameId,
-          identity: action.identity,
-          viewKey: action.viewKey
-        });
-      }
-    }
+    const tabResult = handleWindowFrameTabInputEnd({
+      event,
+      frameId: this.#frameId,
+      frameIntentSink: this.#frameIntentSink,
+      tabDragSink: this.#tabDragSink,
+      draggingTab: this.#draggingTab
+    });
+    this.#draggingTab = tabResult.draggingTab;
+    if (tabResult.handled) return;
   }
 
   onInputCancel(_event: ActorInputCancelEvent): void {
@@ -376,34 +364,6 @@ export class WorkspaceRootDockFrameComponent
       data
     };
   }
-}
-
-function createDockCommitIntent(result: WindowTabDragSessionEndResult): WindowDockCommitIntent {
-  if (result.preview.kind === "merge-tabs") {
-    return {
-      kind: "merge-tabs",
-      source: result.source,
-      targetFrameId: result.preview.targetFrameId,
-      targetTabsetId: result.preview.targetTabsetId,
-      reason: "dock-drop"
-    };
-  }
-  if (result.preview.kind === "split") {
-    return {
-      kind: "split-tab",
-      source: result.source,
-      targetFrameId: result.preview.targetFrameId,
-      targetTabsetId: result.preview.targetTabsetId,
-      placement: result.preview.placement,
-      reason: "dock-drop"
-    };
-  }
-  return {
-    kind: "float-tab",
-    source: result.source,
-    bounds: result.preview.rect,
-    reason: "dock-drop"
-  };
 }
 
 function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {

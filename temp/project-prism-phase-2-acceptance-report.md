@@ -112,11 +112,17 @@ The remaining blockers are expected and belong to later phases:
 
 ## Phase 3 Entry Point
 
-Phase 3 should start with UI framework extraction blockers, not runtime extraction:
+Phase 3 should start with the Phase 3.0 dock surface truth model cleanup, not
+runtime extraction and not immediate UI package extraction:
 
-1. split UI layout state away from `scene-runtime`;
-2. move generic window/tab/dock/menu installers and ports toward a UI-owned boundary;
-3. keep product-specific Scene/Debug/Hierarchy/Inspector content outside the UI package;
-4. preserve actor-input-backed UI behavior and reuse the Phase 2 browser smoke shape for high-risk UI/input changes.
+1. make dock tree tabset active ids the only selected/visible content truth;
+2. remove frame-level active tab as display truth from `WindowFramePort` and
+   surface model APIs;
+3. prevent known view content from falling back to whole-frame primary content
+   when a split/tabset host is missing;
+4. make root/floating tab click, close, drag, cancel, and dock commit share one
+   tab interaction state machine;
+5. preserve actor-input-backed UI behavior and reuse the Phase 2 browser smoke
+   shape for high-risk UI/input changes.
 
 Do not begin `runtime-core` extraction until the state-domain and runtime-ownership blockers are addressed in the later runtime phases.

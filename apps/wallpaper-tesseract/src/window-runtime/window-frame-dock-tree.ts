@@ -145,6 +145,18 @@ export function findActiveViewActorIdInWindowFrameDockTree(
     findActiveViewActorIdInWindowFrameDockTree(node.second);
 }
 
+export function listActiveViewActorIdsInWindowFrameDockTree(
+  node: WindowFrameDockTreeNode
+): readonly string[] {
+  if (node.kind === "tabset") {
+    return node.activeViewActorId ? [node.activeViewActorId] : [];
+  }
+  return [
+    ...listActiveViewActorIdsInWindowFrameDockTree(node.first),
+    ...listActiveViewActorIdsInWindowFrameDockTree(node.second)
+  ];
+}
+
 export function addTabToWindowFrameDockTree(
   node: WindowFrameDockTreeNode,
   viewActorId: string,

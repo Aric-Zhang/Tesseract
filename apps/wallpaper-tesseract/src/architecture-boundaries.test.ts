@@ -776,14 +776,19 @@ describe("architecture boundaries", () => {
 
   it("keeps tab-local window actions on actor input lifecycle intents", () => {
     const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
+    const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
+    const tabInputSource = sourceFiles["./window-runtime/window-frame-tab-input.ts"] ?? "";
     const tabActionSource = sourceFiles["./window-runtime/window-tab-action.ts"] ?? "";
 
-    expect(floatingWindowSource).toMatch(/partId\s*===\s*WINDOW_FRAME_TAB_ACTION_PART_ID/);
-    expect(floatingWindowSource).toMatch(/requestCloseView\(event\.hit\.data\.viewActorId,\s*["']tab-action["'],\s*\{/);
-    expect(floatingWindowSource).toMatch(/ownerFrameId:\s*this\.#frameId/);
-    expect(floatingWindowSource).toMatch(/viewKey:\s*event\.hit\.data\.viewKey/);
+    expect(floatingWindowSource).toMatch(/\bhandleWindowFrameTabInputEnd\b/);
+    expect(rootFrameSource).toMatch(/\bhandleWindowFrameTabInputEnd\b/);
+    expect(tabInputSource).toMatch(/requestCloseView\(event\.hit\.data\.viewActorId,\s*["']tab-action["'],\s*\{/);
+    expect(tabInputSource).toMatch(/ownerFrameId:\s*frameId/);
+    expect(tabInputSource).toMatch(/viewKey:\s*event\.hit\.data\.viewKey/);
     expect(floatingWindowSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
+    expect(rootFrameSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
     expect(floatingWindowSource).not.toMatch(/\.onclick\s*=/);
+    expect(rootFrameSource).not.toMatch(/\.onclick\s*=/);
     expect(tabActionSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
     expect(tabActionSource).not.toMatch(/\.onclick\s*=/);
     expect(tabActionSource).not.toMatch(/\brequestCloseFrame\b|\bcloseFrame\b/);
@@ -819,6 +824,7 @@ describe("architecture boundaries", () => {
     const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
     const surfaceSource = sourceFiles["./window-runtime/window-frame-surface-component.ts"] ?? "";
     const tabChromeSource = sourceFiles["./window-runtime/window-frame-tab-chrome.ts"] ?? "";
+    const tabInputSource = sourceFiles["./window-runtime/window-frame-tab-input.ts"] ?? "";
     const duplicatedChromeHelpers =
       /\b(?:findWindowFrameTabActionAtPoint|findWindowFrameTabAtPoint|renderWindowFrameTabsetTabs|createWindowTabCloseAction)\b/;
 
@@ -833,6 +839,24 @@ describe("architecture boundaries", () => {
     expect(rootFrameSource).not.toMatch(duplicatedChromeHelpers);
     expect(floatingWindowSource).toMatch(/\bWINDOW_FRAME_TAB_ACTION_PART_ID\b/);
     expect(rootFrameSource).toMatch(/\bWINDOW_FRAME_TAB_ACTION_PART_ID\b/);
+    expect(floatingWindowSource).toMatch(/\bhandleWindowFrameTabInputEnd\b/);
+    expect(rootFrameSource).toMatch(/\bhandleWindowFrameTabInputEnd\b/);
+    expect(tabInputSource).toMatch(/\brequestActivateFrameTab\b/);
+    expect(tabInputSource).toMatch(/\brequestCommitDock\b/);
+    expect(tabInputSource).toMatch(/\brequestCloseView\b/);
+  });
+
+  it("keeps dock surface active-tab display truth inside tabset runtime roots", () => {
+    const framePortSource = sourceFiles["./window-runtime/window-frame-port.ts"] ?? "";
+    const dockSurfaceSource = sourceFiles["./window-runtime/window-dock-surface-model.ts"] ?? "";
+    const surfaceSource = sourceFiles["./window-runtime/window-frame-surface-component.ts"] ?? "";
+
+    expect(framePortSource).not.toMatch(/\bgetActiveViewActorId\b/);
+    expect(framePortSource).toMatch(/\bgetFocusedViewActorId\b/);
+    expect(framePortSource).toMatch(/\bgetActiveViewActorIds\b/);
+    expect(dockSurfaceSource).not.toMatch(/#activeViewActorId/);
+    expect(dockSurfaceSource).toMatch(/#focusedViewActorId/);
+    expect(surfaceSource).not.toMatch(/target\?\.content\s*\?\?\s*host\.primaryContent/);
   });
 
   it("keeps frame visual layer and actor input priority on the same frame projection", () => {

@@ -324,6 +324,10 @@ export class DefaultWindowFrameLifecycleController implements
     const sourceFrame = currentLiveView.frameActor;
     const sourceFrameId = sourceFrame.id;
     const sourcePort = currentLiveView.framePort;
+    const nextActiveViewActorId = findRuntimeDockRootNextActiveViewActorIdAfterRemove(
+      sourcePort.getRuntimeDockRoot(),
+      viewActorId
+    );
     const warnings: string[] = [];
     const cleanup = this.disposeLiveViewRuntimeForClose(currentLiveView);
     if (!cleanup.disposed) {
@@ -353,7 +357,6 @@ export class DefaultWindowFrameLifecycleController implements
     this.#fullscreenSessionsByViewActorId.delete(viewActorId);
 
     const remainingViews = this.listLiveViewsForFrame(sourceFrame);
-    const nextActiveViewActorId = sourcePort.getActiveViewActorId();
     if (remainingViews.length === 0) {
       const destroy = this.destroyEmptyFrameIfAllowed(sourceFrame, "empty owner frame destroy failed");
       if (!destroy.warning) {
@@ -482,11 +485,11 @@ export class DefaultWindowFrameLifecycleController implements
       parentId: this.#actorSystem.getParentId(sourceView.viewActor),
       sourceFrame,
       sourcePort,
-      sourceActiveViewActorId: sourcePort.getActiveViewActorId(),
+      sourceActiveViewActorId: sourcePort.getFocusedViewActorId(),
       sourceTab,
       targetFrame,
       targetPort,
-      targetActiveViewActorId: targetPort.getActiveViewActorId()
+      targetActiveViewActorId: targetPort.getFocusedViewActorId()
     };
 
     this.#cancelActiveInput?.();
@@ -850,7 +853,7 @@ export class DefaultWindowFrameLifecycleController implements
       sourceFrameId: sourceFrame.id,
       sourceRoot,
       sourceTabs,
-      sourceActiveViewActorId: sourcePort.getActiveViewActorId(),
+      sourceActiveViewActorId: sourcePort.getFocusedViewActorId(),
       sourceBounds: sourcePort.getFloatingBounds(),
       sourcePresentation: sourcePort.presentation,
       sourceVisiblePath: sourcePort.visiblePath,
@@ -1300,7 +1303,7 @@ export class DefaultWindowFrameLifecycleController implements
       parentId: this.#actorSystem.getParentId(sourceView.viewActor),
       sourceFrame,
       sourcePort,
-      sourceActiveViewActorId: sourcePort.getActiveViewActorId(),
+      sourceActiveViewActorId: sourcePort.getFocusedViewActorId(),
       sourceTab
     };
     let createdFrame: ReturnType<WindowFloatingFrameFactory> | null = null;
@@ -1358,11 +1361,11 @@ export class DefaultWindowFrameLifecycleController implements
       parentId: this.#actorSystem.getParentId(sourceView.viewActor),
       sourceFrame,
       sourcePort,
-      sourceActiveViewActorId: sourcePort.getActiveViewActorId(),
+      sourceActiveViewActorId: sourcePort.getFocusedViewActorId(),
       sourceTab,
       targetFrame,
       targetPort,
-      targetActiveViewActorId: targetPort.getActiveViewActorId()
+      targetActiveViewActorId: targetPort.getFocusedViewActorId()
     };
 
     this.#cancelActiveInput?.();
@@ -1583,6 +1586,24 @@ function mapPreferredFrameIdsByViewKey(layout: WindowWorkspaceFrameLayout): Read
 function findRuntimeDockRootActiveViewActorId(root: WindowFrameRuntimeDockNode): string | null {
   if (root.kind === "tabset") return root.activeViewActorId ?? root.tabs[0] ?? null;
   return findRuntimeDockRootActiveViewActorId(root.first) ?? findRuntimeDockRootActiveViewActorId(root.second);
+}
+
+function findRuntimeDockRootNextActiveViewActorIdAfterRemove(
+  root: WindowFrameRuntimeDockNode,
+  viewActorId: string
+): string | null {
+  if (root.kind === "tabset") {
+    if (!root.tabs.includes(viewActorId)) return null;
+    const remainingTabs = root.tabs.filter((tab) => tab !== viewActorId);
+    if (remainingTabs.length === 0) return null;
+    if (root.activeViewActorId && root.activeViewActorId !== viewActorId && remainingTabs.includes(root.activeViewActorId)) {
+      return root.activeViewActorId;
+    }
+    const removedIndex = root.tabs.indexOf(viewActorId);
+    return remainingTabs[Math.min(removedIndex, remainingTabs.length - 1)] ?? remainingTabs[0] ?? null;
+  }
+  return findRuntimeDockRootNextActiveViewActorIdAfterRemove(root.first, viewActorId) ??
+    findRuntimeDockRootNextActiveViewActorIdAfterRemove(root.second, viewActorId);
 }
 
 function shouldRestoreFrameFullscreen(root: WindowFrameDockNode): boolean {

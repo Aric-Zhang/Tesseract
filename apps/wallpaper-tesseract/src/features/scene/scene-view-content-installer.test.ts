@@ -141,6 +141,21 @@ function createWorkspaceRootFrame(
   return actor;
 }
 
+function addSceneTabToFrame(
+  runtimeContext: AppRuntimeContext,
+  frameActor: ReturnType<typeof createWorkspaceRootFrame>,
+  viewActorId: string
+): void {
+  const frame = runtimeContext.componentRegistry.getComponent(frameActor, workspaceRootDockFrameComponentType);
+  if (!frame) throw new Error("Expected workspace root frame component.");
+  frame.addTab({
+    viewActorId,
+    viewKey: "scene",
+    identity: createSingletonWindowViewIdentity("scene"),
+    title: "Scene"
+  }, { active: true });
+}
+
 function createFakeCamera3Gizmo(document: FakeDocument, calls: string[]): Camera3GizmoViewFactory {
   return (options) => {
     const element = document.createElement("div");
@@ -241,6 +256,7 @@ function createSubject(options: CreateSubjectOptions = {}) {
     document,
     options.rootFrameActorId ?? "workspace-root-frame"
   );
+  addSceneTabToFrame(runtimeContext, rootFrameActor, sceneViewActorId);
   const viewLocationSource = options.viewLocationSource ?? createSceneLocationSource(
     runtimeContext,
     rootFrameActor.id,

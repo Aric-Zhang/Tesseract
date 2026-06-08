@@ -4,7 +4,11 @@ import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
 import { sceneParameterPaths, type SceneUpdateCommand } from "../../scene-runtime";
-import { floatingWindowComponentType, workspaceRootDockFrameComponentType } from "../../window-runtime";
+import {
+  createSingletonWindowViewIdentity,
+  floatingWindowComponentType,
+  workspaceRootDockFrameComponentType
+} from "../../window-runtime";
 import { installWindowComponentDefinitions } from "../../window-runtime";
 import { createActorInputEndEvent } from "../../test-support";
 import { createDefaultSceneWindowState, createSceneViewActor } from ".";
@@ -122,6 +126,21 @@ function createWorkspaceRootFrame(
   return actor;
 }
 
+function addSceneTab(
+  context: ReturnType<typeof createContext>,
+  ownerFrame: Actor,
+  viewActorId = "scene-actor:view"
+): void {
+  const frame = context.componentRegistry.getComponent(ownerFrame, workspaceRootDockFrameComponentType);
+  if (!frame) throw new Error("Expected workspace root frame component.");
+  frame.addTab({
+    viewActorId,
+    viewKey: "scene",
+    identity: createSingletonWindowViewIdentity("scene"),
+    title: "Scene"
+  }, { active: true });
+}
+
 function createFakeRenderer(document: FakeDocument, calls: string[] = []): SceneViewportRenderer {
   return {
     domElement: document.createElement("canvas") as unknown as HTMLElement,
@@ -149,6 +168,7 @@ describe("createSceneViewActor", () => {
     const document = new FakeDocument();
     const parent = document.createElement("div");
     const ownerFrame = createWorkspaceRootFrame(context, parent, document);
+    addSceneTab(context, ownerFrame);
     const rendererCalls: string[] = [];
 
     const handle = createSceneViewActor(context, {
@@ -190,6 +210,7 @@ describe("createSceneViewActor", () => {
     const document = new FakeDocument();
     const parent = document.createElement("div");
     const ownerFrame = createWorkspaceRootFrame(context, parent, document);
+    addSceneTab(context, ownerFrame);
     const handle = createSceneViewActor(context, {
       actorId: "scene-actor:view",
       actorName: "Scene View",
@@ -211,6 +232,7 @@ describe("createSceneViewActor", () => {
     const document = new FakeDocument();
     const parent = document.createElement("div");
     const ownerFrame = createWorkspaceRootFrame(context, parent, document);
+    addSceneTab(context, ownerFrame);
     const rendererCalls: string[] = [];
     const resizeCallbacks: Array<() => void> = [];
     const observerCalls: string[] = [];
@@ -265,6 +287,7 @@ describe("createSceneViewActor", () => {
     const document = new FakeDocument();
     const parent = document.createElement("div");
     const ownerFrame = createWorkspaceRootFrame(context, parent, document);
+    addSceneTab(context, ownerFrame);
     const rendererCalls: string[] = [];
     const handle = createSceneViewActor(context, {
       actorId: "scene-actor:view",
@@ -307,6 +330,7 @@ describe("createSceneViewActor", () => {
     const document = new FakeDocument();
     const parent = document.createElement("div");
     const ownerFrame = createWorkspaceRootFrame(context, parent, document);
+    addSceneTab(context, ownerFrame);
     const handle = createSceneViewActor(context, {
       actorId: "scene-actor:view",
       actorName: "Scene View",

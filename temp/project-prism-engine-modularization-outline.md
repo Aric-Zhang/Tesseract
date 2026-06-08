@@ -26,7 +26,8 @@ Current execution status:
 Phase 0 complete as boundary baseline.
 Phase 1 complete as app-local shared-spine decoupling.
 Phase 2 complete for actor-core and actor-input package extraction.
-Next main line: Phase 3 UI framework port split and extraction planning.
+Next main line: Phase 3.0 dock surface truth model cleanup before Phase 3 UI
+framework port split and extraction planning.
 ```
 
 ## Codename
@@ -754,6 +755,12 @@ Goal:
 
 Extract product-agnostic window/tab/dock/menu/layout code into `ui-framework`.
 
+Detailed implementation plan:
+
+```text
+temp/project-prism-phase-3-ui-framework-implementation-plan.md
+```
+
 Why this phase follows actor extraction:
 
 The UI framework is actor/component-driven and pointer-driven. It should depend
@@ -762,6 +769,19 @@ state.
 
 Work:
 
+- start with `Phase 3.0: Dock Surface Truth Model Cleanup` before any
+  UI framework port split:
+  - remove frame-level active tab as display truth;
+  - make dock tree tabset active ids the only selected/visible content truth;
+  - prevent known view content from falling back to whole-frame primary content;
+  - make root/floating tab click, close, drag, cancel, and dock commit use one
+    shared state machine;
+  - make same-frame dock split/reorder a first-class operation so tabs can dock
+    to left/right/top/bottom regions inside their current root/floating frame;
+  - prove root/floating split-pane tab switching and menu focus with browser
+    smoke evidence;
+  - clear the generated `dock-surface-truth-debt` blocker before marking
+    `ui-framework` extraction ready;
 - replace UI usage of scene-runtime `ParameterPath`, `Vec2`, `RuntimeObject`,
   frame update, and workspace mode paths with UI-owned ports;
 - keep `WindowViewIdentity` public API split clean:
@@ -777,20 +797,32 @@ Work:
 Subphase order:
 
 ```text
+Phase 3.0: Dock surface truth model cleanup
 Phase 3A: UI-owned state/scheduler/geometry ports
 Phase 3B: framework fixture that runs without product features
 Phase 3C: package extraction
 Phase 3D: browser smoke parity after extraction
 ```
 
-Do not create a package before Phase 3B can run a generic fixture without
-Scene/Tesseract/Camera3/Debug/Hierarchy/Inspector content.
+Do not begin Phase 3A until Phase 3.0 passes. Do not create a package before
+Phase 3B can run a generic fixture without Scene/Tesseract/Camera3/Debug/
+Hierarchy/Inspector content.
 
 Acceptance:
 
 - `ui-framework` imports no Tesseract, Camera3, Scene renderer, Debug,
   Hierarchy, Inspector, or `sceneParameterPaths`;
 - floating frame and root frame share the same frame surface/tab chrome logic;
+- dock tree tabset active ids are the only display truth for selected tabs and
+  content visibility; frame-level active/focused view may exist only as MRU or
+  focus projection;
+- known view content never falls back to root/floating whole-frame primary
+  content when a split/tabset target is missing;
+- root/floating same-frame tab split/reorder is supported through the same dock
+  target, preview, commit, and actor-input state machine as cross-frame docking;
+- floating frame and root frame share the same tab input state machine; tab
+  click, tab close, tab drag, drag cancel, and dock commit must not be
+  implemented as divergent root/floating branches;
 - menu actions are generic type/instance actions, not product-specific IDs;
 - wide, mobile, root/floating overlap, split-region docking, and repeated
   dock/undock browser evidence remains green.

@@ -46,11 +46,11 @@ import type {
 import type { WindowViewKey } from "./window-view-key";
 import { windowViewKey } from "./window-view-key";
 import { createSingletonWindowViewIdentity } from "./window-view-identity";
-import { isWindowTabAction } from "./window-tab-action";
 import {
   WINDOW_FRAME_TAB_ACTION_PART_ID,
   WINDOW_FRAME_TAB_PART_ID
 } from "./window-frame-tab-chrome";
+import { handleWindowFrameTabInputEnd } from "./window-frame-tab-input";
 import { rectFromDomRect, type WindowDockSplitPlacement } from "./window-dock-targets";
 import type {
   WindowFrameSurfaceComponent,
@@ -361,8 +361,12 @@ export class FloatingWindowComponent
     return this.#surface.listDockTargetTabsets();
   }
 
-  getActiveViewActorId(): string | null {
-    return this.#surface.getActiveViewActorId();
+  getFocusedViewActorId(): string | null {
+    return this.#surface.getFocusedViewActorId();
+  }
+
+  getActiveViewActorIds(): readonly string[] {
+    return this.#surface.getActiveViewActorIds();
   }
 
   isViewActiveInFrame(viewActorId: string): boolean {
@@ -462,7 +466,7 @@ export class FloatingWindowComponent
   }
 
   setTitle(title: string): void {
-    const targetViewActorId = this.#surface.getActiveViewActorId() ?? this.#surface.listTabs()[0]?.viewActorId;
+    const targetViewActorId = this.#surface.getFocusedViewActorId() ?? this.#surface.listTabs()[0]?.viewActorId;
     if (!targetViewActorId) return;
     const tabs = this.#surface.listTabs().map((tab) => (
       tab.viewActorId === targetViewActorId ? { ...tab, title } : tab
@@ -597,54 +601,25 @@ export class FloatingWindowComponent
     this.#dragStartState = null;
     this.#surface.endSplitResize();
     if (event.hit.partId === WINDOW_FRAME_TAB_ACTION_PART_ID) {
-      if (event.wasClick && this.#frameIntentSink?.requestCloseView && isWindowTabAction(event.hit.data)) {
-        this.#frameIntentSink.requestCloseView(event.hit.data.viewActorId, "tab-action", {
-          ownerFrameId: this.#frameId,
-          identity: event.hit.data.identity,
-          viewKey: event.hit.data.viewKey
-        });
-      }
+      handleWindowFrameTabInputEnd({
+        event,
+        frameId: this.#frameId,
+        frameIntentSink: this.#frameIntentSink,
+        tabDragSink: this.#tabDragSink,
+        draggingTab: true,
+        activateFallback: (viewActorId) => this.activateTab(viewActorId)
+      });
       return;
     }
-    if (event.hit.partId === WINDOW_FRAME_TAB_PART_ID) {
-      if (event.wasClick) {
-        const source = readWindowTabDragSource(this.#frameId, event.hit);
-        if (source) {
-          if (this.#frameIntentSink?.requestActivateFrameTab) {
-            this.#frameIntentSink.requestActivateFrameTab(this.#frameId, source.viewActorId, "tab-click");
-          } else {
-            this.activateTab(source.viewActorId);
-          }
-        }
-      }
-      const dragResult = this.#tabDragSink?.endTabDrag() ?? null;
-      if (!event.wasClick && dragResult?.preview.kind === "merge-tabs") {
-        this.#frameIntentSink?.requestCommitDock?.({
-          kind: "merge-tabs",
-          source: dragResult.source,
-          targetFrameId: dragResult.preview.targetFrameId,
-          targetTabsetId: dragResult.preview.targetTabsetId,
-          reason: "dock-drop"
-        });
-      } else if (!event.wasClick && dragResult?.preview.kind === "split") {
-        this.#frameIntentSink?.requestCommitDock?.({
-          kind: "split-tab",
-          source: dragResult.source,
-          targetFrameId: dragResult.preview.targetFrameId,
-          targetTabsetId: dragResult.preview.targetTabsetId,
-          placement: dragResult.preview.placement,
-          reason: "dock-drop"
-        });
-      } else if (!event.wasClick && dragResult?.preview.kind === "floating") {
-        this.#frameIntentSink?.requestCommitDock?.({
-          kind: "float-tab",
-          source: dragResult.source,
-          bounds: dragResult.preview.rect,
-          reason: "dock-drop"
-        });
-      }
-      return;
-    }
+    const tabResult = handleWindowFrameTabInputEnd({
+      event,
+      frameId: this.#frameId,
+      frameIntentSink: this.#frameIntentSink,
+      tabDragSink: this.#tabDragSink,
+      draggingTab: event.hit.partId === WINDOW_FRAME_TAB_PART_ID,
+      activateFallback: (viewActorId) => this.activateTab(viewActorId)
+    });
+    if (tabResult.handled) return;
     if (event.hit.partId === "close" && event.wasClick) {
       if (this.#frameIntentSink) {
         this.#frameIntentSink.requestCloseFrame(this.#frameId, "close-button");

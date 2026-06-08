@@ -7,7 +7,8 @@ describe("WindowDockSurfaceModel", () => {
       tabs: [{ viewActorId: "debug-view", viewKey: "debug", title: "Debug" }]
     });
 
-    expect(model.activeViewActorId).toBe("debug-view");
+    expect(model.focusedViewActorId).toBe("debug-view");
+    expect(model.listActiveViewActorIds()).toEqual(["debug-view"]);
     expect(model.getRuntimeDockRoot()).toMatchObject({
       kind: "tabset",
       tabs: ["debug-view"],
@@ -20,7 +21,8 @@ describe("WindowDockSurfaceModel", () => {
     );
 
     expect(add.activeViewActorChanged).toBe(true);
-    expect(model.activeViewActorId).toBe("hierarchy-view");
+    expect(model.focusedViewActorId).toBe("hierarchy-view");
+    expect(model.listActiveViewActorIds()).toEqual(["hierarchy-view"]);
     expect(model.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view", "hierarchy-view"]);
   });
 
@@ -52,16 +54,45 @@ describe("WindowDockSurfaceModel", () => {
     });
 
     expect(model.removeTab("hierarchy-view")).toBe(true);
-    expect(model.activeViewActorId).toBe("debug-view");
+    expect(model.focusedViewActorId).toBe("debug-view");
     expect(model.removeTab("debug-view")).toBe(true);
 
     expect(model.listTabs()).toEqual([]);
-    expect(model.activeViewActorId).toBeNull();
+    expect(model.focusedViewActorId).toBeNull();
     expect(model.getRuntimeDockRoot()).toMatchObject({
       kind: "tabset",
       tabs: [],
       activeViewActorId: null
     });
   });
-});
 
+  it("keeps split tabset active state independent from focused view", () => {
+    const model = new WindowDockSurfaceModel({
+      tabs: [{ viewActorId: "debug-view", viewKey: "debug", title: "Debug" }]
+    });
+    const targetTabsetId = model.getRuntimeDockRoot().id;
+    model.splitTab(
+      { viewActorId: "scene-view", viewKey: "scene", title: "Scene" },
+      { targetTabsetId, placement: "right", active: true }
+    );
+    const root = model.getRuntimeDockRoot();
+    if (root.kind !== "split" || root.second.kind !== "tabset") {
+      throw new Error("Expected split with target tabset.");
+    }
+    model.addTab(
+      { viewActorId: "hierarchy-view", viewKey: "hierarchy", title: "Hierarchy" },
+      { targetTabsetId: root.second.id, active: false }
+    );
+
+    expect([...model.listActiveViewActorIds()].sort()).toEqual(["debug-view", "scene-view"]);
+    expect(model.focusedViewActorId).toBe("scene-view");
+
+    model.activateTab("hierarchy-view");
+
+    expect(model.isViewActorIdActiveInItsTabset("hierarchy-view")).toBe(true);
+    expect(model.isViewActorIdActiveInItsTabset("scene-view")).toBe(false);
+    expect(model.isViewActorIdActiveInItsTabset("debug-view")).toBe(true);
+    expect([...model.listActiveViewActorIds()].sort()).toEqual(["debug-view", "hierarchy-view"]);
+    expect(model.focusedViewActorId).toBe("hierarchy-view");
+  });
+});

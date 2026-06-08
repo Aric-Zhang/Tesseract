@@ -624,7 +624,9 @@ Stop if:
 Objective:
 
 Close Phase 2 with generated facts, verification, and a precise Phase 3 entry
-point.
+point. The Phase 3 entry must start with the dock surface truth model cleanup
+when root/floating split-tab behavior still depends on frame-level active tab
+state.
 
 Implementation Steps:
 
@@ -657,6 +659,8 @@ Acceptance:
 - No target package is marked allowed unless it is actually extractable.
 - No app-local legacy adapter or dual-track fact remains for update/focus.
 - Phase 3 can start from a clear UI framework extraction blocker list.
+- If dock/tab bugs remain, the first Phase 3 item is Phase 3.0 dock surface
+  truth model cleanup, not UI package extraction.
 
 ## Required Browser Smoke Matrix
 

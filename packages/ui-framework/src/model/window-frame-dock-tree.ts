@@ -189,6 +189,9 @@ export function splitTabInWindowFrameDockTree(
   }
 ): SplitWindowFrameDockTreeTabResult {
   const removed = removeTabFromWindowFrameDockTree(node, viewActorId);
+  if (removed.removed && !removed.node) {
+    return { node, split: false };
+  }
   const rootWithoutSource = removed.node ?? node;
   const split = splitWindowFrameDockTreeTargetTabset(rootWithoutSource, viewActorId, options);
   return {

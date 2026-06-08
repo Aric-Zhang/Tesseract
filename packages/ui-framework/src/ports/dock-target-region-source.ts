@@ -41,6 +41,7 @@ function toDockTargetRegions(
   return framePort.listDockTargetTabsets().map((target: WindowFrameDockTargetTabset) => ({
     frameId,
     targetTabsetId: target.targetTabsetId,
+    targetTabsetTabs: target.tabs,
     stackPriority: stackPriority + index * 0.001,
     bounds: framePort.getFloatingBounds(),
     tabBounds: target.tabBounds,

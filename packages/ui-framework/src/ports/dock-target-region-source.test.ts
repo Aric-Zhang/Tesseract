@@ -20,6 +20,7 @@ describe("createDockTargetRegionSource", () => {
     expect(source.listDockTargetRegions()).toEqual([{
       frameId: "workspace-root-frame",
       targetTabsetId: "workspace-root-frame:tabset",
+      targetTabsetTabs: ["workspace-root-frame:view"],
       stackPriority: 100,
       bounds: rect(0, 24, 1024, 720),
       tabBounds: rect(0, 24, 1024, 24),
@@ -106,6 +107,7 @@ function createFramePort(
     restoreRuntimeDockRoot() {},
     listDockTargetTabsets: () => [{
       targetTabsetId: `${frameId}:tabset`,
+      tabs: [`${frameId}:view`],
       tabBounds: rect(bounds.left, bounds.top, bounds.width, 24),
       contentBounds: rect(bounds.left, bounds.top + 24, bounds.width, bounds.height - 24)
     }],

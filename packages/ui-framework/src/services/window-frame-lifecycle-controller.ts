@@ -37,6 +37,7 @@ import {
 } from "../model/window-view-identity";
 import type { WindowViewKey } from "../model/window-view-key";
 import { uiVec2 } from "../ports/ui-geometry";
+import { findWindowFrameDockTreeTabsetById } from "../model/window-frame-dock-tree";
 import {
   collectFrameViewKeys,
   normalizeWindowWorkspaceFrameLayout,
@@ -432,6 +433,9 @@ export class DefaultWindowFrameLifecycleController implements
     if (sameFrame && intent.kind === "split-tab" && intent.operation !== "same-frame-split") {
       return invalidDockCommit("same-frame split requires explicit same-frame operation");
     }
+    if (sameFrame && intent.kind === "split-tab" && !intent.source.sourceTabsetId) {
+      return invalidDockCommit("same-frame split requires source tabset");
+    }
     if (sameFrame && intent.kind === "merge-tabs" && intent.operation !== "same-frame-reorder") {
       return invalidDockCommit("same-frame merge requires explicit same-frame operation");
     }
@@ -452,6 +456,16 @@ export class DefaultWindowFrameLifecycleController implements
     }
     if (sameFrame && intent.kind === "merge-tabs" && intent.source.sourceTabsetId === intent.targetTabsetId) {
       return invalidDockCommit("same tabset drop is a no-op");
+    }
+    if (sameFrame && intent.kind === "split-tab" && intent.source.sourceTabsetId === intent.targetTabsetId) {
+      const sourceTabset = findWindowFrameDockTreeTabsetById(
+        sourceView.framePort.getRuntimeDockRoot(),
+        intent.source.sourceTabsetId
+      );
+      const hasSiblingTabs = Boolean(sourceTabset?.tabs.some((viewActorId) => viewActorId !== intent.source.viewActorId));
+      if (!hasSiblingTabs) {
+        return invalidDockCommit("same tabset split is a no-op");
+      }
     }
     if (!sameFrame && targetPort.hasTab(intent.source.viewActorId)) {
       return invalidDockCommit("target frame already contains source tab");

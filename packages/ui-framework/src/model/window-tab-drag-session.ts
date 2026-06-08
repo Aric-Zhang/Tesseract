@@ -78,7 +78,8 @@ export class WindowTabDragSession {
     this.#state = "dragging";
     this.#preview = resolveWindowDockPreview(point, regions, {
       sourceFrameId: this.#source.frameId,
-      sourceTabsetId: this.#source.sourceTabsetId
+      sourceTabsetId: this.#source.sourceTabsetId,
+      sourceViewActorId: this.#source.viewActorId
     });
     return { state: this.#state, preview: this.#preview, source: this.#source };
   }

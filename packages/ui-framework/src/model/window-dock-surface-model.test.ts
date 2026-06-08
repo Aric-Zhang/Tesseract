@@ -44,6 +44,25 @@ describe("WindowDockSurfaceModel", () => {
     expect(model.findTabsetContaining("scene-view")).toBeTruthy();
   });
 
+  it("rejects splitting a single tab into its own tabset", () => {
+    const model = new WindowDockSurfaceModel({
+      tabs: [{ viewActorId: "scene-view", viewKey: "scene", title: "Scene" }],
+      activeViewActorId: "scene-view"
+    });
+    const targetTabsetId = model.getRuntimeDockRoot().id;
+
+    expect(() => model.splitTab(
+      { viewActorId: "scene-view", viewKey: "scene", title: "Scene" },
+      { targetTabsetId, placement: "left", active: true }
+    )).toThrow("Target tabset not found");
+    expect(model.getRuntimeDockRoot()).toEqual({
+      kind: "tabset",
+      id: targetTabsetId,
+      tabs: ["scene-view"],
+      activeViewActorId: "scene-view"
+    });
+  });
+
   it("removes tabs and collapses to an empty tabset when the last tab is removed", () => {
     const model = new WindowDockSurfaceModel({
       tabs: [

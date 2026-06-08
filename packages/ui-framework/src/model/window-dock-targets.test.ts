@@ -19,11 +19,13 @@ function frame(
   frameId: string,
   stackPriority: number,
   left = 100,
-  top = 100
+  top = 100,
+  tabs: readonly string[] = []
 ): WindowDockTargetRegion {
   return {
     frameId,
     targetTabsetId: `frame-tabset:${frameId}`,
+    targetTabsetTabs: tabs,
     stackPriority,
     bounds: rect(left, top, 300, 220),
     tabBounds: rect(left + 10, top + 6, 80, 24),
@@ -39,6 +41,7 @@ function splitRegion(
   return {
     frameId: "split-frame",
     targetTabsetId,
+    targetTabsetTabs: [],
     stackPriority: 10,
     bounds: rect(100, 100, 300, 220),
     tabBounds,
@@ -104,13 +107,27 @@ describe("resolveWindowDockPreview", () => {
   });
 
   it("resolves same-frame content edge drops when the source tabset is known", () => {
-    expect(resolveWindowDockPreview({ x: 112, y: 210 }, [frame("source", 10)], {
+    expect(resolveWindowDockPreview({ x: 112, y: 210 }, [frame("source", 10, 100, 100, ["source-view", "other-view"])], {
       sourceFrameId: "source",
-      sourceTabsetId: "frame-tabset:source"
+      sourceTabsetId: "frame-tabset:source",
+      sourceViewActorId: "source-view"
     })).toMatchObject({
       kind: "split",
       operation: "same-frame-split",
       placement: "left",
+      targetFrameId: "source",
+      targetTabsetId: "frame-tabset:source"
+    });
+  });
+
+  it("treats same-tabset content edge drops as no-op when the source tab is alone", () => {
+    expect(resolveWindowDockPreview({ x: 112, y: 210 }, [frame("source", 10, 100, 100, ["source-view"])], {
+      sourceFrameId: "source",
+      sourceTabsetId: "frame-tabset:source",
+      sourceViewActorId: "source-view"
+    })).toMatchObject({
+      kind: "merge-tabs",
+      operation: "no-op",
       targetFrameId: "source",
       targetTabsetId: "frame-tabset:source"
     });

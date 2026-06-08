@@ -1127,6 +1127,37 @@ describe("DefaultWindowFrameLifecycleController", () => {
       .toEqual(["debug-view-1", "hierarchy-view"]);
   });
 
+  it("rejects splitting a single tab into its own tabset", () => {
+    const subject = createSubject();
+    subject.controller.openView("debug", "programmatic");
+    const intent = {
+      kind: "split-tab" as const,
+      operation: "same-frame-split" as const,
+      source: {
+        frameId: "debug-frame-1",
+        sourceTabsetId: "frame-tabset:target",
+        viewActorId: "debug-view-1",
+        viewKey: "debug" as const
+      },
+      targetFrameId: "debug-frame-1",
+      targetTabsetId: "frame-tabset:target",
+      placement: "left" as const,
+      reason: "dock-drop" as const
+    };
+
+    expect(subject.controller.validateDockCommit(intent))
+      .toEqual({ valid: false, reason: "same tabset split is a no-op" });
+    expect(subject.controller.commitDock(intent))
+      .toEqual({ committed: false, reason: "same tabset split is a no-op" });
+    expect(subject.controller.getLiveViewByActorId("debug-view-1")?.framePort.getRuntimeDockRoot())
+      .toEqual({
+        kind: "tabset",
+        id: "frame-tabset:target",
+        tabs: ["debug-view-1"],
+        activeViewActorId: "debug-view-1"
+      });
+  });
+
   it("validates floating tab intents with finite positive bounds", () => {
     const subject = createSubject();
     subject.controller.openView("debug", "programmatic");
@@ -2301,6 +2332,7 @@ function createFramePort(
     },
     listDockTargetTabsets: () => [{
       targetTabsetId: "frame-tabset:target",
+      tabs: collectRuntimeRootViewActorIds(runtimeRoot),
       tabBounds: { left: 0, top: 0, right: 100, bottom: 24, width: 100, height: 24 },
       contentBounds: { left: 0, top: 24, right: 100, bottom: 100, width: 100, height: 76 }
     }],
@@ -2546,6 +2578,14 @@ function listActiveViewActorIdsInTestRuntimeRoot(root: WindowFrameRuntimeDockNod
   return [
     ...listActiveViewActorIdsInTestRuntimeRoot(root.first),
     ...listActiveViewActorIdsInTestRuntimeRoot(root.second)
+  ];
+}
+
+function collectRuntimeRootViewActorIds(root: WindowFrameRuntimeDockNode): readonly string[] {
+  if (root.kind === "tabset") return [...root.tabs];
+  return [
+    ...collectRuntimeRootViewActorIds(root.first),
+    ...collectRuntimeRootViewActorIds(root.second)
   ];
 }
 

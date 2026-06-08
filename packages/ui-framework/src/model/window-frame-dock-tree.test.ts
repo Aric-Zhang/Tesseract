@@ -109,6 +109,21 @@ describe("window frame dock tree", () => {
     });
   });
 
+  it("does not split a tab into itself when removing the source empties the target tabset", () => {
+    const root = createWindowFrameDockTreeTabset(["scene-view"], "scene-view", "tabset:scene");
+    const split = splitTabInWindowFrameDockTree(root, "scene-view", {
+      targetTabsetId: "tabset:scene",
+      placement: "left",
+      active: true
+    });
+
+    expect(split).toEqual({
+      node: root,
+      split: false
+    });
+    expectValidDockTree(root, [tab("scene-view")]);
+  });
+
   it("updates split ratios without changing node ids", () => {
     const split = splitTabInWindowFrameDockTree(
       addTabToWindowFrameDockTree(

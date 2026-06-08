@@ -17,6 +17,7 @@ export interface WindowDockRect {
 export interface WindowDockTargetRegion {
   readonly frameId: string;
   readonly targetTabsetId: string;
+  readonly targetTabsetTabs?: readonly string[];
   readonly stackPriority: number;
   readonly bounds: WindowDockRect;
   readonly tabBounds: WindowDockRect;
@@ -56,6 +57,7 @@ export type WindowDockPreview =
 export interface ResolveWindowDockPreviewOptions {
   readonly sourceFrameId?: string;
   readonly sourceTabsetId?: string;
+  readonly sourceViewActorId?: string;
   readonly floatingSize?: { readonly width: number; readonly height: number };
 }
 
@@ -129,6 +131,10 @@ function createDockPreviewCandidate(
     options.sourceTabsetId &&
     region.targetTabsetId === options.sourceTabsetId
   );
+  const sameTabsetCanSplit = !sameTabset ||
+    !options.sourceViewActorId ||
+    !region.targetTabsetTabs ||
+    region.targetTabsetTabs.some((viewActorId) => viewActorId !== options.sourceViewActorId);
   if (containsPoint(region.tabBounds, point)) {
     if (sameTabset) {
       return {
@@ -162,6 +168,21 @@ function createDockPreviewCandidate(
   if (!containsPoint(region.contentBounds, point)) return null;
   const placement = resolveContentPlacement(point, region.contentBounds);
   if (!placement) return null;
+  if (!sameTabsetCanSplit) {
+    return {
+      preview: {
+        kind: "merge-tabs",
+        operation: "no-op",
+        targetFrameId: region.frameId,
+        targetTabsetId: region.targetTabsetId,
+        rect: region.contentBounds
+      },
+      stackPriority: region.stackPriority,
+      kindRank: -1,
+      area: rectArea(region.contentBounds),
+      sourceOrder
+    };
+  }
   return {
     preview: {
       kind: "split",

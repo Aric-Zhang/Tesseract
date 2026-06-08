@@ -34,6 +34,7 @@ export type WindowFrameRuntimeDockNode =
 
 export interface WindowFrameDockTargetTabset {
   readonly targetTabsetId: string;
+  readonly tabs: readonly string[];
   readonly tabBounds: WindowDockRect;
   readonly contentBounds: WindowDockRect;
 }

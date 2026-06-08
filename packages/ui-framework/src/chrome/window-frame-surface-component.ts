@@ -16,6 +16,7 @@ import type {
   WindowFrameTab
 } from "../model/window-frame-tab";
 import {
+  findWindowFrameDockTreeTabsetById,
   type WindowFrameDockTreeNode,
   type WindowFrameDockTreeSplitDirection,
   type WindowFrameDockTreeTabsetNode
@@ -157,11 +158,14 @@ export class WindowFrameSurfaceComponent implements Component {
 
   listDockTargetTabsets(): readonly WindowFrameDockTargetTabset[] {
     const fallback = this.#host?.getDockTargetFallbackBounds?.() ?? null;
+    const root = this.#dockSurface.getRuntimeDockRoot();
     return [...this.#tabsetTargetsById.entries()].map(([targetTabsetId, target]) => {
       const tabBounds = rectFromDomRect(target.tabbar.getBoundingClientRect());
       const contentBounds = rectFromDomRect(target.content.getBoundingClientRect());
+      const tabset = findWindowFrameDockTreeTabsetById(root, targetTabsetId);
       return {
         targetTabsetId,
+        tabs: tabset?.tabs ?? [],
         tabBounds: isNonZeroRect(tabBounds) ? tabBounds : fallback ?? tabBounds,
         contentBounds: isNonZeroRect(contentBounds) ? contentBounds : fallback ?? contentBounds
       };

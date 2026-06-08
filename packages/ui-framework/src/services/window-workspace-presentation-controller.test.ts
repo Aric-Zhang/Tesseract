@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { Actor } from "../actor-runtime";
+import type { Actor } from "actor-core";
 import type {
   WindowViewFullscreenSession,
   WindowViewPresentationCommandPort
 } from "./window-frame-lifecycle";
-import type { WindowFramePort } from "./window-frame-port";
-import type { WindowFramePortRegistryEntry, WindowFramePortRegistryView } from "./window-frame-port-registry";
+import type { WindowFramePort } from "../ports/window-frame-port";
+import type { WindowFramePortRegistryEntry, WindowFramePortRegistryView } from "../ports/window-frame-port-registry";
 import { WindowWorkspacePresentationController } from "./window-workspace-presentation-controller";
 
 describe("WindowWorkspacePresentationController", () => {

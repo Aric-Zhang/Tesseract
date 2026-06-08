@@ -889,7 +889,8 @@ describe("architecture boundaries", () => {
     const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
     const registrySource =
       uiFrameworkPackageSources["packages/ui-framework/src/ports/window-frame-port-registry.ts"] ?? "";
-    const workspaceControllerSource = sourceFiles["./window-runtime/window-workspace-controller.ts"] ?? "";
+    const workspaceControllerSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-workspace-controller.ts"] ?? "";
 
     expect(registrySource).toMatch(/\bgetStackPriority:\s*\(\)\s*=>\s*number\b/);
     expect(floatingWindowSource).toMatch(/getInputStackPriority:\s*\(\)\s*=>\s*this\.inputStackPriority/);
@@ -903,9 +904,12 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps the window workspace catalog as a read-only projection", () => {
-    const catalogSource = sourceFiles["./window-runtime/window-workspace-view-catalog.ts"] ?? "";
-    const controllerSource = sourceFiles["./window-runtime/window-workspace-controller.ts"] ?? "";
-    const priorityPortSource = sourceFiles["./window-runtime/window-workspace-stack-priority-port.ts"] ?? "";
+    const catalogSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-workspace-view-catalog.ts"] ?? "";
+    const controllerSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-workspace-controller.ts"] ?? "";
+    const priorityPortSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-workspace-stack-priority-port.ts"] ?? "";
 
     expect(catalogSource).not.toMatch(/\bsetStackPriority\b/);
     expect(controllerSource).toMatch(/\bWindowWorkspaceStackPriorityPort\b/);

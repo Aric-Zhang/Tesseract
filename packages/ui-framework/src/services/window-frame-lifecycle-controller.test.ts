@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "../actor-runtime";
+import { ActorSystem } from "actor-core";
 import type { WindowFocusCommandPort } from "./window-focus-command-port";
 import { DefaultWindowFrameLifecycleController } from "./window-frame-lifecycle-controller";
 import {
   createSingletonWindowViewIdentity,
   createWindowWorkspaceFrameLayout,
   WindowFramePortRegistry
-} from ".";
+} from "../index";
 import type {
   WindowContentHost,
   WindowContentRehostable,
@@ -15,13 +15,13 @@ import type {
   WindowFrameRuntimeDockNode,
   WindowFrameTabsetNode,
   WindowFrameTab
-} from ".";
-import { WindowViewFactoryRegistry } from "./window-view-factory-registry";
+} from "../index";
+import { WindowViewFactoryRegistry } from "../ports/window-view-factory-registry";
 import {
   cloneWindowFrameRuntimeDockRoot,
   restoreWindowFrameDockTreeFromRuntimeRoot,
   splitTabInWindowFrameDockTree
-} from "ui-framework";
+} from "../model/window-frame-dock-tree";
 
 function createFocusRecorder(calls: string[]): WindowFocusCommandPort {
   return {

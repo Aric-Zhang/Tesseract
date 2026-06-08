@@ -23,5 +23,8 @@ export * from "./ports/window-content-host";
 export * from "./ports/window-frame-port";
 export * from "./ports/window-frame-port-registry";
 export * from "./ports/window-view-factory-registry";
+export * from "./services/window-focus-command-port";
+export * from "./services/window-frame-lifecycle";
+export * from "./services/window-frame-lifecycle-controller";
 
 export const uiFrameworkPackageName = "ui-framework";

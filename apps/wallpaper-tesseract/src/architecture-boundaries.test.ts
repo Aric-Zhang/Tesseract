@@ -981,8 +981,10 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps frame lifecycle mutation behind window-runtime intent ports", () => {
-    const lifecycleSource = sourceFiles["./window-runtime/window-frame-lifecycle.ts"] ?? "";
-    const controllerSource = sourceFiles["./window-runtime/window-frame-lifecycle-controller.ts"] ?? "";
+    const lifecycleSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-frame-lifecycle.ts"] ?? "";
+    const controllerSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-frame-lifecycle-controller.ts"] ?? "";
     const factoryRegistrySource =
       uiFrameworkPackageSources["packages/ui-framework/src/ports/window-view-factory-registry.ts"] ?? "";
     const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
@@ -1040,7 +1042,8 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps live window view tracking keyed by view identity instead of only view key", () => {
-    const controllerSource = sourceFiles["./window-runtime/window-frame-lifecycle-controller.ts"] ?? "";
+    const controllerSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-frame-lifecycle-controller.ts"] ?? "";
     const factoryRegistrySource =
       uiFrameworkPackageSources["packages/ui-framework/src/ports/window-view-factory-registry.ts"] ?? "";
 

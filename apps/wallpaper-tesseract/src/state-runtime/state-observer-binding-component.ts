@@ -1,5 +1,5 @@
 import type { Actor, Component, ComponentType } from "../actor-runtime";
-import type { SceneStateChangedEvent, SceneStateObserver } from "../scene-runtime";
+import type { StateChangedEvent, StateObserver } from "../runtime/ports";
 import { isStateObserverResponder } from "./state-observer-responder";
 
 export const stateObserverBindingComponentType =
@@ -10,7 +10,7 @@ interface StateObserverBindingComponentOptions {
   id: string;
 }
 
-export class StateObserverBindingComponent implements Component, SceneStateObserver {
+export class StateObserverBindingComponent implements Component, StateObserver {
   readonly id: string;
   readonly type = stateObserverBindingComponentType;
   readonly actor: Actor;
@@ -21,7 +21,7 @@ export class StateObserverBindingComponent implements Component, SceneStateObser
     this.id = options.id;
   }
 
-  onSceneStateChanged(event: SceneStateChangedEvent): void {
+  onStateChanged(event: StateChangedEvent): void {
     if (!this.enabled) return;
     for (const component of this.actor.listComponents()) {
       if (component === this || !component.enabled || !isStateObserverResponder(component)) continue;

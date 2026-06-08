@@ -287,7 +287,7 @@ describe("createDebugLogWindowActor", () => {
     setWindowRects(root);
     const binding = registeredGizmos[0];
     if (!binding) throw new Error("Expected registered binding.");
-    observers[0]?.onSceneStateChanged({
+    observers[0]?.onStateChanged({
       frame: { timeMs: 0, deltaMs: 0, frameIndex: 0 },
       changes: [{
         path: sceneParameterPaths.debugWindow.visible,
@@ -301,7 +301,7 @@ describe("createDebugLogWindowActor", () => {
     expect(handle.window.state.visible).toBe(false);
     expect(root.hidden).toBe(true);
 
-    observers[0]?.onSceneStateChanged({
+    observers[0]?.onStateChanged({
       frame: { timeMs: 1, deltaMs: 1, frameIndex: 1 },
       changes: [{
         path: sceneParameterPaths.debugWindow.visible,

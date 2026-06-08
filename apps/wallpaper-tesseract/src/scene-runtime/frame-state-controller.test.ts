@@ -60,7 +60,7 @@ describe("FrameStateController", () => {
     const store = createStore();
     const controller = new FrameStateController({ store });
     const events: SceneStateChangedEvent[] = [];
-    controller.subscribe({ onSceneStateChanged: (event) => events.push(event) });
+    controller.subscribe({ onStateChanged: (event) => events.push(event) });
 
     controller.submit({
       source,
@@ -114,7 +114,7 @@ describe("FrameStateController", () => {
     const store = createStore();
     const controller = new FrameStateController({ store });
     controller.subscribe({
-      onSceneStateChanged: () => {
+      onStateChanged: () => {
         controller.submit({
           source: { id: "observer", kind: "script" },
           target: "debugWindow.position",

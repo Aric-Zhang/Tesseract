@@ -357,7 +357,8 @@ describe("architecture boundaries", () => {
     const uiCandidatePrefixes = [
       "./window-runtime/",
       "./features/app-menu/",
-      "./features/window-workspace/"
+      "./features/window-workspace/",
+      "./ui-framework-fixture/"
     ];
     const forbiddenRuntimeFeatureEdges = listModuleEdges(sourceFiles)
       .filter((edge) => uiCandidatePrefixes.some((prefix) => edge.fromFile.startsWith(prefix)))
@@ -374,6 +375,30 @@ describe("architecture boundaries", () => {
       .sort();
 
     expect(forbiddenRuntimeFeatureEdges).toEqual([]);
+  });
+
+  it("keeps the Project Prism UI framework fixture product-free", () => {
+    const forbiddenFixtureEdges = listModuleEdges(sourceFiles)
+      .filter((edge) => edge.fromFile.startsWith("./ui-framework-fixture/"))
+      .filter((edge) => !edge.fromFile.endsWith(".test.ts"))
+      .filter((edge) => edge.resolvedFile !== null)
+      .filter((edge) => (
+        edge.resolvedFile!.startsWith("./app-runtime/") ||
+        edge.resolvedFile!.startsWith("./app/") ||
+        edge.resolvedFile!.startsWith("./debug/") ||
+        edge.resolvedFile!.startsWith("./hierarchy/") ||
+        edge.resolvedFile!.startsWith("./features/scene/") ||
+        edge.resolvedFile!.startsWith("./features/camera3/") ||
+        edge.resolvedFile!.startsWith("./features/inspector/") ||
+        edge.resolvedFile!.startsWith("./features/tool-windows/") ||
+        edge.resolvedFile!.startsWith("./gizmos/") ||
+        edge.resolvedFile!.startsWith("./scene-runtime/") ||
+        edge.resolvedFile!.startsWith("./tesseract4/")
+      ))
+      .map((edge) => `${edge.fromFile}: ${edge.resolvedFile}`)
+      .sort();
+
+    expect(forbiddenFixtureEdges).toEqual([]);
   });
 
   it("removes deprecated AppRuntimeContext legacy registration calls", () => {
@@ -1206,10 +1231,17 @@ describe("architecture boundaries", () => {
       .map(([file]) => file)
       .sort();
     const responderSource = sourceFiles["./state-runtime/state-observer-responder.ts"] ?? "";
+    const stateRuntimeSceneImports = Object.entries(sourceFiles)
+      .filter(([file]) => file.startsWith("./state-runtime/"))
+      .filter(([file]) => !file.endsWith(".test.ts"))
+      .filter(([, source]) => /from\s+["'][^"']*scene-runtime/.test(source))
+      .map(([file]) => file)
+      .sort();
 
     expect(responderSource).toMatch(/\bonStateChanged\b/);
     expect(responderSource).toMatch(/\bStateChangedEvent\b/);
     expect(uiResponderSceneObserverUses).toEqual([]);
+    expect(stateRuntimeSceneImports).toEqual([]);
   });
 
   it("removes legacy component capability adapters and metadata", () => {

@@ -185,9 +185,9 @@ export class AppRuntimeContext {
 
 function assertSceneStateObserverBinding(component: Component): SceneStateObserver {
   const candidate = component as Partial<SceneStateObserver>;
-  if (typeof candidate.onSceneStateChanged !== "function") {
+  if (typeof candidate.onStateChanged !== "function") {
     throw new Error(
-      `Component ${component.type} declares state-observer attachment but does not implement SceneStateObserver.`
+      `Component ${component.type} declares state-observer attachment but does not implement StateObserver.`
     );
   }
   return candidate as SceneStateObserver;

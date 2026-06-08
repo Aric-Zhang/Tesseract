@@ -102,7 +102,7 @@ export class WorkspaceModeController {
     this.applyPresentation(this.#mode);
   }
 
-  onSceneStateChanged(event: SceneStateChangedEvent): void {
+  onStateChanged(event: SceneStateChangedEvent): void {
     const modeChange = event.changes.find((change) => change.path === sceneParameterPaths.workspace.mode);
     if (modeChange) {
       this.applyMode(modeChange.nextValue as WorkspaceMode);

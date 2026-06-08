@@ -174,7 +174,7 @@ describe("WorkspaceModeController", () => {
       onScenePresentationChanged: () => presentationMeasurements.push("measure")
     });
     values.set(sceneParameterPaths.workspace.mode, "run");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
@@ -195,7 +195,7 @@ describe("WorkspaceModeController", () => {
 
     commands.length = 0;
     values.set(sceneParameterPaths.debugWindow.visible, true);
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.debugWindow.visible,
       previousValue: false,
       nextValue: true,
@@ -214,7 +214,7 @@ describe("WorkspaceModeController", () => {
 
     commands.length = 0;
     values.set(sceneParameterPaths.workspace.mode, "develop");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
@@ -273,7 +273,7 @@ describe("WorkspaceModeController", () => {
     presentationCalls.length = 0;
 
     values.set(sceneParameterPaths.workspace.mode, "run");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
@@ -286,7 +286,7 @@ describe("WorkspaceModeController", () => {
     expect(commands).toEqual([]);
 
     values.set(sceneParameterPaths.workspace.mode, "develop");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
@@ -317,7 +317,7 @@ describe("WorkspaceModeController", () => {
     });
 
     values.set(sceneParameterPaths.workspace.mode, "run");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
@@ -325,7 +325,7 @@ describe("WorkspaceModeController", () => {
       commands: []
     }]));
     values.set(sceneParameterPaths.debugWindow.visible, false);
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "run",
       nextValue: "run",
@@ -335,7 +335,7 @@ describe("WorkspaceModeController", () => {
 
     commands.length = 0;
     values.set(sceneParameterPaths.workspace.mode, "develop");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
@@ -368,7 +368,7 @@ describe("WorkspaceModeController", () => {
     });
 
     values.set(sceneParameterPaths.workspace.mode, "run");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
@@ -389,7 +389,7 @@ describe("WorkspaceModeController", () => {
     commands.length = 0;
     values.set(sceneParameterPaths.sceneWindow.visible, true);
     values.set(sceneParameterPaths.workspace.mode, "develop");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
@@ -423,7 +423,7 @@ describe("WorkspaceModeController", () => {
     });
 
     values.set(sceneParameterPaths.sceneWindow.visible, false);
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.sceneWindow.visible,
       previousValue: true,
       nextValue: false,
@@ -463,7 +463,7 @@ describe("WorkspaceModeController", () => {
     });
 
     values.set(sceneParameterPaths.workspace.mode, "run");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
@@ -549,7 +549,7 @@ describe("WorkspaceModeController", () => {
     });
 
     values.set(sceneParameterPaths.workspace.mode, "run");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
@@ -578,7 +578,7 @@ describe("WorkspaceModeController", () => {
 
     commands.length = 0;
     values.set(sceneParameterPaths.sceneWindow.visible, true);
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.sceneWindow.visible,
       previousValue: false,
       nextValue: true,
@@ -611,7 +611,7 @@ describe("WorkspaceModeController", () => {
     });
 
     values.set(sceneParameterPaths.workspace.mode, "run");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
@@ -619,7 +619,7 @@ describe("WorkspaceModeController", () => {
       commands: []
     }]));
     values.set(sceneParameterPaths.workspace.mode, "develop");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
@@ -649,7 +649,7 @@ describe("WorkspaceModeController", () => {
     });
 
     values.set(sceneParameterPaths.workspace.mode, "run");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
@@ -657,7 +657,7 @@ describe("WorkspaceModeController", () => {
       commands: []
     }]));
     values.set(sceneParameterPaths.workspace.mode, "develop");
-    controller.onSceneStateChanged(createChangedEvent([{
+    controller.onStateChanged(createChangedEvent([{
       path: sceneParameterPaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",

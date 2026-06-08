@@ -20,7 +20,8 @@ export const projectPrismSourceZones = [
     /^\.\/window-runtime\//,
     /^\.\/features\/app-menu\//,
     /^\.\/features\/window-workspace\//,
-    /^\.\/app\/app-shell\.ts$/
+    /^\.\/app\/app-shell\.ts$/,
+    /^\.\/ui-framework-fixture\//
   ]),
   definePathZone("editor-candidate", "Concrete editor features and editor presentation components.", [
     /^\.\/debug\//,

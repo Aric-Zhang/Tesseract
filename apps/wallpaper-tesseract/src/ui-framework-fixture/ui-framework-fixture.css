@@ -1,0 +1,65 @@
+.ui-framework-fixture {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: #0b1016;
+  color: #d7e3ef;
+  overflow: hidden;
+}
+
+.ui-framework-fixture__menu {
+  position: relative;
+  z-index: 10000;
+  min-height: 28px;
+  background: #161d25;
+  border-bottom: 1px solid #2b3746;
+}
+
+.ui-framework-fixture__root-frame {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ui-framework-fixture__floating-frames {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ui-framework-fixture__floating-frames > * {
+  pointer-events: auto;
+}
+
+.ui-fixture-view {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+  color: #dfe9f4;
+  background: #0d1218;
+}
+
+.ui-fixture-view__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ui-fixture-view__body {
+  margin: 0;
+  color: #9fb0c3;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ui-fixture-view[hidden] {
+  display: none;
+}

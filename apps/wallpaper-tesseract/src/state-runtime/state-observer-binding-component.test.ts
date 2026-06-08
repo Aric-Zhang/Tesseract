@@ -42,7 +42,7 @@ function createRegistry() {
     },
     getObserver(component) {
       const observer = component as Partial<SceneStateObserver>;
-      if (typeof observer.onSceneStateChanged !== "function") {
+      if (typeof observer.onStateChanged !== "function") {
         throw new Error("Expected SceneStateObserver.");
       }
       return observer as SceneStateObserver;
@@ -130,7 +130,7 @@ describe("StateObserverBindingComponent", () => {
     actor.enabled = false;
     calls.length = 0;
 
-    observers[0]?.onSceneStateChanged(createStateEvent());
+    observers[0]?.onStateChanged(createStateEvent());
 
     expect(calls).toEqual(["state:debug"]);
   });
@@ -146,7 +146,7 @@ describe("StateObserverBindingComponent", () => {
     responder.enabled = false;
     calls.length = 0;
 
-    observers[0]?.onSceneStateChanged(createStateEvent());
+    observers[0]?.onStateChanged(createStateEvent());
 
     expect(calls).toEqual([]);
   });
@@ -160,7 +160,7 @@ describe("StateObserverBindingComponent", () => {
     calls.length = 0;
 
     updateRuntime.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
-    observers[0]?.onSceneStateChanged(createStateEvent());
+    observers[0]?.onStateChanged(createStateEvent());
 
     expect(calls).toEqual(["state:debug"]);
   });

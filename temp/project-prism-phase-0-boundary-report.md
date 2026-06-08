@@ -22,7 +22,7 @@ Verdict: Phase 0B boundary matrix is generated and clean; package extraction rem
 - actor-input-candidate: 1 files. Actor input and gizmo-core adapter candidates.
 - app-composition: 8 files. Wallpaper app bootstrap and composition layer.
 - editor-candidate: 54 files. Concrete editor features and editor presentation components.
-- ui-framework-candidate: 53 files. Generic window, tab, dock, menu, and app shell UI candidates.
+- ui-framework-candidate: 59 files. Generic window, tab, dock, menu, and app shell UI candidates.
 
 ## Debt Zones
 

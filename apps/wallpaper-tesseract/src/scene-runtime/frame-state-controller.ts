@@ -1,4 +1,11 @@
-import type { RuntimeObject, RuntimeRegistration, StateChange, StateChangedEvent, UpdateFrame } from "../runtime/ports";
+import type {
+  RuntimeObject,
+  RuntimeRegistration,
+  StateChange,
+  StateChangedEvent,
+  StateObserver,
+  UpdateFrame
+} from "../runtime/ports";
 import { SceneParameterStore } from "./scene-parameter-store";
 import type { ParameterPath, SceneCommandSink, SceneUpdateCommand } from "./scene-update-command";
 import type { SceneUpdateSource } from "./scene-update-source";
@@ -13,9 +20,7 @@ export type SceneParameterChange<TValue = unknown> =
 export type SceneStateChangedEvent =
   StateChangedEvent<ParameterPath, SceneUpdateSource, SceneUpdateCommand>;
 
-export interface SceneStateObserver {
-  onSceneStateChanged(event: SceneStateChangedEvent): void;
-}
+export type SceneStateObserver = StateObserver<SceneStateChangedEvent>;
 
 interface QueuedCommand {
   command: SceneUpdateCommand;
@@ -73,7 +78,7 @@ export class FrameStateController implements SceneCommandSink, RuntimeObject {
     if (changes.length > 0) {
       const event = { frame, changes };
       for (const observer of [...this.observers]) {
-        observer.onSceneStateChanged(event);
+        observer.onStateChanged(event);
       }
     }
   }

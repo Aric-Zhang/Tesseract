@@ -31,4 +31,22 @@ describe("Camera3ProjectionModeController", () => {
     expect(Number.isFinite(controller.orthographicCamera.top)).toBe(true);
     expect(Number.isFinite(controller.orthographicCamera.bottom)).toBe(true);
   });
+
+  it("resizes perspective aspect and orthographic bounds from distance and fov", () => {
+    const controller = new Camera3ProjectionModeController({ fov: 45 });
+    const width = 1280;
+    const height = 640;
+    const distance = 6;
+    const expectedAspect = 2;
+    const expectedOrthoHeight = 2 * distance * Math.tan((45 * Math.PI / 180) * 0.5);
+    const expectedOrthoWidth = expectedOrthoHeight * expectedAspect;
+
+    controller.resize(width, height, distance);
+
+    expect(controller.perspectiveCamera.aspect).toBeCloseTo(expectedAspect);
+    expect(controller.orthographicCamera.left).toBeCloseTo(-expectedOrthoWidth * 0.5);
+    expect(controller.orthographicCamera.right).toBeCloseTo(expectedOrthoWidth * 0.5);
+    expect(controller.orthographicCamera.top).toBeCloseTo(expectedOrthoHeight * 0.5);
+    expect(controller.orthographicCamera.bottom).toBeCloseTo(-expectedOrthoHeight * 0.5);
+  });
 });

@@ -40,16 +40,21 @@ export function adaptCamera3ControlCommand(
       };
     case "snap-axis":
       return {
-        ok: false,
-        blocker: "camera3-state-owned-by-editor-feature",
-        reason: "snap-axis needs runtime-owned camera orientation state before it can be a renderer-agnostic command."
+        ok: true,
+        command: {
+          type: "snap-camera-axis",
+          cameraId,
+          axis: command.axis
+        }
       };
     case "set-projection-mode":
       return {
-        ok: false,
-        blocker: "camera3-state-owned-by-editor-feature",
-        reason: "set-projection-mode is currently owned by the Camera3 projection mode controller instead of runtime camera state."
+        ok: true,
+        command: {
+          type: "set-camera-projection-mode",
+          cameraId,
+          mode: command.mode
+        }
       };
   }
 }
-

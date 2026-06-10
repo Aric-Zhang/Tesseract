@@ -1,5 +1,5 @@
 import type { ComponentDefinition } from "../../actor-runtime";
-import { frameUpdateAttachment } from "../../update-runtime";
+import { runtimeWorkAttachment } from "../../update-runtime";
 import {
   Tesseract4Component,
   tesseract4ComponentType,
@@ -9,7 +9,7 @@ import {
 export const tesseract4ComponentDefinition:
   ComponentDefinition<Tesseract4Component, Tesseract4ComponentOptions> = {
     type: tesseract4ComponentType,
-    attachments: [frameUpdateAttachment],
+    attachments: [runtimeWorkAttachment],
     createId(_actor, options) {
       return options?.id ?? "tesseract4";
     },

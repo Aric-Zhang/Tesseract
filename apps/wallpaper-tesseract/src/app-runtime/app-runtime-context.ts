@@ -1,6 +1,8 @@
 import type { SceneCommandSink } from "../scene-runtime";
 import type { SceneStateObserver } from "../scene-runtime";
+import type { RuntimeFrame } from "runtime-core";
 import type { RuntimeObject, RuntimeObjectRegistry, RuntimeRegistration } from "../runtime/ports";
+import { ProductionRuntimeSchedulerService } from "../runtime/runtime-scheduler-service";
 import {
   ActiveInputCancellationRuntime,
   GizmoControllerAttachmentRuntime,
@@ -10,7 +12,7 @@ import {
   StateObserverAttachmentRuntime,
   type StateObserverRegistry
 } from "../state-runtime";
-import { FrameUpdateAttachmentRuntime } from "../update-runtime";
+import { FrameUpdateAttachmentRuntime, RuntimeWorkAttachmentRuntime } from "../update-runtime";
 import {
   ActorSystem,
   ComponentRegistry,
@@ -44,6 +46,7 @@ export class AppRuntimeContext {
   readonly actorSystem: ActorSystem;
   readonly componentRegistry: ComponentRegistry;
   private readonly onRollbackError?: (errors: readonly unknown[]) => void;
+  private readonly runtimeScheduler: ProductionRuntimeSchedulerService;
   private readonly frameUpdateRuntime: FrameUpdateAttachmentRuntime;
   private readonly activeInputCancellationRuntime: ActiveInputCancellationRuntime;
   private readonly frameUpdateRuntimeRegistration: RuntimeRegistration;
@@ -58,11 +61,16 @@ export class AppRuntimeContext {
     this.gizmoEventSystem = options.gizmoEventSystem;
     this.onRollbackError = options.onRollbackError;
     this.actorSystem = new ActorSystem();
+    this.runtimeScheduler = new ProductionRuntimeSchedulerService();
     this.frameUpdateRuntime = new FrameUpdateAttachmentRuntime({
       actorSystem: this.actorSystem
     });
     this.activeInputCancellationRuntime = new ActiveInputCancellationRuntime();
     const componentAttachmentRuntime = new CompositeComponentAttachmentRuntime([
+      new RuntimeWorkAttachmentRuntime({
+        actorSystem: this.actorSystem,
+        scheduler: this.runtimeScheduler
+      }),
       this.frameUpdateRuntime,
       new GizmoControllerAttachmentRuntime({ registry: this.gizmoEventSystem }),
       new StateObserverAttachmentRuntime({
@@ -85,6 +93,10 @@ export class AppRuntimeContext {
 
   cancelActiveActorInput(): void {
     this.activeInputCancellationRuntime.cancelActiveActorInput();
+  }
+
+  updateRuntimeFrame(frame: RuntimeFrame): void {
+    this.runtimeScheduler.updateRuntimeFrame(frame);
   }
 
   registerRuntimeService(object: RuntimeObject): RuntimeRegistration {
@@ -124,6 +136,7 @@ export class AppRuntimeContext {
     this.trackedDisposables.length = 0;
 
     safeDispose(this.actorSystem);
+    safeDispose(this.runtimeScheduler);
     safeDispose(this.frameUpdateRuntimeRegistration);
     safeDispose(this.frameUpdateRuntime);
     safeDispose(this.gizmoEventSystem);

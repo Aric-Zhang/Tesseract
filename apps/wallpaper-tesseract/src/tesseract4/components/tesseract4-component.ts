@@ -1,4 +1,5 @@
 import type * as THREE from "three";
+import type { RuntimeFrame, RuntimeWork } from "runtime-core";
 import type { Actor, Component, ComponentType } from "../../actor-runtime";
 import type { UpdateFrame } from "../../runtime/ports";
 import {
@@ -17,7 +18,7 @@ export interface Tesseract4ComponentOptions extends Tesseract4RuntimeObjectOptio
   scene?: THREE.Scene;
 }
 
-export class Tesseract4Component implements Component {
+export class Tesseract4Component implements Component, RuntimeWork {
   readonly id: string;
   readonly type = tesseract4ComponentType;
   readonly actor: Actor;
@@ -38,6 +39,10 @@ export class Tesseract4Component implements Component {
   }
 
   updateFrame(frame: UpdateFrame): void {
+    this.runtimeObject.updateFrame(frame);
+  }
+
+  updateRuntimeFrame(frame: RuntimeFrame): void {
     this.runtimeObject.updateFrame(frame);
   }
 

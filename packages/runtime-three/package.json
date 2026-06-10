@@ -1,0 +1,32 @@
+{
+  "name": "runtime-three",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests src",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "runtime-core": "0.1.0",
+    "three": "^0.181.2"
+  },
+  "devDependencies": {
+    "@types/three": "^0.184.1"
+  }
+}
+

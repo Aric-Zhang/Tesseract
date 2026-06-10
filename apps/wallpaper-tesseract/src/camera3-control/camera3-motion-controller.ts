@@ -1,4 +1,10 @@
 import * as THREE from "three";
+import {
+  runtimeCameraId,
+  type RuntimeCameraAxis,
+  type RuntimeCameraId,
+  type RuntimeCameraState
+} from "runtime-core";
 import { Camera3ProjectionModeController, Camera3Rig } from "../features/camera3/model";
 import type { RuntimeObject, RuntimeRegistration, UpdateFrame } from "../runtime/ports";
 import type { Camera3CommandSink, Camera3ControlCommand } from "./camera3-control-command";
@@ -26,28 +32,25 @@ export interface Camera3MotionObserver {
 }
 
 interface Camera3Snapshot {
-  targetX: number;
-  targetY: number;
-  targetZ: number;
-  distance: number;
-  yaw: number;
-  pitch: number;
-  roll: number;
-  mode: string;
+  state: RuntimeCameraState;
 }
 
 export class Camera3MotionController implements Camera3CommandSink, RuntimeObject {
   readonly id = "camera3-motion-controller";
   readonly priority = -100;
   enabled = true;
+  readonly runtimeCameraId: RuntimeCameraId;
   private pendingCommands: Camera3ControlCommand[] = [];
   private readonly observers: Camera3MotionObserver[] = [];
   private readonly rig: Camera3Rig;
   private readonly projectionMode: Camera3ProjectionModeController;
+  private runtimeState: RuntimeCameraState;
 
   constructor(options: Camera3MotionControllerOptions) {
     this.rig = options.rig;
     this.projectionMode = options.projectionMode;
+    this.runtimeCameraId = runtimeCameraId("camera3:main");
+    this.runtimeState = createRuntimeStateFromRig(this.rig, this.projectionMode.mode);
     this.syncCamera();
   }
 
@@ -56,7 +59,11 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
   }
 
   get distance(): number {
-    return this.rig.distance;
+    return this.runtimeState.orbit?.distance ?? this.rig.distance;
+  }
+
+  get cameraState(): RuntimeCameraState {
+    return cloneRuntimeCameraState(this.runtimeState);
   }
 
   submit(command: Camera3ControlCommand): void {
@@ -95,6 +102,7 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
     }
     const changed = !sameSnapshot(before, this.snapshot());
     if (changed) {
+      this.syncEditorModelFromRuntimeState();
       this.syncCamera();
       this.notify(frame, commands);
     }
@@ -114,34 +122,46 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
     switch (command.type) {
       case "orbit-delta":
         if (!this.rig.locked) {
-          this.rig.orbit(command.dx, command.dy);
+          this.runtimeState = applyOrbitDelta(this.runtimeState, {
+            yaw: -command.dx * this.rig.orbitSensitivity,
+            pitch: command.dy * this.rig.orbitSensitivity
+          });
         }
         return;
       case "snap-axis":
         if (!this.rig.locked) {
-          this.rig.snapToAxis(command.axis);
+          this.runtimeState = applySnapAxis(this.runtimeState, command.axis);
         }
         return;
       case "toggle-projection":
-        this.projectionMode.toggle();
+        this.runtimeState = setProjectionMode(
+          this.runtimeState,
+          getProjectionMode(this.runtimeState) === "orthographic" ? "perspective" : "orthographic"
+        );
         return;
       case "set-projection-mode":
-        this.projectionMode.setMode(command.mode);
+        this.runtimeState = setProjectionMode(this.runtimeState, command.mode);
         return;
     }
   }
 
   private snapshot(): Camera3Snapshot {
     return {
-      targetX: this.rig.target.x,
-      targetY: this.rig.target.y,
-      targetZ: this.rig.target.z,
-      distance: this.rig.distance,
-      yaw: this.rig.yaw,
-      pitch: this.rig.pitch,
-      roll: this.rig.roll,
-      mode: this.projectionMode.mode
+      state: this.runtimeState
     };
+  }
+
+  private syncEditorModelFromRuntimeState(): void {
+    const orbit = this.runtimeState.orbit;
+    if (orbit) {
+      const [targetX = 0, targetY = 0, targetZ = 0] = orbit.target;
+      this.rig.target.set(targetX, targetY, targetZ);
+      this.rig.distance = orbit.distance;
+      this.rig.yaw = orbit.yaw;
+      this.rig.pitch = orbit.pitch;
+      this.rig.roll = orbit.roll ?? 0;
+    }
+    this.projectionMode.setMode(getProjectionMode(this.runtimeState));
   }
 
   private notify(frame: UpdateFrame, commands: readonly Camera3ControlCommand[]): void {
@@ -156,6 +176,139 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
       observer.onCamera3MotionChanged(event);
     }
   }
+}
+
+function createRuntimeStateFromRig(
+  rig: Camera3Rig,
+  projectionMode: "perspective" | "orthographic"
+): RuntimeCameraState {
+  const orbit = {
+    target: [rig.target.x, rig.target.y, rig.target.z],
+    distance: rig.distance,
+    yaw: rig.yaw,
+    pitch: rig.pitch,
+    roll: rig.roll
+  };
+  return {
+    pose: createPoseFromOrbit(orbit),
+    orbit,
+    projectionMode,
+    projection: {
+      mode: projectionMode
+    }
+  };
+}
+
+function applyOrbitDelta(
+  state: RuntimeCameraState,
+  delta: { readonly yaw: number; readonly pitch: number }
+): RuntimeCameraState {
+  const orbit = getOrbitState(state);
+  return withOrbit(state, {
+    ...orbit,
+    yaw: orbit.yaw + delta.yaw,
+    pitch: orbit.pitch + delta.pitch,
+    snapAxis: undefined
+  });
+}
+
+function applySnapAxis(state: RuntimeCameraState, axis: RuntimeCameraAxis): RuntimeCameraState {
+  const orbit = getOrbitState(state);
+  const horizontalYaw = orbit.yaw;
+  let nextOrbit: NonNullable<RuntimeCameraState["orbit"]>;
+  switch (axis) {
+    case "+x":
+      nextOrbit = { ...orbit, yaw: Math.PI * 0.5, pitch: 0, snapAxis: axis };
+      break;
+    case "-x":
+      nextOrbit = { ...orbit, yaw: -Math.PI * 0.5, pitch: 0, snapAxis: axis };
+      break;
+    case "+y":
+      nextOrbit = { ...orbit, yaw: horizontalYaw, pitch: Math.PI * 0.5, snapAxis: axis };
+      break;
+    case "-y":
+      nextOrbit = { ...orbit, yaw: horizontalYaw, pitch: -Math.PI * 0.5, snapAxis: axis };
+      break;
+    case "+z":
+      nextOrbit = { ...orbit, yaw: 0, pitch: 0, snapAxis: axis };
+      break;
+    case "-z":
+      nextOrbit = { ...orbit, yaw: Math.PI, pitch: 0, snapAxis: axis };
+      break;
+  }
+  return withOrbit(state, nextOrbit);
+}
+
+function setProjectionMode(
+  state: RuntimeCameraState,
+  mode: "perspective" | "orthographic"
+): RuntimeCameraState {
+  return {
+    ...state,
+    projectionMode: mode,
+    projection: {
+      ...state.projection,
+      mode
+    }
+  };
+}
+
+function withOrbit(state: RuntimeCameraState, orbit: NonNullable<RuntimeCameraState["orbit"]>): RuntimeCameraState {
+  return {
+    ...state,
+    pose: createPoseFromOrbit(orbit),
+    orbit
+  };
+}
+
+function getOrbitState(state: RuntimeCameraState): NonNullable<RuntimeCameraState["orbit"]> {
+  return state.orbit ?? {
+    target: state.pose.target ?? [0, 0, 0],
+    distance: 6,
+    yaw: 0,
+    pitch: 0,
+    roll: 0
+  };
+}
+
+function createPoseFromOrbit(orbit: NonNullable<RuntimeCameraState["orbit"]>): RuntimeCameraState["pose"] {
+  const [targetX = 0, targetY = 0, targetZ = 0] = orbit.target;
+  const cosPitch = Math.cos(orbit.pitch);
+  const directionX = Math.sin(orbit.yaw) * cosPitch;
+  const directionY = Math.sin(orbit.pitch);
+  const directionZ = Math.cos(orbit.yaw) * cosPitch;
+  return {
+    position: [
+      targetX + directionX * orbit.distance,
+      targetY + directionY * orbit.distance,
+      targetZ + directionZ * orbit.distance
+    ],
+    target: orbit.target,
+    up: [0, 1, 0]
+  };
+}
+
+function getProjectionMode(state: RuntimeCameraState): "perspective" | "orthographic" {
+  return state.projection?.mode ?? state.projectionMode ?? "perspective";
+}
+
+function cloneRuntimeCameraState(state: RuntimeCameraState): RuntimeCameraState {
+  return {
+    ...state,
+    pose: {
+      position: [...state.pose.position],
+      target: state.pose.target ? [...state.pose.target] : undefined,
+      up: state.pose.up ? [...state.pose.up] : undefined
+    },
+    orbit: state.orbit ? {
+      ...state.orbit,
+      target: [...state.orbit.target]
+    } : undefined,
+    projection: state.projection ? {
+      ...state.projection,
+      viewport: state.projection.viewport ? { ...state.projection.viewport } : undefined
+    } : undefined
+  };
 }
 
 function validateCommand(command: Camera3ControlCommand): void {
@@ -180,14 +333,5 @@ function assertFinite(value: number, label: string): void {
 }
 
 function sameSnapshot(a: Camera3Snapshot, b: Camera3Snapshot): boolean {
-  return (
-    a.targetX === b.targetX &&
-    a.targetY === b.targetY &&
-    a.targetZ === b.targetZ &&
-    a.distance === b.distance &&
-    a.yaw === b.yaw &&
-    a.pitch === b.pitch &&
-    a.roll === b.roll &&
-    a.mode === b.mode
-  );
+  return JSON.stringify(a.state) === JSON.stringify(b.state);
 }

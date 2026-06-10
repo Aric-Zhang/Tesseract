@@ -50,6 +50,15 @@ describe("Project Prism boundary report", () => {
       cleanCandidateZones: [],
       blockedBy: expect.arrayContaining(["state-domain-debt", "runtime-ownership-debt"])
     });
+    expect(targetsById.get("runtime-three-backend")).toMatchObject({
+      status: "allowed",
+      cleanCandidateZones: ["runtime-three-candidate"],
+      blockedBy: []
+    });
+    expect(targetsById.get("runtime-render-production-ownership")).toMatchObject({
+      status: "blocked",
+      blockedBy: expect.arrayContaining(["runtime-ownership-debt"])
+    });
     expect(targetsById.get("editor")).toMatchObject({
       status: "deferred",
       cleanCandidateZones: ["editor-candidate"]

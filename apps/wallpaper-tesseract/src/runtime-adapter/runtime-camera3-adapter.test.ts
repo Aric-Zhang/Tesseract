@@ -32,24 +32,31 @@ describe("runtime Camera3 adapter", () => {
     });
   });
 
-  it("exposes editor-owned Camera3 command blockers instead of pretending ownership is migrated", () => {
+  it("maps snap axis and explicit projection mode into renderer-agnostic runtime commands", () => {
     expect(adaptCamera3ControlCommand({
       type: "snap-axis",
       source: "camera3-gizmo",
       axis: "+x"
-    }, cameraId)).toMatchObject({
-      ok: false,
-      blocker: "camera3-state-owned-by-editor-feature"
+    }, cameraId)).toEqual({
+      ok: true,
+      command: {
+        type: "snap-camera-axis",
+        cameraId,
+        axis: "+x"
+      }
     });
 
     expect(adaptCamera3ControlCommand({
       type: "set-projection-mode",
       source: "debug",
       mode: "orthographic"
-    }, cameraId)).toMatchObject({
-      ok: false,
-      blocker: "camera3-state-owned-by-editor-feature"
+    }, cameraId)).toEqual({
+      ok: true,
+      command: {
+        type: "set-camera-projection-mode",
+        cameraId,
+        mode: "orthographic"
+      }
     });
   });
 });
-

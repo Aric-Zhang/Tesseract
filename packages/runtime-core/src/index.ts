@@ -33,8 +33,12 @@ export { RuntimeCameraRegistry } from "./runtime-camera";
 export type {
   RuntimeCameraCommand,
   RuntimeCameraDescriptor,
+  RuntimeCameraAxis,
   RuntimeCameraKind,
   RuntimeCameraPose,
+  RuntimeCameraProjectionMode,
+  RuntimeCameraProjectionState,
+  RuntimeCameraOrbitState,
   RuntimeCameraState
 } from "./runtime-camera";
 export {

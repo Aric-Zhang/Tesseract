@@ -72,6 +72,7 @@ import {
   WorkspaceModeController
 } from "./workspace-mode";
 import { registerUiScheduledServiceWithRuntime } from "./adapters/ui-scheduler-runtime-adapter";
+import { toRuntimeFrame } from "../runtime-adapter";
 
 export interface WallpaperApp {
   dispose(): void;
@@ -247,6 +248,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     const frame = frameClock.tick(timeMs);
     isUpdatingFrame = true;
     try {
+      runtimeContext.updateRuntimeFrame(toRuntimeFrame(frame));
       sceneRuntime.updateFrame(frame);
       sceneFeature.renderableSceneViews.current?.render();
     } finally {

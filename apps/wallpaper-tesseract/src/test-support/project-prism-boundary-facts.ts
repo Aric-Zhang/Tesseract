@@ -26,6 +26,12 @@ export const projectPrismSourceZones = [
   definePathZone("runtime-core-candidate", "Renderer-agnostic runtime world, camera, projection, frame, scheduler, and command contracts.", [
     /^packages\/runtime-core\/src\//
   ]),
+  definePathZone("runtime-three-candidate", "Three/WebGL runtime backend candidates that realize runtime contracts without importing editor or UI code.", [
+    /^packages\/runtime-three\/src\//
+  ]),
+  definePathZone("runtime-production-candidate", "App-local production runtime ownership staging that may depend on runtime packages but not editor/UI/app composition.", [
+    /^\.\/runtime\/(?!ports\/)/
+  ]),
   definePathZone("editor-candidate", "Concrete editor features and editor presentation components.", [
     /^\.\/debug\//,
     /^\.\/editor\//,
@@ -54,11 +60,14 @@ export const projectPrismSourceZones = [
     /^\.\/scene-runtime\//
   ], { debt: true }),
   definePathZone("runtime-ownership-debt", "Runtime-like world/camera/object code still owned by editor/app folders.", [
+    /^\.\/app\/create-wallpaper-app\.ts$/,
     /^\.\/camera3-control\//,
     /^\.\/features\/camera3\/model\//,
     /^\.\/features\/camera3\/components\/(?:camera3-motion-component|camera3-rig-component|scene-camera3-viewport-binding-component)\.ts$/,
     /^\.\/features\/scene\/(?:install-scene-view-feature|scene-view-content-installer|renderable-scene-view|scene-window-actor-factory)\.ts$/,
     /^\.\/features\/scene\/components\/scene-viewport-component\.ts$/,
+    /^\.\/scene-runtime\/(?:frame-state-controller|scene-runtime)\.ts$/,
+    /^\.\/update-runtime\/frame-update-attachment-runtime\.ts$/,
     /^\.\/tesseract4\//
   ], { debt: true }),
   definePathZone("runtime-adapter-debt", "Phase 4D app-local adapters from current editor/runtime facts into runtime-core contracts.", [
@@ -80,7 +89,8 @@ export interface ProjectPrismPackageTarget {
     | "ui-framework"
     | "runtime-core-contracts"
     | "runtime-production-ownership"
-    | "runtime-three"
+    | "runtime-three-backend"
+    | "runtime-render-production-ownership"
     | "editor"
     | "wallpaper-app";
   readonly cleanCandidateZones: readonly string[];
@@ -151,15 +161,17 @@ export const projectPrismRuntimeExtractionBlockers = [
     deletionCondition: "Camera model exposes renderer-agnostic camera state; Three camera realization moves to runtime-three backend."
   },
   {
-    id: "camera3-motion-scene-scheduler",
+    id: "frame-update-lane-split",
     files: [
-      "./camera3-control/camera3-motion-controller.ts",
-      "./features/camera3/components/camera3-motion-component.ts"
+      "./scene-runtime/scene-runtime.ts",
+      "./update-runtime/frame-update-attachment-runtime.ts",
+      "./scene-runtime/frame-state-controller.ts",
+      "./app/create-wallpaper-app.ts"
     ],
-    blocks: ["runtime-core extraction", "state/scheduler split"],
-    requiredPort: "RuntimeFrameSource + RuntimeCommandSink",
-    blocker: "Camera3 motion implements app-local RuntimeObject and is still scheduled by the app scene runtime.",
-    deletionCondition: "Camera motion consumes package-owned runtime frame and command ports, not app scene runtime services."
+    blocks: ["runtime production ownership", "state/scheduler split"],
+    requiredPort: "RuntimeScheduler + UiComponentTickScheduler + EditorStateFlushScheduler",
+    blocker: "SceneRuntime currently dispatches runtime work, UI component ticks, and editor state flush through one app-local frame update lane.",
+    deletionCondition: "Runtime work, UI/component tick, and editor state flush have separate owners and no generic app-local RuntimeObject bus remains."
   },
   {
     id: "scene-view-render-host",
@@ -289,6 +301,20 @@ export const projectPrismZoneDependencyRules = [
     ]
   },
   {
+    sourceZone: "runtime-production-candidate",
+    forbiddenTargetZones: [
+      "actor-input-candidate",
+      "ui-framework-candidate",
+      "editor-candidate",
+      "app-composition",
+      "app-composition-debt",
+      "app-runtime-debt",
+      "actor-binding-debt",
+      "state-domain-debt",
+      "runtime-adapter-debt"
+    ]
+  },
+  {
     sourceZone: "editor-candidate",
     forbiddenTargetZones: [
       "app-composition"
@@ -338,7 +364,15 @@ export const projectPrismPackageTargets = [
     extractionStatus: "blocked"
   },
   {
-    id: "runtime-three",
+    id: "runtime-three-backend",
+    cleanCandidateZones: ["runtime-three-candidate"],
+    debtZones: [],
+    blockedBy: [],
+    extractionPhase: "Phase 5A",
+    extractionStatus: "allowed"
+  },
+  {
+    id: "runtime-render-production-ownership",
     cleanCandidateZones: [],
     debtZones: ["runtime-ownership-debt"],
     blockedBy: ["runtime-ownership-debt"],

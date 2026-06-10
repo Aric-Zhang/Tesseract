@@ -61,18 +61,6 @@ function createContext() {
   return { calls, context, runtimeObjects };
 }
 
-function updateRegisteredRuntimeObject(
-  runtimeObjects: readonly RuntimeObject[],
-  id: string,
-  frame = { timeMs: 0, deltaMs: 0, frameIndex: 0 }
-): void {
-  const object = runtimeObjects.find((candidate) => candidate.id === id);
-  if (!object?.updateFrame) {
-    throw new Error(`Missing runtime object with updateFrame: ${id}`);
-  }
-  object.updateFrame(frame);
-}
-
 function createFakeObjectFactory(calls: string[]) {
   const object = new THREE.LineSegments();
   const createObject = (): Tesseract4RuntimeObject => ({
@@ -116,12 +104,12 @@ describe("createTesseract4Actor", () => {
   });
 
   it("delegates frame updates to the wrapped runtime object", () => {
-    const { calls, context, runtimeObjects } = createContext();
+    const { calls, context } = createContext();
     const { createObject } = createFakeObjectFactory(calls);
     createTesseract4Actor(context, { actorId: "tesseract-actor" }, createObject);
     calls.length = 0;
 
-    updateRegisteredRuntimeObject(runtimeObjects, "frame-update-attachment-runtime", {
+    context.updateRuntimeFrame({
       timeMs: 1000,
       deltaMs: 16,
       frameIndex: 1

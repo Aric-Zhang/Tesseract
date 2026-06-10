@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../../../actor-runtime";
 import { createTestComponentRegistry } from "../../../test-support";
-import { FrameUpdateAttachmentRuntime } from "../../../update-runtime";
+import { ProductionRuntimeSchedulerService } from "../../../runtime/runtime-scheduler-service";
+import { RuntimeWorkAttachmentRuntime } from "../../../update-runtime";
 import {
   Camera3MotionComponent,
   camera3MotionComponentType
@@ -16,7 +17,8 @@ const frame = { timeMs: 16, deltaMs: 16, frameIndex: 1 };
 
 function createSubject() {
   const actorSystem = new ActorSystem();
-  const updateRuntime = new FrameUpdateAttachmentRuntime({ actorSystem });
+  const scheduler = new ProductionRuntimeSchedulerService();
+  const updateRuntime = new RuntimeWorkAttachmentRuntime({ actorSystem, scheduler });
   const { registry } = createTestComponentRegistry({
     actorSystem,
     attachmentRuntime: updateRuntime
@@ -26,7 +28,7 @@ function createSubject() {
   const motion = registry.addComponent(actor, camera3MotionComponentType);
   const rig = registry.getComponent(actor, camera3RigComponentType);
   if (!rig) throw new Error("Expected Camera3RigComponent.");
-  return { actor, actorSystem, motion, registry, rig, updateRuntime };
+  return { actor, actorSystem, motion, registry, rig, scheduler };
 }
 
 describe("Camera3 feature components", () => {
@@ -51,10 +53,10 @@ describe("Camera3 feature components", () => {
   });
 
   it("updates motion components through the actor system frame pass", () => {
-    const { motion, rig, updateRuntime } = createSubject();
+    const { motion, rig, scheduler } = createSubject();
 
     motion.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 8, dy: 4 });
-    updateRuntime.updateFrame(frame);
+    scheduler.updateRuntimeFrame(frame);
 
     expect(rig.rig.yaw).toBeCloseTo(-8 * rig.rig.orbitSensitivity);
     expect(rig.rig.pitch).toBeCloseTo(4 * rig.rig.orbitSensitivity);

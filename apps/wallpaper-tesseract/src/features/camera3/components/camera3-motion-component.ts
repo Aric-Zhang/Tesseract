@@ -1,4 +1,5 @@
 import type * as THREE from "three";
+import type { RuntimeFrame, RuntimeWork } from "runtime-core";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import {
   Camera3MotionController,
@@ -7,7 +8,7 @@ import {
   type Camera3MotionUpdateResult
 } from "../../../camera3-control";
 import type { Camera3CommandSink, Camera3ControlCommand } from "../../../camera3-control";
-import type { RuntimeObject, RuntimeRegistration, UpdateFrame } from "../../../runtime/ports";
+import type { RuntimeRegistration, UpdateFrame } from "../../../runtime/ports";
 import type { Camera3RigComponent } from "./camera3-rig-component";
 import type { Camera3ProjectionModeController } from "../model";
 
@@ -18,7 +19,7 @@ export interface Camera3MotionComponentOptions {
   readonly id?: string;
 }
 
-export class Camera3MotionComponent implements Component, Camera3CommandSink, RuntimeObject {
+export class Camera3MotionComponent implements Component, Camera3CommandSink, RuntimeWork {
   readonly type = camera3MotionComponentType;
   readonly actor: Actor;
   readonly id: string;
@@ -58,6 +59,10 @@ export class Camera3MotionComponent implements Component, Camera3CommandSink, Ru
   }
 
   updateFrame(frame: UpdateFrame): void {
+    this.#controller.updateFrame(frame);
+  }
+
+  updateRuntimeFrame(frame: RuntimeFrame): void {
     this.#controller.updateFrame(frame);
   }
 

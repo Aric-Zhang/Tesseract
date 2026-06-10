@@ -33,10 +33,10 @@ export const projectPrismSceneRuntimeStateDomainMap = [
   entry("SceneParameterStore", "scene-parameter-store.ts", "mixed-state", "delete-after-split", "Generic parameter store is split or replaced by domain-owned stores."),
   entry("SceneMergeStrategy", "scene-parameter-store.ts", "mixed-state", "delete-after-split", "Merge strategy is kept only where a domain store still needs it."),
   entry("SceneParameterDefinition", "scene-parameter-store.ts", "mixed-state", "delete-after-split", "Parameter definitions move to their owning state domain."),
-  entry("SceneRuntime", "scene-runtime.ts", "runtime-scheduler", "runtime-production-ownership", "RuntimeScheduler owns runtime work; editor/UI services no longer register in SceneRuntime."),
+  entry("SceneRuntime", "scene-runtime.ts", "mixed-state", "delete-after-split", "SceneRuntime is deleted after UI component tick and editor state flush stop sharing one generic app-local scheduler bus."),
   entry("FrameUpdatable", "runtime-object.ts", "runtime-scheduler", "runtime-core", "Runtime work consumes runtime-core RuntimeFrame contracts."),
   entry("RuntimeDisposable", "runtime-object.ts", "runtime-scheduler", "runtime-core", "Disposable contract comes from runtime-core or package-local lifecycle primitives."),
-  entry("RuntimeObject", "runtime-object.ts", "runtime-scheduler", "runtime-production-ownership", "Current app-local object bus is deleted after runtime work is scheduled by runtime packages."),
+  entry("RuntimeObject", "runtime-object.ts", "mixed-state", "delete-after-split", "Current app-local object bus is deleted after UI tick and editor state flush no longer share RuntimeObject registration."),
   entry("RuntimeRegistration", "runtime-object.ts", "runtime-scheduler", "runtime-core", "Registration contract comes from runtime-core or package-local lifecycle primitives."),
   entry("parameterPath", "scene-update-command.ts", "mixed-state", "delete-after-split", "String path helper is deleted once state paths are domain-specific."),
   entry("ParameterPath", "scene-update-command.ts", "mixed-state", "delete-after-split", "State path identity is owned by runtime/editor/ui state domains separately."),
@@ -81,4 +81,3 @@ function entry(
     stopCondition
   };
 }
-

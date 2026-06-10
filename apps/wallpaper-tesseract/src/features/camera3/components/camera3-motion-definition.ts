@@ -1,5 +1,5 @@
 import type { ComponentDefinition } from "../../../actor-runtime";
-import { frameUpdateAttachment } from "../../../update-runtime";
+import { runtimeWorkAttachment } from "../../../update-runtime";
 import {
   Camera3MotionComponent,
   camera3MotionComponentType,
@@ -13,7 +13,7 @@ export const camera3MotionComponentDefinition:
   ComponentDefinition<Camera3MotionComponent, Camera3MotionComponentOptions> = {
     type: camera3MotionComponentType,
     singleton: true,
-    attachments: [frameUpdateAttachment],
+    attachments: [runtimeWorkAttachment],
     requires: [{
       type: camera3RigComponentType,
       autoAdd: true

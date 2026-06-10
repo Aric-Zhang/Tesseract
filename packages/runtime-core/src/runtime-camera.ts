@@ -1,6 +1,8 @@
 import type { RuntimeCameraId, RuntimeWorldId } from "./runtime-id";
 
 export type RuntimeCameraKind = "camera-4d" | "camera-3d";
+export type RuntimeCameraProjectionMode = "perspective" | "orthographic";
+export type RuntimeCameraAxis = "+x" | "-x" | "+y" | "-y" | "+z" | "-z";
 
 export interface RuntimeCameraPose {
   readonly position: readonly number[];
@@ -8,9 +10,32 @@ export interface RuntimeCameraPose {
   readonly up?: readonly number[];
 }
 
+export interface RuntimeCameraOrbitState {
+  readonly target: readonly number[];
+  readonly distance: number;
+  readonly yaw: number;
+  readonly pitch: number;
+  readonly roll?: number;
+  readonly snapAxis?: RuntimeCameraAxis;
+}
+
+export interface RuntimeCameraProjectionState {
+  readonly mode: RuntimeCameraProjectionMode;
+  readonly fov?: number;
+  readonly near?: number;
+  readonly far?: number;
+  readonly viewport?: {
+    readonly width: number;
+    readonly height: number;
+  };
+  readonly orthographicHeight?: number;
+}
+
 export interface RuntimeCameraState {
   readonly pose: RuntimeCameraPose;
-  readonly projectionMode?: "perspective" | "orthographic";
+  readonly projectionMode?: RuntimeCameraProjectionMode;
+  readonly orbit?: RuntimeCameraOrbitState;
+  readonly projection?: RuntimeCameraProjectionState;
 }
 
 export interface RuntimeCameraDescriptor {
@@ -33,8 +58,24 @@ export type RuntimeCameraCommand =
       readonly delta: { readonly yaw: number; readonly pitch: number };
     }
   | {
+      readonly type: "snap-camera-axis";
+      readonly cameraId: RuntimeCameraId;
+      readonly axis: RuntimeCameraAxis;
+    }
+  | {
       readonly type: "toggle-camera-projection";
       readonly cameraId: RuntimeCameraId;
+    }
+  | {
+      readonly type: "set-camera-projection-mode";
+      readonly cameraId: RuntimeCameraId;
+      readonly mode: RuntimeCameraProjectionMode;
+    }
+  | {
+      readonly type: "resize-camera-projection";
+      readonly cameraId: RuntimeCameraId;
+      readonly viewport: { readonly width: number; readonly height: number };
+      readonly distance?: number;
     };
 
 export class RuntimeCameraRegistry {

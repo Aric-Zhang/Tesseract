@@ -24,4 +24,9 @@ export {
 export type {
   RuntimeThreeFramePayload
 } from "./runtime-three-frame-source";
-
+export {
+  RuntimeThreeLineRenderable
+} from "./runtime-three-line-renderable";
+export type {
+  RuntimeThreeLineRenderableOptions
+} from "./runtime-three-line-renderable";

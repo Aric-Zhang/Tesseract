@@ -3,9 +3,9 @@ import {
   type RuntimeWorldDescriptor,
   type RuntimeWorldId
 } from "runtime-core";
-import type { Tesseract4RuntimeObjectOptions } from "../tesseract4";
+import type { Tesseract4RuntimeWorldOptions } from "../runtime/tesseract4-runtime-world";
 
-export interface Tesseract4RuntimeWorldAdapterOptions extends Tesseract4RuntimeObjectOptions {
+export interface Tesseract4RuntimeWorldAdapterOptions extends Tesseract4RuntimeWorldOptions {
   readonly worldId?: RuntimeWorldId | string;
   readonly label?: string;
 }
@@ -22,4 +22,3 @@ export function createTesseract4RuntimeWorldDescriptor(
     label: options.label ?? "Tesseract4"
   };
 }
-

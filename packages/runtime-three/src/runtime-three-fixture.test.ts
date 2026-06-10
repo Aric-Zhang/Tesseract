@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { runtimeCameraId, runtimeFrameSourceId, runtimeWorldId } from "runtime-core";
 import { RuntimeThreeCameraBackend } from "./runtime-three-camera-backend";
 import { RuntimeThreeFrameSource } from "./runtime-three-frame-source";
+import { RuntimeThreeLineRenderable } from "./runtime-three-line-renderable";
 import { RuntimeThreeRendererBackend, type RuntimeThreeRendererLike } from "./runtime-three-renderer-backend";
 import { RuntimeThreeSceneBackend } from "./runtime-three-scene-backend";
 import type { RuntimeThreeRenderable } from "./runtime-three-renderable";
@@ -116,5 +117,27 @@ describe("runtime-three backend fixture", () => {
         message: "lost context"
       }
     });
+  });
+
+  it("realizes line projection results as Three line renderables", () => {
+    const renderable = new RuntimeThreeLineRenderable({
+      id: runtimeWorldId("world:4d"),
+      maxSegmentCount: 1
+    });
+
+    renderable.update({
+      positions3: new Float32Array([0, 0, 0, 1, 1, 1]),
+      depths4: new Float32Array([0, 0]),
+      segmentCount: 1,
+      bounds3: {
+        min: new Float32Array([0, 0, 0]),
+        max: new Float32Array([1, 1, 1]),
+        valid: true
+      }
+    });
+
+    expect(renderable.object.geometry.drawRange.count).toBe(2);
+    expect(renderable.object.frustumCulled).toBe(false);
+    renderable.dispose();
   });
 });

@@ -62,6 +62,10 @@ export class Camera3MotionComponent implements Component, Camera3CommandSink, Ru
     this.#controller.updateFrame(frame);
   }
 
+  resizeProjection(width: number, height: number): void {
+    this.#controller.resizeProjection(width, height);
+  }
+
   updateRuntimeFrame(frame: RuntimeFrame): void {
     this.#controller.updateFrame(frame);
   }

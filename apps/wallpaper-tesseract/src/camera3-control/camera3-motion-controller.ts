@@ -1,10 +1,12 @@
 import * as THREE from "three";
 import {
   runtimeCameraId,
+  runtimeWorldId,
   type RuntimeCameraAxis,
   type RuntimeCameraId,
   type RuntimeCameraState
 } from "runtime-core";
+import { RuntimeThreeCameraBackend } from "runtime-three";
 import { Camera3ProjectionModeController, Camera3Rig } from "../features/camera3/model";
 import type { RuntimeObject, RuntimeRegistration, UpdateFrame } from "../runtime/ports";
 import type { Camera3CommandSink, Camera3ControlCommand } from "./camera3-control-command";
@@ -44,6 +46,7 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
   private readonly observers: Camera3MotionObserver[] = [];
   private readonly rig: Camera3Rig;
   private readonly projectionMode: Camera3ProjectionModeController;
+  private readonly runtimeCameraBackend: RuntimeThreeCameraBackend;
   private runtimeState: RuntimeCameraState;
 
   constructor(options: Camera3MotionControllerOptions) {
@@ -51,11 +54,18 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
     this.projectionMode = options.projectionMode;
     this.runtimeCameraId = runtimeCameraId("camera3:main");
     this.runtimeState = createRuntimeStateFromRig(this.rig, this.projectionMode.mode);
+    this.runtimeCameraBackend = new RuntimeThreeCameraBackend({
+      id: this.runtimeCameraId,
+      kind: "camera-3d",
+      sourceWorldId: runtimeWorldId("world:scene-3d"),
+      state: this.runtimeState,
+      label: "Camera3"
+    });
     this.syncCamera();
   }
 
   get activeCamera(): THREE.PerspectiveCamera | THREE.OrthographicCamera {
-    return this.projectionMode.activeCamera;
+    return this.runtimeCameraBackend.object;
   }
 
   get distance(): number {
@@ -89,6 +99,15 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
     this.update(frame);
   }
 
+  resizeProjection(width: number, height: number): void {
+    assertFinite(width, "resizeProjection.width");
+    assertFinite(height, "resizeProjection.height");
+    if (width <= 0 || height <= 0) return;
+    this.runtimeState = resizeProjection(this.runtimeState, width, height);
+    this.syncEditorModelFromRuntimeState();
+    this.syncCamera();
+  }
+
   update(frame: UpdateFrame): Camera3MotionUpdateResult {
     const commands = this.pendingCommands;
     this.pendingCommands = [];
@@ -110,12 +129,14 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
   }
 
   syncCamera(): void {
-    this.rig.updateCamera(this.projectionMode.activeCamera);
+    this.runtimeCameraBackend.applyState(this.runtimeState);
+    this.rig.updateCamera(this.activeCamera);
   }
 
   dispose(): void {
     this.pendingCommands = [];
     this.observers.length = 0;
+    this.runtimeCameraBackend.dispose();
   }
 
   private applyCommand(command: Camera3ControlCommand): void {
@@ -162,6 +183,14 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
       this.rig.roll = orbit.roll ?? 0;
     }
     this.projectionMode.setMode(getProjectionMode(this.runtimeState));
+    const projection = this.runtimeState.projection;
+    if (projection?.viewport) {
+      this.projectionMode.resize(
+        projection.viewport.width,
+        projection.viewport.height,
+        this.distance
+      );
+    }
   }
 
   private notify(frame: UpdateFrame, commands: readonly Camera3ControlCommand[]): void {
@@ -169,7 +198,7 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
       frame,
       rig: this.rig,
       projectionMode: this.projectionMode,
-      activeCamera: this.projectionMode.activeCamera,
+      activeCamera: this.activeCamera,
       commands
     };
     for (const observer of [...this.observers]) {
@@ -194,7 +223,10 @@ function createRuntimeStateFromRig(
     orbit,
     projectionMode,
     projection: {
-      mode: projectionMode
+      mode: projectionMode,
+      fov: 45,
+      near: 0.1,
+      far: 1000
     }
   };
 }
@@ -249,6 +281,25 @@ function setProjectionMode(
     projection: {
       ...state.projection,
       mode
+    }
+  };
+}
+
+function resizeProjection(state: RuntimeCameraState, width: number, height: number): RuntimeCameraState {
+  const projection = state.projection;
+  const fov = projection?.fov ?? 45;
+  const distance = getOrbitState(state).distance;
+  const orthographicHeight = 2 * distance * Math.tan((fov * Math.PI / 180) * 0.5);
+  return {
+    ...state,
+    projection: {
+      ...projection,
+      mode: projection?.mode ?? state.projectionMode ?? "perspective",
+      fov,
+      near: projection?.near ?? 0.1,
+      far: projection?.far ?? 1000,
+      viewport: { width, height },
+      orthographicHeight
     }
   };
 }

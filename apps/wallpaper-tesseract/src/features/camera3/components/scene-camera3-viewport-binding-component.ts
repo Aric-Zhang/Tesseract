@@ -42,16 +42,12 @@ export class SceneCamera3ViewportBindingComponent implements Component {
       onCamera3MotionChanged: () => services.gizmo.update()
     });
     this.#resizeRegistration = services.viewport.subscribeResize(({ width, height }) => {
-      services.rig.resizeProjection(width, height, services.motion.distance);
+      services.motion.resizeProjection(width, height);
       services.gizmo.update();
     });
     const initialViewportSize = services.viewport.getSize();
     if (initialViewportSize) {
-      services.rig.resizeProjection(
-        initialViewportSize.width,
-        initialViewportSize.height,
-        services.motion.distance
-      );
+      services.motion.resizeProjection(initialViewportSize.width, initialViewportSize.height);
       services.gizmo.update();
     } else {
       services.viewport.measureNow();

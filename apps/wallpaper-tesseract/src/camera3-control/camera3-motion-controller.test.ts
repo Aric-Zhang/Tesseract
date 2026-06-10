@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
 import { Camera3ProjectionModeController, Camera3Rig } from "../features/camera3/model";
 import { Camera3MotionController } from "./camera3-motion-controller";
 
@@ -59,7 +60,8 @@ describe("Camera3MotionController", () => {
     controller.update(frame);
 
     expect(projectionMode.mode).toBe("orthographic");
-    expect(controller.activeCamera).toBe(projectionMode.orthographicCamera);
+    expect(controller.activeCamera).toBeInstanceOf(THREE.OrthographicCamera);
+    expect(controller.activeCamera).not.toBe(projectionMode.orthographicCamera);
   });
 
   it("sets explicit projection mode through commands", () => {
@@ -71,8 +73,23 @@ describe("Camera3MotionController", () => {
     controller.update({ timeMs: 32, deltaMs: 16, frameIndex: 2 });
 
     expect(projectionMode.mode).toBe("perspective");
-    expect(controller.activeCamera).toBe(projectionMode.perspectiveCamera);
+    expect(controller.activeCamera).toBeInstanceOf(THREE.PerspectiveCamera);
+    expect(controller.activeCamera).not.toBe(projectionMode.perspectiveCamera);
     expect(controller.cameraState.projection?.mode).toBe("perspective");
+  });
+
+  it("resizes projection through runtime camera state while keeping the editor facade in sync", () => {
+    const { controller, projectionMode } = createController();
+
+    controller.resizeProjection(640, 320);
+    controller.submit({ type: "set-projection-mode", source: "camera3-gizmo", mode: "orthographic" });
+    controller.update(frame);
+
+    expect(controller.cameraState.projection?.viewport).toEqual({ width: 640, height: 320 });
+    expect(controller.cameraState.projection?.orthographicHeight).toBeGreaterThan(0);
+    expect(projectionMode.perspectiveCamera.aspect).toBe(2);
+    expect(controller.activeCamera).toBeInstanceOf(THREE.OrthographicCamera);
+    expect(controller.activeCamera).not.toBe(projectionMode.orthographicCamera);
   });
 
   it("snaps to axis targets with stable yaw and pitch semantics", () => {

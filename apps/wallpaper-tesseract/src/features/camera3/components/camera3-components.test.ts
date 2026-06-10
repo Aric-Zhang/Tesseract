@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
 import { ActorSystem } from "../../../actor-runtime";
 import { createTestComponentRegistry } from "../../../test-support";
 import { ProductionRuntimeSchedulerService } from "../../../runtime/runtime-scheduler-service";
@@ -65,13 +66,14 @@ describe("Camera3 feature components", () => {
   it("updates active projection camera and projection size through components", () => {
     const { motion, rig } = createSubject();
 
-    rig.resizeProjection(640, 320, motion.distance);
+    motion.resizeProjection(640, 320);
     motion.submit({ type: "toggle-projection", source: "camera3-gizmo" });
     motion.update(frame);
 
     expect(rig.projectionMode.perspectiveCamera.aspect).toBe(2);
     expect(rig.projectionMode.mode).toBe("orthographic");
-    expect(motion.activeCamera).toBe(rig.projectionMode.orthographicCamera);
+    expect(motion.activeCamera).toBeInstanceOf(THREE.OrthographicCamera);
+    expect(motion.activeCamera).not.toBe(rig.projectionMode.orthographicCamera);
   });
 
   it("disposes motion idempotently", () => {

@@ -6,11 +6,10 @@ import { installStateRuntimeComponentDefinitions } from "../state-runtime";
 import { installWindowComponentDefinitions } from "../window-runtime";
 import { installHierarchyComponentDefinitions } from "./install-component-definitions";
 import type {
-  RuntimeObject,
-  RuntimeRegistration,
-  SceneStateObserver,
-  SceneUpdateCommand
-} from "../scene-runtime";
+  AppStateCommand
+} from "../editor/app-state";
+import type { AppStateObserver } from "../editor/app-state-controller";
+import type { RuntimeObject, RuntimeRegistration } from "../runtime/ports";
 import { gizmoEventBindingComponentType } from "../gizmo-runtime";
 import { stateObserverBindingComponentType } from "../state-runtime";
 import { floatingWindowComponentType } from "../window-runtime";
@@ -126,7 +125,7 @@ function createRegistration(label: string, calls: string[]): RuntimeRegistration
 function createContext() {
   const calls: string[] = [];
   const registeredGizmos: GizmoController[] = [];
-  const observers: SceneStateObserver[] = [];
+  const observers: AppStateObserver[] = [];
   const context = new AppRuntimeContext({
     sceneRuntime: {
       register(object: RuntimeObject): RuntimeRegistration {
@@ -148,10 +147,10 @@ function createContext() {
       }
     },
     frameStateController: {
-      submit(command: SceneUpdateCommand): void {
+      submit(command: AppStateCommand): void {
         calls.push(`frame-submit:${command.target}`);
       },
-      subscribe(observer: SceneStateObserver): RuntimeRegistration {
+      subscribe(observer: AppStateObserver): RuntimeRegistration {
         calls.push("observer-subscribe");
         observers.push(observer);
         return createRegistration("observer-dispose", calls);

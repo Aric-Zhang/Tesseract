@@ -1,63 +1,66 @@
 import { describe, expect, it } from "vitest";
-import { FrameStateController, SceneParameterStore, sceneParameterPaths, vec2 } from "../scene-runtime";
+import { AppFrameStateController } from "../editor/app-state-controller";
+import { AppStateParameterStore } from "../editor/app-state-store";
+import { editorWindowLayoutPaths } from "../editor/window-layout-state";
+import { uiVec2 } from "../window-runtime";
 import { createDefaultDebugWindowState, registerDebugWindowParameters } from "./debug-window-parameters";
 
 describe("debug window parameters", () => {
   it("registers position, size, and visible state", () => {
-    const store = new SceneParameterStore();
+    const store = new AppStateParameterStore();
     const initial = createDefaultDebugWindowState();
     registerDebugWindowParameters(store, initial);
 
-    expect(store.get(sceneParameterPaths.debugWindow.position)).toEqual(initial.position);
-    expect(store.get(sceneParameterPaths.debugWindow.size)).toEqual(initial.size);
-    expect(store.get(sceneParameterPaths.debugWindow.visible)).toBe(true);
+    expect(store.get(editorWindowLayoutPaths.debugWindow.position)).toEqual(initial.position);
+    expect(store.get(editorWindowLayoutPaths.debugWindow.size)).toEqual(initial.size);
+    expect(store.get(editorWindowLayoutPaths.debugWindow.visible)).toBe(true);
   });
 
   it("treats repeated equivalent registration as idempotent", () => {
-    const store = new SceneParameterStore();
+    const store = new AppStateParameterStore();
     const initial = createDefaultDebugWindowState();
 
     registerDebugWindowParameters(store, initial);
     registerDebugWindowParameters(store, initial);
 
-    expect(store.get(sceneParameterPaths.debugWindow.position)).toEqual(initial.position);
-    expect(store.get(sceneParameterPaths.debugWindow.size)).toEqual(initial.size);
+    expect(store.get(editorWindowLayoutPaths.debugWindow.position)).toEqual(initial.position);
+    expect(store.get(editorWindowLayoutPaths.debugWindow.size)).toEqual(initial.size);
   });
 
   it("supports frame-level position deltas", () => {
-    const store = new SceneParameterStore();
+    const store = new AppStateParameterStore();
     const initial = createDefaultDebugWindowState();
     registerDebugWindowParameters(store, initial);
-    const controller = new FrameStateController({ store });
+    const controller = new AppFrameStateController({ store });
 
     controller.submit({
       source: { id: "debug-log-window", kind: "gizmo" },
-      target: sceneParameterPaths.debugWindow.position,
+      target: editorWindowLayoutPaths.debugWindow.position,
       operation: "add",
-      delta: vec2(12, -8)
+      delta: uiVec2(12, -8)
     });
     controller.updateFrame({ timeMs: 16, deltaMs: 16, frameIndex: 1 });
 
-    expect(store.get(sceneParameterPaths.debugWindow.position)).toEqual({
+    expect(store.get(editorWindowLayoutPaths.debugWindow.position)).toEqual({
       x: initial.position.x + 12,
       y: initial.position.y - 8
     });
   });
 
   it("does not constrain position to the viewport", () => {
-    const store = new SceneParameterStore();
+    const store = new AppStateParameterStore();
     const initial = createDefaultDebugWindowState();
     registerDebugWindowParameters(store, initial);
-    const controller = new FrameStateController({ store });
+    const controller = new AppFrameStateController({ store });
 
     controller.submit({
       source: { id: "debug-log-window", kind: "gizmo" },
-      target: sceneParameterPaths.debugWindow.position,
+      target: editorWindowLayoutPaths.debugWindow.position,
       operation: "set",
-      value: vec2(-220, 960)
+      value: uiVec2(-220, 960)
     });
     controller.updateFrame({ timeMs: 16, deltaMs: 16, frameIndex: 1 });
 
-    expect(store.get(sceneParameterPaths.debugWindow.position)).toEqual(vec2(-220, 960));
+    expect(store.get(editorWindowLayoutPaths.debugWindow.position)).toEqual(uiVec2(-220, 960));
   });
 });

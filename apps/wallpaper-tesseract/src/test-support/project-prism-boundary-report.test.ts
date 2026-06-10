@@ -48,7 +48,7 @@ describe("Project Prism boundary report", () => {
     expect(targetsById.get("runtime-production-ownership")).toMatchObject({
       status: "blocked",
       cleanCandidateZones: [],
-      blockedBy: expect.arrayContaining(["state-domain-debt", "runtime-ownership-debt"])
+      blockedBy: expect.arrayContaining(["runtime-ownership-debt"])
     });
     expect(targetsById.get("runtime-three-backend")).toMatchObject({
       status: "allowed",

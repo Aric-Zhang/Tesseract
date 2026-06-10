@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { FrameStateController, SceneParameterStore, sceneParameterPaths, vec2 } from "../../scene-runtime";
+import { AppFrameStateController } from "../../editor/app-state-controller";
+import { AppStateParameterStore } from "../../editor/app-state-store";
+import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
+import { uiVec2 } from "../../window-runtime";
 import {
   createDefaultSceneWindowState,
   registerSceneWindowParameters,
@@ -17,11 +20,11 @@ describe("scene window state", () => {
     expect(state.visible).toBe(true);
     expect(state.size.x).toBeGreaterThanOrEqual(SCENE_WINDOW_MIN_WIDTH);
     expect(state.size.y).toBeGreaterThanOrEqual(SCENE_WINDOW_MIN_HEIGHT);
-    expect(state.position).toEqual(vec2(160, 152));
+    expect(state.position).toEqual(uiVec2(160, 152));
   });
 
   it("registers scene window parameters idempotently", () => {
-    const store = new SceneParameterStore();
+    const store = new AppStateParameterStore();
     const state = createDefaultSceneWindowState({
       viewportWidth: 1000,
       viewportHeight: 800
@@ -30,27 +33,27 @@ describe("scene window state", () => {
     registerSceneWindowParameters(store, state);
     registerSceneWindowParameters(store, state);
 
-    expect(store.get(sceneParameterPaths.sceneWindow.position)).toEqual(state.position);
-    expect(store.get(sceneParameterPaths.sceneWindow.size)).toEqual(state.size);
-    expect(store.get(sceneParameterPaths.sceneWindow.visible)).toBe(true);
+    expect(store.get(editorWindowLayoutPaths.sceneWindow.position)).toEqual(state.position);
+    expect(store.get(editorWindowLayoutPaths.sceneWindow.size)).toEqual(state.size);
+    expect(store.get(editorWindowLayoutPaths.sceneWindow.visible)).toBe(true);
   });
 
   it("constrains scene window size through the frame state controller", () => {
-    const store = new SceneParameterStore();
+    const store = new AppStateParameterStore();
     const state = createDefaultSceneWindowState();
     registerSceneWindowParameters(store, state);
-    const controller = new FrameStateController({ store });
+    const controller = new AppFrameStateController({ store });
 
     controller.submit({
       source: { id: "test", kind: "script" },
-      target: sceneParameterPaths.sceneWindow.size,
+      target: editorWindowLayoutPaths.sceneWindow.size,
       operation: "set",
-      value: vec2(10, 10)
+      value: uiVec2(10, 10)
     });
     controller.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
 
-    expect(store.get(sceneParameterPaths.sceneWindow.size)).toEqual(
-      vec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT)
+    expect(store.get(editorWindowLayoutPaths.sceneWindow.size)).toEqual(
+      uiVec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT)
     );
   });
 });

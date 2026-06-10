@@ -84,7 +84,7 @@ describe("architecture boundaries", () => {
     expect(zoneMap.unclassified).toEqual([]);
     expect(zoneMap.ambiguousCandidateFiles).toEqual([]);
     expect(zoneMap.debtEntries.map((entry) => entry.file)).toEqual(expect.arrayContaining([
-      "./scene-runtime/parameter-paths.ts",
+      "./scene-runtime/scene-runtime.ts",
       "./app-runtime/app-runtime-context.ts",
       "./app/create-wallpaper-app.ts",
       "./update-runtime/frame-update-attachment-runtime.ts",
@@ -245,10 +245,10 @@ describe("architecture boundaries", () => {
       extractionStatus: "blocked"
     });
     expect(runtimeOwnershipTarget?.blockedBy).toEqual(expect.arrayContaining([
-      "state-domain-debt",
       "runtime-ownership-debt",
       "runtime-adapter-debt"
     ]));
+    expect(runtimeOwnershipTarget?.blockedBy).not.toContain("state-domain-debt");
     expect(runtimeThreeBackendTarget).toMatchObject({
       extractionStatus: "allowed",
       blockedBy: [],
@@ -347,15 +347,14 @@ describe("architecture boundaries", () => {
     expect(incompleteBlockers).toEqual([]);
   });
 
-  it("keeps scene-backed UI state adapters out of window-runtime public API", () => {
+  it("keeps scene-backed UI state adapters deleted", () => {
     const windowRuntimeIndex = sourceFiles["./window-runtime/index.ts"] ?? "";
-    const sceneBackedAdapter = sourceFiles["./editor/adapters/floating-window-scene-state-adapter.ts"] ?? "";
 
     expect(sourceFiles["./window-runtime/floating-window-scene-state-adapter.ts"]).toBeUndefined();
+    expect(sourceFiles["./editor/adapters/floating-window-scene-state-adapter.ts"]).toBeUndefined();
+    expect(sourceFiles["./editor/adapters/workspace-mode-scene-state-adapter.ts"]).toBeUndefined();
     expect(windowRuntimeIndex).not.toMatch(/floating-window-scene-state-adapter/);
     expect(windowRuntimeIndex).not.toMatch(/\bregisterFloatingWindowParameters\b/);
-    expect(sceneBackedAdapter).toMatch(/\bSceneParameterStore\b/);
-    expect(sceneBackedAdapter).toMatch(/from\s+["']\.\.\/\.\.\/window-runtime["']/);
   });
 
   it("keeps app composition extraction blockers explicit until public installers own concrete policy", () => {

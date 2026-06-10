@@ -7,22 +7,18 @@ import {
   editorStatePaths
 } from "../editor-state";
 import type { UiLayoutCommandSink } from "../../window-runtime";
-import type {
-  ParameterPath,
-  SceneCommandSink,
-  SceneParameterStore,
-  SceneUpdateCommand
-} from "../../scene-runtime";
+import type { AppStateCommandSink } from "../app-state";
+import type { AppStateParameterStore } from "../app-state-store";
 
-type SceneBackedWorkspaceCommandSink = EditorCommandSink & UiLayoutCommandSink;
+type EditorBackedWorkspaceCommandSink = EditorCommandSink & UiLayoutCommandSink;
 
-const registeredWorkspaceModeParameters = new WeakMap<SceneParameterStore, EditorWorkspaceMode>();
+const registeredWorkspaceModeParameters = new WeakMap<AppStateParameterStore, EditorWorkspaceMode>();
 
 export function registerWorkspaceModeParameters(
-  store: SceneParameterStore,
+  store: AppStateParameterStore,
   initialMode: EditorWorkspaceMode = "develop"
 ): void {
-  const path = toSceneParameterPath<EditorWorkspaceMode>(editorStatePaths.workspace.mode);
+  const path = editorStatePaths.workspace.mode;
   assertEditorWorkspaceMode(initialMode);
   if (store.has(path)) {
     const existingInitialMode = registeredWorkspaceModeParameters.get(store);
@@ -39,16 +35,12 @@ export function registerWorkspaceModeParameters(
   registeredWorkspaceModeParameters.set(store, initialMode);
 }
 
-export function createSceneBackedWorkspaceCommandSink(
-  commandSink: SceneCommandSink
-): SceneBackedWorkspaceCommandSink {
+export function createEditorBackedWorkspaceCommandSink(
+  commandSink: AppStateCommandSink
+): EditorBackedWorkspaceCommandSink {
   return {
     submit(command): void {
-      commandSink.submit(command as unknown as SceneUpdateCommand);
+      commandSink.submit(command);
     }
   };
-}
-
-function toSceneParameterPath<TValue>(path: string): ParameterPath<TValue> {
-  return path as ParameterPath<TValue>;
 }

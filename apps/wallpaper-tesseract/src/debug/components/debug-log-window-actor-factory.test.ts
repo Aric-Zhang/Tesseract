@@ -6,12 +6,11 @@ import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { installDebugLogComponentDefinitions } from "../../debug";
 import { installWindowComponentDefinitions } from "../../window-runtime";
 import {
-  sceneParameterPaths,
-  type RuntimeObject,
-  type RuntimeRegistration,
-  type SceneStateObserver,
-  type SceneUpdateCommand
-} from "../../scene-runtime";
+  editorWindowLayoutPaths
+} from "../../editor/window-layout-state";
+import type { AppStateCommand } from "../../editor/app-state";
+import type { AppStateObserver } from "../../editor/app-state-controller";
+import type { RuntimeObject, RuntimeRegistration } from "../../runtime/ports";
 import { gizmoEventBindingComponentType } from "../../gizmo-runtime";
 import { stateObserverBindingComponentType } from "../../state-runtime";
 import { floatingWindowComponentType } from "../../window-runtime";
@@ -148,13 +147,13 @@ function createRegistration(label: string, calls: string[]): RuntimeRegistration
 function createContext() {
   const calls: string[] = [];
   const registeredGizmos: GizmoController[] = [];
-  const observers: SceneStateObserver[] = [];
+  const observers: AppStateObserver[] = [];
   const runtimeObjects: RuntimeObject[] = [];
   const frameStateController = {
-    submit(command: SceneUpdateCommand): void {
+    submit(command: AppStateCommand): void {
       calls.push(`frame-submit:${command.target}`);
     },
-    subscribe(observer: SceneStateObserver): RuntimeRegistration {
+    subscribe(observer: AppStateObserver): RuntimeRegistration {
       calls.push("observer-subscribe");
       observers.push(observer);
       return createRegistration("observer-dispose", calls);
@@ -191,7 +190,7 @@ function createContext() {
   installWindowComponentDefinitions(context.componentRegistry, {
     commandSink: {
       submit(command) {
-        frameStateController.submit(command as unknown as SceneUpdateCommand);
+        frameStateController.submit(command as AppStateCommand);
       }
     }
   });
@@ -290,7 +289,7 @@ describe("createDebugLogWindowActor", () => {
     observers[0]?.onStateChanged({
       frame: { timeMs: 0, deltaMs: 0, frameIndex: 0 },
       changes: [{
-        path: sceneParameterPaths.debugWindow.visible,
+        path: editorWindowLayoutPaths.debugWindow.visible,
         previousValue: true,
         nextValue: false,
         sources: [],
@@ -304,7 +303,7 @@ describe("createDebugLogWindowActor", () => {
     observers[0]?.onStateChanged({
       frame: { timeMs: 1, deltaMs: 1, frameIndex: 1 },
       changes: [{
-        path: sceneParameterPaths.debugWindow.visible,
+        path: editorWindowLayoutPaths.debugWindow.visible,
         previousValue: false,
         nextValue: true,
         sources: [],
@@ -317,7 +316,7 @@ describe("createDebugLogWindowActor", () => {
     binding.onGizmoStart?.(createStartEvent(binding, hit));
     binding.onGizmoEnd?.(createEndEvent(binding, hit));
 
-    expect(calls).toEqual([`frame-submit:${sceneParameterPaths.debugWindow.visible}`]);
+    expect(calls).toEqual([`frame-submit:${editorWindowLayoutPaths.debugWindow.visible}`]);
   });
 
   it("disposes the actor handle, window, content, and bridge registrations idempotently", () => {

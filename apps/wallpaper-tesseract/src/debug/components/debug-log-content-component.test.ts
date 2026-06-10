@@ -3,11 +3,12 @@ import { ActorSystem } from "../../actor-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { installDebugLogComponentDefinitions } from "../../debug";
-import { sceneParameterPaths, vec2 } from "../../scene-runtime";
+import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
 import { createTestComponentRegistry } from "../../test-support";
 import {
   floatingWindowComponentType,
   installWindowComponentDefinitions,
+  uiVec2,
   type FloatingWindowState,
   type WindowContentAttachment,
   type WindowContentAttachmentRequest,
@@ -79,8 +80,8 @@ class FakeElement {
 class FakeWindowHost implements WindowContentHost {
   readonly id = "floating-window:test";
   readonly state: FloatingWindowState = {
-    position: vec2(0, 0),
-    size: vec2(320, 180),
+    position: uiVec2(0, 0),
+    size: uiVec2(320, 180),
     visible: true
   };
   title = "";
@@ -235,7 +236,7 @@ describe("DebugLogContentComponent", () => {
       parent: parent as unknown as HTMLElement,
       document: document as unknown as Document,
       title: "Debug Log",
-      paths: sceneParameterPaths.debugWindow,
+      paths: editorWindowLayoutPaths.debugWindow,
       initialState: createDefaultDebugWindowState()
     });
     const component = registry.addComponent(actor, debugLogContentComponentType, {

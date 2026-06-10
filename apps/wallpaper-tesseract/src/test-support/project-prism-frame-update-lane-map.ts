@@ -120,12 +120,12 @@ export const projectPrismFrameUpdateLaneMap = [
     "update-runtime barrel exports only UI/component tick contracts after runtime work migrates."
   ),
   entry(
-    "frame-state-controller",
-    "./scene-runtime/frame-state-controller.ts",
+    "app-frame-state-controller",
+    "./editor/app-state-controller.ts",
     "editor-state-flush",
     "editor-state-flush-scheduler",
     false,
-    "FrameStateController is split into domain state flush owners and no longer registers as RuntimeObject."
+    "AppFrameStateController remains editor/app state flush owner until it is moved behind an editor scheduler port."
   ),
   entry(
     "camera3-motion-controller",

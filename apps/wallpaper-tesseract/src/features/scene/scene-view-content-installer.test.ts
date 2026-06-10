@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { AppRuntimeContext } from "../../app-runtime";
 import { installWallpaperComponentDefinitions } from "../../app/install-component-definitions";
-import type {
-  RuntimeObject,
-  RuntimeRegistration,
-  SceneCommandSink,
-  SceneStateObserver
-} from "../../scene-runtime";
+import type { AppStateCommandSink } from "../../editor/app-state";
+import type { AppStateObserver } from "../../editor/app-state-controller";
+import type { RuntimeObject, RuntimeRegistration } from "../../runtime/ports";
 import type { SceneViewportRenderer } from "./components";
 import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
 import type { RuntimeObjectRegistry } from "../../runtime/ports";
@@ -181,9 +178,9 @@ function createFakeCamera3Gizmo(document: FakeDocument, calls: string[]): Camera
 
 function createRuntimeContext(calls: string[] = []) {
   const sceneRuntime = createRuntimeObjectRegistry(calls);
-  const frameStateController: StateObserverRegistry<SceneStateObserver> & SceneCommandSink = {
+  const frameStateController: StateObserverRegistry<AppStateObserver> & AppStateCommandSink = {
     submit: () => {},
-    subscribe: (observer: SceneStateObserver) => {
+    subscribe: (observer: AppStateObserver) => {
       calls.push(`state-subscribe:${observer.constructor.name}`);
       return createRegistration(() => calls.push(`state-unsubscribe:${observer.constructor.name}`));
     },

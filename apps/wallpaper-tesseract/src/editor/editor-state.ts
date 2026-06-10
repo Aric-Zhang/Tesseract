@@ -1,6 +1,11 @@
-import type { StateChangedEvent } from "../runtime/ports";
+import type {
+  AppStateChangedEvent,
+  AppStateCommand,
+  AppStateCommandSink,
+  AppStatePath
+} from "./app-state";
 
-export type EditorStatePath<TValue = unknown> = string & {
+export type EditorStatePath<TValue = unknown> = AppStatePath<TValue> & {
   readonly __editorStateValue?: TValue;
 };
 
@@ -21,15 +26,11 @@ export interface EditorStateCommand {
   timeStamp?: number;
 }
 
-export interface EditorCommandSink {
-  submit(command: EditorStateCommand): void;
-}
+export type EditorCommandSink = AppStateCommandSink & {
+  submit(command: EditorStateCommand | AppStateCommand): void;
+};
 
-export type EditorStateChangedEvent = StateChangedEvent<
-  EditorStatePath,
-  EditorStateCommandSource,
-  EditorStateCommand
->;
+export type EditorStateChangedEvent = AppStateChangedEvent;
 
 export type EditorWorkspaceMode = "run" | "develop";
 

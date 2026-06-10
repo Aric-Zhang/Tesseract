@@ -51,7 +51,7 @@ describe("Project Prism frame update lane map", () => {
       "./hierarchy/hierarchy-panel-component.ts"
     ]));
     expect(projectPrismEditorStateFlushLane.map((entry) => entry.sourceFile)).toEqual([
-      "./scene-runtime/frame-state-controller.ts"
+      "./editor/app-state-controller.ts"
     ]);
   });
 

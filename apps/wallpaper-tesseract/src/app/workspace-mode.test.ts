@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
-import {
-  FrameStateController,
-  parameterPath,
-  SceneParameterStore,
-  sceneParameterPaths,
-  type ParameterPath,
-  type SceneStateChangedEvent
-} from "../scene-runtime";
+import { AppFrameStateController, type AppStateChangedEvent } from "../editor/app-state-controller";
+import { AppStateParameterStore } from "../editor/app-state-store";
+import { editorStatePath, editorStatePaths } from "../editor/editor-state";
+import { editorWindowLayoutPaths } from "../editor/window-layout-state";
 import {
   WORKSPACE_MODE_COMMAND_PRIORITY,
   WORKSPACE_MODE_SOURCE,
@@ -15,14 +11,14 @@ import {
   type WorkspaceMode,
   type WorkspaceModeCommand
 } from "./workspace-mode";
-import { registerWorkspaceModeParameters } from "../editor/adapters/workspace-mode-scene-state-adapter";
+import { registerWorkspaceModeParameters } from "../editor/adapters/workspace-mode-editor-state-adapter";
 import {
   createSingletonWindowViewIdentity,
   type WindowFramePresentation,
   type WindowViewLocation
 } from "../window-runtime";
 
-function createChangedEvent(changes: SceneStateChangedEvent["changes"]): SceneStateChangedEvent {
+function createChangedEvent(changes: AppStateChangedEvent["changes"]): AppStateChangedEvent {
   return {
     frame: { timeMs: 100, deltaMs: 16, frameIndex: 1 },
     changes
@@ -30,7 +26,7 @@ function createChangedEvent(changes: SceneStateChangedEvent["changes"]): SceneSt
 }
 
 function createSceneViewPort(options: {
-  readonly visiblePath?: ParameterPath<boolean>;
+  readonly visiblePath?: string;
   readonly ownerFrameActorId?: string;
   readonly viewActorId?: string;
   readonly live?: boolean;
@@ -48,7 +44,7 @@ function createSceneViewPort(options: {
         identity: createSingletonWindowViewIdentity("scene"),
         viewActorId,
         ownerFrameActorId: options.ownerFrameActorId ?? "scene-frame",
-        ownerFrameVisiblePath: options.visiblePath ?? sceneParameterPaths.sceneWindow.visible,
+        ownerFrameVisiblePath: options.visiblePath ?? editorWindowLayoutPaths.sceneWindow.visible,
         ownerFrameVisible: true,
         ownerFrameActiveInHierarchy: true,
         activeInFrame: true,
@@ -117,32 +113,32 @@ function presentationValues(presentations: readonly string[]): readonly string[]
 
 describe("workspace mode parameters", () => {
   it("registers workspace.mode with a develop default", () => {
-    const store = new SceneParameterStore();
+    const store = new AppStateParameterStore();
 
     registerWorkspaceModeParameters(store);
     registerWorkspaceModeParameters(store);
 
-    expect(sceneParameterPaths.workspace.mode).toBe(parameterPath<WorkspaceMode>("workspace.mode"));
-    expect(store.get(sceneParameterPaths.workspace.mode)).toBe("develop");
+    expect(editorStatePaths.workspace.mode).toBe(editorStatePath<WorkspaceMode>("workspace.mode"));
+    expect(store.get(editorStatePaths.workspace.mode)).toBe("develop");
   });
 
   it("rejects invalid workspace modes", () => {
-    const store = new SceneParameterStore();
+    const store = new AppStateParameterStore();
     registerWorkspaceModeParameters(store);
-    const controller = new FrameStateController({ store });
+    const controller = new AppFrameStateController({ store });
 
     expect(() => controller.submit({
       source: { id: "test", kind: "script" },
-      target: sceneParameterPaths.workspace.mode,
+      target: editorStatePaths.workspace.mode,
       operation: "set",
       value: "preview"
     })).toThrow(/workspace mode/);
   });
 
   it("rejects conflicting registration on the workspace mode path", () => {
-    const store = new SceneParameterStore();
+    const store = new AppStateParameterStore();
     store.register({
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       initialValue: "other",
       allowedOperations: ["set"],
       merge: "last-write-wins"
@@ -154,11 +150,11 @@ describe("workspace mode parameters", () => {
 
 describe("WorkspaceModeController", () => {
   it("hides tool windows in run mode and restores the develop snapshot", () => {
-    const values = new Map<ParameterPath, unknown>([
-      [sceneParameterPaths.workspace.mode, "develop"],
-      [sceneParameterPaths.sceneWindow.visible, true],
-      [sceneParameterPaths.debugWindow.visible, true],
-      [sceneParameterPaths.hierarchyWindow.visible, false]
+    const values = new Map<string, unknown>([
+      [editorStatePaths.workspace.mode, "develop"],
+      [editorWindowLayoutPaths.sceneWindow.visible, true],
+      [editorWindowLayoutPaths.debugWindow.visible, true],
+      [editorWindowLayoutPaths.hierarchyWindow.visible, false]
     ]);
     const commands: WorkspaceModeCommand[] = [];
     const { presentations, sceneView } = createSceneViewPort();
@@ -168,14 +164,14 @@ describe("WorkspaceModeController", () => {
       getValue: (path) => values.get(path) as never,
       sceneView,
       toolWindows: [
-        { id: "debug", paths: sceneParameterPaths.debugWindow },
-        { id: "hierarchy", paths: sceneParameterPaths.hierarchyWindow }
+        { id: "debug", paths: editorWindowLayoutPaths.debugWindow },
+        { id: "hierarchy", paths: editorWindowLayoutPaths.hierarchyWindow }
       ],
       onScenePresentationChanged: () => presentationMeasurements.push("measure")
     });
-    values.set(sceneParameterPaths.workspace.mode, "run");
+    values.set(editorStatePaths.workspace.mode, "run");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
       sources: [{ id: "shortcut", kind: "keyboard" }],
@@ -186,7 +182,7 @@ describe("WorkspaceModeController", () => {
     expect(presentationMeasurements).toEqual(["measure", "measure"]);
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
-      target: sceneParameterPaths.debugWindow.visible,
+      target: editorWindowLayoutPaths.debugWindow.visible,
       operation: "set",
       value: false,
       priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -194,9 +190,9 @@ describe("WorkspaceModeController", () => {
     }]);
 
     commands.length = 0;
-    values.set(sceneParameterPaths.debugWindow.visible, true);
+    values.set(editorWindowLayoutPaths.debugWindow.visible, true);
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.debugWindow.visible,
+      path: editorWindowLayoutPaths.debugWindow.visible,
       previousValue: false,
       nextValue: true,
       sources: [{ id: "debug-close", kind: "gizmo" }],
@@ -205,7 +201,7 @@ describe("WorkspaceModeController", () => {
 
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
-      target: sceneParameterPaths.debugWindow.visible,
+      target: editorWindowLayoutPaths.debugWindow.visible,
       operation: "set",
       value: false,
       priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -213,9 +209,9 @@ describe("WorkspaceModeController", () => {
     }]);
 
     commands.length = 0;
-    values.set(sceneParameterPaths.workspace.mode, "develop");
+    values.set(editorStatePaths.workspace.mode, "develop");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
       sources: [{ id: "scene-mode-toggle", kind: "gizmo" }],
@@ -226,7 +222,7 @@ describe("WorkspaceModeController", () => {
     expect(commands).toEqual([
       {
         source: WORKSPACE_MODE_SOURCE,
-        target: sceneParameterPaths.debugWindow.visible,
+        target: editorWindowLayoutPaths.debugWindow.visible,
         operation: "set",
         value: true,
         priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -234,7 +230,7 @@ describe("WorkspaceModeController", () => {
       },
       {
         source: WORKSPACE_MODE_SOURCE,
-        target: sceneParameterPaths.hierarchyWindow.visible,
+        target: editorWindowLayoutPaths.hierarchyWindow.visible,
         operation: "set",
         value: false,
         priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -244,11 +240,11 @@ describe("WorkspaceModeController", () => {
   });
 
   it("delegates run mode to the workspace presentation port without mutating tool visibility", () => {
-    const values = new Map<ParameterPath, unknown>([
-      [sceneParameterPaths.workspace.mode, "develop"],
-      [sceneParameterPaths.sceneWindow.visible, true],
-      [sceneParameterPaths.debugWindow.visible, true],
-      [sceneParameterPaths.hierarchyWindow.visible, true]
+    const values = new Map<string, unknown>([
+      [editorStatePaths.workspace.mode, "develop"],
+      [editorWindowLayoutPaths.sceneWindow.visible, true],
+      [editorWindowLayoutPaths.debugWindow.visible, true],
+      [editorWindowLayoutPaths.hierarchyWindow.visible, true]
     ]);
     const commands: WorkspaceModeCommand[] = [];
     const { sceneView, activations } = createSceneViewPort();
@@ -266,15 +262,15 @@ describe("WorkspaceModeController", () => {
         }
       },
       toolWindows: [
-        { id: "debug", paths: sceneParameterPaths.debugWindow },
-        { id: "hierarchy", paths: sceneParameterPaths.hierarchyWindow }
+        { id: "debug", paths: editorWindowLayoutPaths.debugWindow },
+        { id: "hierarchy", paths: editorWindowLayoutPaths.hierarchyWindow }
       ]
     });
     presentationCalls.length = 0;
 
-    values.set(sceneParameterPaths.workspace.mode, "run");
+    values.set(editorStatePaths.workspace.mode, "run");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
       sources: [{ id: "shortcut", kind: "keyboard" }],
@@ -285,9 +281,9 @@ describe("WorkspaceModeController", () => {
     expect(presentationCalls).toEqual(["enter:scene-view:programmatic"]);
     expect(commands).toEqual([]);
 
-    values.set(sceneParameterPaths.workspace.mode, "develop");
+    values.set(editorStatePaths.workspace.mode, "develop");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
       sources: [{ id: "shortcut", kind: "keyboard" }],
@@ -302,10 +298,10 @@ describe("WorkspaceModeController", () => {
   });
 
   it("does not refresh the snapshot for repeated run mode events", () => {
-    const values = new Map<ParameterPath, unknown>([
-      [sceneParameterPaths.workspace.mode, "develop"],
-      [sceneParameterPaths.sceneWindow.visible, true],
-      [sceneParameterPaths.debugWindow.visible, true]
+    const values = new Map<string, unknown>([
+      [editorStatePaths.workspace.mode, "develop"],
+      [editorWindowLayoutPaths.sceneWindow.visible, true],
+      [editorWindowLayoutPaths.debugWindow.visible, true]
     ]);
     const commands: WorkspaceModeCommand[] = [];
     const { sceneView } = createSceneViewPort();
@@ -313,20 +309,20 @@ describe("WorkspaceModeController", () => {
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
       sceneView,
-      toolWindows: [{ id: "debug", paths: sceneParameterPaths.debugWindow }]
+      toolWindows: [{ id: "debug", paths: editorWindowLayoutPaths.debugWindow }]
     });
 
-    values.set(sceneParameterPaths.workspace.mode, "run");
+    values.set(editorStatePaths.workspace.mode, "run");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
       sources: [{ id: "shortcut", kind: "keyboard" }],
       commands: []
     }]));
-    values.set(sceneParameterPaths.debugWindow.visible, false);
+    values.set(editorWindowLayoutPaths.debugWindow.visible, false);
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "run",
       nextValue: "run",
       sources: [{ id: "shortcut", kind: "keyboard" }],
@@ -334,9 +330,9 @@ describe("WorkspaceModeController", () => {
     }]));
 
     commands.length = 0;
-    values.set(sceneParameterPaths.workspace.mode, "develop");
+    values.set(editorStatePaths.workspace.mode, "develop");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
       sources: [{ id: "shortcut", kind: "keyboard" }],
@@ -345,7 +341,7 @@ describe("WorkspaceModeController", () => {
 
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
-      target: sceneParameterPaths.debugWindow.visible,
+      target: editorWindowLayoutPaths.debugWindow.visible,
       operation: "set",
       value: true,
       priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -354,9 +350,9 @@ describe("WorkspaceModeController", () => {
   });
 
   it("forces a hidden Scene window visible in run mode and restores the hidden develop snapshot", () => {
-    const values = new Map<ParameterPath, unknown>([
-      [sceneParameterPaths.workspace.mode, "develop"],
-      [sceneParameterPaths.sceneWindow.visible, false]
+    const values = new Map<string, unknown>([
+      [editorStatePaths.workspace.mode, "develop"],
+      [editorWindowLayoutPaths.sceneWindow.visible, false]
     ]);
     const commands: WorkspaceModeCommand[] = [];
     const { presentations, sceneView } = createSceneViewPort();
@@ -367,9 +363,9 @@ describe("WorkspaceModeController", () => {
       toolWindows: []
     });
 
-    values.set(sceneParameterPaths.workspace.mode, "run");
+    values.set(editorStatePaths.workspace.mode, "run");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
       sources: [{ id: "shortcut", kind: "keyboard" }],
@@ -379,7 +375,7 @@ describe("WorkspaceModeController", () => {
     expect(presentationValues(presentations)).toEqual(["windowed", "fullscreen"]);
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
-      target: sceneParameterPaths.sceneWindow.visible,
+      target: editorWindowLayoutPaths.sceneWindow.visible,
       operation: "set",
       value: true,
       priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -387,10 +383,10 @@ describe("WorkspaceModeController", () => {
     }]);
 
     commands.length = 0;
-    values.set(sceneParameterPaths.sceneWindow.visible, true);
-    values.set(sceneParameterPaths.workspace.mode, "develop");
+    values.set(editorWindowLayoutPaths.sceneWindow.visible, true);
+    values.set(editorStatePaths.workspace.mode, "develop");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
       sources: [{ id: "scene-mode-toggle", kind: "gizmo" }],
@@ -400,7 +396,7 @@ describe("WorkspaceModeController", () => {
     expect(presentationValues(presentations)).toEqual(["windowed", "fullscreen", "windowed"]);
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
-      target: sceneParameterPaths.sceneWindow.visible,
+      target: editorWindowLayoutPaths.sceneWindow.visible,
       operation: "set",
       value: false,
       priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -409,9 +405,9 @@ describe("WorkspaceModeController", () => {
   });
 
   it("keeps the Scene window visible if an external source hides it during run mode", () => {
-    const values = new Map<ParameterPath, unknown>([
-      [sceneParameterPaths.workspace.mode, "run"],
-      [sceneParameterPaths.sceneWindow.visible, true]
+    const values = new Map<string, unknown>([
+      [editorStatePaths.workspace.mode, "run"],
+      [editorWindowLayoutPaths.sceneWindow.visible, true]
     ]);
     const commands: WorkspaceModeCommand[] = [];
     const { sceneView } = createSceneViewPort();
@@ -422,9 +418,9 @@ describe("WorkspaceModeController", () => {
       toolWindows: []
     });
 
-    values.set(sceneParameterPaths.sceneWindow.visible, false);
+    values.set(editorWindowLayoutPaths.sceneWindow.visible, false);
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.sceneWindow.visible,
+      path: editorWindowLayoutPaths.sceneWindow.visible,
       previousValue: true,
       nextValue: false,
       sources: [{ id: "scene-close-button", kind: "gizmo" }],
@@ -433,7 +429,7 @@ describe("WorkspaceModeController", () => {
 
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
-      target: sceneParameterPaths.sceneWindow.visible,
+      target: editorWindowLayoutPaths.sceneWindow.visible,
       operation: "set",
       value: true,
       priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -442,14 +438,14 @@ describe("WorkspaceModeController", () => {
   });
 
   it("does not hide the tool frame that currently owns the Scene view in run mode", () => {
-    const values = new Map<ParameterPath, unknown>([
-      [sceneParameterPaths.workspace.mode, "develop"],
-      [sceneParameterPaths.debugWindow.visible, true],
-      [sceneParameterPaths.hierarchyWindow.visible, true]
+    const values = new Map<string, unknown>([
+      [editorStatePaths.workspace.mode, "develop"],
+      [editorWindowLayoutPaths.debugWindow.visible, true],
+      [editorWindowLayoutPaths.hierarchyWindow.visible, true]
     ]);
     const commands: WorkspaceModeCommand[] = [];
     const { presentations, sceneView } = createSceneViewPort({
-      visiblePath: sceneParameterPaths.debugWindow.visible,
+      visiblePath: editorWindowLayoutPaths.debugWindow.visible,
       ownerFrameActorId: "debug-frame"
     });
     const controller = new WorkspaceModeController({
@@ -457,14 +453,14 @@ describe("WorkspaceModeController", () => {
       getValue: (path) => values.get(path) as never,
       sceneView,
       toolWindows: [
-        { id: "debug", paths: sceneParameterPaths.debugWindow },
-        { id: "hierarchy", paths: sceneParameterPaths.hierarchyWindow }
+        { id: "debug", paths: editorWindowLayoutPaths.debugWindow },
+        { id: "hierarchy", paths: editorWindowLayoutPaths.hierarchyWindow }
       ]
     });
 
-    values.set(sceneParameterPaths.workspace.mode, "run");
+    values.set(editorStatePaths.workspace.mode, "run");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
       sources: [{ id: "shortcut", kind: "keyboard" }],
@@ -474,7 +470,7 @@ describe("WorkspaceModeController", () => {
     expect(presentationValues(presentations)).toEqual(["windowed", "fullscreen"]);
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
-      target: sceneParameterPaths.hierarchyWindow.visible,
+      target: editorWindowLayoutPaths.hierarchyWindow.visible,
       operation: "set",
       value: false,
       priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -483,10 +479,10 @@ describe("WorkspaceModeController", () => {
   });
 
   it("hides the old Scene source frame after isolation moves fullscreen ownership to a runtime frame", () => {
-    const values = new Map<ParameterPath, unknown>([
-      [sceneParameterPaths.workspace.mode, "develop"],
-      [sceneParameterPaths.sceneWindow.visible, true],
-      [sceneParameterPaths.debugWindow.visible, true]
+    const values = new Map<string, unknown>([
+      [editorStatePaths.workspace.mode, "develop"],
+      [editorWindowLayoutPaths.sceneWindow.visible, true],
+      [editorWindowLayoutPaths.debugWindow.visible, true]
     ]);
     const commands: WorkspaceModeCommand[] = [];
     let isolated = false;
@@ -499,7 +495,7 @@ describe("WorkspaceModeController", () => {
               identity: createSingletonWindowViewIdentity("scene"),
               viewActorId: "scene-view",
               ownerFrameActorId: isolated ? "floating-scene-view" : "scene-frame",
-              ownerFrameVisiblePath: isolated ? null : sceneParameterPaths.sceneWindow.visible,
+              ownerFrameVisiblePath: isolated ? null : editorWindowLayoutPaths.sceneWindow.visible,
               ownerFrameVisible: true,
               ownerFrameActiveInHierarchy: true,
               activeInFrame: true,
@@ -544,13 +540,13 @@ describe("WorkspaceModeController", () => {
       getValue: (path) => values.get(path) as never,
       sceneView,
       toolWindows: [
-        { id: "debug", paths: sceneParameterPaths.debugWindow }
+        { id: "debug", paths: editorWindowLayoutPaths.debugWindow }
       ]
     });
 
-    values.set(sceneParameterPaths.workspace.mode, "run");
+    values.set(editorStatePaths.workspace.mode, "run");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
       sources: [{ id: "shortcut", kind: "keyboard" }],
@@ -560,7 +556,7 @@ describe("WorkspaceModeController", () => {
     expect(commands).toEqual([
       {
         source: WORKSPACE_MODE_SOURCE,
-        target: sceneParameterPaths.sceneWindow.visible,
+        target: editorWindowLayoutPaths.sceneWindow.visible,
         operation: "set",
         value: false,
         priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -568,7 +564,7 @@ describe("WorkspaceModeController", () => {
       },
       {
         source: WORKSPACE_MODE_SOURCE,
-        target: sceneParameterPaths.debugWindow.visible,
+        target: editorWindowLayoutPaths.debugWindow.visible,
         operation: "set",
         value: false,
         priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -577,9 +573,9 @@ describe("WorkspaceModeController", () => {
     ]);
 
     commands.length = 0;
-    values.set(sceneParameterPaths.sceneWindow.visible, true);
+    values.set(editorWindowLayoutPaths.sceneWindow.visible, true);
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.sceneWindow.visible,
+      path: editorWindowLayoutPaths.sceneWindow.visible,
       previousValue: false,
       nextValue: true,
       sources: [{ id: "menu", kind: "gizmo" }],
@@ -588,7 +584,7 @@ describe("WorkspaceModeController", () => {
 
     expect(commands).toEqual([{
       source: WORKSPACE_MODE_SOURCE,
-      target: sceneParameterPaths.sceneWindow.visible,
+      target: editorWindowLayoutPaths.sceneWindow.visible,
       operation: "set",
       value: false,
       priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -597,9 +593,9 @@ describe("WorkspaceModeController", () => {
   });
 
   it("uses the Scene view fullscreen presentation port instead of raw owner presentation", () => {
-    const values = new Map<ParameterPath, unknown>([
-      [sceneParameterPaths.workspace.mode, "develop"],
-      [sceneParameterPaths.sceneWindow.visible, true]
+    const values = new Map<string, unknown>([
+      [editorStatePaths.workspace.mode, "develop"],
+      [editorWindowLayoutPaths.sceneWindow.visible, true]
     ]);
     const commands: WorkspaceModeCommand[] = [];
     const { presentationCalls, rawOwnerPresentationCalls, sceneView } = createSceneViewPort();
@@ -610,17 +606,17 @@ describe("WorkspaceModeController", () => {
       toolWindows: []
     });
 
-    values.set(sceneParameterPaths.workspace.mode, "run");
+    values.set(editorStatePaths.workspace.mode, "run");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
       sources: [{ id: "shortcut", kind: "keyboard" }],
       commands: []
     }]));
-    values.set(sceneParameterPaths.workspace.mode, "develop");
+    values.set(editorStatePaths.workspace.mode, "develop");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
       sources: [{ id: "scene-mode-toggle", kind: "gizmo" }],
@@ -636,29 +632,29 @@ describe("WorkspaceModeController", () => {
   });
 
   it("allows workspace mode changes while the Scene view is not live", () => {
-    const values = new Map<ParameterPath, unknown>([
-      [sceneParameterPaths.workspace.mode, "develop"],
-      [sceneParameterPaths.debugWindow.visible, true]
+    const values = new Map<string, unknown>([
+      [editorStatePaths.workspace.mode, "develop"],
+      [editorWindowLayoutPaths.debugWindow.visible, true]
     ]);
     const commands: WorkspaceModeCommand[] = [];
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,
       sceneView: createSceneViewPort({ live: false }).sceneView,
-      toolWindows: [{ id: "debug", paths: sceneParameterPaths.debugWindow }]
+      toolWindows: [{ id: "debug", paths: editorWindowLayoutPaths.debugWindow }]
     });
 
-    values.set(sceneParameterPaths.workspace.mode, "run");
+    values.set(editorStatePaths.workspace.mode, "run");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
       sources: [{ id: "shortcut", kind: "keyboard" }],
       commands: []
     }]));
-    values.set(sceneParameterPaths.workspace.mode, "develop");
+    values.set(editorStatePaths.workspace.mode, "develop");
     controller.onStateChanged(createChangedEvent([{
-      path: sceneParameterPaths.workspace.mode,
+      path: editorStatePaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
       sources: [{ id: "shortcut", kind: "keyboard" }],
@@ -668,7 +664,7 @@ describe("WorkspaceModeController", () => {
     expect(commands).toEqual([
       {
         source: WORKSPACE_MODE_SOURCE,
-        target: sceneParameterPaths.debugWindow.visible,
+        target: editorWindowLayoutPaths.debugWindow.visible,
         operation: "set",
         value: false,
         priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -676,7 +672,7 @@ describe("WorkspaceModeController", () => {
       },
       {
         source: WORKSPACE_MODE_SOURCE,
-        target: sceneParameterPaths.debugWindow.visible,
+        target: editorWindowLayoutPaths.debugWindow.visible,
         operation: "set",
         value: true,
         priority: WORKSPACE_MODE_COMMAND_PRIORITY,
@@ -685,3 +681,5 @@ describe("WorkspaceModeController", () => {
     ]);
   });
 });
+
+

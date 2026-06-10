@@ -11,7 +11,9 @@ import { AppRuntimeContext } from "../../../app-runtime";
 import type { Camera3CommandSink, Camera3ControlCommand } from "../../../camera3-control";
 import { installGizmoRuntimeComponentDefinitions } from "../../../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../../../state-runtime";
-import type { RuntimeObject, RuntimeRegistration, SceneStateObserver, SceneUpdateCommand } from "../../../scene-runtime";
+import type { AppStateCommand } from "../../../editor/app-state";
+import type { AppStateObserver } from "../../../editor/app-state-controller";
+import type { RuntimeObject, RuntimeRegistration } from "../../../runtime/ports";
 import {
   actorInputScopeRoutePriority,
   gizmoEventBindingComponentType,
@@ -59,10 +61,10 @@ function createContext() {
       }
     },
     frameStateController: {
-      submit(_command: SceneUpdateCommand): void {
+      submit(_command: AppStateCommand): void {
         calls.push("frame-submit");
       },
-      subscribe(_observer: SceneStateObserver): RuntimeRegistration {
+      subscribe(_observer: AppStateObserver): RuntimeRegistration {
         calls.push("observer-subscribe");
         return createRegistration("observer-dispose", calls);
       },

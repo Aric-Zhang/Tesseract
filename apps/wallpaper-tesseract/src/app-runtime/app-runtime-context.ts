@@ -1,5 +1,5 @@
-import type { SceneCommandSink } from "../scene-runtime";
-import type { SceneStateObserver } from "../scene-runtime";
+import type { AppStateCommandSink } from "../editor/app-state";
+import type { AppStateObserver } from "../editor/app-state-controller";
 import type { RuntimeFrame } from "runtime-core";
 import type { RuntimeObject, RuntimeObjectRegistry, RuntimeRegistration } from "../runtime/ports";
 import { ProductionRuntimeSchedulerService } from "../runtime/runtime-scheduler-service";
@@ -32,7 +32,7 @@ interface TrackedDisposable {
 
 export interface AppRuntimeContextOptions {
   sceneRuntime: RuntimeObjectRegistry;
-  frameStateController: StateObserverRegistry<SceneStateObserver> & SceneCommandSink;
+  frameStateController: StateObserverRegistry<AppStateObserver> & AppStateCommandSink;
   gizmoEventSystem: GizmoControllerRegistry;
   onRollbackError?: (errors: readonly unknown[]) => void;
 }
@@ -41,7 +41,7 @@ type RegisterableObject = RuntimeObject;
 
 export class AppRuntimeContext {
   readonly sceneRuntime: RuntimeObjectRegistry;
-  readonly frameStateController: StateObserverRegistry<SceneStateObserver> & SceneCommandSink;
+  readonly frameStateController: StateObserverRegistry<AppStateObserver> & AppStateCommandSink;
   readonly gizmoEventSystem: GizmoControllerRegistry;
   readonly actorSystem: ActorSystem;
   readonly componentRegistry: ComponentRegistry;
@@ -75,7 +75,7 @@ export class AppRuntimeContext {
       new GizmoControllerAttachmentRuntime({ registry: this.gizmoEventSystem }),
       new StateObserverAttachmentRuntime({
         registry: this.frameStateController,
-        getObserver: assertSceneStateObserverBinding
+        getObserver: assertAppStateObserverBinding
       }),
       this.activeInputCancellationRuntime
     ]);
@@ -85,10 +85,6 @@ export class AppRuntimeContext {
       onRollbackError: this.onRollbackError
     });
     this.frameUpdateRuntimeRegistration = this.sceneRuntime.register(this.frameUpdateRuntime);
-  }
-
-  get commandSink(): SceneCommandSink {
-    return this.frameStateController;
   }
 
   cancelActiveActorInput(): void {
@@ -196,14 +192,14 @@ export class AppRuntimeContext {
   }
 }
 
-function assertSceneStateObserverBinding(component: Component): SceneStateObserver {
-  const candidate = component as Partial<SceneStateObserver>;
+function assertAppStateObserverBinding(component: Component): AppStateObserver {
+  const candidate = component as Partial<AppStateObserver>;
   if (typeof candidate.onStateChanged !== "function") {
     throw new Error(
       `Component ${component.type} declares state-observer attachment but does not implement StateObserver.`
     );
   }
-  return candidate as SceneStateObserver;
+  return candidate as AppStateObserver;
 }
 
 export function createRuntimeRegistration(dispose: () => void): RuntimeRegistration {

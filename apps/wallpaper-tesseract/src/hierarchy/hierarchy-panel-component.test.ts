@@ -2,12 +2,10 @@ import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../actor-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../state-runtime";
-import {
-  sceneParameterPaths,
-  type SceneStateChangedEvent,
-  type SceneUpdateCommand,
-  vec2
-} from "../scene-runtime";
+import type { AppStateChangedEvent, AppStateCommand } from "../editor/app-state";
+import { editorStatePaths } from "../editor/editor-state";
+import { editorWindowLayoutPaths } from "../editor/window-layout-state";
+import { uiVec2 } from "../window-runtime";
 import { createActorInputEndEvent, createTestComponentRegistry } from "../test-support";
 import {
   floatingWindowComponentType,
@@ -149,8 +147,8 @@ class FakeWindowHost implements WindowContentHost {
   readonly id = "floating-window:hierarchy";
   readonly inputStackPriority = 1100;
   readonly state: FloatingWindowState = {
-    position: vec2(0, 0),
-    size: vec2(280, 360),
+    position: uiVec2(0, 0),
+    size: uiVec2(280, 360),
     visible: true
   };
   mounted: HTMLElement[] = [];
@@ -217,7 +215,7 @@ function createRect(x: number, y: number, width: number, height: number): DOMRec
 }
 
 function createSubject(options: {
-  commands?: SceneUpdateCommand[];
+  commands?: AppStateCommand[];
   items?: HierarchyObjectItem[];
   objectSource?: HierarchyObjectSource;
 } = {}) {
@@ -244,11 +242,11 @@ function createSubject(options: {
   return { actor, commands, component, document, host, root };
 }
 
-function createChangedEvent(activeObject: string | null): SceneStateChangedEvent {
+function createChangedEvent(activeObject: string | null): AppStateChangedEvent {
   return {
     frame: { timeMs: 0, deltaMs: 0, frameIndex: 0 },
     changes: [{
-      path: sceneParameterPaths.selection.activeObject,
+      path: editorStatePaths.selection.activeObject,
       previousValue: null,
       nextValue: activeObject,
       sources: [],
@@ -325,7 +323,7 @@ describe("HierarchyPanelComponent", () => {
   });
 
   it("updates row selection from scene state without submitting commands", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: AppStateCommand[] = [];
     const { component, root } = createSubject({ commands });
     const cameraRow = rows(root)[1];
 
@@ -456,7 +454,7 @@ describe("HierarchyPanelComponent", () => {
   });
 
   it("submits selection commands through gizmo click and keyboard activation", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: AppStateCommand[] = [];
     const { component, root } = createSubject({ commands });
     const [firstRow, secondRow] = rows(root);
     root.rect = createRect(0, 0, 200, 80);
@@ -472,14 +470,14 @@ describe("HierarchyPanelComponent", () => {
     expect(commands).toEqual([
       {
         source: { id: "hierarchy-panel", kind: "gizmo" },
-        target: sceneParameterPaths.selection.activeObject,
+        target: editorStatePaths.selection.activeObject,
         operation: "set",
         value: "tesseract",
         timeStamp: 33
       },
       {
         source: { id: "hierarchy-panel", kind: "keyboard" },
-        target: sceneParameterPaths.selection.activeObject,
+        target: editorStatePaths.selection.activeObject,
         operation: "set",
         value: "camera",
         timeStamp: 42
@@ -489,7 +487,7 @@ describe("HierarchyPanelComponent", () => {
   });
 
   it("selects tool window rows without submitting window state commands", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: AppStateCommand[] = [];
     const { component, root } = createSubject({
       commands,
       items: [
@@ -508,13 +506,13 @@ describe("HierarchyPanelComponent", () => {
 
     expect(commands).toEqual([{
       source: { id: "hierarchy-panel", kind: "gizmo" },
-      target: sceneParameterPaths.selection.activeObject,
+      target: editorStatePaths.selection.activeObject,
       operation: "set",
       value: "hierarchy-panel",
       timeStamp: 44
     }]);
-    expect(commands.some((command) => command.target === sceneParameterPaths.debugWindow.visible)).toBe(false);
-    expect(commands.some((command) => command.target === sceneParameterPaths.hierarchyWindow.visible)).toBe(false);
+    expect(commands.some((command) => command.target === editorWindowLayoutPaths.debugWindow.visible)).toBe(false);
+    expect(commands.some((command) => command.target === editorWindowLayoutPaths.hierarchyWindow.visible)).toBe(false);
   });
 
   it("disposes mounted content through the host attachment", () => {
@@ -560,10 +558,10 @@ describe("HierarchyPanelComponent definition", () => {
       parent: parent as unknown as HTMLElement,
       document: document as unknown as Document,
       title: "Hierarchy",
-      paths: sceneParameterPaths.hierarchyWindow,
+      paths: editorWindowLayoutPaths.hierarchyWindow,
       initialState: {
-        position: vec2(14, 14),
-        size: vec2(280, 360),
+        position: uiVec2(14, 14),
+        size: uiVec2(280, 360),
         visible: true
       }
     });

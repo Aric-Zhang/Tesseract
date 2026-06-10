@@ -27,18 +27,12 @@ describe("Project Prism state domain map", () => {
       "RuntimeRegistration"
     ]));
     expect(runtimeNames).not.toEqual(expect.arrayContaining([
-      "SceneCommandSink",
-      "sceneParameterPaths",
       "Vec2",
-      "SceneUpdateSource"
     ]));
   });
 
   it("keeps editor-state and UI layout-state ownership separate from runtime-core", () => {
-    expect(projectPrismEditorStateSurface.map((entry) => entry.exportName)).toEqual([
-      "SceneUpdateSource",
-      "SceneUpdateSourceKind"
-    ]);
+    expect(projectPrismEditorStateSurface.map((entry) => entry.exportName)).toEqual([]);
     expect(projectPrismEditorStateSurface.every((entry) => entry.targetOwner === "editor")).toBe(true);
 
     expect(projectPrismUiLayoutStateSurface.map((entry) => entry.exportName)).toEqual([
@@ -73,4 +67,3 @@ function listSceneRuntimeBarrelExports(source: string): string[] {
   }
   return [...names].sort();
 }
-

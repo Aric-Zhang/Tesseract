@@ -1,4 +1,4 @@
-import type { SceneParameterStore } from "../../scene-runtime";
+import type { AppStateParameterStore } from "../app-state-store";
 import {
   addUiVec2,
   assertUiVec2,
@@ -10,6 +10,7 @@ import {
   type UiLayoutPath,
   type UiVec2
 } from "../../window-runtime";
+import type { AppStatePath } from "../app-state";
 
 export interface RegisterFloatingWindowParametersOptions {
   paths: FloatingWindowParameterPaths;
@@ -26,10 +27,10 @@ interface FloatingWindowParameterRegistration {
 }
 
 const registeredWindowParameters =
-  new WeakMap<SceneParameterStore, Map<UiLayoutPath, FloatingWindowParameterRegistration>>();
+  new WeakMap<AppStateParameterStore, Map<UiLayoutPath, FloatingWindowParameterRegistration>>();
 
 export function registerFloatingWindowParameters(
-  store: SceneParameterStore,
+  store: AppStateParameterStore,
   options: RegisterFloatingWindowParametersOptions
 ): void {
   const minSize = options.minSize ?? DEFAULT_FLOATING_WINDOW_MIN_SIZE;
@@ -58,7 +59,7 @@ export function registerFloatingWindowParameters(
     const existing = storeRecords.get(path);
     if (existing) {
       assertSameRegistration(path, existing, record);
-    } else if (store.has(path)) {
+    } else if (store.has(toAppStatePath(path))) {
       throw new Error(`Floating window parameter path is already registered outside window-runtime: ${path}`);
     }
   }
@@ -71,14 +72,14 @@ export function registerFloatingWindowParameters(
 }
 
 function registerFloatingWindowParameter(
-  store: SceneParameterStore,
+  store: AppStateParameterStore,
   path: UiLayoutPath,
   record: FloatingWindowParameterRegistration
 ): void {
   if (record.kind === "position") {
     assertUiVec2(record.initialValue);
     store.register({
-      path,
+      path: toAppStatePath(path),
       initialValue: record.initialValue,
       allowedOperations: ["set", "add", "reset"],
       merge: "set-then-add",
@@ -95,7 +96,7 @@ function registerFloatingWindowParameter(
     assertUiVec2(record.initialValue);
     const minSize = record.minSize ?? DEFAULT_FLOATING_WINDOW_MIN_SIZE;
     store.register({
-      path,
+      path: toAppStatePath(path),
       initialValue: record.initialValue,
       allowedOperations: ["set", "add", "reset"],
       merge: "set-then-add",
@@ -111,7 +112,7 @@ function registerFloatingWindowParameter(
 
   assertBoolean(record.initialValue);
   store.register({
-    path,
+    path: toAppStatePath(path),
     initialValue: record.initialValue,
     allowedOperations: ["set", "reset"],
     merge: "last-write-wins",
@@ -119,7 +120,7 @@ function registerFloatingWindowParameter(
   });
 }
 
-function getStoreRecords(store: SceneParameterStore): Map<UiLayoutPath, FloatingWindowParameterRegistration> {
+function getStoreRecords(store: AppStateParameterStore): Map<UiLayoutPath, FloatingWindowParameterRegistration> {
   const existing = registeredWindowParameters.get(store);
   if (existing) return existing;
   const records = new Map<UiLayoutPath, FloatingWindowParameterRegistration>();
@@ -176,4 +177,8 @@ function assertBoolean(value: unknown): asserts value is boolean {
   if (typeof value !== "boolean") {
     throw new Error("Expected a boolean value.");
   }
+}
+
+function toAppStatePath<TValue>(path: string): AppStatePath<TValue> {
+  return path as AppStatePath<TValue>;
 }

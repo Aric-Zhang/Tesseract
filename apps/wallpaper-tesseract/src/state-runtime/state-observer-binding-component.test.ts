@@ -4,11 +4,9 @@ import type { ComponentDefinition } from "../actor-runtime";
 import { CompositeComponentAttachmentRuntime } from "../app-runtime/composite-component-attachment-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../state-runtime";
-import type {
-  RuntimeRegistration,
-  SceneStateChangedEvent,
-  SceneStateObserver
-} from "../scene-runtime";
+import type { AppStateChangedEvent } from "../editor/app-state";
+import type { AppStateObserver } from "../editor/app-state-controller";
+import type { RuntimeRegistration } from "../runtime/ports";
 import {
   createRecordingRuntimeRegistration,
   createTestComponentRegistry
@@ -28,10 +26,10 @@ interface TestStateObserverResponder extends StateObserverResponder, FrameUpdate
 
 function createRegistry() {
   const calls: string[] = [];
-  const observers: SceneStateObserver[] = [];
-  const stateAttachmentRuntime = new StateObserverAttachmentRuntime<SceneStateObserver>({
+  const observers: AppStateObserver[] = [];
+  const stateAttachmentRuntime = new StateObserverAttachmentRuntime<AppStateObserver>({
     registry: {
-      subscribe(observer: SceneStateObserver): RuntimeRegistration {
+      subscribe(observer: AppStateObserver): RuntimeRegistration {
         calls.push("observer-subscribe");
         observers.push(observer);
         return createRecordingRuntimeRegistration("observer-dispose", calls);
@@ -41,11 +39,11 @@ function createRegistry() {
       }
     },
     getObserver(component) {
-      const observer = component as Partial<SceneStateObserver>;
+      const observer = component as Partial<AppStateObserver>;
       if (typeof observer.onStateChanged !== "function") {
-        throw new Error("Expected SceneStateObserver.");
+        throw new Error("Expected AppStateObserver.");
       }
-      return observer as SceneStateObserver;
+      return observer as AppStateObserver;
     }
   });
   const actorSystem = new ActorSystem();
@@ -89,7 +87,7 @@ function createResponderDefinition(
   };
 }
 
-function createStateEvent(): SceneStateChangedEvent {
+function createStateEvent(): AppStateChangedEvent {
   return {
     frame: { timeMs: 0, deltaMs: 0, frameIndex: 0 },
     changes: []

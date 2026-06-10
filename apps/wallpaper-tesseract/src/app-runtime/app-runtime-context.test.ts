@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { GizmoController } from "gizmo-core";
-import type { RuntimeObject, RuntimeRegistration, SceneStateObserver, SceneUpdateCommand } from "../scene-runtime";
+import type { AppStateCommand } from "../editor/app-state";
+import type { AppStateObserver } from "../editor/app-state-controller";
+import type { RuntimeObject, RuntimeRegistration } from "../runtime/ports";
 import { AppRuntimeContext, createRegisteredObject } from "./app-runtime-context";
 import {
   componentType,
@@ -60,10 +62,10 @@ function createSystems(options: {
     }
   };
   const frameStateController = {
-    submit(_command: SceneUpdateCommand): void {
+    submit(_command: AppStateCommand): void {
       calls.push("frame-submit");
     },
-    subscribe(observer: SceneStateObserver): RuntimeRegistration {
+    subscribe(observer: AppStateObserver): RuntimeRegistration {
       calls.push(`observer-subscribe:${(observer as unknown as RuntimeObject).id}`);
       return createRegistration("observer-dispose", calls, options.failDisposeAt);
     },

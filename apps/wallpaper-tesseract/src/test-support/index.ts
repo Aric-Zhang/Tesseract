@@ -9,5 +9,3 @@ export { createTestComponentRegistry } from "./component-registry";
 export type { TestComponentRegistryOptions, TestComponentRegistrySetup } from "./component-registry";
 export { createRecordingRuntimeRegistration } from "./runtime-registration";
 export type { RecordingRuntimeRegistrationOptions } from "./runtime-registration";
-export { createRecordingSceneCommandSink } from "./scene-command-sink";
-export type { RecordingSceneCommandSink } from "./scene-command-sink";

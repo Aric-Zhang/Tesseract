@@ -1,6 +1,6 @@
-import type { SceneParameterStore } from "../../scene-runtime";
+import type { AppStateParameterStore } from "../../editor/app-state-store";
 import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
-import { registerFloatingWindowParameters } from "../../editor/adapters/floating-window-scene-state-adapter";
+import { registerFloatingWindowParameters } from "../../editor/adapters/floating-window-editor-state-adapter";
 import {
   createDefaultFloatingWindowState,
   type FloatingWindowState,
@@ -53,7 +53,7 @@ export function createDefaultSceneWindowState(
 }
 
 export function registerSceneWindowParameters(
-  store: SceneParameterStore,
+  store: AppStateParameterStore,
   initialState: SceneWindowInitialState
 ): void {
   registerFloatingWindowParameters(store, {

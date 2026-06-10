@@ -3,7 +3,9 @@ import { ActorSystem, ComponentRegistry, type Actor, type RegisteredActor } from
 import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
-import { sceneParameterPaths, type SceneUpdateCommand } from "../../scene-runtime";
+import type { AppStateCommand } from "../../editor/app-state";
+import { editorStatePaths } from "../../editor/editor-state";
+import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
 import {
   createSingletonWindowViewIdentity,
   floatingWindowComponentType,
@@ -91,13 +93,13 @@ function findChildByClass(element: FakeElement, className: string): FakeElement 
   return child;
 }
 
-function createContext(commands: SceneUpdateCommand[] = []) {
+function createContext(commands: AppStateCommand[] = []) {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
   installGizmoRuntimeComponentDefinitions(componentRegistry);
   installStateRuntimeComponentDefinitions(componentRegistry);
   installWindowComponentDefinitions(componentRegistry, {
-    commandSink: { submit: (command) => commands.push(command as unknown as SceneUpdateCommand) }
+    commandSink: { submit: (command) => commands.push(command as AppStateCommand) }
   });
   installSceneComponentDefinitions(componentRegistry, {
     commandSink: { submit: (command) => commands.push(command) }
@@ -303,7 +305,7 @@ describe("createSceneViewActor", () => {
       parent: parent as unknown as HTMLElement,
       document: document as unknown as Document,
       title: "Target",
-      paths: sceneParameterPaths.debugWindow,
+      paths: editorWindowLayoutPaths.debugWindow,
       initialState: createDefaultSceneWindowState({ viewportWidth: 500, viewportHeight: 280 })
     });
     const sourceRoot = parent.children[0];
@@ -325,7 +327,7 @@ describe("createSceneViewActor", () => {
   });
 
   it("submits workspace mode commands from the Scene mode toggle", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: AppStateCommand[] = [];
     const context = createContext(commands);
     const document = new FakeDocument();
     const parent = document.createElement("div");
@@ -346,7 +348,7 @@ describe("createSceneViewActor", () => {
     handle.modeToggle.onStateChanged({
       frame: { timeMs: 0, deltaMs: 0, frameIndex: 0 },
       changes: [{
-        path: sceneParameterPaths.workspace.mode,
+        path: editorStatePaths.workspace.mode,
         previousValue: "develop",
         nextValue: "run",
         sources: [{ id: "test", kind: "script" }],
@@ -366,14 +368,14 @@ describe("createSceneViewActor", () => {
     expect(commands).toEqual([
       {
         source: SCENE_MODE_TOGGLE_SOURCE,
-        target: sceneParameterPaths.workspace.mode,
+        target: editorStatePaths.workspace.mode,
         operation: "set",
         value: "run",
         timeStamp: 30
       },
       {
         source: SCENE_MODE_TOGGLE_SOURCE,
-        target: sceneParameterPaths.workspace.mode,
+        target: editorStatePaths.workspace.mode,
         operation: "set",
         value: "develop",
         timeStamp: 30

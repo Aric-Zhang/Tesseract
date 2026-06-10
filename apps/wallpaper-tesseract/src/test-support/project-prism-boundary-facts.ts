@@ -56,7 +56,7 @@ export const projectPrismSourceZones = [
     /^\.\/app-runtime\//,
     /^\.\/runtime\/ports\//
   ], { debt: true }),
-  definePathZone("state-domain-debt", "Mixed scene/editor/ui state runtime that must split before runtime extraction.", [
+  definePathZone("state-domain-debt", "Remaining scene-runtime compatibility scheduler/value surface after state-domain split.", [
     /^\.\/scene-runtime\//
   ], { debt: true }),
   definePathZone("runtime-ownership-debt", "Runtime-like world/camera/object code still owned by editor/app folders.", [
@@ -66,7 +66,7 @@ export const projectPrismSourceZones = [
     /^\.\/features\/camera3\/components\/(?:camera3-motion-component|camera3-rig-component|scene-camera3-viewport-binding-component)\.ts$/,
     /^\.\/features\/scene\/(?:install-scene-view-feature|scene-view-content-installer|renderable-scene-view|scene-window-actor-factory)\.ts$/,
     /^\.\/features\/scene\/components\/scene-viewport-component\.ts$/,
-    /^\.\/scene-runtime\/(?:frame-state-controller|scene-runtime)\.ts$/,
+    /^\.\/scene-runtime\/scene-runtime\.ts$/,
     /^\.\/update-runtime\/frame-update-attachment-runtime\.ts$/,
     /^\.\/tesseract4\//
   ], { debt: true }),
@@ -121,9 +121,9 @@ export const projectPrismDebtBlockers = [
   },
   {
     zoneId: "state-domain-debt",
-    blocks: ["runtime-core extraction", "state/scheduler split"],
-    blocker: "scene-runtime mixes runtime state, editor state, UI layout state, scheduler, and observer facts.",
-    deletionCondition: "runtime-state, editor-state, and ui-layout-state become separate facts with explicit adapters."
+    blocks: ["scene-runtime compatibility deletion", "scheduler lane split"],
+    blocker: "scene-runtime no longer owns editor/UI state, but still exposes compatibility scheduler and value helper surfaces.",
+    deletionCondition: "SceneRuntime, scene-frame aliases, runtime-object aliases, and scene vec2 helpers are deleted or moved to their owning packages."
   },
   {
     zoneId: "runtime-ownership-debt",
@@ -165,7 +165,6 @@ export const projectPrismRuntimeExtractionBlockers = [
     files: [
       "./scene-runtime/scene-runtime.ts",
       "./update-runtime/frame-update-attachment-runtime.ts",
-      "./scene-runtime/frame-state-controller.ts",
       "./app/create-wallpaper-app.ts"
     ],
     blocks: ["runtime production ownership", "state/scheduler split"],
@@ -358,8 +357,8 @@ export const projectPrismPackageTargets = [
   {
     id: "runtime-production-ownership",
     cleanCandidateZones: [],
-    debtZones: ["state-domain-debt", "runtime-ownership-debt", "runtime-adapter-debt"],
-    blockedBy: ["state-domain-debt", "runtime-ownership-debt", "runtime-adapter-debt"],
+    debtZones: ["runtime-ownership-debt", "runtime-adapter-debt"],
+    blockedBy: ["runtime-ownership-debt", "runtime-adapter-debt"],
     extractionPhase: "Phase 5",
     extractionStatus: "blocked"
   },

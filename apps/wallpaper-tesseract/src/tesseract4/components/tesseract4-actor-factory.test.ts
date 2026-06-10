@@ -2,12 +2,9 @@ import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 import { AppRuntimeContext } from "../../app-runtime";
 import type { GizmoController } from "gizmo-core";
-import type {
-  RuntimeObject,
-  RuntimeRegistration,
-  SceneStateObserver,
-  SceneUpdateCommand
-} from "../../scene-runtime";
+import type { AppStateCommand } from "../../editor/app-state";
+import type { AppStateObserver } from "../../editor/app-state-controller";
+import type { RuntimeObject, RuntimeRegistration } from "../../runtime/ports";
 import type { Tesseract4RuntimeObject } from "../tesseract4-runtime-object";
 import { installTesseract4ComponentDefinitions } from "./install-component-definitions";
 import { createTesseract4Actor } from "./tesseract4-actor-factory";
@@ -45,10 +42,10 @@ function createContext() {
       }
     },
     frameStateController: {
-      submit(_command: SceneUpdateCommand): void {
+      submit(_command: AppStateCommand): void {
         calls.push("frame-submit");
       },
-      subscribe(_observer: SceneStateObserver): RuntimeRegistration {
+      subscribe(_observer: AppStateObserver): RuntimeRegistration {
         calls.push("observer-subscribe");
         return createRegistration("observer-dispose", calls);
       },

@@ -27,19 +27,15 @@ import {
   createToolWindowWorkspaceFloatingFramePolicies,
   installToolWindowFeatures
 } from "../features/tool-windows";
-import {
-  FrameStateController,
-  type SceneCommandSink,
-  type SceneUpdateCommand,
-  SceneParameterStore,
-  SceneRuntime,
-  type SceneStateObserver
-} from "../scene-runtime";
+import { SceneRuntime } from "../scene-runtime";
+import { AppFrameStateController, type AppStateObserver } from "../editor/app-state-controller";
+import { AppStateParameterStore } from "../editor/app-state-store";
+import type { AppStateCommandSink } from "../editor/app-state";
 import { editorStatePaths } from "../editor/editor-state";
 import {
-  createSceneBackedWorkspaceCommandSink,
+  createEditorBackedWorkspaceCommandSink,
   registerWorkspaceModeParameters
-} from "../editor/adapters/workspace-mode-scene-state-adapter";
+} from "../editor/adapters/workspace-mode-editor-state-adapter";
 import { UpdateFrameClock } from "../runtime/ports";
 import type { StateObserverRegistry } from "../state-runtime";
 import {
@@ -87,14 +83,14 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
 
   const sceneRuntime = new SceneRuntime();
   const frameClock = new UpdateFrameClock();
-  const sceneStore = new SceneParameterStore();
+  const appStateStore = new AppStateParameterStore();
   const sceneWindowState = createDefaultSceneWindowState();
   const debugWindowState = createDefaultDebugWindowState();
   const hierarchyPanelState = createDefaultHierarchyPanelState();
-  registerSceneWindowParameters(sceneStore, sceneWindowState);
-  registerDebugWindowParameters(sceneStore, debugWindowState);
-  registerHierarchyPanelParameters(sceneStore, hierarchyPanelState);
-  registerWorkspaceModeParameters(sceneStore);
+  registerSceneWindowParameters(appStateStore, sceneWindowState);
+  registerDebugWindowParameters(appStateStore, debugWindowState);
+  registerHierarchyPanelParameters(appStateStore, hierarchyPanelState);
+  registerWorkspaceModeParameters(appStateStore);
 
   let isUpdatingFrame = false;
   const immediateUpdates = new ImmediateUpdateScheduler({
@@ -102,8 +98,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     isUpdatingFrame: () => isUpdatingFrame
   });
 
-  const frameStateController = new FrameStateController({ store: sceneStore });
-  const frameStateBridge: StateObserverRegistry<SceneStateObserver> & SceneCommandSink = {
+  const frameStateController = new AppFrameStateController({ store: appStateStore });
+  const frameStateBridge: StateObserverRegistry<AppStateObserver> & AppStateCommandSink = {
     submit(command) {
       frameStateController.submit(command);
       immediateUpdates.requestUpdate(command.timeStamp);
@@ -134,8 +130,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       actorInputStackPriority: windowFocus,
       requestPointerFocus: (actor) => windowFocus.focusActorWindow(actor, "pointer-down")
     },
-    editorCommandSink: createSceneBackedWorkspaceCommandSink(frameStateBridge),
-    uiLayoutCommandSink: createSceneBackedUiLayoutCommandSink(frameStateBridge)
+    editorCommandSink: createEditorBackedWorkspaceCommandSink(frameStateBridge),
+    uiLayoutCommandSink: createEditorBackedUiLayoutCommandSink(frameStateBridge)
   });
 
   runtimeContext.registerRuntimeService(frameStateController);
@@ -159,7 +155,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   });
   const windowWorkspace = installWindowWorkspaceFeature({
     context: runtimeContext,
-    layoutState: sceneStore,
+    layoutState: appStateStore,
     floatingFrameParent,
     rootFrameParent: appShell.rootDockSlot,
     windowFocus,
@@ -226,8 +222,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     workspaceModePath: editorStatePaths.workspace.mode
   });
   const workspaceModeController = new WorkspaceModeController({
-    commandSink: createSceneBackedWorkspaceCommandSink(frameStateBridge),
-    getValue: (path) => sceneStore.get(path),
+    commandSink: createEditorBackedWorkspaceCommandSink(frameStateBridge),
+    getValue: (path) => appStateStore.get(path),
     sceneView: {
       viewKey: "scene",
       locations: windowWorkspace.lifecycle,
@@ -299,10 +295,10 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   return { dispose };
 }
 
-function createSceneBackedUiLayoutCommandSink(commandSink: SceneCommandSink): UiLayoutCommandSink {
+function createEditorBackedUiLayoutCommandSink(commandSink: AppStateCommandSink): UiLayoutCommandSink {
   return {
     submit(command) {
-      commandSink.submit(command as unknown as SceneUpdateCommand);
+      commandSink.submit(command);
     }
   };
 }

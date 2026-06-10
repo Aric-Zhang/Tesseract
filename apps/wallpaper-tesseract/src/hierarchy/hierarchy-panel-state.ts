@@ -1,7 +1,8 @@
-import type { SceneParameterStore, ParameterPath } from "../scene-runtime";
+import type { AppStatePath } from "../editor/app-state";
+import type { AppStateParameterStore } from "../editor/app-state-store";
 import { editorStatePaths } from "../editor/editor-state";
 import { editorWindowLayoutPaths } from "../editor/window-layout-state";
-import { registerFloatingWindowParameters } from "../editor/adapters/floating-window-scene-state-adapter";
+import { registerFloatingWindowParameters } from "../editor/adapters/floating-window-editor-state-adapter";
 import {
   createDefaultFloatingWindowState,
   type FloatingWindowState,
@@ -23,7 +24,7 @@ export interface HierarchyPanelInitialState {
 export const HIERARCHY_WINDOW_MIN_WIDTH = 240;
 export const HIERARCHY_WINDOW_MIN_HEIGHT = 180;
 
-const registeredHierarchySelectionParameters = new WeakSet<SceneParameterStore>();
+const registeredHierarchySelectionParameters = new WeakSet<AppStateParameterStore>();
 
 export function createDefaultHierarchyPanelState(
   options: HierarchyPanelStateOptions = {}
@@ -51,7 +52,7 @@ export function createDefaultHierarchyPanelState(
 }
 
 export function registerHierarchyPanelParameters(
-  store: SceneParameterStore,
+  store: AppStateParameterStore,
   initialState: HierarchyPanelInitialState
 ): void {
   registerFloatingWindowParameters(store, {
@@ -62,8 +63,8 @@ export function registerHierarchyPanelParameters(
   registerSelectionParameter(store, initialState.activeObject);
 }
 
-function registerSelectionParameter(store: SceneParameterStore, initialValue: string | null): void {
-  const path = editorStatePaths.selection.activeObject as unknown as ParameterPath<string | null>;
+function registerSelectionParameter(store: AppStateParameterStore, initialValue: string | null): void {
+  const path = editorStatePaths.selection.activeObject as AppStatePath<string | null>;
   if (store.has(path)) {
     if (registeredHierarchySelectionParameters.has(store)) return;
     throw new Error(`Hierarchy selection parameter path is already registered outside hierarchy: ${path}`);

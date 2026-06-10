@@ -30,3 +30,10 @@ export {
 export type {
   RuntimeThreeLineRenderableOptions
 } from "./runtime-three-line-renderable";
+export {
+  RuntimeThreeWebGLRenderer,
+  createRuntimeThreeWebGLRenderer
+} from "./runtime-three-webgl-renderer";
+export type {
+  RuntimeThreeWebGLRendererOptions
+} from "./runtime-three-webgl-renderer";

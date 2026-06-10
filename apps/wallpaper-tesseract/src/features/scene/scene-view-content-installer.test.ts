@@ -13,8 +13,9 @@ import type { RuntimeObjectRegistry } from "../../runtime/ports";
 import type { GizmoControllerRegistry } from "../../gizmo-runtime";
 import type { StateObserverRegistry } from "../../state-runtime";
 import {
+  createEditorSceneViewHost,
   createRenderableSceneView,
-  CurrentRenderableSceneViewRegistry,
+  SceneViewFrameSourceRegistry,
   installSceneViewContent,
   type InstalledSceneViewContent,
   type RenderableSceneView,
@@ -290,10 +291,13 @@ function createSubject(options: CreateSubjectOptions = {}) {
     },
     devicePixelRatio: () => 2,
   });
-  const renderable = createRenderableSceneView({
+  const host = createEditorSceneViewHost({
     actorSystem: runtimeContext.actorSystem,
     locations: viewLocationSource,
-    sceneView: content.sceneView,
+    sceneView: content.sceneView
+  });
+  const renderable = createRenderableSceneView({
+    host,
     camera3Motion: content.camera3Motion
   });
   const runtime = createTestSceneViewHandle(content, renderable);
@@ -538,10 +542,13 @@ describe("Scene view content installer and renderable view", () => {
       createRenderer: () => createFakeRenderer(document, rendererCalls),
       createCamera3GizmoView: createFakeCamera3Gizmo(document, calls),
     });
-    const renderable = createRenderableSceneView({
+    const host = createEditorSceneViewHost({
       actorSystem: runtimeContext.actorSystem,
       locations: viewLocationSource,
-      sceneView: content.sceneView,
+      sceneView: content.sceneView
+    });
+    const renderable = createRenderableSceneView({
+      host,
       camera3Motion: content.camera3Motion
     });
     const runtime = createTestSceneViewHandle(
@@ -657,16 +664,30 @@ describe("Scene view content installer and renderable view", () => {
   });
 });
 
-describe("CurrentRenderableSceneViewRegistry", () => {
-  it("clears only the currently registered runtime", () => {
+describe("SceneViewFrameSourceRegistry", () => {
+  it("selects renderable scene views through frame source snapshots", () => {
     const first = createSubject();
-    const second = createSubject();
-    const source = new CurrentRenderableSceneViewRegistry();
+    const second = createSubject({
+      actorIds: {
+        sceneWindowActorId: "scene-window-2",
+        camera3GizmoActorId: "camera-3-2",
+        tesseract4ActorId: "tesseract-4-2"
+      },
+      rootFrameActorId: "workspace-root-frame-2"
+    });
+    const source = new SceneViewFrameSourceRegistry();
 
-    source.setCurrent(first.runtime);
-    source.clear(second.runtime);
+    const firstRegistration = source.register(first.runtime);
+    const secondRegistration = source.register(second.runtime);
     expect(source.current).toBe(first.runtime);
-    source.clear(first.runtime);
+    expect(source.listFrameSources()).toHaveLength(2);
+    expect(source.listFrameSources()[0].getSnapshot()).toMatchObject({
+      status: "ready",
+      payload: { renderable: true }
+    });
+    firstRegistration.dispose();
+    expect(source.current).toBe(second.runtime);
+    secondRegistration.dispose();
     expect(source.current).toBeNull();
 
     first.runtime.dispose();

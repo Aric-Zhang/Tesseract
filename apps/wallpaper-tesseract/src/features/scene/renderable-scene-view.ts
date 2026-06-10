@@ -1,7 +1,12 @@
-import type { ActorSystemView } from "../../actor-runtime";
+import {
+  createRuntimeRegistration,
+  RuntimeMutableFrameSource,
+  runtimeFrameSourceId,
+  type RuntimeFrameSource,
+  type RuntimeRegistration
+} from "runtime-core";
 import type { Camera3MotionComponent } from "../camera3/components";
-import type { WindowViewLocationSource } from "../../window-runtime";
-import type { RegisteredSceneViewActor } from "./scene-window-actor-factory";
+import type { EditorSceneViewHost } from "./editor-scene-view-host";
 
 export interface RenderableSceneView {
   readonly viewActorId: string;
@@ -14,65 +19,93 @@ export interface RenderableSceneViewSource {
   readonly current: RenderableSceneView | null;
 }
 
-export interface RenderableSceneViewRegistry extends RenderableSceneViewSource {
-  setCurrent(view: RenderableSceneView): void;
-  clear(view: RenderableSceneView): void;
+export interface SceneViewFrameSourcePayload {
+  readonly renderable: boolean;
 }
 
-export class CurrentRenderableSceneViewRegistry implements RenderableSceneViewRegistry {
-  #current: RenderableSceneView | null = null;
+export interface RenderableSceneViewRegistry extends RenderableSceneViewSource {
+  register(view: RenderableSceneView): RuntimeRegistration;
+  listFrameSources(): readonly RuntimeFrameSource<SceneViewFrameSourcePayload>[];
+}
+
+interface SceneViewFrameSourceEntry {
+  readonly view: RenderableSceneView;
+  readonly source: RuntimeMutableFrameSource<SceneViewFrameSourcePayload>;
+}
+
+export class SceneViewFrameSourceRegistry implements RenderableSceneViewRegistry {
+  readonly #entries = new Map<string, SceneViewFrameSourceEntry>();
+  #nextSourceIndex = 0;
 
   get current(): RenderableSceneView | null {
-    return this.#current;
-  }
-
-  setCurrent(view: RenderableSceneView): void {
-    this.#current = view;
-  }
-
-  clear(view: RenderableSceneView): void {
-    if (this.#current === view) {
-      this.#current = null;
+    for (const entry of this.#entries.values()) {
+      const snapshot = refreshSceneViewFrameSource(entry.source, entry.view);
+      if (snapshot.status === "ready" && snapshot.payload?.renderable === true) {
+        return entry.view;
+      }
     }
+    return null;
+  }
+
+  register(view: RenderableSceneView): RuntimeRegistration {
+    const source = new RuntimeMutableFrameSource<SceneViewFrameSourcePayload>({
+      id: runtimeFrameSourceId(`scene-view-frame-source:${++this.#nextSourceIndex}`),
+      label: "Scene View"
+    });
+    this.#entries.set(view.viewActorId, { view, source });
+    refreshSceneViewFrameSource(source, view);
+    return createRuntimeRegistration(() => {
+      const entry = this.#entries.get(view.viewActorId);
+      if (entry?.view === view) {
+        this.#entries.delete(view.viewActorId);
+      }
+    });
+  }
+
+  listFrameSources(): readonly RuntimeFrameSource<SceneViewFrameSourcePayload>[] {
+    return [...this.#entries.values()].map((entry) => entry.source);
   }
 }
 
 export interface CreateRenderableSceneViewOptions {
-  readonly actorSystem: ActorSystemView;
-  readonly locations: WindowViewLocationSource;
-  readonly sceneView: RegisteredSceneViewActor;
+  readonly host: EditorSceneViewHost;
   readonly camera3Motion: Camera3MotionComponent;
 }
 
 export function createRenderableSceneView(options: CreateRenderableSceneViewOptions): RenderableSceneView {
-  const viewActorId = options.sceneView.viewport.actor.id;
   return {
-    viewActorId,
+    viewActorId: options.host.viewActorId,
     measureNow() {
-      options.sceneView.viewport.measureNow();
+      options.host.measureNow();
     },
     isRenderable() {
-      const location = options.locations.getLocationByViewActorId(viewActorId);
-      return location !== null &&
-        location.ownerFrameVisible &&
-        location.ownerFrameActiveInHierarchy &&
-        location.visibleInFrame &&
-        options.actorSystem.hasActor(options.sceneView.viewport.actor) &&
-        options.actorSystem.isActorActive(options.sceneView.viewport.actor);
+      return options.host.isVisibleInCurrentLocation();
     },
     render() {
-      const location = options.locations.getLocationByViewActorId(viewActorId);
-      if (
-        location === null ||
-        !location.ownerFrameVisible ||
-        !location.ownerFrameActiveInHierarchy ||
-        !location.visibleInFrame ||
-        !options.actorSystem.hasActor(options.sceneView.viewport.actor) ||
-        !options.actorSystem.isActorActive(options.sceneView.viewport.actor)
-      ) {
-        return;
-      }
-      options.sceneView.viewport.render(options.camera3Motion.activeCamera);
+      if (!options.host.isVisibleInCurrentLocation()) return;
+      options.host.renderWithCamera(options.camera3Motion.activeCamera);
     }
   };
+}
+
+function refreshSceneViewFrameSource(
+  source: RuntimeMutableFrameSource<SceneViewFrameSourcePayload>,
+  view: RenderableSceneView
+) {
+  try {
+    return source.publish({
+      status: "ready",
+      payload: {
+        renderable: view.isRenderable()
+      }
+    });
+  } catch (error) {
+    return source.publish({
+      status: "failed",
+      error: {
+        message: error instanceof Error ? error.message : String(error),
+        code: "scene-view-frame-source"
+      }
+    });
+  }
 }

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createRuntimeThreeWebGLRenderer } from "runtime-three";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import type { RuntimeRegistration } from "../../../runtime/ports";
 import type {
@@ -149,7 +150,7 @@ export class SceneViewportComponent implements Component, WindowContentRehostabl
 }
 
 function createDefaultRenderer(): SceneViewportRenderer {
-  return new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  return createRuntimeThreeWebGLRenderer({ antialias: true, alpha: false });
 }
 
 function createResizeObserver(

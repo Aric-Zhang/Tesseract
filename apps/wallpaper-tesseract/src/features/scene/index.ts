@@ -31,14 +31,22 @@ export type {
   SceneWorkspaceMode
 } from "./components";
 export {
+  createEditorSceneViewHost
+} from "./editor-scene-view-host";
+export type {
+  CreateEditorSceneViewHostOptions,
+  EditorSceneViewHost
+} from "./editor-scene-view-host";
+export {
   createRenderableSceneView,
-  CurrentRenderableSceneViewRegistry
+  SceneViewFrameSourceRegistry
 } from "./renderable-scene-view";
 export type {
   CreateRenderableSceneViewOptions,
   RenderableSceneView,
   RenderableSceneViewRegistry,
-  RenderableSceneViewSource
+  RenderableSceneViewSource,
+  SceneViewFrameSourcePayload
 } from "./renderable-scene-view";
 export {
   createSceneDefaultOpenView,

@@ -9,9 +9,10 @@ import type {
   WindowWorkspaceFloatingFramePolicy
 } from "../window-workspace";
 import { WORKSPACE_ROOT_FRAME_ID } from "../../window-runtime";
+import { createEditorSceneViewHost } from "./editor-scene-view-host";
 import {
   createRenderableSceneView,
-  CurrentRenderableSceneViewRegistry
+  SceneViewFrameSourceRegistry
 } from "./renderable-scene-view";
 import {
   installSceneViewContent,
@@ -32,7 +33,7 @@ export interface InstallSceneViewFeatureOptions {
 }
 
 export interface InstalledSceneViewFeature {
-  readonly renderableSceneViews: CurrentRenderableSceneViewRegistry;
+  readonly renderableSceneViews: SceneViewFrameSourceRegistry;
 }
 
 export function createSceneWindowWorkspaceFloatingFramePolicy(
@@ -56,7 +57,7 @@ export function createSceneDefaultOpenView(): WindowWorkspaceDefaultOpenView {
 }
 
 export function installSceneViewFeature(options: InstallSceneViewFeatureOptions): InstalledSceneViewFeature {
-  const renderableSceneViews = new CurrentRenderableSceneViewRegistry();
+  const renderableSceneViews = new SceneViewFrameSourceRegistry();
   options.viewFactories.register({
     viewKey: "scene",
     label: options.actorIds.sceneWindowActorName,
@@ -68,19 +69,22 @@ export function installSceneViewFeature(options: InstallSceneViewFeatureOptions)
         parentFrameActor: createOptions.parentFrameActor,
         actorIds: options.actorIds
       });
-      const renderable = createRenderableSceneView({
+      const host = createEditorSceneViewHost({
         actorSystem: options.context.actorSystem,
         locations: options.locations,
-        sceneView: content.sceneView,
+        sceneView: content.sceneView
+      });
+      const renderable = createRenderableSceneView({
+        host,
         camera3Motion: content.camera3Motion
       });
-      renderableSceneViews.setCurrent(renderable);
+      const renderableRegistration = renderableSceneViews.register(renderable);
       return {
         viewActor: content.sceneView.viewport.actor,
         content: content.sceneView.viewport,
         title: options.actorIds.sceneWindowActorName,
         disposeViewRuntime: () => {
-          renderableSceneViews.clear(renderable);
+          renderableRegistration.dispose();
           content.sceneView.disposeRuntimeTracking?.();
         }
       };

@@ -654,6 +654,7 @@ describe("architecture boundaries", () => {
     const sceneFeatureInstallerSource = sourceFiles["./features/scene/install-scene-view-feature.ts"] ?? "";
     const sceneViewInstallerSource = sourceFiles["./features/scene/scene-view-content-installer.ts"] ?? "";
     const renderableSceneViewSource = sourceFiles["./features/scene/renderable-scene-view.ts"] ?? "";
+    const editorSceneViewHostSource = sourceFiles["./features/scene/editor-scene-view-host.ts"] ?? "";
 
     expect(appSource).not.toMatch(/\bnew\s+THREE\.WebGLRenderer\b/);
     expect(appSource).not.toMatch(/replaceChildren\s*\(\s*renderer\.domElement\s*\)/);
@@ -672,23 +673,29 @@ describe("architecture boundaries", () => {
     expect(renderableSceneViewSource).toMatch(/\brender\s*\(\)\s*:\s*void/);
     expect(renderableSceneViewSource).not.toMatch(/\bdispose/);
     expect(sceneFeatureInstallerSource).toMatch(/\binstallSceneViewContent\b/);
+    expect(sceneFeatureInstallerSource).toMatch(/\bcreateEditorSceneViewHost\b/);
     expect(sceneFeatureInstallerSource).toMatch(/\bcreateRenderableSceneView\b/);
-    expect(sceneFeatureInstallerSource).toMatch(/\bCurrentRenderableSceneViewRegistry\b/);
+    expect(sceneFeatureInstallerSource).toMatch(/\bSceneViewFrameSourceRegistry\b/);
+    expect(sceneFeatureInstallerSource).not.toMatch(/\bCurrentRenderableSceneViewRegistry\b/);
     expect(sceneViewInstallerSource).not.toMatch(/\bcreateSceneWindowActor\b/);
     expect(sceneViewInstallerSource).toMatch(/\bcreateSceneViewActor\b/);
-    expect(renderableSceneViewSource).toMatch(/sceneView\.viewport\.render/);
+    expect(renderableSceneViewSource).toMatch(/host\.renderWithCamera/);
+    expect(renderableSceneViewSource).not.toMatch(/sceneView\.viewport\.render/);
+    expect(editorSceneViewHostSource).toMatch(/sceneView\.viewport\.render/);
   });
 
   it("guards Scene viewport rendering behind current view ownership and active state", () => {
     const renderableSceneViewSource = sourceFiles["./features/scene/renderable-scene-view.ts"] ?? "";
+    const editorSceneViewHostSource = sourceFiles["./features/scene/editor-scene-view-host.ts"] ?? "";
 
     expect(renderableSceneViewSource).toMatch(/\bisRenderable\s*\(\)\s*{/);
     expect(renderableSceneViewSource).not.toMatch(/sceneWindow\.window\.state\.visible/);
-    expect(renderableSceneViewSource).toMatch(/locations\.getLocationByViewActorId/);
-    expect(renderableSceneViewSource).toMatch(/location\.ownerFrameVisible/);
-    expect(renderableSceneViewSource).toMatch(/location\.visibleInFrame/);
-    expect(renderableSceneViewSource).toMatch(/actorSystem\.isActorActive\s*\(\s*options\.sceneView\.viewport\.actor\s*\)/);
-    expect(renderableSceneViewSource).toMatch(/sceneView\.viewport\.render\(options\.camera3Motion\.activeCamera\)/);
+    expect(renderableSceneViewSource).toMatch(/host\.isVisibleInCurrentLocation/);
+    expect(renderableSceneViewSource).toMatch(/host\.renderWithCamera\(options\.camera3Motion\.activeCamera\)/);
+    expect(editorSceneViewHostSource).toMatch(/locations\.getLocationByViewActorId/);
+    expect(editorSceneViewHostSource).toMatch(/location\.ownerFrameVisible/);
+    expect(editorSceneViewHostSource).toMatch(/location\.visibleInFrame/);
+    expect(editorSceneViewHostSource).toMatch(/actorSystem\.isActorActive\s*\(\s*options\.sceneView\.viewport\.actor\s*\)/);
   });
 
   it("keeps Camera3 rig, motion, and viewport subscriptions in components", () => {

@@ -1,12 +1,11 @@
-import {
-  sceneParameterPaths,
-  vec2,
-  type SceneParameterStore
-} from "../scene-runtime";
+import type { SceneParameterStore, ParameterPath } from "../scene-runtime";
+import { editorStatePaths } from "../editor/editor-state";
+import { editorWindowLayoutPaths } from "../editor/window-layout-state";
 import { registerFloatingWindowParameters } from "../editor/adapters/floating-window-scene-state-adapter";
 import {
   createDefaultFloatingWindowState,
-  type FloatingWindowState
+  type FloatingWindowState,
+  uiVec2
 } from "../window-runtime";
 
 export interface HierarchyPanelStateOptions {
@@ -37,15 +36,15 @@ export function createDefaultHierarchyPanelState(
     viewportHeight,
     width: Math.max(HIERARCHY_WINDOW_MIN_WIDTH, Math.min(280, viewportWidth - margin * 2)),
     height: Math.max(HIERARCHY_WINDOW_MIN_HEIGHT, Math.min(360, viewportHeight - margin * 2)),
-    minSize: vec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT),
-    maxSize: vec2(420, 560),
+    minSize: uiVec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT),
+    maxSize: uiVec2(420, 560),
     margin,
     visible: options.visible
   });
   return {
     window: {
       ...window,
-      position: vec2(14, 14)
+      position: uiVec2(14, 14)
     },
     activeObject: options.activeObject ?? null
   };
@@ -56,15 +55,15 @@ export function registerHierarchyPanelParameters(
   initialState: HierarchyPanelInitialState
 ): void {
   registerFloatingWindowParameters(store, {
-    paths: sceneParameterPaths.hierarchyWindow,
+    paths: editorWindowLayoutPaths.hierarchyWindow,
     initialState: initialState.window,
-    minSize: vec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT)
+    minSize: uiVec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT)
   });
   registerSelectionParameter(store, initialState.activeObject);
 }
 
 function registerSelectionParameter(store: SceneParameterStore, initialValue: string | null): void {
-  const path = sceneParameterPaths.selection.activeObject;
+  const path = editorStatePaths.selection.activeObject as unknown as ParameterPath<string | null>;
   if (store.has(path)) {
     if (registeredHierarchySelectionParameters.has(store)) return;
     throw new Error(`Hierarchy selection parameter path is already registered outside hierarchy: ${path}`);

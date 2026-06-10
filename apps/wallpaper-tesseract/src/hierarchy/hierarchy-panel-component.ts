@@ -1,6 +1,6 @@
 import type { ScreenPoint } from "gizmo-core";
 import type { Actor, Component, ComponentType } from "../actor-runtime";
-import { sceneParameterPaths, type SceneCommandSink } from "../scene-runtime";
+import { editorStatePaths, type EditorCommandSink } from "../editor/editor-state";
 import type { ActorInputEndEvent, ActorInputHit, ActorInputParticipant } from "../gizmo-runtime";
 import type { StateChangedEvent } from "../runtime/ports";
 import type { StateObserverResponder } from "../state-runtime";
@@ -20,7 +20,7 @@ export interface HierarchyPanelComponentOptions {
 
 export interface HierarchyPanelComponentServices {
   host: WindowContentHost & { readonly inputStackPriority?: number };
-  commandSink: SceneCommandSink;
+  commandSink: EditorCommandSink;
 }
 
 interface RowEntry {
@@ -40,7 +40,7 @@ export class HierarchyPanelComponent
   enabled = true;
 
   readonly #objectSource: HierarchyObjectSource;
-  readonly #commandSink: SceneCommandSink;
+  readonly #commandSink: EditorCommandSink;
   readonly #priority: number;
   #host: WindowContentHost & { readonly inputStackPriority?: number };
   readonly #root: HTMLDivElement;
@@ -101,7 +101,7 @@ export class HierarchyPanelComponent
   onStateChanged(event: StateChangedEvent): void {
     let changed = false;
     for (const change of event.changes) {
-      if (change.path !== sceneParameterPaths.selection.activeObject) continue;
+      if (change.path !== editorStatePaths.selection.activeObject) continue;
       this.#activeObject = change.nextValue as string | null;
       changed = true;
     }
@@ -222,7 +222,7 @@ export class HierarchyPanelComponent
   private submitSelection(objectId: string, kind: "gizmo" | "keyboard", timeStamp?: number): void {
     this.#commandSink.submit({
       source: { id: this.id, kind },
-      target: sceneParameterPaths.selection.activeObject,
+      target: editorStatePaths.selection.activeObject,
       operation: "set",
       value: objectId,
       timeStamp

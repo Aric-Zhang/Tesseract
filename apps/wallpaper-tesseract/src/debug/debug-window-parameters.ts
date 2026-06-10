@@ -1,8 +1,10 @@
-import { sceneParameterPaths, vec2, type SceneParameterStore } from "../scene-runtime";
+import type { SceneParameterStore } from "../scene-runtime";
+import { editorWindowLayoutPaths } from "../editor/window-layout-state";
 import { registerFloatingWindowParameters } from "../editor/adapters/floating-window-scene-state-adapter";
 import {
   createDefaultFloatingWindowState,
-  type FloatingWindowState
+  type FloatingWindowState,
+  uiVec2
 } from "../window-runtime";
 
 export interface DebugWindowState extends FloatingWindowState {}
@@ -19,15 +21,15 @@ export function createDefaultDebugWindowState(options: DebugWindowStateOptions =
   return createDefaultFloatingWindowState({
     viewportWidth: options.viewportWidth,
     viewportHeight: options.viewportHeight,
-    minSize: vec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
-    maxSize: vec2(720, 240)
+    minSize: uiVec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
+    maxSize: uiVec2(720, 240)
   });
 }
 
 export function registerDebugWindowParameters(store: SceneParameterStore, initialState: DebugWindowState): void {
   registerFloatingWindowParameters(store, {
-    paths: sceneParameterPaths.debugWindow,
+    paths: editorWindowLayoutPaths.debugWindow,
     initialState,
-    minSize: vec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT)
+    minSize: uiVec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT)
   });
 }

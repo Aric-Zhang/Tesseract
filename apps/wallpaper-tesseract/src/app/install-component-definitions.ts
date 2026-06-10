@@ -4,7 +4,7 @@ import {
   type GizmoEventBindingComponentDefinitionOptions
 } from "../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../state-runtime";
-import type { SceneCommandSink } from "../scene-runtime";
+import type { EditorCommandSink } from "../editor/editor-state";
 import { installDebugLogComponentDefinitions } from "../debug";
 import { installAppMenuComponentDefinitions } from "../features/app-menu";
 import { installCamera3FeatureComponentDefinitions } from "../features/camera3/components";
@@ -17,7 +17,7 @@ import { installWindowComponentDefinitions, type UiLayoutCommandSink } from "../
 
 export interface InstallWallpaperComponentDefinitionsOptions {
   readonly gizmoEventBinding?: GizmoEventBindingComponentDefinitionOptions;
-  readonly sceneCommandSink?: SceneCommandSink;
+  readonly editorCommandSink?: EditorCommandSink;
   readonly uiLayoutCommandSink?: UiLayoutCommandSink;
 }
 
@@ -35,13 +35,13 @@ export function installWallpaperComponentDefinitions(
   installAppMenuComponentDefinitions(componentRegistry);
   installInspectorComponentDefinitions(componentRegistry);
   installSceneComponentDefinitions(componentRegistry, {
-    commandSink: options.sceneCommandSink
+    commandSink: options.editorCommandSink
   });
   installCamera3FeatureComponentDefinitions(componentRegistry);
   installCamera3ComponentDefinitions(componentRegistry);
   installDebugLogComponentDefinitions(componentRegistry);
   installHierarchyComponentDefinitions(componentRegistry, {
-    commandSink: options.sceneCommandSink
+    commandSink: options.editorCommandSink
   });
   installTesseract4ComponentDefinitions(componentRegistry);
 }

@@ -7,10 +7,9 @@ import type {
   ActorInputParticipant
 } from "../../gizmo-runtime";
 import type { StateObserverResponder } from "../../state-runtime";
+import type { StateChangedEvent } from "../../runtime/ports";
 import type {
   WindowFrameIntentSink,
-  UiLayoutStateChangedEvent,
-  UiLayoutPath,
   WindowWorkspaceViewCatalog,
   WindowViewIdentity,
   WindowViewTypeKey
@@ -34,7 +33,7 @@ export interface AppMenuBarComponentOptions {
   readonly parent: HTMLElement;
   readonly windowCatalog: WindowWorkspaceViewCatalog;
   readonly windowFrameIntents?: WindowFrameIntentSink;
-  readonly workspaceModePath: UiLayoutPath<AppMenuWorkspaceMode>;
+  readonly workspaceModePath: string;
   readonly initialMode?: AppMenuWorkspaceMode;
   readonly document?: Pick<Document, "createElement">;
 }
@@ -63,7 +62,7 @@ export class AppMenuBarComponent
 
   readonly #windowCatalog: WindowWorkspaceViewCatalog;
   readonly #windowFrameIntents?: WindowFrameIntentSink;
-  readonly #workspaceModePath: UiLayoutPath<AppMenuWorkspaceMode>;
+  readonly #workspaceModePath: string;
   readonly #root: HTMLDivElement;
   readonly #windowButton: HTMLButtonElement;
   readonly #menu: HTMLDivElement;
@@ -126,7 +125,7 @@ export class AppMenuBarComponent
     this.renderIfChanged();
   }
 
-  onStateChanged(event: UiLayoutStateChangedEvent): void {
+  onStateChanged(event: StateChangedEvent<string>): void {
     const modeChange = event.changes.find((change) => change.path === this.#workspaceModePath);
     if (!modeChange) return;
     this.#mode = modeChange.nextValue as AppMenuWorkspaceMode;

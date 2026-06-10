@@ -5,17 +5,17 @@ import {
   SceneParameterStore,
   sceneParameterPaths,
   type ParameterPath,
-  type SceneStateChangedEvent,
-  type SceneUpdateCommand
+  type SceneStateChangedEvent
 } from "../scene-runtime";
 import {
-  registerWorkspaceModeParameters,
   WORKSPACE_MODE_COMMAND_PRIORITY,
   WORKSPACE_MODE_SOURCE,
   WorkspaceModeController,
   type WorkspaceSceneViewPort,
-  type WorkspaceMode
+  type WorkspaceMode,
+  type WorkspaceModeCommand
 } from "./workspace-mode";
+import { registerWorkspaceModeParameters } from "../editor/adapters/workspace-mode-scene-state-adapter";
 import {
   createSingletonWindowViewIdentity,
   type WindowFramePresentation,
@@ -160,7 +160,7 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.debugWindow.visible, true],
       [sceneParameterPaths.hierarchyWindow.visible, false]
     ]);
-    const commands: SceneUpdateCommand[] = [];
+    const commands: WorkspaceModeCommand[] = [];
     const { presentations, sceneView } = createSceneViewPort();
     const presentationMeasurements: string[] = [];
     const controller = new WorkspaceModeController({
@@ -250,7 +250,7 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.debugWindow.visible, true],
       [sceneParameterPaths.hierarchyWindow.visible, true]
     ]);
-    const commands: SceneUpdateCommand[] = [];
+    const commands: WorkspaceModeCommand[] = [];
     const { sceneView, activations } = createSceneViewPort();
     const presentationCalls: string[] = [];
     const controller = new WorkspaceModeController({
@@ -307,7 +307,7 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.sceneWindow.visible, true],
       [sceneParameterPaths.debugWindow.visible, true]
     ]);
-    const commands: SceneUpdateCommand[] = [];
+    const commands: WorkspaceModeCommand[] = [];
     const { sceneView } = createSceneViewPort();
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
@@ -358,7 +358,7 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.workspace.mode, "develop"],
       [sceneParameterPaths.sceneWindow.visible, false]
     ]);
-    const commands: SceneUpdateCommand[] = [];
+    const commands: WorkspaceModeCommand[] = [];
     const { presentations, sceneView } = createSceneViewPort();
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
@@ -413,7 +413,7 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.workspace.mode, "run"],
       [sceneParameterPaths.sceneWindow.visible, true]
     ]);
-    const commands: SceneUpdateCommand[] = [];
+    const commands: WorkspaceModeCommand[] = [];
     const { sceneView } = createSceneViewPort();
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
@@ -447,7 +447,7 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.debugWindow.visible, true],
       [sceneParameterPaths.hierarchyWindow.visible, true]
     ]);
-    const commands: SceneUpdateCommand[] = [];
+    const commands: WorkspaceModeCommand[] = [];
     const { presentations, sceneView } = createSceneViewPort({
       visiblePath: sceneParameterPaths.debugWindow.visible,
       ownerFrameActorId: "debug-frame"
@@ -488,7 +488,7 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.sceneWindow.visible, true],
       [sceneParameterPaths.debugWindow.visible, true]
     ]);
-    const commands: SceneUpdateCommand[] = [];
+    const commands: WorkspaceModeCommand[] = [];
     let isolated = false;
     const sceneView: WorkspaceSceneViewPort = {
       viewKey: "scene",
@@ -601,7 +601,7 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.workspace.mode, "develop"],
       [sceneParameterPaths.sceneWindow.visible, true]
     ]);
-    const commands: SceneUpdateCommand[] = [];
+    const commands: WorkspaceModeCommand[] = [];
     const { presentationCalls, rawOwnerPresentationCalls, sceneView } = createSceneViewPort();
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
@@ -640,7 +640,7 @@ describe("WorkspaceModeController", () => {
       [sceneParameterPaths.workspace.mode, "develop"],
       [sceneParameterPaths.debugWindow.visible, true]
     ]);
-    const commands: SceneUpdateCommand[] = [];
+    const commands: WorkspaceModeCommand[] = [];
     const controller = new WorkspaceModeController({
       commandSink: { submit: (command) => commands.push(command) },
       getValue: (path) => values.get(path) as never,

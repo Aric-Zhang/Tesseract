@@ -1,7 +1,6 @@
 import { createRegisteredActor, type RegisteredActor } from "../../actor-runtime";
 import type {
   UiActorContext,
-  UiLayoutPath,
   WindowFrameIntentSink,
   WindowWorkspaceViewCatalog
 } from "../../window-runtime";
@@ -17,7 +16,7 @@ export interface AppMenuBarActorOptions {
   readonly parent: HTMLElement;
   readonly windowCatalog: WindowWorkspaceViewCatalog;
   readonly windowFrameIntents?: WindowFrameIntentSink;
-  readonly workspaceModePath: UiLayoutPath<AppMenuWorkspaceMode>;
+  readonly workspaceModePath: string;
   readonly initialMode?: AppMenuWorkspaceMode;
   readonly document?: Pick<Document, "createElement">;
 }

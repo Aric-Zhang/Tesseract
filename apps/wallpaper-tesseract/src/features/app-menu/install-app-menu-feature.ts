@@ -1,6 +1,5 @@
-import type { UiActorContext, UiLayoutPath, WindowFrameIntentSink, WindowWorkspaceViewCatalog } from "../../window-runtime";
+import type { UiActorContext, WindowFrameIntentSink, WindowWorkspaceViewCatalog } from "../../window-runtime";
 import { createAppMenuBarActor } from "./app-menu-bar-actor-factory";
-import type { AppMenuWorkspaceMode } from "./app-menu-bar-component";
 
 export interface InstallAppMenuFeatureOptions {
   readonly context: UiActorContext;
@@ -9,7 +8,7 @@ export interface InstallAppMenuFeatureOptions {
   readonly parent: HTMLElement;
   readonly windowCatalog: WindowWorkspaceViewCatalog;
   readonly windowFrameIntents: WindowFrameIntentSink;
-  readonly workspaceModePath: UiLayoutPath<AppMenuWorkspaceMode>;
+  readonly workspaceModePath: string;
 }
 
 export function installAppMenuFeature(options: InstallAppMenuFeatureOptions): void {

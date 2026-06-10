@@ -1,8 +1,9 @@
 import { createRegisteredActor, type Actor, type RegisteredActor } from "../actor-runtime";
 import type { FeatureActorContext } from "../runtime/ports";
-import { sceneParameterPaths, vec2 } from "../scene-runtime";
+import { editorWindowLayoutPaths } from "../editor/window-layout-state";
 import {
   floatingWindowComponentType,
+  uiVec2,
   type FloatingWindowComponent,
   type FloatingWindowState,
   type RegisteredWindowActor,
@@ -102,9 +103,9 @@ export function createHierarchyPanelActor(
       parent: options.parent,
       document: options.document,
       title: options.title ?? "Hierarchy",
-      paths: sceneParameterPaths.hierarchyWindow,
+      paths: editorWindowLayoutPaths.hierarchyWindow,
       initialState: options.initialWindowState,
-      minSize: vec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT),
+      minSize: uiVec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT),
       className: "hierarchy-window",
       priority: options.priority ?? 1100,
       activeViewActorId: viewActorId,

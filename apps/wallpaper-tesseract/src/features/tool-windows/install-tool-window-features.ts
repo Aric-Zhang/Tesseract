@@ -12,9 +12,9 @@ import {
   type HierarchyPanelInitialState,
   type HierarchyObjectSource
 } from "../../hierarchy";
+import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
 import type { FeatureActorContext } from "../../runtime/ports";
-import { sceneParameterPaths, vec2 } from "../../scene-runtime";
-import type { WindowViewFactoryRegistry } from "../../window-runtime";
+import { uiVec2, type WindowViewFactoryRegistry } from "../../window-runtime";
 import type {
   WindowWorkspaceDefaultOpenView,
   WindowWorkspaceFloatingFramePolicy
@@ -45,9 +45,9 @@ export function createToolWindowWorkspaceFloatingFramePolicies(options: {
     ["debug", {
       preferredActorId: "debug-log-window",
       preferredComponentId: "floating-window:debug-log",
-      paths: sceneParameterPaths.debugWindow,
+      paths: editorWindowLayoutPaths.debugWindow,
       fallbackState: options.debugFallbackState,
-      minSize: vec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
+      minSize: uiVec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
       className: "debug-log-window",
       priority: 1000,
       menuOrder: 1000
@@ -55,9 +55,9 @@ export function createToolWindowWorkspaceFloatingFramePolicies(options: {
     ["hierarchy", {
       preferredActorId: "hierarchy-panel",
       preferredComponentId: "floating-window:hierarchy",
-      paths: sceneParameterPaths.hierarchyWindow,
+      paths: editorWindowLayoutPaths.hierarchyWindow,
       fallbackState: options.hierarchyFallbackState,
-      minSize: vec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT),
+      minSize: uiVec2(HIERARCHY_WINDOW_MIN_WIDTH, HIERARCHY_WINDOW_MIN_HEIGHT),
       className: "hierarchy-window",
       priority: 1100
     }]

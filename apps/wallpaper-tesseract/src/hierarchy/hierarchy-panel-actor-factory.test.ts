@@ -229,13 +229,14 @@ describe("createHierarchyPanelActor", () => {
     expect(handle.actor.hasComponent(gizmoEventBindingComponentType)).toBe(true);
     expect(handle.actor.hasComponent(stateObserverBindingComponentType)).toBe(true);
     expect(handle.component.actor.hasComponent(gizmoEventBindingComponentType)).toBe(true);
+    expect(handle.component.actor.hasComponent(stateObserverBindingComponentType)).toBe(true);
     expect(registeredGizmos).toHaveLength(2);
-    expect(observers).toHaveLength(1);
+    expect(observers).toHaveLength(2);
     expect(calls.filter((call) => call.startsWith("gizmo-register:"))).toEqual([
       "gizmo-register:hierarchy-actor:gizmo-event-binding",
       "gizmo-register:hierarchy-actor:view:gizmo-event-binding"
     ]);
-    expect(calls.filter((call) => call === "observer-subscribe")).toHaveLength(1);
+    expect(calls.filter((call) => call === "observer-subscribe")).toHaveLength(2);
   });
 
   it("propagates priority to the floating window z-index", () => {
@@ -329,6 +330,7 @@ describe("createHierarchyPanelActor", () => {
     expect(context.actorSystem.getActor("hierarchy-actor:view")).toBeNull();
     expect(parent.children).toEqual([]);
     expect(calls).toEqual([
+      "observer-dispose",
       "gizmo-dispose:hierarchy-actor:view:gizmo-event-binding",
       "observer-dispose",
       "gizmo-dispose:hierarchy-actor:gizmo-event-binding"

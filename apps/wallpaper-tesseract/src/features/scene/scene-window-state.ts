@@ -1,12 +1,10 @@
-import {
-  sceneParameterPaths,
-  vec2,
-  type SceneParameterStore
-} from "../../scene-runtime";
+import type { SceneParameterStore } from "../../scene-runtime";
+import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
 import { registerFloatingWindowParameters } from "../../editor/adapters/floating-window-scene-state-adapter";
 import {
   createDefaultFloatingWindowState,
-  type FloatingWindowState
+  type FloatingWindowState,
+  uiVec2
 } from "../../window-runtime";
 
 export interface SceneWindowStateOptions {
@@ -40,14 +38,14 @@ export function createDefaultSceneWindowState(
     viewportHeight,
     width,
     height,
-    minSize: vec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT),
-    maxSize: vec2(Math.max(width, viewportWidth - margin * 2), Math.max(height, viewportHeight - margin * 2)),
+    minSize: uiVec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT),
+    maxSize: uiVec2(Math.max(width, viewportWidth - margin * 2), Math.max(height, viewportHeight - margin * 2)),
     margin,
     visible: options.visible
   });
   return {
     ...state,
-    position: vec2(
+    position: uiVec2(
       Math.max(margin, Math.round((viewportWidth - width) * 0.5)),
       Math.max(margin, Math.round((viewportHeight - height) * 0.5))
     )
@@ -59,9 +57,9 @@ export function registerSceneWindowParameters(
   initialState: SceneWindowInitialState
 ): void {
   registerFloatingWindowParameters(store, {
-    paths: sceneParameterPaths.sceneWindow,
+    paths: editorWindowLayoutPaths.sceneWindow,
     initialState,
-    minSize: vec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT)
+    minSize: uiVec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT)
   });
 }
 

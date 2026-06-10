@@ -4,8 +4,8 @@ import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { gizmoEventBindingComponentType } from "../../gizmo-runtime";
 import { stateObserverBindingComponentType } from "../../state-runtime";
+import { editorStatePath } from "../../editor/editor-state";
 import type { WindowWorkspaceViewCatalog } from "../../window-runtime";
-import { uiLayoutPath } from "ui-framework";
 import {
   appMenuBarComponentType,
   createAppMenuBarActor,
@@ -128,7 +128,7 @@ describe("createAppMenuBarActor", () => {
       parent: parent as unknown as HTMLElement,
       document: document as unknown as Document,
       windowCatalog: createEmptyWindowCatalog(),
-      workspaceModePath: uiLayoutPath<"develop" | "run">("workspace.mode")
+      workspaceModePath: editorStatePath<"develop" | "run">("workspace.mode")
     });
 
     expect(handle.actor.id).toBe("app-menu-bar");

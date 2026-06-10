@@ -1,8 +1,9 @@
 import { createRegisteredActor, type Actor, type RegisteredActor } from "../../actor-runtime";
 import type { FeatureActorContext } from "../../runtime/ports";
-import { sceneParameterPaths, vec2 } from "../../scene-runtime";
+import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
 import {
   floatingWindowComponentType,
+  uiVec2,
   type FloatingWindowComponent,
   type FloatingWindowState,
   type RegisteredWindowActor,
@@ -101,9 +102,9 @@ export function createDebugLogWindowActor(
       parent: options.parent,
       document: options.document,
       title: options.title ?? "Debug Log",
-      paths: sceneParameterPaths.debugWindow,
+      paths: editorWindowLayoutPaths.debugWindow,
       initialState: options.initialState,
-      minSize: vec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
+      minSize: uiVec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
       className: "debug-log-window",
       priority: options.priority ?? 1000,
       activeViewActorId: viewActorId,

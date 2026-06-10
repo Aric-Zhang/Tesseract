@@ -31,11 +31,15 @@ import {
   FrameStateController,
   type SceneCommandSink,
   type SceneUpdateCommand,
-  sceneParameterPaths,
   SceneParameterStore,
   SceneRuntime,
   type SceneStateObserver
 } from "../scene-runtime";
+import { editorStatePaths } from "../editor/editor-state";
+import {
+  createSceneBackedWorkspaceCommandSink,
+  registerWorkspaceModeParameters
+} from "../editor/adapters/workspace-mode-scene-state-adapter";
 import { UpdateFrameClock } from "../runtime/ports";
 import type { StateObserverRegistry } from "../state-runtime";
 import {
@@ -68,7 +72,6 @@ import { createWallpaperAppShell } from "./app-shell";
 import { ImmediateUpdateScheduler } from "./immediate-update-scheduler";
 import { RenderLoop } from "./render-loop";
 import {
-  registerWorkspaceModeParameters,
   WorkspaceModeController
 } from "./workspace-mode";
 import { registerUiScheduledServiceWithRuntime } from "./adapters/ui-scheduler-runtime-adapter";
@@ -131,7 +134,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       actorInputStackPriority: windowFocus,
       requestPointerFocus: (actor) => windowFocus.focusActorWindow(actor, "pointer-down")
     },
-    sceneCommandSink: frameStateBridge,
+    editorCommandSink: createSceneBackedWorkspaceCommandSink(frameStateBridge),
     uiLayoutCommandSink: createSceneBackedUiLayoutCommandSink(frameStateBridge)
   });
 
@@ -220,10 +223,10 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     parent: appShell.menuSlot,
     windowCatalog: windowWorkspace.catalog,
     windowFrameIntents: windowWorkspace.frameIntents,
-    workspaceModePath: sceneParameterPaths.workspace.mode
+    workspaceModePath: editorStatePaths.workspace.mode
   });
   const workspaceModeController = new WorkspaceModeController({
-    commandSink: frameStateBridge,
+    commandSink: createSceneBackedWorkspaceCommandSink(frameStateBridge),
     getValue: (path) => sceneStore.get(path),
     sceneView: {
       viewKey: "scene",
@@ -265,7 +268,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     if (event.key !== "Escape") return;
     frameStateBridge.submit({
       source: { id: "scene-window-keyboard", kind: "keyboard" },
-      target: sceneParameterPaths.workspace.mode,
+      target: editorStatePaths.workspace.mode,
       operation: "set",
       value: "develop",
       timeStamp: event.timeStamp

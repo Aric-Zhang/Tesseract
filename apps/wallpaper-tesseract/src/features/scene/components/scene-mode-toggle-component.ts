@@ -7,9 +7,10 @@ import type {
   ActorInputParticipant
 } from "../../../gizmo-runtime";
 import {
-  sceneParameterPaths,
-  type SceneCommandSink
-} from "../../../scene-runtime";
+  editorStatePaths,
+  type EditorCommandSink,
+  type EditorWorkspaceMode
+} from "../../../editor/editor-state";
 import type { StateChangedEvent } from "../../../runtime/ports";
 import type { StateObserverResponder } from "../../../state-runtime";
 import type { SceneViewportComponent } from "./scene-viewport-component";
@@ -17,7 +18,7 @@ import type { SceneViewportComponent } from "./scene-viewport-component";
 export const sceneModeToggleComponentType =
   "scene-mode-toggle-component" as ComponentType<SceneModeToggleComponent>;
 
-export type SceneWorkspaceMode = "run" | "develop";
+export type SceneWorkspaceMode = EditorWorkspaceMode;
 
 export const SCENE_MODE_TOGGLE_SOURCE = {
   id: "scene-mode-toggle",
@@ -31,7 +32,7 @@ export interface SceneModeToggleComponentOptions {
 }
 
 export interface SceneModeToggleComponentServices {
-  commandSink: SceneCommandSink;
+  commandSink: EditorCommandSink;
 }
 
 export class SceneModeToggleComponent
@@ -41,7 +42,7 @@ export class SceneModeToggleComponent
   readonly id: string;
   enabled = true;
 
-  readonly #commandSink: SceneCommandSink;
+  readonly #commandSink: EditorCommandSink;
   readonly #controlsElement: HTMLDivElement;
   readonly #buttonElement: HTMLButtonElement;
   #mode: SceneWorkspaceMode;
@@ -81,7 +82,7 @@ export class SceneModeToggleComponent
   }
 
   onStateChanged(event: StateChangedEvent): void {
-    const modeChange = event.changes.find((change) => change.path === sceneParameterPaths.workspace.mode);
+    const modeChange = event.changes.find((change) => change.path === editorStatePaths.workspace.mode);
     if (!modeChange) return;
     this.#mode = modeChange.nextValue as SceneWorkspaceMode;
     this.applyMode();
@@ -110,7 +111,7 @@ export class SceneModeToggleComponent
     if (!event.wasClick) return;
     this.#commandSink.submit({
       source: SCENE_MODE_TOGGLE_SOURCE,
-      target: sceneParameterPaths.workspace.mode,
+      target: editorStatePaths.workspace.mode,
       operation: "set",
       value: this.#mode === "run" ? "develop" : "run",
       timeStamp: event.timeStamp

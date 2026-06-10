@@ -1,6 +1,6 @@
 import type { FeatureActorContext } from "../../runtime/ports";
-import { vec2 } from "../../scene-runtime";
 import {
+  uiVec2,
   windowViewInstanceId,
   windowViewKey,
   windowViewTypeKey,
@@ -46,11 +46,11 @@ export function createInspectorWindowWorkspaceFloatingFramePolicies(): ReadonlyA
       preferredActorId: `${definition.viewKey}-window`,
       preferredComponentId: `floating-window:${definition.viewKey}`,
       fallbackState: {
-        position: vec2(360 + definition.offset, 110 + definition.offset),
-        size: vec2(300, 220),
+        position: uiVec2(360 + definition.offset, 110 + definition.offset),
+        size: uiVec2(300, 220),
         visible: true
       },
-      minSize: vec2(220, 150),
+      minSize: uiVec2(220, 150),
       className: "inspector-window",
       priority: 1050,
       menuOrder: 1050

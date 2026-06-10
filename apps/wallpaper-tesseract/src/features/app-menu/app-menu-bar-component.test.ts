@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../../actor-runtime";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
+import { editorStatePath, type EditorStateChangedEvent } from "../../editor/editor-state";
 import { createActorInputEndEvent } from "../../test-support";
-import { uiLayoutPath, type UiLayoutStateChangedEvent } from "ui-framework";
 import {
   createWindowViewIdentity,
   createSingletonWindowViewIdentity,
@@ -17,7 +17,7 @@ import {
 } from "../../window-runtime";
 import { APP_MENU_PRIORITY, AppMenuBarComponent } from "./app-menu-bar-component";
 
-const workspaceModePath = uiLayoutPath<"develop" | "run">("workspace.mode");
+const workspaceModePath = editorStatePath<"develop" | "run">("workspace.mode");
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -288,7 +288,7 @@ function setMenuRects(root: FakeElement): void {
   rows(root)[2].rect = createRect(624, 96, 162, 24);
 }
 
-function createWorkspaceModeEvent(mode: "develop" | "run"): UiLayoutStateChangedEvent {
+function createWorkspaceModeEvent(mode: "develop" | "run"): EditorStateChangedEvent {
   return {
     frame: { timeMs: 0, deltaMs: 0, frameIndex: 0 },
     changes: [{

@@ -808,10 +808,10 @@ describe("architecture boundaries", () => {
     expect(appSource).not.toMatch(/floating-window:(?:scene|debug-log|hierarchy)/);
     expect(appSource).not.toMatch(/className:\s*["'](?:scene-window|debug-log-window|hierarchy-window)["']/);
 
-    expect(sceneInstallerSource).toMatch(/sceneParameterPaths\.sceneWindow/);
+    expect(sceneInstallerSource).toMatch(/editorWindowLayoutPaths\.sceneWindow/);
     expect(sceneInstallerSource).toMatch(/floating-window:scene/);
     expect(sceneInstallerSource).toMatch(/\bSCENE_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
-    expect(toolInstallerSource).toMatch(/sceneParameterPaths\.(?:debugWindow|hierarchyWindow)/);
+    expect(toolInstallerSource).toMatch(/editorWindowLayoutPaths\.(?:debugWindow|hierarchyWindow)/);
     expect(toolInstallerSource).toMatch(/floating-window:(?:debug-log|hierarchy)/);
     expect(toolInstallerSource).toMatch(/\bDEBUG_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
     expect(toolInstallerSource).toMatch(/\bHIERARCHY_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);

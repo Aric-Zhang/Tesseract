@@ -1,20 +1,40 @@
 import {
-  sceneParameterPaths,
-  type ParameterPath,
-  type SceneCommandSink,
-  type SceneParameterStore,
-  type SceneStateChangedEvent
-} from "../scene-runtime";
+  assertEditorWorkspaceMode,
+  editorStatePaths,
+  type EditorWorkspaceMode
+} from "../editor/editor-state";
 import type {
   FloatingWindowParameterPaths,
+  UiLayoutPath,
   WindowViewLocation,
   WindowViewLocationSource,
   WindowViewOwnerCommandPort,
   WindowViewPresentationCommandPort,
   WindowViewKey
 } from "../window-runtime";
+import type { StateChangedEvent } from "../runtime/ports";
 
-export type WorkspaceMode = "run" | "develop";
+export type WorkspaceMode = EditorWorkspaceMode;
+
+type WorkspaceModePath = string;
+interface WorkspaceModeCommandSource {
+  readonly id: string;
+  readonly kind: string;
+}
+export interface WorkspaceModeCommand {
+  readonly source: WorkspaceModeCommandSource;
+  readonly target: WorkspaceModePath;
+  readonly operation: "set" | "add" | "reset";
+  readonly value?: unknown;
+  readonly delta?: unknown;
+  readonly priority?: number;
+  readonly timeStamp?: number;
+}
+type WorkspaceModeStateChangedEvent = StateChangedEvent<
+  WorkspaceModePath,
+  WorkspaceModeCommandSource,
+  WorkspaceModeCommand
+>;
 
 export const WORKSPACE_MODE_SOURCE = {
   id: "workspace-mode-controller",
@@ -24,12 +44,16 @@ export const WORKSPACE_MODE_SOURCE = {
 export const WORKSPACE_MODE_COMMAND_PRIORITY = 1000;
 
 export interface WorkspaceModeControllerOptions {
-  commandSink: SceneCommandSink;
-  getValue<TValue>(path: ParameterPath<TValue>): TValue;
+  commandSink: WorkspaceModeCommandSink;
+  getValue<TValue>(path: WorkspaceModePath): TValue;
   sceneView: WorkspaceSceneViewPort;
   workspacePresentation?: WorkspacePresentationPort;
   toolWindows: readonly WorkspaceToolWindow[];
   onScenePresentationChanged?: () => void;
+}
+
+export interface WorkspaceModeCommandSink {
+  submit(command: WorkspaceModeCommand): void;
 }
 
 export interface WorkspaceSceneViewPort {
@@ -50,46 +74,23 @@ export interface WorkspacePresentationPort {
   exitRunFullscreen(reason: "programmatic"): void;
 }
 
-const registeredWorkspaceModeParameters = new WeakMap<SceneParameterStore, WorkspaceMode>();
-
-export function registerWorkspaceModeParameters(
-  store: SceneParameterStore,
-  initialMode: WorkspaceMode = "develop"
-): void {
-  const path = sceneParameterPaths.workspace.mode;
-  assertWorkspaceMode(initialMode);
-  if (store.has(path)) {
-    const existingInitialMode = registeredWorkspaceModeParameters.get(store);
-    if (existingInitialMode === initialMode) return;
-    throw new Error(`Workspace mode parameter path is already registered outside workspace mode: ${path}`);
-  }
-  store.register({
-    path,
-    initialValue: initialMode,
-    allowedOperations: ["set", "reset"],
-    merge: "last-write-wins",
-    validateValue: assertWorkspaceMode
-  });
-  registeredWorkspaceModeParameters.set(store, initialMode);
-}
-
 export class WorkspaceModeController {
   readonly id = "workspace-mode-controller";
   enabled = true;
 
-  readonly #commandSink: SceneCommandSink;
+  readonly #commandSink: WorkspaceModeCommandSink;
   readonly #getValue: WorkspaceModeControllerOptions["getValue"];
   readonly #sceneView: WorkspaceSceneViewPort;
   readonly #workspacePresentation?: WorkspacePresentationPort;
   readonly #toolWindows: readonly WorkspaceToolWindow[];
   readonly #onScenePresentationChanged?: () => void;
   #mode: WorkspaceMode;
-  #developVisibilitySnapshot: Map<ParameterPath<boolean>, boolean> | null = null;
+  #developVisibilitySnapshot: Map<UiLayoutPath<boolean>, boolean> | null = null;
   #developSceneOwnerSnapshot: {
-    readonly path: ParameterPath<boolean>;
+    readonly path: UiLayoutPath<boolean>;
     readonly visible: boolean;
   } | null = null;
-  #runModeDesiredVisibility = new Map<ParameterPath<boolean>, boolean>();
+  #runModeDesiredVisibility = new Map<UiLayoutPath<boolean>, boolean>();
 
   constructor(options: WorkspaceModeControllerOptions) {
     this.#commandSink = options.commandSink;
@@ -98,12 +99,12 @@ export class WorkspaceModeController {
     this.#workspacePresentation = options.workspacePresentation;
     this.#toolWindows = options.toolWindows;
     this.#onScenePresentationChanged = options.onScenePresentationChanged;
-    this.#mode = options.getValue(sceneParameterPaths.workspace.mode);
+    this.#mode = options.getValue(editorStatePaths.workspace.mode);
     this.applyPresentation(this.#mode);
   }
 
-  onStateChanged(event: SceneStateChangedEvent): void {
-    const modeChange = event.changes.find((change) => change.path === sceneParameterPaths.workspace.mode);
+  onStateChanged(event: WorkspaceModeStateChangedEvent): void {
+    const modeChange = event.changes.find((change) => change.path === editorStatePaths.workspace.mode);
     if (modeChange) {
       this.applyMode(modeChange.nextValue as WorkspaceMode);
     }
@@ -286,7 +287,7 @@ export class WorkspaceModeController {
     return this.getSceneLocation();
   }
 
-  private findToolWindowByVisiblePath(path: ParameterPath): WorkspaceToolWindow | null {
+  private findToolWindowByVisiblePath(path: WorkspaceModePath): WorkspaceToolWindow | null {
     return this.#toolWindows.find((toolWindow) => toolWindow.paths.visible === path) ?? null;
   }
 
@@ -306,7 +307,7 @@ export class WorkspaceModeController {
     this.submitVisiblePath(location.ownerFrameVisiblePath, visible, timeStamp);
   }
 
-  private submitVisiblePath(path: ParameterPath<boolean>, visible: boolean, timeStamp?: number): void {
+  private submitVisiblePath(path: UiLayoutPath<boolean>, visible: boolean, timeStamp?: number): void {
     this.#commandSink.submit({
       source: WORKSPACE_MODE_SOURCE,
       target: path,
@@ -319,12 +320,12 @@ export class WorkspaceModeController {
 
 }
 
-function assertWorkspaceMode(value: unknown): asserts value is WorkspaceMode {
-  if (value !== "run" && value !== "develop") {
-    throw new Error("Expected workspace mode to be \"run\" or \"develop\".");
-  }
+export const workspaceModePath = editorStatePaths.workspace.mode;
+
+export function assertWorkspaceMode(value: unknown): asserts value is WorkspaceMode {
+  assertEditorWorkspaceMode(value);
 }
 
-function isWorkspaceModeSource(sources: SceneStateChangedEvent["changes"][number]["sources"]): boolean {
+function isWorkspaceModeSource(sources: WorkspaceModeStateChangedEvent["changes"][number]["sources"]): boolean {
   return sources.some((source) => source.id === WORKSPACE_MODE_SOURCE.id);
 }

@@ -1,9 +1,10 @@
 import type { FeatureActorContext } from "../../runtime/ports";
-import { sceneParameterPaths, vec2 } from "../../scene-runtime";
+import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
 import type {
   WindowViewFactoryRegistry,
   WindowViewLocationSource
 } from "../../window-runtime";
+import { uiVec2 } from "../../window-runtime";
 import type {
   WindowWorkspaceDefaultOpenView,
   WindowWorkspaceFloatingFramePolicy
@@ -42,9 +43,9 @@ export function createSceneWindowWorkspaceFloatingFramePolicy(
   return ["scene", {
     preferredActorId: "scene-window",
     preferredComponentId: "floating-window:scene",
-    paths: sceneParameterPaths.sceneWindow,
+    paths: editorWindowLayoutPaths.sceneWindow,
     fallbackState,
-    minSize: vec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT),
+    minSize: uiVec2(SCENE_WINDOW_MIN_WIDTH, SCENE_WINDOW_MIN_HEIGHT),
     className: "scene-window",
     contentClassName: "scene-window__content",
     priority: SCENE_WINDOW_PRIORITY_DEVELOP,

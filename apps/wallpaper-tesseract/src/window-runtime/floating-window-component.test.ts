@@ -9,7 +9,6 @@ import {
   gizmoEventBindingComponentType,
   type GizmoEventBindingComponent
 } from "../gizmo-runtime";
-import { parameterPath, vec2, type SceneStateChangedEvent, type SceneUpdateCommand, type Vec2 } from "../scene-runtime";
 import { stateObserverBindingComponentType } from "../state-runtime";
 import {
   createActorInputEndEvent,
@@ -24,7 +23,14 @@ import {
   type FloatingWindowMenuOptions
 } from "./floating-window-component";
 import { WindowFrameSurfaceComponent } from "ui-framework";
-import type { FloatingWindowParameterPaths } from "ui-framework";
+import {
+  uiLayoutPath,
+  uiVec2,
+  type FloatingWindowParameterPaths,
+  type UiLayoutCommand,
+  type UiLayoutStateChangedEvent,
+  type UiVec2
+} from "ui-framework";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
 import type {
   WindowFrameRuntimeDockNode,
@@ -99,20 +105,20 @@ function createRect(x: number, y: number, width: number, height: number): DOMRec
 
 function createPaths(prefix: string): FloatingWindowParameterPaths {
   return {
-    position: parameterPath(`${prefix}.position`),
-    size: parameterPath(`${prefix}.size`),
-    visible: parameterPath(`${prefix}.visible`)
+    position: uiLayoutPath(`${prefix}.position`),
+    size: uiLayoutPath(`${prefix}.size`),
+    visible: uiLayoutPath(`${prefix}.visible`)
   };
 }
 
 interface CreateSubjectOptions {
-  commands?: SceneUpdateCommand[];
+  commands?: UiLayoutCommand[];
   initialState?: {
-    position: Vec2;
-    size: Vec2;
+    position: UiVec2;
+    size: UiVec2;
     visible: boolean;
   };
-  minSize?: Vec2;
+  minSize?: UiVec2;
   priority?: number;
   windowMenu?: FloatingWindowMenuOptions;
   frameId?: string;
@@ -132,7 +138,7 @@ function createSubject(options: CreateSubjectOptions = {}) {
   const paths = createPaths("testWindow");
   const commandSink = options.commands
     ? {
-        submit(command: SceneUpdateCommand): void {
+        submit(command: UiLayoutCommand): void {
           options.commands?.push(command);
         }
       }
@@ -146,8 +152,8 @@ function createSubject(options: CreateSubjectOptions = {}) {
     paths: options.runtimeState ? undefined : paths,
     stateBinding: options.runtimeState ? { kind: "runtime" } : undefined,
     initialState: options.initialState ?? {
-      position: vec2(12, 24),
-      size: vec2(320, 180),
+      position: uiVec2(12, 24),
+      size: uiVec2(320, 180),
       visible: true
     },
     minSize: options.minSize,
@@ -175,8 +181,8 @@ function createComponentOptions(document: FakeDocument, parent: FakeElement) {
     title: "Test Window",
     paths: createPaths("testWindow"),
     initialState: {
-      position: vec2(12, 24),
-      size: vec2(320, 180),
+      position: uiVec2(12, 24),
+      size: uiVec2(320, 180),
       visible: true
     }
   };
@@ -240,7 +246,7 @@ function setWindowRects(root: FakeElement): void {
   findChildByClass(root, "floating-gizmo-window__content").rect = createRect(10, 52, 320, 148);
 }
 
-function createChangedEvent(changes: SceneStateChangedEvent["changes"]): SceneStateChangedEvent {
+function createChangedEvent(changes: UiLayoutStateChangedEvent["changes"]): UiLayoutStateChangedEvent {
   return {
     frame: {
       timeMs: 0,
@@ -299,7 +305,7 @@ describe("FloatingWindowComponent DOM shell", () => {
   });
 
   it("supports runtime-only state without parameter paths or scene visible commands", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: UiLayoutCommand[] = [];
     const { component, root } = createSubject({ commands, runtimeState: true });
 
     expect(component.parameterPaths).toBeNull();
@@ -346,8 +352,8 @@ describe("FloatingWindowComponent DOM shell", () => {
     component.onStateChanged(createChangedEvent([
       {
         path: paths.position,
-        previousValue: vec2(12, 24),
-        nextValue: vec2(40, 50),
+        previousValue: uiVec2(12, 24),
+        nextValue: uiVec2(40, 50),
         sources: [],
         commands: []
       },
@@ -361,8 +367,8 @@ describe("FloatingWindowComponent DOM shell", () => {
     ]));
 
     expect(component.state).toEqual({
-      position: vec2(12, 24),
-      size: vec2(320, 180),
+      position: uiVec2(12, 24),
+      size: uiVec2(320, 180),
       visible: true
     });
     expect(root.style.left).toBe("12px");
@@ -381,8 +387,8 @@ describe("FloatingWindowComponent DOM shell", () => {
 
     component.onStateChanged(createChangedEvent([{
       path: paths.position,
-      previousValue: vec2(12, 24),
-      nextValue: vec2(40, 50),
+      previousValue: uiVec2(12, 24),
+      nextValue: uiVec2(40, 50),
       sources: [],
       commands: []
     }]));
@@ -422,15 +428,15 @@ describe("FloatingWindowComponent DOM shell", () => {
     component.onStateChanged(createChangedEvent([
       {
         path: paths.position,
-        previousValue: vec2(12, 24),
-        nextValue: vec2(40, 50),
+        previousValue: uiVec2(12, 24),
+        nextValue: uiVec2(40, 50),
         sources: [],
         commands: []
       },
       {
         path: paths.size,
-        previousValue: vec2(320, 180),
-        nextValue: vec2(360, 220),
+        previousValue: uiVec2(320, 180),
+        nextValue: uiVec2(360, 220),
         sources: [],
         commands: []
       },
@@ -444,8 +450,8 @@ describe("FloatingWindowComponent DOM shell", () => {
     ]));
 
     expect(component.state).toEqual({
-      position: vec2(40, 50),
-      size: vec2(360, 220),
+      position: uiVec2(40, 50),
+      size: uiVec2(360, 220),
       visible: false
     });
     expect(root.style.left).toBe("40px");
@@ -486,8 +492,8 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(root.style.top).toBe("50px");
     expect(root.style.width).toBe("640px");
     expect(root.style.height).toBe("360px");
-    expect(component.state.position).toEqual(vec2(12, 24));
-    expect(component.state.size).toEqual(vec2(320, 180));
+    expect(component.state.position).toEqual(uiVec2(12, 24));
+    expect(component.state.size).toEqual(uiVec2(320, 180));
 
     component.setPresentation("windowed");
 
@@ -506,15 +512,15 @@ describe("FloatingWindowComponent DOM shell", () => {
     component.onStateChanged(createChangedEvent([
       {
         path: paths.position,
-        previousValue: vec2(12, 24),
-        nextValue: vec2(80, 90),
+        previousValue: uiVec2(12, 24),
+        nextValue: uiVec2(80, 90),
         sources: [],
         commands: []
       },
       {
         path: paths.size,
-        previousValue: vec2(320, 180),
-        nextValue: vec2(420, 260),
+        previousValue: uiVec2(320, 180),
+        nextValue: uiVec2(420, 260),
         sources: [],
         commands: []
       }
@@ -524,8 +530,8 @@ describe("FloatingWindowComponent DOM shell", () => {
     expect(root.style.top).toBe("50px");
     expect(root.style.width).toBe("640px");
     expect(root.style.height).toBe("360px");
-    expect(component.state.position).toEqual(vec2(80, 90));
-    expect(component.state.size).toEqual(vec2(420, 260));
+    expect(component.state.position).toEqual(uiVec2(80, 90));
+    expect(component.state.size).toEqual(uiVec2(420, 260));
 
     component.setPresentation("windowed");
 
@@ -627,7 +633,7 @@ describe("FloatingWindowComponent DOM shell", () => {
   });
 
   it("submits position commands while dragging the empty titlebar area", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: UiLayoutCommand[] = [];
     const { component, paths, root } = createSubject({ commands });
     setWindowRects(root);
     const hit = component.hitTestInput({ x: 150, y: 36 });
@@ -641,14 +647,14 @@ describe("FloatingWindowComponent DOM shell", () => {
         source: { id: "floating-window:test", kind: "pointer" },
         target: paths.position,
         operation: "set",
-        value: vec2(22, 19),
+        value: uiVec2(22, 19),
         timeStamp: 20
       }
     ]);
   });
 
   it("does not move the frame while dragging the tab itself", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: UiLayoutCommand[] = [];
     const { component, root } = createSubject({ commands });
     setWindowRects(root);
     const hit = component.hitTestInput({ x: 20, y: 36 });
@@ -662,10 +668,10 @@ describe("FloatingWindowComponent DOM shell", () => {
   });
 
   it("submits constrained position and size commands while resizing from the top-left handle", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: UiLayoutCommand[] = [];
     const { component, paths, root } = createSubject({
       commands,
-      minSize: vec2(300, 120)
+      minSize: uiVec2(300, 120)
     });
     setWindowRects(root);
     const hit = component.hitTestInput({ x: 12, y: 22 });
@@ -679,21 +685,21 @@ describe("FloatingWindowComponent DOM shell", () => {
         source: { id: "floating-window:test", kind: "pointer" },
         target: paths.position,
         operation: "set",
-        value: vec2(32, 84),
+        value: uiVec2(32, 84),
         timeStamp: 20
       },
       {
         source: { id: "floating-window:test", kind: "pointer" },
         target: paths.size,
         operation: "set",
-        value: vec2(300, 120),
+        value: uiVec2(300, 120),
         timeStamp: 20
       }
     ]);
   });
 
   it("submits a visibility command when the close button is clicked without a frame intent sink", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: UiLayoutCommand[] = [];
     const { component, paths, root } = createSubject({ commands });
     setWindowRects(root);
     const hit = component.hitTestInput({ x: 300, y: 30 });
@@ -713,7 +719,7 @@ describe("FloatingWindowComponent DOM shell", () => {
   });
 
   it("submits a close-frame intent when a frame intent sink is configured", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: UiLayoutCommand[] = [];
     const frameIntents: string[] = [];
     const { component, root } = createSubject({
       commands,
@@ -734,7 +740,7 @@ describe("FloatingWindowComponent DOM shell", () => {
   });
 
   it("routes tab drags to the tab drag sink without moving the window", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: UiLayoutCommand[] = [];
     const tabDragCalls: string[] = [];
     const { component, root } = createSubject({
       commands,
@@ -774,7 +780,7 @@ describe("FloatingWindowComponent DOM shell", () => {
   });
 
   it("does not start tab drag preview from the titlebar empty drag path", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: UiLayoutCommand[] = [];
     const tabDragCalls: string[] = [];
     const { component, paths, root } = createSubject({
       commands,
@@ -801,13 +807,13 @@ describe("FloatingWindowComponent DOM shell", () => {
       source: { id: "floating-window:test", kind: "pointer" },
       target: paths.position,
       operation: "set",
-      value: vec2(27, 44),
+      value: uiVec2(27, 44),
       timeStamp: 20
     }]);
   });
 
   it("does not submit window state commands for content focus surface input", () => {
-    const commands: SceneUpdateCommand[] = [];
+    const commands: UiLayoutCommand[] = [];
     const { component, root } = createSubject({ commands });
     setWindowRects(root);
     const hit = component.hitTestInput({ x: 40, y: 90 });

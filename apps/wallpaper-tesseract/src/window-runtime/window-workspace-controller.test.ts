@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { ActorSystem, type Actor } from "../actor-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../state-runtime";
-import { parameterPath, vec2 } from "../scene-runtime";
 import { createTestComponentRegistry } from "../test-support";
 import {
   FloatingWindowComponent,
@@ -11,7 +10,7 @@ import {
   type FloatingWindowPresentation
 } from "./floating-window-component";
 import { installWindowComponentDefinitions } from "./install-component-definitions";
-import type { FloatingWindowParameterPaths } from "ui-framework";
+import { uiLayoutPath, uiVec2, type FloatingWindowParameterPaths } from "ui-framework";
 import type { WindowFramePort } from "./window-frame-port";
 import { WindowFramePortRegistry } from "./window-frame-port-registry";
 import { WindowViewFactoryRegistry } from "./window-view-factory-registry";
@@ -122,8 +121,8 @@ function createWorkspace(options: CreateWorkspaceOptions) {
       title: windowOptions.actorId,
       paths,
       initialState: {
-        position: vec2(12, 24),
-        size: vec2(320, 180),
+        position: uiVec2(12, 24),
+        size: uiVec2(320, 180),
         visible: windowOptions.visible ?? true
       },
       priority: windowOptions.priority,
@@ -149,9 +148,9 @@ function createWorkspace(options: CreateWorkspaceOptions) {
 
 function createPaths(prefix: string): FloatingWindowParameterPaths {
   return {
-    position: parameterPath(`${prefix}.position`),
-    size: parameterPath(`${prefix}.size`),
-    visible: parameterPath(`${prefix}.visible`)
+    position: uiLayoutPath(`${prefix}.position`),
+    size: uiLayoutPath(`${prefix}.size`),
+    visible: uiLayoutPath(`${prefix}.visible`)
   };
 }
 

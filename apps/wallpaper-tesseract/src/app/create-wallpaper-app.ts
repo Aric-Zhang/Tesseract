@@ -71,7 +71,7 @@ import {
   WorkspaceModeController
 } from "./workspace-mode";
 import { registerUiScheduledServiceWithRuntime } from "./adapters/ui-scheduler-runtime-adapter";
-import { toRuntimeFrame } from "../runtime-adapter";
+import { toRuntimeFrame } from "./adapters/runtime-frame-adapter";
 
 export interface WallpaperApp {
   dispose(): void;

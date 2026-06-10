@@ -245,9 +245,9 @@ describe("architecture boundaries", () => {
       extractionStatus: "blocked"
     });
     expect(runtimeOwnershipTarget?.blockedBy).toEqual(expect.arrayContaining([
-      "runtime-ownership-debt",
-      "runtime-adapter-debt"
+      "runtime-ownership-debt"
     ]));
+    expect(runtimeOwnershipTarget?.blockedBy).not.toContain("runtime-adapter-debt");
     expect(runtimeOwnershipTarget?.blockedBy).not.toContain("state-domain-debt");
     expect(runtimeThreeBackendTarget).toMatchObject({
       extractionStatus: "allowed",

@@ -69,9 +69,6 @@ export const projectPrismSourceZones = [
     /^\.\/scene-runtime\/scene-runtime\.ts$/,
     /^\.\/update-runtime\/frame-update-attachment-runtime\.ts$/,
     /^\.\/tesseract4\//
-  ], { debt: true }),
-  definePathZone("runtime-adapter-debt", "Phase 4D app-local adapters from current editor/runtime facts into runtime-core contracts.", [
-    /^\.\/runtime-adapter\//
   ], { debt: true })
 ] as const satisfies readonly SourceZoneDefinition[];
 
@@ -130,12 +127,6 @@ export const projectPrismDebtBlockers = [
     blocks: ["runtime-core extraction", "runtime-three extraction"],
     blocker: "Tesseract, Camera3, Scene render host, and Three/WebGL ownership are still partly app/editor feature owned.",
     deletionCondition: "Runtime worlds/cameras/projections expose command/query/frame-source ports consumed by editor Scene views."
-  },
-  {
-    zoneId: "runtime-adapter-debt",
-    blocks: ["runtime production ownership migration"],
-    blocker: "Phase 4D adapters translate old app-local runtime facts into runtime-core contracts; they are not production owners.",
-    deletionCondition: "Camera, world, projection, and frame-source owners are native runtime packages and no app-local adapter is needed."
   }
 ] as const satisfies readonly ProjectPrismDebtBlocker[];
 
@@ -309,8 +300,7 @@ export const projectPrismZoneDependencyRules = [
       "app-composition-debt",
       "app-runtime-debt",
       "actor-binding-debt",
-      "state-domain-debt",
-      "runtime-adapter-debt"
+      "state-domain-debt"
     ]
   },
   {
@@ -357,8 +347,8 @@ export const projectPrismPackageTargets = [
   {
     id: "runtime-production-ownership",
     cleanCandidateZones: [],
-    debtZones: ["runtime-ownership-debt", "runtime-adapter-debt"],
-    blockedBy: ["runtime-ownership-debt", "runtime-adapter-debt"],
+    debtZones: ["runtime-ownership-debt"],
+    blockedBy: ["runtime-ownership-debt"],
     extractionPhase: "Phase 5",
     extractionStatus: "blocked"
   },

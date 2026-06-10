@@ -69,6 +69,5 @@ describe("Project Prism frame update lane map", () => {
 
 function isProductionSource(file: string): boolean {
   return !file.endsWith(".test.ts")
-    && !file.includes("/test-support/")
-    && !file.includes("/runtime-adapter/");
+    && !file.includes("/test-support/");
 }

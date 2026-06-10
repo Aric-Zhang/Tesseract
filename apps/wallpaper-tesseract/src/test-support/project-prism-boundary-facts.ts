@@ -23,6 +23,9 @@ export const projectPrismSourceZones = [
     /^\.\/app\/app-shell\.ts$/,
     /^\.\/ui-framework-fixture\//
   ]),
+  definePathZone("runtime-core-candidate", "Renderer-agnostic runtime world, camera, projection, frame, scheduler, and command contracts.", [
+    /^packages\/runtime-core\/src\//
+  ]),
   definePathZone("editor-candidate", "Concrete editor features and editor presentation components.", [
     /^\.\/debug\//,
     /^\.\/editor\//,
@@ -57,6 +60,9 @@ export const projectPrismSourceZones = [
     /^\.\/features\/scene\/(?:install-scene-view-feature|scene-view-content-installer|renderable-scene-view|scene-window-actor-factory)\.ts$/,
     /^\.\/features\/scene\/components\/scene-viewport-component\.ts$/,
     /^\.\/tesseract4\//
+  ], { debt: true }),
+  definePathZone("runtime-adapter-debt", "Phase 4D app-local adapters from current editor/runtime facts into runtime-core contracts.", [
+    /^\.\/runtime-adapter\//
   ], { debt: true })
 ] as const satisfies readonly SourceZoneDefinition[];
 
@@ -68,7 +74,15 @@ export interface ProjectPrismDebtBlocker {
 }
 
 export interface ProjectPrismPackageTarget {
-  readonly id: "actor-core" | "actor-input" | "ui-framework" | "runtime-core" | "runtime-three" | "editor" | "wallpaper-app";
+  readonly id:
+    | "actor-core"
+    | "actor-input"
+    | "ui-framework"
+    | "runtime-core-contracts"
+    | "runtime-production-ownership"
+    | "runtime-three"
+    | "editor"
+    | "wallpaper-app";
   readonly cleanCandidateZones: readonly string[];
   readonly debtZones: readonly string[];
   readonly blockedBy: readonly string[];
@@ -106,6 +120,12 @@ export const projectPrismDebtBlockers = [
     blocks: ["runtime-core extraction", "runtime-three extraction"],
     blocker: "Tesseract, Camera3, Scene render host, and Three/WebGL ownership are still partly app/editor feature owned.",
     deletionCondition: "Runtime worlds/cameras/projections expose command/query/frame-source ports consumed by editor Scene views."
+  },
+  {
+    zoneId: "runtime-adapter-debt",
+    blocks: ["runtime production ownership migration"],
+    blocker: "Phase 4D adapters translate old app-local runtime facts into runtime-core contracts; they are not production owners.",
+    deletionCondition: "Camera, world, projection, and frame-source owners are native runtime packages and no app-local adapter is needed."
   }
 ] as const satisfies readonly ProjectPrismDebtBlocker[];
 
@@ -302,11 +322,19 @@ export const projectPrismPackageTargets = [
     extractionStatus: "allowed"
   },
   {
-    id: "runtime-core",
-    cleanCandidateZones: [],
-    debtZones: ["state-domain-debt", "runtime-ownership-debt"],
-    blockedBy: ["state-domain-debt", "runtime-ownership-debt"],
+    id: "runtime-core-contracts",
+    cleanCandidateZones: ["runtime-core-candidate"],
+    debtZones: [],
+    blockedBy: [],
     extractionPhase: "Phase 4",
+    extractionStatus: "allowed"
+  },
+  {
+    id: "runtime-production-ownership",
+    cleanCandidateZones: [],
+    debtZones: ["state-domain-debt", "runtime-ownership-debt", "runtime-adapter-debt"],
+    blockedBy: ["state-domain-debt", "runtime-ownership-debt", "runtime-adapter-debt"],
+    extractionPhase: "Phase 5",
     extractionStatus: "blocked"
   },
   {

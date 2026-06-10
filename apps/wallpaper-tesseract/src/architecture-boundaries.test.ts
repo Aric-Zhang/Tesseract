@@ -14,6 +14,7 @@ import {
 import {
   projectPrismAppCompositionBlockers,
   projectPrismDebtBlockers,
+  projectPrismPackageTargets,
   projectPrismRuntimeExtractionBlockers,
   projectPrismSourceZones,
   projectPrismUiFrameworkExtractionBlockers,
@@ -23,6 +24,7 @@ import {
 describe("architecture boundaries", () => {
   const actorInputPackageSources = collectWorkspaceSourceFiles("packages/actor-input/src");
   const uiFrameworkPackageSources = collectWorkspaceSourceFiles("packages/ui-framework/src");
+  const runtimeCorePackageSources = collectWorkspaceSourceFiles("packages/runtime-core/src");
 
   it("parses static import and export-from edges for boundary checks", () => {
     const imports = parseStaticImports(`
@@ -187,6 +189,67 @@ describe("architecture boundaries", () => {
     expect(forbiddenAppLayerImports).toEqual([]);
     expect(runtimeCorePackageViolations).toEqual([]);
     expect(runtimeThreeViolations).toEqual([]);
+  });
+
+  it("keeps runtime-core contract package renderer-agnostic and editor-free", () => {
+    const runtimeCorePackageEdges = listModuleEdges(runtimeCorePackageSources);
+    const forbiddenImports = runtimeCorePackageEdges
+      .filter((edge) => (
+        edge.specifier === "three" ||
+        edge.specifier === "gizmo-core" ||
+        edge.specifier === "actor-input" ||
+        edge.specifier === "ui-framework" ||
+        edge.specifier.includes("wallpaper-tesseract") ||
+        edge.specifier.includes("window-runtime") ||
+        edge.specifier.includes("features/") ||
+        edge.specifier.includes("gizmos") ||
+        edge.specifier.includes("scene-runtime")
+      ))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+    const forbiddenSymbols = Object.entries(runtimeCorePackageSources)
+      .filter(([file]) => !file.endsWith(".test.ts"))
+      .filter(([file]) => file !== "packages/runtime-core/src/runtime-id.ts")
+      .filter(([, source]) => (
+        /\b(?:HTMLElement|HTMLCanvasElement|Document|WebGLRenderingContext|WebGL2RenderingContext)\b/.test(source) ||
+        /\b(?:RenderableSceneView|viewActorId|frameActorId|windowTab|WindowViewKey)\b/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+    const zoneMap = createSourceZoneMap(runtimeCorePackageSources, projectPrismSourceZones);
+
+    expect(zoneMap.unclassified).toEqual([]);
+    expect(zoneMap.ambiguousCandidateFiles).toEqual([]);
+    expect(forbiddenImports).toEqual([]);
+    expect(forbiddenSymbols).toEqual([]);
+    expect(evaluateZoneDependencyMatrix(
+      runtimeCorePackageSources,
+      projectPrismSourceZones,
+      projectPrismZoneDependencyRules
+    )).toEqual([]);
+  });
+
+  it("keeps runtime package targets split between contracts and production ownership", () => {
+    const runtimeContractsTarget = projectPrismPackageTargets.find((target) => target.id === "runtime-core-contracts");
+    const runtimeOwnershipTarget = projectPrismPackageTargets.find((target) => target.id === "runtime-production-ownership");
+    const runtimeThreeTarget = projectPrismPackageTargets.find((target) => target.id === "runtime-three");
+
+    expect(runtimeContractsTarget).toMatchObject({
+      extractionStatus: "allowed",
+      blockedBy: [],
+      cleanCandidateZones: ["runtime-core-candidate"]
+    });
+    expect(runtimeOwnershipTarget).toMatchObject({
+      extractionStatus: "blocked"
+    });
+    expect(runtimeOwnershipTarget?.blockedBy).toEqual(expect.arrayContaining([
+      "state-domain-debt",
+      "runtime-ownership-debt",
+      "runtime-adapter-debt"
+    ]));
+    expect(runtimeThreeTarget).toMatchObject({
+      extractionStatus: "blocked"
+    });
   });
 
   it("keeps app-local runtime extraction blockers explicit instead of treating them as runtime-core", () => {

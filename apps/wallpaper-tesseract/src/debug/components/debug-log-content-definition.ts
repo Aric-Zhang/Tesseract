@@ -1,6 +1,5 @@
 import type { ComponentDefinition } from "../../actor-runtime";
 import { frameUpdateAttachment } from "../../update-runtime";
-import { findOwningWindowContentHost } from "../../window-runtime";
 import {
   DebugLogContentComponent,
   debugLogContentComponentType,
@@ -16,11 +15,10 @@ export const debugLogContentComponentDefinition:
     createId(_actor, options) {
       return options?.id ?? "debug-log-content";
     },
-    create(actor, context, options = {}) {
-      const host = findOwningWindowContentHost(context.actorSystem, context.componentRegistry, actor);
-      if (!host) {
-        throw new Error("DebugLogContentComponent requires an owning FloatingWindowComponent.");
+    create(actor, _context, options) {
+      if (!options?.contentRegistration || !options.contentId) {
+        throw new Error("DebugLogContentComponent requires content registration options.");
       }
-      return new DebugLogContentComponent(actor, options, { host });
+      return new DebugLogContentComponent(actor, options);
     }
   };

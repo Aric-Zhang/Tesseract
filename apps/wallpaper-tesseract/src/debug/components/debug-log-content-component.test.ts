@@ -3,18 +3,10 @@ import { ActorSystem } from "../../actor-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { installDebugLogComponentDefinitions } from "../../debug";
-import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
 import { createTestComponentRegistry } from "../../test-support";
 import {
-  floatingWindowComponentType,
-  installWindowComponentDefinitions,
-  uiVec2,
-  type FloatingWindowState,
-  type WindowContentAttachment,
-  type WindowContentAttachmentRequest,
-  type WindowContentHost
+  WindowContentRegistry
 } from "../../window-runtime";
-import { createDefaultDebugWindowState } from "../debug-window-parameters";
 import {
   DebugLogContentComponent,
   debugLogContentComponentType
@@ -77,98 +69,28 @@ class FakeElement {
   }
 }
 
-class FakeWindowHost implements WindowContentHost {
-  readonly id = "floating-window:test";
-  readonly state: FloatingWindowState = {
-    position: uiVec2(0, 0),
-    size: uiVec2(320, 180),
-    visible: true
-  };
-  title = "";
-  visibleRequests: boolean[] = [];
-  mounted: HTMLElement[] = [];
-
-  setTitle(title: string): void {
-    this.title = title;
-  }
-
-  getBounds(): DOMRectReadOnly {
-    return {
-      x: 0,
-      y: 0,
-      width: this.state.size.x,
-      height: this.state.size.y,
-      top: 0,
-      left: 0,
-      right: this.state.size.x,
-      bottom: this.state.size.y,
-      toJSON() {
-        return this;
-      }
-    };
-  }
-
-  isContentInteractable(element: HTMLElement): boolean {
-    return this.mounted.includes(element);
-  }
-
-  mountContent(request: HTMLElement | WindowContentAttachmentRequest): WindowContentAttachment {
-    const element = isWindowContentAttachmentRequest(request) ? request.element : request;
-    this.mounted.push(element);
-    let disposed = false;
-    let interactable = true;
-    return {
-      element,
-      host: this,
-      get interactable() {
-        return !disposed && interactable;
-      },
-      setInteractable(nextInteractable: boolean): void {
-        interactable = nextInteractable;
-      },
-      dispose: () => {
-        if (disposed) return;
-        disposed = true;
-        const index = this.mounted.indexOf(element);
-        if (index >= 0) {
-          this.mounted.splice(index, 1);
-        }
-      }
-    };
-  }
-
-  requestVisible(visible: boolean): void {
-    this.visibleRequests.push(visible);
-  }
-}
-
-function isWindowContentAttachmentRequest(
-  request: HTMLElement | WindowContentAttachmentRequest
-): request is WindowContentAttachmentRequest {
-  return typeof request === "object" && request !== null && "element" in request;
-}
-
 function createRegistry() {
   const setup = createTestComponentRegistry();
   const registry = setup.registry;
   installGizmoRuntimeComponentDefinitions(registry);
   installStateRuntimeComponentDefinitions(registry);
-  installWindowComponentDefinitions(registry);
   installDebugLogComponentDefinitions(registry);
   return setup;
 }
 
 describe("DebugLogContentComponent", () => {
-  it("mounts log content through the floating window host and updates text on frame", () => {
+  it("registers log content and updates text on frame", () => {
     const actor = new ActorSystem().createActor({ id: "debug-actor" });
     const document = new FakeDocument();
-    const host = new FakeWindowHost();
+    const contentRegistration = new WindowContentRegistry();
     const component = new DebugLogContentComponent(actor, {
       document: document as unknown as Document,
-      maxLines: 2
-    }, { host });
+      maxLines: 2,
+      contentId: "content:debug",
+      contentRegistration
+    });
 
-    expect(host.mounted).toEqual([component.content]);
+    expect(contentRegistration.getRegisteredContent("content:debug")?.element).toBe(component.content);
     expect(component.content.className).toBe("debug-log-window__content");
     expect(component.content.textContent).toBe("Gizmo debug log enabled");
 
@@ -183,72 +105,41 @@ describe("DebugLogContentComponent", () => {
   it("disposes its content attachment idempotently through the component lifecycle", () => {
     const actor = new ActorSystem().createActor({ id: "debug-actor" });
     const document = new FakeDocument();
-    const host = new FakeWindowHost();
+    const contentRegistration = new WindowContentRegistry();
     const component = new DebugLogContentComponent(actor, {
-      document: document as unknown as Document
-    }, { host });
+      document: document as unknown as Document,
+      contentId: "content:debug",
+      contentRegistration
+    });
 
     component.dispose();
     component.dispose();
 
     expect(component.enabled).toBe(false);
-    expect(host.mounted).toEqual([]);
+    expect(contentRegistration.getRegisteredContent("content:debug")).toBeNull();
   });
 
-  it("rehosts existing log content without recreating the element or losing text", () => {
-    const actor = new ActorSystem().createActor({ id: "debug-actor" });
-    const document = new FakeDocument();
-    const firstHost = new FakeWindowHost();
-    const secondHost = new FakeWindowHost();
-    const component = new DebugLogContentComponent(actor, {
-      document: document as unknown as Document
-    }, { host: firstHost });
-    component.append({ type: "hit", message: "preserved", timeStamp: 7 });
-    component.updateFrame({ timeMs: 0, deltaMs: 0, frameIndex: 0 });
-    const content = component.content;
-
-    component.rehostWindowContent(secondHost);
-
-    expect(component.content).toBe(content);
-    expect(component.currentWindowContentHost).toBe(secondHost);
-    expect(component.content.textContent).toBe("    7 preserved");
-    expect(firstHost.mounted).toEqual([]);
-    expect(secondHost.mounted).toEqual([content]);
-  });
-
-  it("requires an owning FloatingWindowComponent when added through the registry", () => {
+  it("requires content registration options when added through the registry", () => {
     const { actorSystem, registry } = createRegistry();
     const actor = actorSystem.createActor({ id: "debug-actor" });
 
     expect(() => registry.addComponent(actor, debugLogContentComponentType, {
       document: new FakeDocument() as unknown as Document
-    })).toThrow(/owning FloatingWindowComponent/);
+    })).toThrow(/content registration/);
   });
 
-  it("mounts content into the actor-local FloatingWindowComponent through its definition", () => {
+  it("registers content through its definition", () => {
     const { actorSystem, registry } = createRegistry();
     const document = new FakeDocument();
-    const parent = document.createElement("div");
     const actor = actorSystem.createActor({ id: "debug-actor" });
-
-    registry.addComponent(actor, floatingWindowComponentType, {
-      id: "floating-window:debug-log",
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      title: "Debug Log",
-      paths: editorWindowLayoutPaths.debugWindow,
-      initialState: createDefaultDebugWindowState()
-    });
+    const contentRegistration = new WindowContentRegistry();
     const component = registry.addComponent(actor, debugLogContentComponentType, {
-      document: document as unknown as Document
+      document: document as unknown as Document,
+      contentId: "content:debug",
+      contentRegistration
     });
 
-    const windowRoot = parent.children[0];
-    const contentSlot = windowRoot?.children.find((child) => (
-      child.className.split(" ").includes("floating-gizmo-window__content")
-    ));
-
-    expect(contentSlot?.children).toEqual([component.content]);
+    expect(contentRegistration.getRegisteredContent("content:debug")?.element).toBe(component.content);
   });
 });
 

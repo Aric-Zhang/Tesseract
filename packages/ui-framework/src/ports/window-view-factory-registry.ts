@@ -1,5 +1,8 @@
 import type { Actor } from "actor-core";
-import type { WindowContentRehostable } from "./window-content-host";
+import type {
+  WindowContentRegistrationPort,
+  WindowRegisteredContent
+} from "./window-content-host";
 import {
   createWindowViewIdentity,
   type WindowViewIdentity,
@@ -19,11 +22,12 @@ export interface WindowViewRuntimeCreateRequest extends WindowViewFactoryCreateO
 
 export interface WindowViewRuntimeCreateOptions extends WindowViewRuntimeCreateRequest {
   readonly identity: WindowViewIdentity;
+  readonly contentRegistration: WindowContentRegistrationPort;
 }
 
 export interface WindowViewRuntimeFactoryResult {
   readonly viewActor: Actor;
-  readonly content: WindowContentRehostable;
+  readonly content: WindowRegisteredContent;
   readonly title?: string;
   disposeViewRuntime(): void;
 }
@@ -105,7 +109,9 @@ export class WindowViewFactoryRegistry {
 
   createViewRuntime(
     viewKey: WindowViewKey,
-    options: WindowViewRuntimeCreateRequest
+    options: WindowViewRuntimeCreateRequest & {
+      readonly contentRegistration: WindowContentRegistrationPort;
+    }
   ): WindowViewRuntimeFactoryResult {
     const factory = this.get(viewKey);
     if (!factory) {

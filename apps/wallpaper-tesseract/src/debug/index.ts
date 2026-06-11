@@ -1,11 +1,9 @@
 export {
   createDebugLogViewActor,
-  createDebugLogWindowActor,
   DebugLogContentComponent
 } from "./components";
 export type {
   DebugLogViewActorOptions,
-  DebugLogWindowActorOptions,
   RegisteredDebugLogViewActor
 } from "./components";
 export {

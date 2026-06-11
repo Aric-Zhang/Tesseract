@@ -4,7 +4,12 @@ import { editorStatePaths, type EditorCommandSink } from "../editor/editor-state
 import type { ActorInputEndEvent, ActorInputHit, ActorInputParticipant } from "../gizmo-runtime";
 import type { StateChangedEvent } from "../runtime/ports";
 import type { StateObserverResponder } from "../state-runtime";
-import type { WindowContentAttachment, WindowContentHost, WindowContentRehostable } from "../window-runtime";
+import type {
+  WindowContentLayoutCommit,
+  WindowContentLayoutCommitRegistration,
+  WindowContentRegistrationPort,
+  WindowRegisteredContent
+} from "../window-runtime";
 import type { HierarchyObjectItem, HierarchyObjectSource } from "./hierarchy-object-source";
 
 export const hierarchyPanelComponentType =
@@ -16,10 +21,12 @@ export interface HierarchyPanelComponentOptions {
   document?: Pick<Document, "createElement">;
   emptyLabel?: string;
   priority?: number;
+  contentId: string;
+  contentRegistration: WindowContentRegistrationPort;
+  inputStackPriority?: () => number;
 }
 
 export interface HierarchyPanelComponentServices {
-  host: WindowContentHost & { readonly inputStackPriority?: number };
   commandSink: EditorCommandSink;
 }
 
@@ -33,7 +40,7 @@ const DEFAULT_EMPTY_LABEL = "No objects";
 const DEFAULT_HIERARCHY_PANEL_PRIORITY = 900;
 
 export class HierarchyPanelComponent
-  implements Component, ActorInputParticipant, StateObserverResponder, WindowContentRehostable {
+  implements Component, ActorInputParticipant, StateObserverResponder, WindowRegisteredContent {
   readonly id: string;
   readonly type = hierarchyPanelComponentType;
   readonly actor: Actor;
@@ -42,9 +49,9 @@ export class HierarchyPanelComponent
   readonly #objectSource: HierarchyObjectSource;
   readonly #commandSink: EditorCommandSink;
   readonly #priority: number;
-  #host: WindowContentHost & { readonly inputStackPriority?: number };
+  readonly #inputStackPriority?: () => number;
   readonly #root: HTMLDivElement;
-  #attachment: WindowContentAttachment;
+  #registration: WindowRegisteredContent;
   readonly #emptyLabel: string;
   #rows: RowEntry[] = [];
   #activeObject: string | null = null;
@@ -60,7 +67,7 @@ export class HierarchyPanelComponent
     this.#objectSource = options.objectSource;
     this.#commandSink = services.commandSink;
     this.#priority = options.priority ?? DEFAULT_HIERARCHY_PANEL_PRIORITY;
-    this.#host = services.host;
+    this.#inputStackPriority = options.inputStackPriority;
     this.#emptyLabel = options.emptyLabel ?? DEFAULT_EMPTY_LABEL;
     const documentRef = resolveDocument(options);
     this.#root = documentRef.createElement("div");
@@ -68,26 +75,36 @@ export class HierarchyPanelComponent
     this.#root.setAttribute("role", "tree");
     this.#root.tabIndex = -1;
     this.renderIfItemsChanged();
-    this.#attachment = services.host.mountContent(this.#root);
+    this.#registration = options.contentRegistration.registerContent({
+      contentId: options.contentId,
+      element: this.#root
+    });
   }
 
-  get currentWindowContentHost(): WindowContentHost | null {
-    return this.enabled ? this.#attachment.host : null;
+  get contentId(): string {
+    return this.#registration.contentId;
   }
 
-  rehostWindowContent(host: WindowContentHost): void {
-    const previous = this.#attachment;
-    this.#host = host;
-    this.#attachment = host.mountContent(this.#root);
-    previous.dispose();
+  get element(): HTMLElement {
+    return this.#root;
   }
 
-  setWindowContentInteractable(interactable: boolean): void {
-    this.#attachment.setInteractable(interactable);
+  get interactable(): boolean {
+    return this.#registration.interactable;
+  }
+
+  setInteractable(interactable: boolean): void {
+    this.#registration.setInteractable(interactable);
+  }
+
+  subscribeLayoutCommit(
+    callback: (commit: WindowContentLayoutCommit) => void
+  ): WindowContentLayoutCommitRegistration {
+    return this.#registration.subscribeLayoutCommit(callback);
   }
 
   get inputStackPriority(): number {
-    return this.#host.inputStackPriority ?? 0;
+    return this.#registration.inputStackPriority ?? this.#inputStackPriority?.() ?? 0;
   }
 
   get inputPriority(): number {
@@ -112,7 +129,7 @@ export class HierarchyPanelComponent
 
   hitTestInput(point: ScreenPoint): ActorInputHit | null {
     if (!this.enabled) return null;
-    if (!this.#attachment.interactable || !this.#host.isContentInteractable(this.#root)) return null;
+    if (!this.#registration.interactable) return null;
     const rootRect = this.#root.getBoundingClientRect();
     if (!isPointInsideRect(point, rootRect)) return null;
     for (const row of this.#rows) {
@@ -125,7 +142,7 @@ export class HierarchyPanelComponent
         localRoutePriority: 2000,
         hitPriority: 1,
         path: [
-          { componentId: this.#host.id, role: "surface" },
+          { componentId: this.#registration.contentId, role: "surface" },
           { componentId: this.id, role: "container" },
           { componentId: this.id, role: "control", partId: "row" }
         ],
@@ -145,7 +162,7 @@ export class HierarchyPanelComponent
   dispose(): void {
     this.enabled = false;
     this.#rows = [];
-    this.#attachment.dispose();
+    this.#registration.dispose();
   }
 
   private renderIfItemsChanged(): void {

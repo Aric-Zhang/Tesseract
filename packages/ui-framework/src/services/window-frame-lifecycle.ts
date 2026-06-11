@@ -50,6 +50,12 @@ export interface WindowFrameLifecycleController {
     viewActorId: string,
     reason: Extract<WindowFrameLifecycleReason, "dock-drop" | "menu" | "tab-click" | "programmatic">
   ): void;
+  resizeFrameSplit(
+    frameId: string,
+    splitId: string,
+    ratio: number,
+    reason: Extract<WindowFrameLifecycleReason, "dock-drop" | "programmatic">
+  ): WindowFrameSplitResizeResult;
   validateDockCommit(intent: WindowDockCommitIntent): WindowDockCommitValidationResult;
   commitDock(intent: WindowDockCommitIntent): WindowDockCommitResult;
 }
@@ -163,6 +169,10 @@ export type WindowDockCommitResult =
     }
   | { readonly committed: false; readonly reason: string };
 
+export type WindowFrameSplitResizeResult =
+  | { readonly resized: true }
+  | { readonly resized: false; readonly reason: string };
+
 export type WindowCloseViewResult =
   | {
       readonly closed: true;
@@ -251,6 +261,12 @@ export interface WindowFrameIntentSink {
     frameId: string,
     viewActorId: string,
     reason: Extract<WindowFrameLifecycleReason, "dock-drop" | "menu" | "tab-click" | "programmatic">
+  ): void;
+  requestResizeFrameSplit?(
+    frameId: string,
+    splitId: string,
+    ratio: number,
+    reason: Extract<WindowFrameLifecycleReason, "dock-drop" | "programmatic">
   ): void;
   requestCommitDock?(intent: WindowDockCommitIntent): void;
 }

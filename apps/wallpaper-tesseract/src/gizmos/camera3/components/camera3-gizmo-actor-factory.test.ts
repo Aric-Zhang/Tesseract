@@ -13,13 +13,12 @@ import { installGizmoRuntimeComponentDefinitions } from "../../../gizmo-runtime"
 import { installStateRuntimeComponentDefinitions } from "../../../state-runtime";
 import type { AppStateCommand } from "../../../editor/app-state";
 import type { AppStateObserver } from "../../../editor/app-state-controller";
-import type { RuntimeObject, RuntimeRegistration } from "../../../runtime/ports";
+import type { RuntimeRegistration } from "../../../runtime/ports";
 import {
   actorInputScopeRoutePriority,
   gizmoEventBindingComponentType,
   isActorInputParticipant
 } from "../../../gizmo-runtime";
-import { Camera3ProjectionModeController } from "../../../features/camera3/model";
 import type { Camera3Gizmo, Camera3GizmoOptions } from "../camera3-gizmo";
 import { camera3GizmoComponentType } from "./camera3-gizmo-component";
 import { createCamera3GizmoActor } from "./camera3-gizmo-actor-factory";
@@ -42,15 +41,6 @@ function createContext() {
   const calls: string[] = [];
   const registeredGizmos: GizmoController[] = [];
   const context = new AppRuntimeContext({
-    sceneRuntime: {
-      register(object: RuntimeObject): RuntimeRegistration {
-        calls.push(`scene-register:${object.id}`);
-        return createRegistration(`scene-dispose:${object.id}`, calls);
-      },
-      dispose(): void {
-        calls.push("scene-system-dispose");
-      }
-    },
     gizmoEventSystem: {
       register(object: GizmoController): RuntimeRegistration {
         calls.push(`gizmo-register:${object.id}`);
@@ -155,9 +145,16 @@ function createFakeGizmoFactory(
 }
 
 function createViewState(mode: "perspective" | "orthographic" = "perspective"): Camera3ViewState {
-  const projectionMode = new Camera3ProjectionModeController({ mode });
   return {
-    activeCamera: projectionMode.activeCamera,
+    cameraState: {
+      pose: {
+        position: [0, 0, 6],
+        target: [0, 0, 0],
+        up: [0, 1, 0]
+      },
+      projectionMode: mode,
+      projection: { mode }
+    },
     projectionMode: mode
   };
 }

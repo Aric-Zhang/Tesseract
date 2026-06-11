@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { RuntimeCameraState } from "runtime-core";
 import type { Camera3Axis } from "../../features/camera3/model";
 
 export interface AxisRenderState {
@@ -69,6 +70,10 @@ export class Camera3GizmoState {
   private readonly axisFadeEnd: number;
   private readonly viewAxis = new THREE.Vector3();
   private readonly cubeVector = new THREE.Vector3();
+  private readonly cameraPosition = new THREE.Vector3();
+  private readonly cameraTarget = new THREE.Vector3();
+  private readonly cameraUp = new THREE.Vector3();
+  private readonly cameraMatrix = new THREE.Matrix4();
 
   constructor(options: { center: number; radius: number; cubeHalfSize: number; axisFadeStart: number; axisFadeEnd: number }) {
     this.center = options.center;
@@ -78,8 +83,15 @@ export class Camera3GizmoState {
     this.axisFadeEnd = options.axisFadeEnd;
   }
 
-  updateAxisProjection(camera: THREE.PerspectiveCamera | THREE.OrthographicCamera): void {
-    this.inverseCameraRotation.copy(camera.quaternion).invert();
+  updateAxisProjection(cameraState: RuntimeCameraState): void {
+    const [positionX = 0, positionY = 0, positionZ = 1] = cameraState.pose.position;
+    const [targetX = 0, targetY = 0, targetZ = 0] = cameraState.pose.target ?? [0, 0, 0];
+    const [upX = 0, upY = 1, upZ = 0] = cameraState.pose.up ?? [0, 1, 0];
+    this.cameraPosition.set(positionX, positionY, positionZ);
+    this.cameraTarget.set(targetX, targetY, targetZ);
+    this.cameraUp.set(upX, upY, upZ);
+    this.cameraMatrix.lookAt(this.cameraPosition, this.cameraTarget, this.cameraUp);
+    this.inverseCameraRotation.setFromRotationMatrix(this.cameraMatrix).invert();
     for (const axis of this.axes) {
       this.viewAxis.copy(axis.world).applyQuaternion(this.inverseCameraRotation).normalize();
       axis.screenX = this.center + this.viewAxis.x * this.radius;

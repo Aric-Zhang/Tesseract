@@ -56,9 +56,6 @@ export const projectPrismSourceZones = [
     /^\.\/app-runtime\//,
     /^\.\/runtime\/ports\//
   ], { debt: true }),
-  definePathZone("state-domain-debt", "Remaining scene-runtime compatibility scheduler/value surface after state-domain split.", [
-    /^\.\/scene-runtime\//
-  ], { debt: true }),
   definePathZone("runtime-ownership-debt", "Runtime-like world/camera/object code still owned by editor/app folders.", [
     /^\.\/app\/create-wallpaper-app\.ts$/,
     /^\.\/camera3-control\//,
@@ -66,7 +63,6 @@ export const projectPrismSourceZones = [
     /^\.\/features\/camera3\/components\/(?:camera3-motion-component|camera3-rig-component|scene-camera3-viewport-binding-component)\.ts$/,
     /^\.\/features\/scene\/(?:install-scene-view-feature|scene-view-content-installer|renderable-scene-view|scene-window-actor-factory)\.ts$/,
     /^\.\/features\/scene\/components\/scene-viewport-component\.ts$/,
-    /^\.\/scene-runtime\/scene-runtime\.ts$/,
     /^\.\/update-runtime\/frame-update-attachment-runtime\.ts$/,
     /^\.\/tesseract4\//
   ], { debt: true })
@@ -117,12 +113,6 @@ export const projectPrismDebtBlockers = [
     deletionCondition: "Reusable ports move to the package that owns the contract; wallpaper app becomes thin composition."
   },
   {
-    zoneId: "state-domain-debt",
-    blocks: ["scene-runtime compatibility deletion", "scheduler lane split"],
-    blocker: "scene-runtime no longer owns editor/UI state, but still exposes compatibility scheduler and value helper surfaces.",
-    deletionCondition: "SceneRuntime, scene-frame aliases, runtime-object aliases, and scene vec2 helpers are deleted or moved to their owning packages."
-  },
-  {
     zoneId: "runtime-ownership-debt",
     blocks: ["runtime-core extraction", "runtime-three extraction"],
     blocker: "Tesseract, Camera3, Scene render host, and Three/WebGL ownership are still partly app/editor feature owned.",
@@ -139,57 +129,7 @@ export interface ProjectPrismRuntimeExtractionBlocker {
   readonly deletionCondition: string;
 }
 
-export const projectPrismRuntimeExtractionBlockers = [
-  {
-    id: "camera3-three-model",
-    files: [
-      "./features/camera3/model/camera3-rig.ts",
-      "./features/camera3/model/camera3-projection-mode.ts"
-    ],
-    blocks: ["runtime-core extraction", "runtime-three extraction"],
-    requiredPort: "RuntimeCameraActor + RuntimeThreeCameraBackend",
-    blocker: "Camera3 model directly owns Three camera/vector objects instead of a runtime camera port plus renderer backend.",
-    deletionCondition: "Camera model exposes renderer-agnostic camera state; Three camera realization moves to runtime-three backend."
-  },
-  {
-    id: "frame-update-lane-split",
-    files: [
-      "./scene-runtime/scene-runtime.ts",
-      "./update-runtime/frame-update-attachment-runtime.ts",
-      "./app/create-wallpaper-app.ts"
-    ],
-    blocks: ["runtime production ownership", "state/scheduler split"],
-    requiredPort: "RuntimeScheduler + UiComponentTickScheduler + EditorStateFlushScheduler",
-    blocker: "SceneRuntime currently dispatches runtime work, UI component ticks, and editor state flush through one app-local frame update lane.",
-    deletionCondition: "Runtime work, UI/component tick, and editor state flush have separate owners and no generic app-local RuntimeObject bus remains."
-  },
-  {
-    id: "scene-view-render-host",
-    files: [
-      "./features/scene/install-scene-view-feature.ts",
-      "./features/scene/scene-view-content-installer.ts",
-      "./features/scene/renderable-scene-view.ts",
-      "./features/scene/scene-window-actor-factory.ts",
-      "./features/scene/components/scene-viewport-component.ts"
-    ],
-    blocks: ["runtime-core extraction", "ui-framework extraction", "editor/runtime split"],
-    requiredPort: "FrameSourceRegistry + EditorSceneViewHost",
-    blocker: "Scene View still binds runtime render output, editor window lifecycle, DOM host, and current renderable projection.",
-    deletionCondition: "Runtime exposes frame sources; editor Scene View consumes them through an editor host without owning runtime resources."
-  },
-  {
-    id: "tesseract4-runtime-object",
-    files: [
-      "./tesseract4/tesseract4-runtime-object.ts",
-      "./tesseract4/components/tesseract4-component.ts",
-      "./tesseract4/components/tesseract4-actor-factory.ts"
-    ],
-    blocks: ["runtime-core extraction", "runtime-three extraction"],
-    requiredPort: "RuntimeWorldActor + RuntimeThreeRenderable",
-    blocker: "Tesseract4 runtime object owns 4D world update, Three line adapter, app-local UpdateFrame scheduling, and actor component creation path together.",
-    deletionCondition: "4D world/projection update is runtime-core; Three renderable adapter is runtime-three; actor/editor binding is an adapter."
-  }
-] as const satisfies readonly ProjectPrismRuntimeExtractionBlocker[];
+export const projectPrismRuntimeExtractionBlockers: readonly ProjectPrismRuntimeExtractionBlocker[] = [];
 
 export interface ProjectPrismUiFrameworkExtractionBlocker {
   readonly id: string;
@@ -201,6 +141,23 @@ export interface ProjectPrismUiFrameworkExtractionBlocker {
 }
 
 export const projectPrismUiFrameworkExtractionBlockers: readonly ProjectPrismUiFrameworkExtractionBlocker[] = [];
+export const projectPrismPrePhase6UiFrameworkBlockers: readonly ProjectPrismUiFrameworkExtractionBlocker[] = [
+  {
+    id: "window-workspace-multi-truth-debt",
+    files: [
+      "packages/ui-framework/src/chrome/window-frame-surface-component.ts",
+      "packages/ui-framework/src/ports/window-frame-port.ts",
+      "packages/ui-framework/src/ports/window-content-host.ts",
+      "packages/ui-framework/src/services/window-frame-lifecycle-controller.ts",
+      "packages/ui-framework/src/model/window-dock-surface-model.ts",
+      "packages/ui-framework/src/model/window-workspace-layout-persistence.ts"
+    ],
+    blocks: ["Phase 6 editor extraction", "single workspace graph ownership"],
+    requiredPort: "WindowWorkspaceGraph plus WindowWorkspaceRealizationMap projections",
+    blocker: "Window placement is still represented by frame-local dock surface state, content host placement, lifecycle live view tracking, persistence, and DOM parentage.",
+    deletionCondition: "Workspace placement, tabset active state, splitter ids, content placement, layout commits, and persistence are derived from one WindowWorkspaceGraph, with runtime handles stored only in the realization map."
+  }
+];
 
 export interface ProjectPrismAppCompositionBlocker {
   readonly id: string;
@@ -248,7 +205,6 @@ export const projectPrismZoneDependencyRules = [
       "ui-framework-candidate",
       "editor-candidate",
       "runtime-ownership-debt",
-      "state-domain-debt",
       "app-composition",
       "app-runtime-debt"
     ]
@@ -300,7 +256,7 @@ export const projectPrismZoneDependencyRules = [
       "app-composition-debt",
       "app-runtime-debt",
       "actor-binding-debt",
-      "state-domain-debt"
+      "runtime-ownership-debt"
     ]
   },
   {
@@ -332,9 +288,9 @@ export const projectPrismPackageTargets = [
     id: "ui-framework",
     cleanCandidateZones: ["ui-framework-candidate"],
     debtZones: [],
-    blockedBy: [],
+    blockedBy: ["window-workspace-multi-truth-debt"],
     extractionPhase: "Phase 3B/3C",
-    extractionStatus: "allowed"
+    extractionStatus: "blocked"
   },
   {
     id: "runtime-core-contracts",
@@ -346,11 +302,11 @@ export const projectPrismPackageTargets = [
   },
   {
     id: "runtime-production-ownership",
-    cleanCandidateZones: [],
-    debtZones: ["runtime-ownership-debt"],
-    blockedBy: ["runtime-ownership-debt"],
-    extractionPhase: "Phase 5",
-    extractionStatus: "blocked"
+    cleanCandidateZones: ["runtime-production-candidate"],
+    debtZones: [],
+    blockedBy: [],
+    extractionPhase: "Phase 5.5",
+    extractionStatus: "allowed"
   },
   {
     id: "runtime-three-backend",
@@ -362,19 +318,19 @@ export const projectPrismPackageTargets = [
   },
   {
     id: "runtime-render-production-ownership",
-    cleanCandidateZones: [],
-    debtZones: ["runtime-ownership-debt"],
-    blockedBy: ["runtime-ownership-debt"],
-    extractionPhase: "Phase 5",
-    extractionStatus: "blocked"
+    cleanCandidateZones: ["runtime-production-candidate", "runtime-three-candidate"],
+    debtZones: [],
+    blockedBy: [],
+    extractionPhase: "Phase 5.5",
+    extractionStatus: "allowed"
   },
   {
     id: "editor",
     cleanCandidateZones: ["editor-candidate"],
-    debtZones: ["runtime-ownership-debt"],
-    blockedBy: ["runtime-ownership-debt"],
+    debtZones: [],
+    blockedBy: ["window-workspace-multi-truth-debt"],
     extractionPhase: "Phase 6",
-    extractionStatus: "deferred"
+    extractionStatus: "blocked"
   },
   {
     id: "wallpaper-app",

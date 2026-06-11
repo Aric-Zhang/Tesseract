@@ -1,24 +1,22 @@
-import type * as THREE from "three";
 import { createRegisteredActor, type Actor, type RegisteredActor } from "../../actor-runtime";
 import type { FeatureActorContext } from "../../runtime/ports";
 import {
   tesseract4ComponentType,
   type Tesseract4Component,
   type Tesseract4ComponentOptions,
-  type Tesseract4RuntimeObjectFactory
+  type Tesseract4RuntimeRenderableFactory
 } from "./tesseract4-component";
 
 export interface Tesseract4ActorOptions extends Tesseract4ComponentOptions {
   actorId?: string;
   actorName?: string;
   parentActor?: Actor | string | null;
-  scene?: THREE.Scene;
 }
 
 export function createTesseract4Actor(
   context: FeatureActorContext,
   options: Tesseract4ActorOptions = {},
-  createObject?: Tesseract4RuntimeObjectFactory
+  createRenderable?: Tesseract4RuntimeRenderableFactory
 ): RegisteredActor<Tesseract4Component> {
   const actor = context.actorSystem.createActor({
     id: options.actorId,
@@ -28,7 +26,7 @@ export function createTesseract4Actor(
   try {
     const component = context.componentRegistry.addComponent(actor, tesseract4ComponentType, {
       ...options,
-      createObject: createObject ?? options.createObject
+      createRenderable: createRenderable ?? options.createRenderable
     });
     let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
     const handle = createRegisteredActor({

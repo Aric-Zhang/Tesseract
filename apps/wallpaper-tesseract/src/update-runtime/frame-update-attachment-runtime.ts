@@ -7,7 +7,7 @@ import type {
   ComponentAttachmentRuntime
 } from "../actor-runtime";
 import { componentAttachmentKind } from "../actor-runtime";
-import type { RuntimeObject, UpdateFrame } from "../runtime/ports";
+import type { UpdateFrame } from "../runtime/ports";
 
 export const frameUpdateAttachmentKind = componentAttachmentKind("frame-update");
 
@@ -29,10 +29,7 @@ interface FrameUpdateRecord {
   readonly participant: FrameUpdateParticipant;
 }
 
-export class FrameUpdateAttachmentRuntime implements ComponentAttachmentRuntime, RuntimeObject {
-  readonly id = "frame-update-attachment-runtime";
-  readonly priority = -900;
-  enabled = true;
+export class FrameUpdateAttachmentRuntime implements ComponentAttachmentRuntime {
   readonly #actorSystem: ActorSystemView;
   readonly #recordsByActorId = new Map<string, FrameUpdateRecord[]>();
   readonly #records = new Set<FrameUpdateRecord>();

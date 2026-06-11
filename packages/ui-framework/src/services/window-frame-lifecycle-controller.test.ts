@@ -8,20 +8,20 @@ import {
   WindowFramePortRegistry
 } from "../index";
 import type {
-  WindowContentHost,
-  WindowContentRehostable,
+  WindowRegisteredContent,
+  WindowContentLayoutCommitRegistration,
   WindowFloatingFrameFactory,
   WindowFramePort,
-  WindowFrameRuntimeDockNode,
+  WindowFrameSurfaceSnapshot,
+  WindowFrameSurfaceSnapshotNode,
+  WindowFrameSurfaceSnapshotTab,
   WindowFrameTabsetNode,
-  WindowFrameTab
+  WindowFrameTab,
+  WindowWorkspaceGraphContentPlacement,
+  WindowWorkspaceGraphReconcilerSurface,
+  WindowWorkspaceSurfaceGeometryProjection
 } from "../index";
 import { WindowViewFactoryRegistry } from "../ports/window-view-factory-registry";
-import {
-  cloneWindowFrameRuntimeDockRoot,
-  restoreWindowFrameDockTreeFromRuntimeRoot,
-  splitTabInWindowFrameDockTree
-} from "../model/window-frame-dock-tree";
 
 function createFocusRecorder(calls: string[]): WindowFocusCommandPort {
   return {
@@ -178,6 +178,90 @@ describe("DefaultWindowFrameLifecycleController", () => {
     ]);
   });
 
+  it("projects live frame state into a workspace graph diagnostic", () => {
+    const subject = createSubject();
+
+    subject.controller.openView("debug", "menu");
+    subject.controller.openView("hierarchy", "menu");
+
+    const snapshot = subject.controller.getWorkspaceGraphSnapshot();
+
+    expect(snapshot.placements.map((placement) => ({
+      identity: placement.identity.viewKey,
+      frameId: placement.frameId,
+      active: placement.active,
+      interactable: placement.interactable
+    }))).toEqual([
+      {
+        identity: "debug",
+        frameId: "debug-frame-1",
+        active: true,
+        interactable: true
+      },
+      {
+        identity: "hierarchy",
+        frameId: "hierarchy-frame",
+        active: true,
+        interactable: true
+      }
+    ]);
+    expect(JSON.stringify(snapshot)).not.toContain("debug-view-1");
+    expect(JSON.stringify(snapshot)).not.toContain("hierarchy-view");
+  });
+
+  it("keeps graph state logical while runtime handles stay in projection realization", () => {
+    const subject = createSubject();
+
+    subject.controller.openView("debug", "menu");
+    subject.controller.openView("hierarchy", "menu");
+
+    const projection = subject.controller.listWorkspaceGraphFrameSurfaceSnapshots();
+    const snapshot = subject.controller.getWorkspaceGraphSnapshot();
+    const revision = snapshot.revision;
+    const secondRead = subject.controller.getWorkspaceGraphSnapshot();
+
+    expect(secondRead.revision).toBe(revision);
+    expect(snapshot.placements.map((placement) => ({
+      contentId: placement.contentId,
+      viewKey: placement.identity.viewKey,
+      frameId: placement.frameId
+    }))).toEqual([
+      {
+        contentId: "content:instance:debug:default",
+        viewKey: "debug",
+        frameId: "debug-frame-1"
+      },
+      {
+        contentId: "content:instance:hierarchy:default",
+        viewKey: "hierarchy",
+        frameId: "hierarchy-frame"
+      }
+    ]);
+    expect(JSON.stringify(snapshot)).not.toContain("debug-view-1");
+    expect(JSON.stringify(snapshot)).not.toContain("hierarchy-view");
+    expect(JSON.stringify(projection)).toContain("debug-view-1");
+    expect(JSON.stringify(projection)).toContain("hierarchy-view");
+    expect(projection.map((frame) => ({
+      frameId: frame.frameId,
+      kind: frame.kind,
+      presentation: frame.presentation,
+      visible: frame.visible
+    }))).toEqual([
+      {
+        frameId: "debug-frame-1",
+        kind: "persistent",
+        presentation: "windowed",
+        visible: true
+      },
+      {
+        frameId: "hierarchy-frame",
+        kind: "persistent",
+        presentation: "windowed",
+        visible: true
+      }
+    ]);
+  });
+
   it("tracks multiple instances of the same view type by identity instead of type key", () => {
     const subject = createSubject();
 
@@ -286,7 +370,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
       frameActor: rootFrame,
       framePort: rootPort
     });
-    expect(rootPort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
+    expect(rootPort.readRenderedViewActorIds()).toEqual(["debug-view-1"]);
   });
 
   it("uses a view-runtime factory for preferred frames without creating a temporary frame shell", () => {
@@ -343,7 +427,8 @@ describe("DefaultWindowFrameLifecycleController", () => {
     });
 
     expect(subject.actorSystem.getActor("workspace-root-frame")).toBe(rootFrame);
-    expect(rootPort.listTabs()).toEqual([]);
+    expect(subject.controller.getWorkspaceGraphSnapshot().placements.map((placement) => placement.identity.viewKey))
+      .not.toContain("debug");
   });
 
   it("does not close a registered root frame through frame-level close", () => {
@@ -397,7 +482,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     })).toEqual({ committed: true, sourceFrameDestroyed: false });
 
     expect(subject.actorSystem.getActor("workspace-root-frame")).toBe(rootFrame);
-    expect(rootPort.listTabs()).toEqual([]);
+    expect(rootPort.readRenderedViewActorIds()).toEqual([]);
     expect(subject.controller.getLocationByViewKey("debug")).toMatchObject({
       ownerFrameActorId: "floating-debug-view-1",
       viewActorId: "debug-view-1"
@@ -450,8 +535,8 @@ describe("DefaultWindowFrameLifecycleController", () => {
       .toBe("workspace-root-frame");
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("hierarchy-view")!))
       .toBe("workspace-root-frame");
-    expect(rootPort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1", "hierarchy-view"]);
-    expect(rootPort.getFocusedViewActorId()).toBe("hierarchy-view");
+    expect(rootPort.readRenderedViewActorIds()).toEqual(["debug-view-1", "hierarchy-view"]);
+    expect(rootPort.readActiveViewActorId()).toBe("hierarchy-view");
   });
 
   it("serializes non-empty root frames while omitting empty root shells", () => {
@@ -512,15 +597,17 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     subject.controller.openView("debug", "programmatic");
     const liveView = subject.controller.getLiveViewByActorId("debug-view-1");
-    const framePort = liveView?.framePort as ReturnType<typeof createFramePort>;
+    const framePort = asOptionalTestFramePort(liveView?.framePort);
+    if (!framePort) throw new Error("Expected test frame port.");
     framePort.calls.length = 0;
     subject.controller.openView("debug", "menu");
     subject.controller.activateFrameTab("debug-frame-1", "debug-view-1", "tab-click");
 
-    expect(framePort.calls).toEqual([
-      "activate:debug-view-1",
-      "activate:debug-view-1"
-    ]);
+    expect(framePort.calls.some((call) => call === "activate:debug-view-1")).toBe(false);
+    expect(subject.controller.getLocationByViewKey("debug")).toMatchObject({
+      activeInFrame: true,
+      visibleInFrame: true
+    });
     expect(subject.focusCalls).toEqual([
       "focus:debug-frame-1:programmatic",
       "focus:debug-frame-1:menu-restore",
@@ -638,8 +725,6 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.focusCalls.length = 0;
 
     const result = subject.controller.closeView("hierarchy-view", "programmatic");
-    const debugView = subject.controller.getLiveViewByActorId("debug-view-1");
-
     expect(result).toEqual({
       closed: true,
       sourceFrameId: "debug-frame-1",
@@ -651,7 +736,8 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.actorSystem.getActor("hierarchy-view")).toBeNull();
     expect(subject.actorSystem.getActor("debug-frame-1")).toBeTruthy();
     expect(subject.actorSystem.getActor("debug-view-1")).toBeTruthy();
-    expect(debugView?.framePort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
+    expect(subject.controller.getWorkspaceGraphSnapshot().placements.map((placement) => placement.identity.viewKey))
+      .toEqual(["debug"]);
     expect(subject.controller.getLiveViewByActorId("hierarchy-view")).toBeNull();
     expect(subject.focusCalls).toEqual(["focus:debug-frame-1:programmatic"]);
   });
@@ -672,7 +758,8 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.focusCalls.length = 0;
 
     const result = subject.controller.closeView("hierarchy-view", "tab-action");
-    const debugPort = subject.controller.getLiveViewByActorId("debug-view-1")?.framePort as ReturnType<typeof createFramePort>;
+    const debugPort = asOptionalTestFramePort(subject.controller.getLiveViewByActorId("debug-view-1")?.framePort);
+    if (!debugPort) throw new Error("Expected test frame port.");
 
     expect(result).toEqual({
       closed: true,
@@ -680,8 +767,11 @@ describe("DefaultWindowFrameLifecycleController", () => {
       ownerFrameDestroyed: false,
       nextActiveViewActorId: "debug-view-1"
     });
-    expect(debugPort.getFocusedViewActorId()).toBe("debug-view-1");
-    expect(debugPort.calls).toContain("activate:debug-view-1");
+    expect(debugPort.calls.some((call) => call === "activate:debug-view-1")).toBe(false);
+    expect(subject.controller.getLocationByViewKey("debug")).toMatchObject({
+      activeInFrame: true,
+      visibleInFrame: true
+    });
     expect(subject.focusCalls).toEqual(["focus:debug-frame-1:programmatic"]);
   });
 
@@ -774,9 +864,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
       actorSystem,
       factories: registry,
       cancelActiveInput: () => calls.push("cancel"),
-      createFloatingFrame: createFixedFrameFactory(actorSystem, "debug-frame", {
-        throwOnRemoveTabFor: "debug-view"
-      })
+      createFloatingFrame: createFixedFrameFactory(actorSystem, "debug-frame")
     });
     controller.openView("debug", "programmatic");
 
@@ -786,8 +874,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
       closed: true,
       sourceFrameId: "debug-frame",
       ownerFrameDestroyed: true,
-      nextActiveViewActorId: null,
-      warning: "remove tab failed"
+      nextActiveViewActorId: null
     });
     expect(calls).toEqual(["cancel", "runtime-dispose"]);
     expect(actorSystem.getActor("debug-frame")).toBeNull();
@@ -870,8 +957,6 @@ describe("DefaultWindowFrameLifecycleController", () => {
     subject.controller.enterViewFullscreen("scene-view", "programmatic");
 
     const result = subject.controller.closeView("scene-view", "tab-action");
-    const debugView = subject.controller.getLiveViewByActorId("debug-view-1");
-
     expect(result).toEqual({
       closed: true,
       sourceFrameId: "debug-frame-1",
@@ -882,7 +967,8 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.actorSystem.getActor("floating-scene-view")).toBeNull();
     expect(subject.actorSystem.getActor("scene-view")).toBeNull();
     expect(subject.actorSystem.getActor("debug-frame-1")).toBeTruthy();
-    expect(debugView?.framePort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
+    expect(subject.controller.getWorkspaceGraphSnapshot().placements.map((placement) => placement.identity.viewKey))
+      .toEqual(["debug"]);
     expect(subject.controller.getViewFullscreenSession("scene-view")).toBeNull();
     expect(subject.controller.getLocationByViewKey("scene")).toBeNull();
   });
@@ -907,7 +993,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     const result = subject.controller.closeView("scene-view", "tab-action");
     const debugView = subject.controller.getLiveViewByActorId("debug-view-1");
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       closed: true,
       sourceFrameId: "debug-frame-1",
       ownerFrameDestroyed: false,
@@ -915,11 +1001,14 @@ describe("DefaultWindowFrameLifecycleController", () => {
     });
     expect(subject.actorSystem.getActor("floating-scene-view")).toBeNull();
     expect(subject.controller.getViewFullscreenSession("scene-view")).toBeNull();
-    expect(debugView?.framePort.getRuntimeDockRoot()).toEqual({
+    expect(debugView?.frameActor.id).toBe("debug-frame-1");
+    expect(subject.controller.getWorkspaceGraphSnapshot().frames.find((frame) =>
+      frame.frameId === "debug-frame-1"
+    )?.root).toEqual({
       kind: "tabset",
       id: "frame-tabset:target",
-      tabs: ["debug-view-1"],
-      activeViewActorId: "debug-view-1"
+      contentIds: ["content:instance:debug:default"],
+      activeContentId: "content:instance:debug:default"
     });
   });
 
@@ -1077,7 +1166,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     });
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!))
       .toBe("workspace-root-frame");
-    expect(rootPort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
+    expect(rootPort.readRenderedViewActorIds()).toEqual(["debug-view-1"]);
   });
 
   it("commits a same-frame tab split without destroying or reparenting the frame", () => {
@@ -1094,9 +1183,10 @@ describe("DefaultWindowFrameLifecycleController", () => {
     });
     const liveView = subject.controller.getLiveViewByActorId("hierarchy-view");
     if (!liveView) throw new Error("Expected live hierarchy view.");
-    const root = liveView.framePort.getRuntimeDockRoot();
-    if (root.kind !== "tabset") throw new Error("Expected merged tabset root.");
+    const root = asTestFramePort(liveView.framePort).readRenderedRoot();
+    if (!root || root.kind !== "tabset") throw new Error("Expected merged tabset root.");
     subject.cancelCalls.length = 0;
+    asTestFramePort(liveView.framePort).calls.length = 0;
 
     const result = subject.controller.commitDock({
       kind: "split-tab",
@@ -1113,7 +1203,6 @@ describe("DefaultWindowFrameLifecycleController", () => {
       reason: "dock-drop"
     });
 
-    const splitRoot = liveView.framePort.getRuntimeDockRoot();
     expect(result).toEqual({ committed: true, sourceFrameDestroyed: false });
     expect(subject.cancelCalls).toEqual(["cancel"]);
     expect(subject.actorSystem.getActor("debug-frame-1")).toBeTruthy();
@@ -1122,9 +1211,78 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.controller.getLiveViewByActorId("hierarchy-view")).toMatchObject({
       frameActor: subject.actorSystem.getActor("debug-frame-1")
     });
-    expect(splitRoot.kind).toBe("split");
-    expect(liveView.framePort.listTabs().map((tab) => tab.viewActorId).sort())
-      .toEqual(["debug-view-1", "hierarchy-view"]);
+    const snapshot = subject.controller.getWorkspaceGraphSnapshot();
+    const frame = snapshot.frames.find((candidate) => candidate.frameId === "debug-frame-1");
+    expect(frame?.root.kind).toBe("split");
+    expect(snapshot.placements.map((placement) => ({
+      contentId: placement.contentId,
+      tabsetId: placement.tabsetId,
+      active: placement.active
+    }))).toEqual(expect.arrayContaining([
+      {
+        contentId: "content:instance:debug:default",
+        tabsetId: "frame-tabset:target",
+        active: true
+      },
+      {
+        contentId: "content:instance:hierarchy:default",
+        tabsetId: "frame-tabset:target:tabset:content:instance:hierarchy:default",
+        active: true
+      }
+    ]));
+    expect(asTestFramePort(liveView.framePort).calls.filter((call) =>
+      call.startsWith("split:") || call.startsWith("add:") || call.startsWith("remove:") || call.startsWith("restore:")
+    )).toEqual([]);
+  });
+
+  it("resizes a graph split without mutating frame-local placement APIs", () => {
+    const subject = createSubject();
+    subject.controller.openView("debug", "programmatic");
+    subject.controller.openView("hierarchy", "programmatic");
+    subject.controller.commitDock({
+      kind: "merge-tabs",
+      operation: "cross-frame-merge",
+      source: { frameId: "hierarchy-frame", viewActorId: "hierarchy-view", viewKey: "hierarchy" },
+      targetFrameId: "debug-frame-1",
+      targetTabsetId: "frame-tabset:target",
+      reason: "dock-drop"
+    });
+    const liveView = subject.controller.getLiveViewByActorId("hierarchy-view");
+    if (!liveView) throw new Error("Expected live hierarchy view.");
+    const root = asTestFramePort(liveView.framePort).readRenderedRoot();
+    if (!root || root.kind !== "tabset") throw new Error("Expected merged tabset root.");
+    subject.controller.commitDock({
+      kind: "split-tab",
+      operation: "same-frame-split",
+      source: {
+        frameId: "debug-frame-1",
+        sourceTabsetId: root.id,
+        viewActorId: "hierarchy-view",
+        viewKey: "hierarchy"
+      },
+      targetFrameId: "debug-frame-1",
+      targetTabsetId: root.id,
+      placement: "left",
+      reason: "dock-drop"
+    });
+    const before = subject.controller.getWorkspaceGraphSnapshot()
+      .frames.find((candidate) => candidate.frameId === "debug-frame-1");
+    if (before?.root.kind !== "split") throw new Error("Expected graph split root.");
+    asTestFramePort(liveView.framePort).calls.length = 0;
+
+    expect(subject.controller.resizeFrameSplit("debug-frame-1", before.root.id, 0.7, "programmatic"))
+      .toEqual({ resized: true });
+
+    const after = subject.controller.getWorkspaceGraphSnapshot()
+      .frames.find((candidate) => candidate.frameId === "debug-frame-1");
+    expect(after?.root).toMatchObject({
+      kind: "split",
+      id: before.root.id,
+      ratio: 0.7
+    });
+    expect(asTestFramePort(liveView.framePort).calls.filter((call) =>
+      call.startsWith("split:") || call.startsWith("add:") || call.startsWith("remove:") || call.startsWith("restore:")
+    )).toEqual([]);
   });
 
   it("rejects splitting a single tab into its own tabset", () => {
@@ -1149,13 +1307,8 @@ describe("DefaultWindowFrameLifecycleController", () => {
       .toEqual({ valid: false, reason: "same tabset split is a no-op" });
     expect(subject.controller.commitDock(intent))
       .toEqual({ committed: false, reason: "same tabset split is a no-op" });
-    expect(subject.controller.getLiveViewByActorId("debug-view-1")?.framePort.getRuntimeDockRoot())
-      .toEqual({
-        kind: "tabset",
-        id: "frame-tabset:target",
-        tabs: ["debug-view-1"],
-        activeViewActorId: "debug-view-1"
-      });
+    expect(subject.controller.getWorkspaceGraphSnapshot().placements.map((placement) => placement.identity.viewKey))
+      .toEqual(["debug"]);
   });
 
   it("validates floating tab intents with finite positive bounds", () => {
@@ -1214,12 +1367,12 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("hierarchy-frame");
     expect(debugView?.frameActor.id).toBe("hierarchy-frame");
     expect(debugView?.framePort.frameId).toBe("hierarchy-frame");
-    expect(targetPort?.listTabs().map((tab) => tab.viewActorId)).toEqual([
+    expect(asOptionalTestFramePort(targetPort)?.readRenderedViewActorIds()).toEqual([
       "hierarchy-view",
       "debug-view-1"
     ]);
-    expect(targetPort?.getFocusedViewActorId()).toBe("debug-view-1");
-    expect(debugContent?.currentWindowContentHost?.id).toBe("hierarchy-frame:host:debug-view-1");
+    expect(asOptionalTestFramePort(targetPort)?.readActiveViewActorId()).toBe("debug-view-1");
+    expect(debugContent?.calls).toContain("place:hierarchy-frame");
     expect(subject.controller.getLocationByViewKey("debug")).toMatchObject({
       viewKey: "debug",
       viewActorId: "debug-view-1",
@@ -1232,7 +1385,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     });
   });
 
-  it("commits a split tab by rehosting content into the target tabset and destroying the empty source frame", () => {
+  it("commits a split tab through graph placement into the target tabset and destroys the empty source frame", () => {
     const subject = createSubject();
     subject.controller.openView("debug", "programmatic");
     subject.controller.openView("hierarchy", "programmatic");
@@ -1255,7 +1408,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const debugView = subject.controller.getLiveViewByActorId("debug-view-1");
     const hierarchyView = subject.controller.getLiveViewByActorId("hierarchy-view");
-    const targetPort = hierarchyView?.framePort as ReturnType<typeof createFramePort> | undefined;
+    const targetPort = asOptionalTestFramePort(hierarchyView?.framePort);
     const debugContent = debugView?.content as ReturnType<typeof createContent> | undefined;
     expect(result).toEqual({ committed: true, sourceFrameDestroyed: true });
     expect(subject.cancelCalls).toEqual(["cancel"]);
@@ -1264,13 +1417,17 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("hierarchy-frame");
     expect(debugView?.frameActor.id).toBe("hierarchy-frame");
     expect(debugView?.framePort.frameId).toBe("hierarchy-frame");
-    expect(targetPort?.calls).toContain("split:debug-view-1:frame-tabset:target:left");
-    expect(targetPort?.listTabs().map((tab) => tab.viewActorId)).toEqual([
-      "hierarchy-view",
-      "debug-view-1"
+    expect(targetPort?.calls.some((call) => call.startsWith("split:"))).toBe(false);
+    expect(targetPort?.calls.some((call) => call.startsWith("render:hierarchy-frame:"))).toBe(true);
+    expect(targetPort?.calls).toContain(
+      "place:content:instance:debug:default:frame-tabset:target:tabset:content:instance:debug:default"
+    );
+    expect(targetPort?.readRenderedViewActorIds()).toEqual([
+      "debug-view-1",
+      "hierarchy-view"
     ]);
-    expect(targetPort?.getFocusedViewActorId()).toBe("debug-view-1");
-    expect(debugContent?.currentWindowContentHost?.id).toBe("hierarchy-frame:host:debug-view-1");
+    expect(targetPort?.readActiveViewActorId()).toBe("debug-view-1");
+    expect(debugContent?.calls).toContain("place:hierarchy-frame");
     expect(subject.controller.getLocationByViewActorId("debug-view-1")).toMatchObject({
       viewKey: "debug",
       ownerFrameActorId: "hierarchy-frame",
@@ -1488,13 +1645,13 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(nonInitialFloatingCalls(floatingCalls).filter((call) => call.includes(":persistent"))).toHaveLength(3);
   });
 
-  it("rolls back a tab merge when content rehost throws", () => {
+  it("does not use legacy content host rehost during a graph tab merge", () => {
     const subject = createSubject();
     subject.controller.openView("debug", "programmatic");
     subject.controller.openView("hierarchy", "programmatic");
     const debugView = subject.controller.getLiveViewByActorId("debug-view-1");
     const debugContent = debugView?.content as ReturnType<typeof createContent>;
-    debugContent.throwOnRehost = true;
+    debugContent.throwOnAttach = true;
     subject.cancelCalls.length = 0;
 
     const result = subject.controller.commitDock({
@@ -1510,16 +1667,14 @@ describe("DefaultWindowFrameLifecycleController", () => {
       reason: "dock-drop"
     });
 
-    const sourcePort = debugView?.framePort;
     const targetPort = subject.controller.getLiveViewByActorId("hierarchy-view")?.framePort;
-    expect(result).toEqual({ committed: false, reason: "rehost failed" });
+    expect(result).toEqual({ committed: true, sourceFrameDestroyed: true });
     expect(subject.cancelCalls).toEqual(["cancel"]);
-    expect(subject.actorSystem.getActor("debug-frame-1")).toBeTruthy();
-    expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("debug-frame-1");
-    expect(debugView?.frameActor.id).toBe("debug-frame-1");
-    expect(sourcePort?.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
-    expect(targetPort?.listTabs().map((tab) => tab.viewActorId)).toEqual(["hierarchy-view"]);
-    expect(debugContent.currentWindowContentHost?.id).toBe("debug-frame-1:host:debug-view-1");
+    expect(subject.actorSystem.getActor("debug-frame-1")).toBeNull();
+    expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("hierarchy-frame");
+    expect(debugView?.frameActor.id).toBe("hierarchy-frame");
+    expect(asOptionalTestFramePort(targetPort)?.readRenderedViewActorIds()).toEqual(["hierarchy-view", "debug-view-1"]);
+    expect(debugContent.calls).toContain("place:hierarchy-frame");
   });
 
   it("rolls back a tab merge when actor parent mutation throws", () => {
@@ -1547,9 +1702,9 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(result).toEqual({ committed: false, reason: "Actor parent cycle detected: debug-view-1 -> hierarchy-frame" });
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("debug-frame-1");
     expect(debugView?.frameActor.id).toBe("debug-frame-1");
-    expect(debugView?.framePort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
-    expect(targetPort?.listTabs().map((tab) => tab.viewActorId)).toEqual(["hierarchy-view"]);
-    expect(debugContent.currentWindowContentHost?.id).toBe("debug-frame-1:host:debug-view-1");
+    expect(asOptionalTestFramePort(debugView?.framePort)?.readRenderedViewActorIds()).toEqual(["debug-view-1"]);
+    expect(asOptionalTestFramePort(targetPort)?.readRenderedViewActorIds()).toEqual(["hierarchy-view"]);
+    expect(debugContent.calls).toContain("place:debug-frame-1");
   });
 
   it("keeps the moved view consistent when empty source frame destroy throws", () => {
@@ -1631,9 +1786,9 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!))
       .toBe("floating-debug-view-1");
     expect(debugView?.frameActor.id).toBe("floating-debug-view-1");
-    expect(debugView?.framePort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
-    expect(debugContent?.currentWindowContentHost?.id).toBe("floating-debug-view-1:host:debug-view-1");
-    expect(hierarchyView?.framePort.listTabs().map((tab) => tab.viewActorId)).toEqual(["hierarchy-view"]);
+    expect(asOptionalTestFramePort(debugView?.framePort)?.readRenderedViewActorIds()).toEqual(["debug-view-1"]);
+    expect(debugContent?.calls).toContain("place:floating-debug-view-1");
+    expect(asOptionalTestFramePort(hierarchyView?.framePort)?.readRenderedViewActorIds()).toEqual(["hierarchy-view"]);
     expect(subject.actorSystem.getActor("hierarchy-frame")).toBeTruthy();
     expect(subject.controller.getLocationByViewKey("debug")).toMatchObject({
       ownerFrameActorId: "floating-debug-view-1",
@@ -1738,7 +1893,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const sceneView = subject.controller.getLiveViewByActorId("scene-view");
     const debugView = subject.controller.getLiveViewByActorId("debug-view-1");
-    const scenePort = sceneView?.framePort as ReturnType<typeof createFramePort> | undefined;
+    const scenePort = asOptionalTestFramePort(sceneView?.framePort);
     const debugContent = debugView?.content as ReturnType<typeof createContent> | undefined;
     expect(result).toEqual({
       restoredViewKeys: ["scene", "debug"],
@@ -1749,10 +1904,10 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("scene-frame");
     expect(debugView?.frameActor.id).toBe("scene-frame");
     expect(sceneView?.frameActor.id).toBe("scene-frame");
-    expect(scenePort?.listTabs().map((tab) => tab.viewActorId)).toEqual(["scene-view", "debug-view-1"]);
-    expect(scenePort?.getFocusedViewActorId()).toBe("debug-view-1");
+    expect(scenePort?.readRenderedViewActorIds()).toEqual(["scene-view", "debug-view-1"]);
+    expect(scenePort?.readActiveViewActorId()).toBe("debug-view-1");
     expect(scenePort?.getFloatingBounds()).toMatchObject({ left: 30, top: 40, width: 500, height: 300 });
-    expect(debugContent?.currentWindowContentHost?.id).toBe("scene-frame:host:debug-view-1");
+    expect(debugContent?.calls).toContain("place:scene-frame");
     expect(JSON.stringify(subject.controller.createFrameLayoutSnapshot())).not.toContain("stale-debug-view");
   });
 
@@ -1795,12 +1950,12 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
     const sceneView = subject.controller.getLiveViewByActorId("scene-view");
     const hierarchyView = subject.controller.getLiveViewByActorId("hierarchy-view");
-    const scenePort = sceneView?.framePort as ReturnType<typeof createFramePort> | undefined;
-    const runtimeRoot = scenePort?.getRuntimeDockRoot();
+    const scenePort = asOptionalTestFramePort(sceneView?.framePort);
+    const renderedRoot = scenePort?.readRenderedRoot();
     expect(subject.actorSystem.getActor("hierarchy-frame")).toBeNull();
     expect(sceneView?.frameActor.id).toBe("scene-frame");
     expect(hierarchyView?.frameActor.id).toBe("scene-frame");
-    expect(runtimeRoot).toMatchObject({
+    expect(renderedRoot).toMatchObject({
       kind: "split",
       direction: "horizontal",
       ratio: 0.35
@@ -1898,7 +2053,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(nonInitialFloatingCalls(floatingFrameCalls)).toEqual(["create:scene-view:0:0:0:0:runtime"]);
     expect(fullscreenScene?.frameActor.id).toBe("floating-scene-view");
     expect(fullscreenScene?.framePort.presentation).toBe("fullscreen");
-    expect(rootPort.listTabs()).toEqual([]);
+    expect(rootPort.readRenderedViewActorIds()).toEqual([]);
     expect(subject.actorSystem.getActor("workspace-root-frame")).toBe(rootFrame);
     expect(subject.controller.getViewFullscreenSession("scene-view")).toEqual({
       viewActorId: "scene-view",
@@ -1913,7 +2068,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.actorSystem.getActor("floating-scene-view")).toBeNull();
     expect(restoredScene?.frameActor.id).toBe("workspace-root-frame");
     expect(restoredScene?.framePort).toBe(rootPort);
-    expect(rootPort.listTabs().map((tab) => tab.viewActorId)).toEqual(["scene-view"]);
+    expect(rootPort.readRenderedViewActorIds()).toEqual(["scene-view"]);
   });
 
   it("isolates Scene into a temporary fullscreen frame when its owner has mixed tabs", () => {
@@ -1941,9 +2096,9 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(liveScene?.frameActor.id).toBe("floating-scene-view");
     expect(liveScene?.framePort.presentation).toBe("fullscreen");
     expect(liveScene?.framePort.visiblePath).toBeNull();
-    expect(liveScene?.content.currentWindowContentHost?.id).toBe("floating-scene-view:host:scene-view");
+    expect(asOptionalTestContent(liveScene?.content)?.calls).toContain("place:floating-scene-view");
     expect(liveDebug?.frameActor.id).toBe("debug-frame-1");
-    expect(liveDebug?.framePort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
+    expect(asOptionalTestFramePort(liveDebug?.framePort)?.readRenderedViewActorIds()).toEqual(["debug-view-1"]);
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("scene-view")!)).toBe("floating-scene-view");
     expect(subject.controller.getViewFullscreenSession("scene-view")).toEqual({
       viewActorId: "scene-view",
@@ -1976,8 +2131,8 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.actorSystem.getActor("floating-scene-view")).toBeNull();
     expect(liveScene?.frameActor.id).toBe("debug-frame-1");
     expect(liveScene?.framePort).toBe(liveDebug?.framePort);
-    expect(liveScene?.framePort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1", "scene-view"]);
-    expect(liveScene?.content.currentWindowContentHost?.id).toBe("debug-frame-1:host:scene-view");
+    expect(asOptionalTestFramePort(liveScene?.framePort)?.readRenderedViewActorIds()).toEqual(["debug-view-1", "scene-view"]);
+    expect(asOptionalTestContent(liveScene?.content)?.calls).toContain("place:debug-frame-1");
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("scene-view")!)).toBe("debug-frame-1");
     expect(subject.controller.getViewFullscreenSession("scene-view")).toBeNull();
   });
@@ -2122,7 +2277,8 @@ describe("DefaultWindowFrameLifecycleController", () => {
         return {
           frameActor,
           framePort: createFramePort(frameActor.id, tab ? [tab] : [], {
-            visiblePath: runtimeOnly ? null : undefined
+            visiblePath: runtimeOnly ? null : undefined,
+            persistable: runtimeOnly ? false : true
           })
         };
       }
@@ -2179,14 +2335,14 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(nonInitialFloatingCalls(floatingFrameCalls)).toEqual(["create:debug-view-1:10:20:300:160:persistent"]);
   });
 
-  it("rolls back floating when content rehost throws and destroys the new frame", () => {
+  it("does not use legacy content host rehost while floating a tab through graph placement", () => {
     const subject = createSubject({
       createFloatingFrameFactory: (actorSystem) => createFloatingFrameFactory(actorSystem, [])
     });
     subject.controller.openView("debug", "programmatic");
     const debugView = subject.controller.getLiveViewByActorId("debug-view-1");
     const debugContent = debugView?.content as ReturnType<typeof createContent>;
-    debugContent.throwOnRehost = true;
+    debugContent.throwOnAttach = true;
 
     const result = subject.controller.commitDock({
       kind: "float-tab",
@@ -2200,13 +2356,13 @@ describe("DefaultWindowFrameLifecycleController", () => {
       reason: "dock-drop"
     });
 
-    expect(result).toEqual({ committed: false, reason: "rehost failed" });
-    expect(subject.actorSystem.getActor("floating-debug-view-1")).toBeNull();
-    expect(subject.actorSystem.getActor("debug-frame-1")).toBeTruthy();
-    expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("debug-frame-1");
-    expect(debugView?.frameActor.id).toBe("debug-frame-1");
-    expect(debugView?.framePort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
-    expect(debugContent.currentWindowContentHost?.id).toBe("debug-frame-1:host:debug-view-1");
+    expect(result).toEqual({ committed: true, sourceFrameDestroyed: true });
+    expect(subject.actorSystem.getActor("floating-debug-view-1")).toBeTruthy();
+    expect(subject.actorSystem.getActor("debug-frame-1")).toBeNull();
+    expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("floating-debug-view-1");
+    expect(debugView?.frameActor.id).toBe("floating-debug-view-1");
+    expect(asOptionalTestFramePort(debugView?.framePort)?.readRenderedViewActorIds()).toEqual(["debug-view-1"]);
+    expect(debugContent.calls).toContain("place:floating-debug-view-1");
   });
 
   it("rolls back floating when actor parent mutation throws", () => {
@@ -2238,8 +2394,8 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.actorSystem.getActor("floating-debug-view-1")).toBeNull();
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("debug-frame-1");
     expect(debugView?.frameActor.id).toBe("debug-frame-1");
-    expect(debugView?.framePort.listTabs().map((tab) => tab.viewActorId)).toEqual(["debug-view-1"]);
-    expect(debugContent.currentWindowContentHost?.id).toBe("debug-frame-1:host:debug-view-1");
+    expect(asOptionalTestFramePort(debugView?.framePort)?.readRenderedViewActorIds()).toEqual(["debug-view-1"]);
+    expect(debugContent.calls).toContain("place:debug-frame-1");
   });
 
   it("keeps the floated view consistent when source frame destroy throws", () => {
@@ -2278,23 +2434,25 @@ describe("DefaultWindowFrameLifecycleController", () => {
 
 });
 
+interface TestFramePort extends WindowFramePort, WindowWorkspaceGraphReconcilerSurface<WindowRegisteredContent> {
+  readonly calls: string[];
+  readRenderedViewActorIds(): readonly string[];
+  readActiveViewActorId(): string | null;
+  readRenderedRoot(): WindowFrameSurfaceSnapshotNode | null;
+  readPlacedContentFrames(): readonly string[];
+}
+
 function createFramePort(
   frameId: string,
-  initialTabs: readonly WindowFrameTab[] = [],
+  _initialTabs: readonly WindowFrameTab[] = [],
   options: {
     readonly visiblePath?: WindowFramePort["visiblePath"];
-    readonly throwOnRemoveTabFor?: string;
+    readonly persistable?: boolean;
   } = {}
-): WindowFramePort & { readonly calls: string[] } {
+): TestFramePort {
   const calls: string[] = [];
-  let tabs = initialTabs.map((tab) => ({ ...tab }));
-  let activeViewActorId = tabs[0]?.viewActorId ?? null;
-  let runtimeRoot: WindowFrameRuntimeDockNode = {
-    kind: "tabset",
-    id: "frame-tabset:target",
-    tabs: tabs.map((tab) => tab.viewActorId),
-    activeViewActorId
-  };
+  let lastSnapshot: WindowFrameSurfaceSnapshot | null = null;
+  const placedContentFrames: string[] = [];
   let visible = true;
   let presentationSuppressed = false;
   let presentation: WindowFramePort["presentation"] = "windowed";
@@ -2315,89 +2473,34 @@ function createFramePort(
     get effectiveVisible() {
       return visible && !presentationSuppressed;
     },
+    get persistable() {
+      return options.persistable ?? true;
+    },
     get presentationSuppressed() {
       return presentationSuppressed;
     },
     get presentation() {
       return presentation;
     },
-    listTabs: () => tabs.map((tab) => ({ ...tab })),
-    getRuntimeDockRoot: () => cloneTestRuntimeDockRoot(runtimeRoot),
-    restoreRuntimeDockRoot(root, options = {}) {
-      calls.push(`restore:${root.id}:${options.activeViewActorId ?? "default"}`);
-      const restoredTabs = options.tabs ?? [];
-      tabs = restoredTabs.map((tab) => ({ ...tab }));
-      activeViewActorId = options.activeViewActorId ?? tabs[0]?.viewActorId ?? null;
-      runtimeRoot = activateTestRuntimeDockRoot(cloneTestRuntimeDockRoot(root), activeViewActorId);
+    renderFrameSurface(snapshot: WindowFrameSurfaceSnapshot) {
+      calls.push(`render:${snapshot.frameId}:${snapshot.revision}`);
+      lastSnapshot = snapshot;
     },
-    listDockTargetTabsets: () => [{
-      targetTabsetId: "frame-tabset:target",
-      tabs: collectRuntimeRootViewActorIds(runtimeRoot),
-      tabBounds: { left: 0, top: 0, right: 100, bottom: 24, width: 100, height: 24 },
-      contentBounds: { left: 0, top: 24, right: 100, bottom: 100, width: 100, height: 76 }
-    }],
-    getFocusedViewActorId: () => activeViewActorId,
-    getActiveViewActorIds: () => listActiveViewActorIdsInTestRuntimeRoot(runtimeRoot),
-    isViewActiveInFrame: (viewActorId) => isViewActorIdActiveInTestRuntimeRoot(runtimeRoot, viewActorId),
-    isViewVisibleInFrame: (viewActorId) => visible && !presentationSuppressed &&
-      isViewActorIdActiveInTestRuntimeRoot(runtimeRoot, viewActorId),
-    addTab(tab, options = {}) {
-      calls.push(`add:${tab.viewActorId}:${options.targetTabsetId ?? "default"}`);
-      const index = tabs.findIndex((candidate) => candidate.viewActorId === tab.viewActorId);
-      if (index >= 0) {
-        tabs[index] = { ...tab };
-      } else {
-        tabs = [...tabs, { ...tab }];
-      }
-      if (options.active || !activeViewActorId) {
-        activeViewActorId = tab.viewActorId;
-      }
-      runtimeRoot = createTestRuntimeTabsetRoot(tabs, activeViewActorId);
+    measureFrameSurfaceGeometry(snapshot: WindowFrameSurfaceSnapshot): WindowWorkspaceSurfaceGeometryProjection {
+      return createTestSurfaceGeometry(snapshot);
     },
-    splitTab(tab, options) {
-      calls.push(`split:${tab.viewActorId}:${options.targetTabsetId}:${options.placement}`);
-      const index = tabs.findIndex((candidate) => candidate.viewActorId === tab.viewActorId);
-      if (index >= 0) {
-        tabs[index] = { ...tab };
-      } else {
-        tabs = [...tabs, { ...tab }];
-      }
-      if (options.active || !activeViewActorId) {
-        activeViewActorId = tab.viewActorId;
-      }
-      const split = splitTabInWindowFrameDockTree(
-        restoreWindowFrameDockTreeFromRuntimeRoot(runtimeRoot),
-        tab.viewActorId,
-        options
-      );
-      runtimeRoot = split.node
-        ? cloneWindowFrameRuntimeDockRoot(split.node)
-        : createTestRuntimeTabsetRoot(tabs, activeViewActorId);
-    },
-    removeTab(viewActorId) {
-      calls.push(`remove:${viewActorId}`);
-      if (options.throwOnRemoveTabFor === viewActorId) {
-        throw new Error("remove tab failed");
-      }
-      tabs = tabs.filter((tab) => tab.viewActorId !== viewActorId);
-      if (activeViewActorId === viewActorId) {
-        activeViewActorId = tabs[0]?.viewActorId ?? null;
-      }
-      runtimeRoot = removeViewActorIdFromTestRuntimeRoot(runtimeRoot, viewActorId) ??
-        createTestRuntimeTabsetRoot(tabs, activeViewActorId);
-    },
-    activateTab(viewActorId) {
-      calls.push(`activate:${viewActorId}`);
-      if (tabs.some((tab) => tab.viewActorId === viewActorId)) {
-        activeViewActorId = viewActorId;
-        runtimeRoot = activateTestRuntimeDockRoot(runtimeRoot, viewActorId);
+    placeContent(placement: WindowWorkspaceGraphContentPlacement<WindowRegisteredContent>) {
+      calls.push(`place:${placement.placement.contentId}:${placement.placement.tabsetId}`);
+      const content = testContentsByElement.get(placement.content.element);
+      if (content) {
+        content.calls.push(`place:${frameId}`);
+        placedContentFrames.push(frameId);
       }
     },
-    hasTab: (viewActorId) => tabs.some((tab) => tab.viewActorId === viewActorId),
-    hasTabset: (targetTabsetId) => targetTabsetId === "frame-tabset:target",
-    getContentHost(viewActorId) {
-      return createContentHost(`${frameId}:host:${viewActorId}`);
-    },
+    readRenderedViewActorIds: () => lastSnapshot ? listSurfaceSnapshotTabs(lastSnapshot.root).map((tab) => tab.viewActorId) : [],
+    readActiveViewActorId: () => lastSnapshot ? findActiveViewActorIdInSnapshot(lastSnapshot.root) : null,
+    readRenderedRoot: () => lastSnapshot?.root ?? null,
+    readPlacedContentFrames: () => [...placedContentFrames],
     getFloatingBounds: () => ({
       left: floatingState.position.x,
       top: floatingState.position.y,
@@ -2428,6 +2531,68 @@ function createFramePort(
       visible = nextVisible;
     }
   };
+}
+
+function createTestSurfaceGeometry(snapshot: WindowFrameSurfaceSnapshot): WindowWorkspaceSurfaceGeometryProjection {
+  const tabsets: Array<WindowWorkspaceSurfaceGeometryProjection["tabsets"][number]> = [];
+  const splitters: Array<WindowWorkspaceSurfaceGeometryProjection["splitters"][number]> = [];
+  collectTestSurfaceGeometry(snapshot.root, tabsets, splitters);
+  return {
+    frameId: snapshot.frameId,
+    revision: snapshot.revision,
+    tabsets,
+    splitters,
+    issues: []
+  };
+}
+
+function listSurfaceSnapshotTabs(node: WindowFrameSurfaceSnapshotNode): readonly WindowFrameSurfaceSnapshotTab[] {
+  if (node.kind === "tabset") return node.tabs;
+  return [
+    ...listSurfaceSnapshotTabs(node.first),
+    ...listSurfaceSnapshotTabs(node.second)
+  ];
+}
+
+function findActiveViewActorIdInSnapshot(node: WindowFrameSurfaceSnapshotNode): string | null {
+  if (node.kind === "tabset") {
+    return node.tabs.find((tab) => tab.contentId === node.activeContentId)?.viewActorId ??
+      node.tabs.find((tab) => tab.active)?.viewActorId ??
+      node.tabs[0]?.viewActorId ??
+      null;
+  }
+  return findActiveViewActorIdInSnapshot(node.first) ?? findActiveViewActorIdInSnapshot(node.second);
+}
+
+function asTestFramePort(framePort: WindowFramePort): TestFramePort {
+  return framePort as TestFramePort;
+}
+
+function asOptionalTestFramePort(framePort: WindowFramePort | null | undefined): TestFramePort | null {
+  return framePort ? asTestFramePort(framePort) : null;
+}
+
+function collectTestSurfaceGeometry(
+  node: WindowFrameSurfaceSnapshot["root"],
+  tabsets: Array<WindowWorkspaceSurfaceGeometryProjection["tabsets"][number]>,
+  splitters: Array<WindowWorkspaceSurfaceGeometryProjection["splitters"][number]>
+): void {
+  if (node.kind === "tabset") {
+    tabsets.push({
+      tabsetId: node.id,
+      contentIds: node.tabs.map((tab) => tab.contentId),
+      tabBounds: { left: 0, top: 0, right: 100, bottom: 24, width: 100, height: 24 },
+      contentBounds: { left: 0, top: 24, right: 100, bottom: 100, width: 100, height: 76 }
+    });
+    return;
+  }
+  splitters.push({
+    splitId: node.id,
+    direction: node.direction,
+    rect: { left: 96, top: 0, right: 104, bottom: 100, width: 8, height: 100 }
+  });
+  collectTestSurfaceGeometry(node.first, tabsets, splitters);
+  collectTestSurfaceGeometry(node.second, tabsets, splitters);
 }
 
 function expectSnapshotTabset(node: unknown): WindowFrameTabsetNode {
@@ -2463,16 +2628,13 @@ function registerDebugRuntimeFactory(
 
 function createFixedFrameFactory(
   actorSystem: ActorSystem,
-  frameId: string,
-  options: {
-    readonly throwOnRemoveTabFor?: string;
-  } = {}
+  frameId: string
 ): WindowFloatingFrameFactory {
   return ({ tab }) => {
     const frameActor = actorSystem.createActor({ id: frameId });
     return {
       frameActor,
-      framePort: createFramePort(frameId, tab ? [tab] : [], options)
+      framePort: createFramePort(frameId, tab ? [tab] : [])
     };
   };
 }
@@ -2502,7 +2664,8 @@ function createFloatingFrameFactory(
     return {
       frameActor,
       framePort: createFramePort(frameActor.id, tab ? [tab] : [], {
-        visiblePath: runtimeOnly ? null : undefined
+        visiblePath: runtimeOnly ? null : undefined,
+        persistable: runtimeOnly ? false : true
       })
     };
   };
@@ -2516,142 +2679,44 @@ function createInitialFrameId(viewKey: string, counters: Map<string, number>): s
   return `${viewKey}-frame-${next}`;
 }
 
-function createTestRuntimeTabsetRoot(
-  tabs: readonly WindowFrameTab[],
-  activeViewActorId: string | null
-): WindowFrameRuntimeDockNode {
-  return {
-    kind: "tabset",
-    id: "frame-tabset:target",
-    tabs: tabs.map((tab) => tab.viewActorId),
-    activeViewActorId
-  };
-}
-
-function cloneTestRuntimeDockRoot(root: WindowFrameRuntimeDockNode): WindowFrameRuntimeDockNode {
-  if (root.kind === "tabset") {
-    return {
-      ...root,
-      tabs: [...root.tabs]
-    };
-  }
-  return {
-    ...root,
-    first: cloneTestRuntimeDockRoot(root.first),
-    second: cloneTestRuntimeDockRoot(root.second)
-  };
-}
-
-function activateTestRuntimeDockRoot(
-  root: WindowFrameRuntimeDockNode,
-  viewActorId: string | null
-): WindowFrameRuntimeDockNode {
-  if (!viewActorId) return root;
-  if (root.kind === "tabset") {
-    return root.tabs.includes(viewActorId)
-      ? { ...root, activeViewActorId: viewActorId }
-      : root;
-  }
-  if (containsTestRuntimeViewActorId(root.first, viewActorId)) {
-    return {
-      ...root,
-      first: activateTestRuntimeDockRoot(root.first, viewActorId)
-    };
-  }
-  if (containsTestRuntimeViewActorId(root.second, viewActorId)) {
-    return {
-      ...root,
-      second: activateTestRuntimeDockRoot(root.second, viewActorId)
-    };
-  }
-  return root;
-}
-
-function isViewActorIdActiveInTestRuntimeRoot(root: WindowFrameRuntimeDockNode, viewActorId: string): boolean {
-  if (root.kind === "tabset") return root.activeViewActorId === viewActorId;
-  return isViewActorIdActiveInTestRuntimeRoot(root.first, viewActorId) ||
-    isViewActorIdActiveInTestRuntimeRoot(root.second, viewActorId);
-}
-
-function listActiveViewActorIdsInTestRuntimeRoot(root: WindowFrameRuntimeDockNode): readonly string[] {
-  if (root.kind === "tabset") return root.activeViewActorId ? [root.activeViewActorId] : [];
-  return [
-    ...listActiveViewActorIdsInTestRuntimeRoot(root.first),
-    ...listActiveViewActorIdsInTestRuntimeRoot(root.second)
-  ];
-}
-
-function collectRuntimeRootViewActorIds(root: WindowFrameRuntimeDockNode): readonly string[] {
-  if (root.kind === "tabset") return [...root.tabs];
-  return [
-    ...collectRuntimeRootViewActorIds(root.first),
-    ...collectRuntimeRootViewActorIds(root.second)
-  ];
-}
-
-function containsTestRuntimeViewActorId(root: WindowFrameRuntimeDockNode, viewActorId: string): boolean {
-  if (root.kind === "tabset") return root.tabs.includes(viewActorId);
-  return containsTestRuntimeViewActorId(root.first, viewActorId) ||
-    containsTestRuntimeViewActorId(root.second, viewActorId);
-}
-
-function removeViewActorIdFromTestRuntimeRoot(
-  root: WindowFrameRuntimeDockNode,
-  viewActorId: string
-): WindowFrameRuntimeDockNode | null {
-  if (root.kind === "tabset") {
-    if (!root.tabs.includes(viewActorId)) return root;
-    const tabs = root.tabs.filter((tab) => tab !== viewActorId);
-    if (tabs.length === 0) return null;
-    return {
-      ...root,
-      tabs,
-      activeViewActorId: root.activeViewActorId === viewActorId
-        ? tabs[0] ?? null
-        : root.activeViewActorId
-    };
-  }
-  const first = removeViewActorIdFromTestRuntimeRoot(root.first, viewActorId);
-  const second = removeViewActorIdFromTestRuntimeRoot(root.second, viewActorId);
-  if (!first) return second;
-  if (!second) return first;
-  return {
-    ...root,
-    first,
-    second
-  };
-}
-
-function createContent(): WindowContentRehostable & {
+const testContentsByElement = new WeakMap<HTMLElement, WindowRegisteredContent & {
   readonly calls: string[];
-  throwOnRehost: boolean;
+  throwOnAttach: boolean;
+}>();
+
+type TestRegisteredContent = WindowRegisteredContent & {
+  readonly calls: string[];
+  throwOnAttach: boolean;
+};
+
+function createContent(): WindowRegisteredContent & {
+  readonly calls: string[];
+  throwOnAttach: boolean;
 } {
   const calls: string[] = [];
-  let currentWindowContentHost: WindowContentHost | null = null;
-  return {
+  const element = {} as HTMLElement;
+  const content: WindowRegisteredContent & {
+    readonly calls: string[];
+    throwOnAttach: boolean;
+  } = {
+    contentId: `content:${Math.random().toString(16).slice(2)}`,
+    element,
     calls,
-    throwOnRehost: false,
-    get currentWindowContentHost() {
-      return currentWindowContentHost;
+    throwOnAttach: false,
+    get interactable() {
+      return true;
     },
-    rehostWindowContent(host) {
-      calls.push(`rehost:${host.id}`);
-      if (this.throwOnRehost) {
-        throw new Error("rehost failed");
-      }
-      currentWindowContentHost = host;
+    setInteractable() {},
+    subscribeLayoutCommit(): WindowContentLayoutCommitRegistration {
+      return { dispose() {} };
     },
-    setWindowContentInteractable() {}
+    dispose() {}
   };
+  testContentsByElement.set(element, content);
+  return content;
 }
 
-function createContentHost(id: string): WindowContentHost {
-  return {
-    id,
-    mountContent() {
-      throw new Error("not used");
-    },
-    isContentInteractable: () => true
-  };
+function asOptionalTestContent(content: WindowRegisteredContent | null | undefined): TestRegisteredContent | null {
+  return content ? content as TestRegisteredContent : null;
 }
 

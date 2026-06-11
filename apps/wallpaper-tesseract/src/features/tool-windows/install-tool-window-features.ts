@@ -14,7 +14,11 @@ import {
 } from "../../hierarchy";
 import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
 import type { FeatureActorContext } from "../../runtime/ports";
-import { uiVec2, type WindowViewFactoryRegistry } from "../../window-runtime";
+import {
+  createWindowWorkspaceContentId,
+  uiVec2,
+  type WindowViewFactoryRegistry
+} from "../../window-runtime";
 import type {
   WindowWorkspaceDefaultOpenView,
   WindowWorkspaceFloatingFramePolicy
@@ -80,7 +84,9 @@ export function installToolWindowFeatures(options: InstallToolWindowFeaturesOpti
       const handle = createDebugLogViewActor(options.context, {
         actorId: options.actorIds.debugLogViewActorId,
         actorName: options.actorIds.debugLogViewActorName,
-        parentActor: createOptions.parentFrameActor
+        parentActor: createOptions.parentFrameActor,
+        contentId: createWindowWorkspaceContentId(createOptions.identity),
+        contentRegistration: createOptions.contentRegistration
       });
       options.onDebugLogContentChanged?.(handle.component);
       return {
@@ -103,7 +109,9 @@ export function installToolWindowFeatures(options: InstallToolWindowFeaturesOpti
         actorId: options.actorIds.hierarchyPanelViewActorId,
         actorName: options.actorIds.hierarchyPanelViewActorName,
         parentActor: createOptions.parentFrameActor,
-        objectSource: options.hierarchyObjectSource
+        objectSource: options.hierarchyObjectSource,
+        contentId: createWindowWorkspaceContentId(createOptions.identity),
+        contentRegistration: createOptions.contentRegistration
       });
       return {
         viewActor: handle.component.actor,

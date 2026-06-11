@@ -83,7 +83,7 @@ export function createRenderableSceneView(options: CreateRenderableSceneViewOpti
     },
     render() {
       if (!options.host.isVisibleInCurrentLocation()) return;
-      options.host.renderWithCamera(options.camera3Motion.activeCamera);
+      options.host.renderWithCamera(options.camera3Motion.getRuntimeThreeCameraForRender());
     }
   };
 }

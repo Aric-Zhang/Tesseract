@@ -1,11 +1,16 @@
 import * as THREE from "three";
-import { createRuntimeThreeWebGLRenderer } from "runtime-three";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import type { RuntimeRegistration } from "../../../runtime/ports";
 import type {
-  WindowContentAttachment,
-  WindowContentHost,
-  WindowContentRehostable
+  RuntimeSceneRenderer,
+  RuntimeSceneRendererFactory,
+  RuntimeSceneRenderOutput
+} from "../../../runtime/scene-render-output";
+import type {
+  WindowContentLayoutCommit,
+  WindowContentLayoutCommitRegistration,
+  WindowContentRegistrationPort,
+  WindowRegisteredContent
 } from "../../../window-runtime";
 
 export const sceneViewportComponentType =
@@ -14,26 +19,20 @@ export const sceneViewportComponentType =
 export interface SceneViewportComponentOptions {
   id?: string;
   document?: Pick<Document, "createElement">;
-  createRenderer?: SceneViewportRendererFactory;
+  renderOutput: RuntimeSceneRenderOutput;
+  contentId: string;
+  contentRegistration: WindowContentRegistrationPort;
   createResizeObserver?: SceneViewportResizeObserverFactory;
   devicePixelRatio?: () => number;
 }
 
-export interface SceneViewportRenderer {
-  readonly domElement: HTMLElement;
-  setClearColor(color: number, alpha: number): void;
-  setPixelRatio(pixelRatio: number): void;
-  setSize(width: number, height: number, updateStyle: boolean): void;
-  render(scene: THREE.Scene, camera: THREE.Camera): void;
-  dispose(): void;
-}
+export type SceneViewportRenderer = RuntimeSceneRenderer;
+export type SceneViewportRendererFactory = RuntimeSceneRendererFactory;
 
 export interface SceneViewportSize {
   readonly width: number;
   readonly height: number;
 }
-
-export type SceneViewportRendererFactory = () => SceneViewportRenderer;
 
 export interface SceneViewportResizeObserver {
   observe(target: Element): void;
@@ -44,27 +43,26 @@ export type SceneViewportResizeObserverFactory = (
   callback: () => void
 ) => SceneViewportResizeObserver;
 
-export class SceneViewportComponent implements Component, WindowContentRehostable {
+export class SceneViewportComponent implements Component, WindowRegisteredContent {
   readonly type = sceneViewportComponentType;
   readonly actor: Actor;
   readonly id: string;
-  readonly scene = new THREE.Scene();
   readonly viewportElement: HTMLDivElement;
   readonly canvasHostElement: HTMLDivElement;
   readonly overlayElement: HTMLDivElement;
-  readonly renderer: SceneViewportRenderer;
   enabled = true;
 
-  #attachment: WindowContentAttachment;
+  #registration: WindowRegisteredContent;
   readonly #devicePixelRatio: () => number;
+  readonly #renderOutput: RuntimeSceneRenderOutput;
   readonly #resizeSubscribers: Array<(size: SceneViewportSize) => void> = [];
   readonly #resizeObserver: SceneViewportResizeObserver | null;
+  #layoutCommitRegistration: RuntimeRegistration | null = null;
   #lastSize: SceneViewportSize | null = null;
 
   constructor(
     actor: Actor,
-    host: WindowContentHost,
-    options: SceneViewportComponentOptions = {}
+    options: SceneViewportComponentOptions
   ) {
     this.actor = actor;
     this.id = options.id ?? "scene-viewport";
@@ -72,35 +70,49 @@ export class SceneViewportComponent implements Component, WindowContentRehostabl
     this.#devicePixelRatio = options.devicePixelRatio ?? (() => (
       typeof window === "undefined" ? 1 : window.devicePixelRatio
     ));
-    this.renderer = (options.createRenderer ?? createDefaultRenderer)();
-    this.renderer.setClearColor(0x07090d, 1);
+    this.#renderOutput = options.renderOutput;
     this.viewportElement = documentRef.createElement("div");
     this.viewportElement.className = "scene-window__viewport";
     this.canvasHostElement = documentRef.createElement("div");
     this.canvasHostElement.className = "scene-window__canvas-host";
     this.overlayElement = documentRef.createElement("div");
     this.overlayElement.className = "scene-window__overlay";
-    this.canvasHostElement.append(this.renderer.domElement);
+    this.canvasHostElement.append(this.#renderOutput.domElement);
     this.viewportElement.append(this.canvasHostElement, this.overlayElement);
-    this.#attachment = host.mountContent(this.viewportElement);
+    this.#registration = options.contentRegistration.registerContent({
+      contentId: options.contentId,
+      element: this.viewportElement
+    });
+    this.#layoutCommitRegistration = this.#registration.subscribeLayoutCommit((commit) => {
+      if (!commit.active || !commit.interactable) return;
+      if (commit.contentRect.width <= 0 || commit.contentRect.height <= 0) return;
+      this.measureNow();
+    });
     this.#resizeObserver = createResizeObserver(options.createResizeObserver, () => this.measureNow());
     this.#resizeObserver?.observe(this.viewportElement);
     this.measureNow();
   }
 
-  get currentWindowContentHost(): WindowContentHost | null {
-    return this.enabled ? this.#attachment.host : null;
+  get contentId(): string {
+    return this.#registration.contentId;
   }
 
-  rehostWindowContent(host: WindowContentHost): void {
-    const previous = this.#attachment;
-    this.#attachment = host.mountContent(this.viewportElement);
-    previous.dispose();
-    this.measureNow();
+  get element(): HTMLElement {
+    return this.viewportElement;
   }
 
-  setWindowContentInteractable(interactable: boolean): void {
-    this.#attachment.setInteractable(interactable);
+  get interactable(): boolean {
+    return this.#registration.interactable;
+  }
+
+  setInteractable(interactable: boolean): void {
+    this.#registration.setInteractable(interactable);
+  }
+
+  subscribeLayoutCommit(
+    callback: (commit: WindowContentLayoutCommit) => void
+  ): WindowContentLayoutCommitRegistration {
+    return this.#registration.subscribeLayoutCommit(callback);
   }
 
   getSize(): SceneViewportSize | null {
@@ -129,28 +141,24 @@ export class SceneViewportComponent implements Component, WindowContentRehostabl
     if (this.#lastSize && this.#lastSize.width === width && this.#lastSize.height === height) return;
     const size = { width, height };
     this.#lastSize = size;
-    this.renderer.setPixelRatio(Math.min(this.#devicePixelRatio() || 1, 2));
-    this.renderer.setSize(width, height, false);
+    this.#renderOutput.setSize(width, height, this.#devicePixelRatio());
     for (const subscriber of [...this.#resizeSubscribers]) {
       subscriber(size);
     }
   }
 
   render(camera: THREE.Camera): void {
-    this.renderer.render(this.scene, camera);
+    this.#renderOutput.render(camera);
   }
 
   dispose(): void {
     this.enabled = false;
+    this.#layoutCommitRegistration?.dispose();
+    this.#layoutCommitRegistration = null;
     this.#resizeObserver?.disconnect();
-    this.renderer.dispose();
-    this.#attachment.dispose();
+    this.#registration.dispose();
     this.#resizeSubscribers.length = 0;
   }
-}
-
-function createDefaultRenderer(): SceneViewportRenderer {
-  return createRuntimeThreeWebGLRenderer({ antialias: true, alpha: false });
 }
 
 function createResizeObserver(

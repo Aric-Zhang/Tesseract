@@ -9,8 +9,7 @@ export {
   inspectorContentComponentType
 } from "./inspector-content-component";
 export type {
-  InspectorContentComponentOptions,
-  InspectorContentComponentServices
+  InspectorContentComponentOptions
 } from "./inspector-content-component";
 export { inspectorContentComponentDefinition } from "./inspector-content-definition";
 export { createInspectorViewActor } from "./inspector-view-actor-factory";

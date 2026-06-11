@@ -1,8 +1,9 @@
 import type { Actor, Component, ComponentDefinition, ComponentType } from "../actor-runtime";
 import type {
-  WindowContentAttachment,
-  WindowContentHost,
-  WindowContentRehostable
+  WindowContentLayoutCommit,
+  WindowContentLayoutCommitRegistration,
+  WindowContentRegistrationPort,
+  WindowRegisteredContent
 } from "../window-runtime";
 
 export const genericFixtureViewComponentType =
@@ -13,17 +14,19 @@ export interface GenericFixtureViewComponentOptions {
   readonly title: string;
   readonly body?: string;
   readonly document?: Pick<Document, "createElement">;
+  readonly contentId: string;
+  readonly contentRegistration: WindowContentRegistrationPort;
 }
 
 export class GenericFixtureViewComponent
-  implements Component, WindowContentRehostable {
+  implements Component, WindowRegisteredContent {
   readonly type = genericFixtureViewComponentType;
   readonly actor: Actor;
   readonly id: string;
   enabled = true;
 
   readonly element: HTMLElement;
-  #attachment: WindowContentAttachment | null = null;
+  readonly #registration: WindowRegisteredContent;
 
   constructor(actor: Actor, options: GenericFixtureViewComponentOptions) {
     this.actor = actor;
@@ -40,26 +43,32 @@ export class GenericFixtureViewComponent
     body.className = "ui-fixture-view__body";
     body.textContent = options.body ?? `${options.title} content`;
     this.element.append(heading, body);
-  }
-
-  get currentWindowContentHost(): WindowContentHost | null {
-    return this.#attachment?.host ?? null;
-  }
-
-  rehostWindowContent(host: WindowContentHost): void {
-    this.#attachment = host.mountContent({
-      element: this.element,
-      viewActorId: this.actor.id
+    this.#registration = options.contentRegistration.registerContent({
+      contentId: options.contentId,
+      element: this.element
     });
   }
 
-  setWindowContentInteractable(interactable: boolean): void {
-    this.#attachment?.setInteractable(interactable);
+  get contentId(): string {
+    return this.#registration.contentId;
+  }
+
+  get interactable(): boolean {
+    return this.#registration.interactable;
+  }
+
+  setInteractable(interactable: boolean): void {
+    this.#registration.setInteractable(interactable);
+  }
+
+  subscribeLayoutCommit(
+    callback: (commit: WindowContentLayoutCommit) => void
+  ): WindowContentLayoutCommitRegistration {
+    return this.#registration.subscribeLayoutCommit(callback);
   }
 
   dispose(): void {
-    this.#attachment?.dispose();
-    this.#attachment = null;
+    this.#registration.dispose();
     this.element.remove();
   }
 }

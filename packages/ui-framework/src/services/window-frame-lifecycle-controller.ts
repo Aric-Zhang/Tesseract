@@ -8,6 +8,7 @@ import type {
   WindowCloseFrameResult,
   WindowCloseViewResult,
   WindowCloseViewOptions,
+  WindowFrameSplitResizeResult,
   WindowFrameLayoutRestorePort,
   WindowFrameLayoutRestoreResult,
   WindowFloatingFrameFactory,
@@ -22,7 +23,11 @@ import type {
   WindowViewFullscreenSession,
   WindowViewPresentationCommandPort
 } from "./window-frame-lifecycle";
-import type { WindowContentRehostable } from "../ports/window-content-host";
+import {
+  WindowContentRegistry,
+  type WindowContentRegistrationPort,
+  type WindowRegisteredContent
+} from "../ports/window-content-host";
 import type { WindowFramePort } from "../ports/window-frame-port";
 import type { WindowFramePortRegistryEntry, WindowFramePortRegistryView } from "../ports/window-frame-port-registry";
 import type {
@@ -37,7 +42,6 @@ import {
 } from "../model/window-view-identity";
 import type { WindowViewKey } from "../model/window-view-key";
 import { uiVec2 } from "../ports/ui-geometry";
-import { findWindowFrameDockTreeTabsetById } from "../model/window-frame-dock-tree";
 import {
   collectFrameViewKeys,
   normalizeWindowWorkspaceFrameLayout,
@@ -45,7 +49,35 @@ import {
   type WindowWorkspaceFrameLayout,
   type WindowWorkspaceViewDescriptor
 } from "../model/window-workspace-layout";
-import type { WindowFrameRuntimeDockNode } from "../model/window-frame-tab";
+import type { WindowFrameTab } from "../model/window-frame-tab";
+import {
+  createWindowWorkspaceContentId,
+  createWindowWorkspaceGraphCommit,
+  createWindowWorkspaceGraphSnapshot,
+  createWindowWorkspaceRealizationMap,
+  reduceWindowWorkspaceGraphTransaction,
+  windowWorkspaceTabsetId,
+  windowWorkspaceFrameId,
+  windowWorkspaceSplitId,
+  type WindowWorkspaceGraphDockNode,
+  type WindowWorkspaceGraphContentInput,
+  type WindowWorkspaceGraphFrameInput,
+  type WindowWorkspaceGraphFrameSnapshot,
+  type WindowWorkspaceGraphTabsetNode,
+  type WindowWorkspaceGraphTransaction,
+  type WindowWorkspaceGraphPlacement,
+  type WindowWorkspaceGraphSnapshot,
+  type WindowWorkspaceTabsetId
+} from "../model/window-workspace-graph";
+import {
+  reconcileWindowWorkspaceGraphCommit,
+  reconcileWindowWorkspaceGraphTransaction,
+  type WindowFrameSurfaceSnapshot,
+  type WindowWorkspaceGraphProjectionResult,
+  type WindowWorkspaceGraphReconcilerSurface,
+  type WindowWorkspaceGraphTransactionReconcileResult,
+  type WindowWorkspaceSurfaceGeometryProjection
+} from "./window-workspace-graph-reconciler";
 
 export interface LiveWindowView {
   readonly identity: WindowViewIdentity;
@@ -53,19 +85,20 @@ export interface LiveWindowView {
   frameActor: Actor;
   framePort: WindowFramePort;
   readonly viewActor: Actor;
-  readonly content: WindowContentRehostable;
+  readonly content: WindowRegisteredContent;
   readonly disposeViewRuntime?: () => void;
   activationSequence: number;
 }
 
-type WindowFramePortTab = ReturnType<WindowFramePort["listTabs"]>[number];
+type WindowFramePortTab = WindowFrameTab;
 type WindowFrameBounds = ReturnType<WindowFramePort["getFloatingBounds"]>;
+type WindowWorkspaceGraphFrameSurface = WindowFramePort & WindowWorkspaceGraphReconcilerSurface<WindowRegisteredContent>;
 
 interface WindowViewFullscreenRestoreTarget {
   readonly sourceFrameId: string;
-  readonly sourceRoot: WindowFrameRuntimeDockNode;
-  readonly sourceTabs: readonly WindowFramePortTab[];
-  readonly sourceActiveViewActorId: string | null;
+  readonly sourceFrameSnapshot: WindowWorkspaceGraphFrameSnapshot;
+  readonly sourceTargetFrame: WindowWorkspaceGraphFrameSnapshot;
+  readonly sourceTabsetId: WindowWorkspaceTabsetId;
   readonly sourceBounds: WindowFrameBounds;
   readonly sourcePresentation: WindowFramePort["presentation"];
   readonly sourceVisiblePath: WindowFramePort["visiblePath"];
@@ -96,6 +129,7 @@ export interface WindowFrameLifecycleControllerOptions {
   readonly cancelActiveInput?: () => void;
   readonly createFloatingFrame?: WindowFloatingFrameFactory;
   readonly framePorts?: WindowFramePortRegistryView;
+  readonly contentRegistration?: WindowContentRegistrationPort;
 }
 
 export class DefaultWindowFrameLifecycleController implements
@@ -111,8 +145,18 @@ export class DefaultWindowFrameLifecycleController implements
   readonly #cancelActiveInput?: () => void;
   readonly #createFloatingFrame?: WindowFloatingFrameFactory;
   readonly #framePorts?: WindowFramePortRegistryView;
+  readonly #contentRegistration: WindowContentRegistrationPort;
   readonly #liveViews = new Map<string, LiveWindowView>();
   readonly #fullscreenSessionsByViewActorId = new Map<string, ManagedWindowViewFullscreenSession>();
+  #workspaceGraphSnapshot: WindowWorkspaceGraphSnapshot = createWindowWorkspaceGraphSnapshot({
+    revision: 0,
+    contents: [],
+    frames: []
+  });
+  #workspaceGraphRealization = createWindowWorkspaceRealizationMap<WindowRegisteredContent, WindowWorkspaceGraphFrameSurface>();
+  #workspaceGraphProjection: WindowWorkspaceGraphProjectionResult<WindowWorkspaceGraphFrameSurface> | null = null;
+  #workspaceSurfaceGeometryByFrameId = new Map<string, WindowWorkspaceSurfaceGeometryProjection>();
+  #workspaceGraphBootstrapSignature = "";
   #activationSequence = 0;
 
   constructor(options: WindowFrameLifecycleControllerOptions) {
@@ -122,6 +166,7 @@ export class DefaultWindowFrameLifecycleController implements
     this.#cancelActiveInput = options.cancelActiveInput;
     this.#createFloatingFrame = options.createFloatingFrame;
     this.#framePorts = options.framePorts;
+    this.#contentRegistration = options.contentRegistration ?? new WindowContentRegistry();
   }
 
   openView(
@@ -131,7 +176,7 @@ export class DefaultWindowFrameLifecycleController implements
   ): void {
     const liveView = this.getLiveView(viewKey);
     if (liveView) {
-      liveView.framePort.activateTab(liveView.viewActor.id);
+      this.activateContentPlacement(liveView);
       this.recordViewActivation(liveView);
       this.#windowFocus?.focusActorWindow(liveView.frameActor, toWindowFocusReason(reason));
       return;
@@ -192,7 +237,7 @@ export class DefaultWindowFrameLifecycleController implements
   ): boolean {
     const liveView = this.getLiveViewByIdentity(identity);
     if (!liveView) return false;
-    liveView.framePort.activateTab(liveView.viewActor.id);
+    this.activateContentPlacement(liveView);
     this.recordViewActivation(liveView);
     this.#windowFocus?.focusActorWindow(liveView.frameActor, toWindowFocusReason(reason));
     return true;
@@ -219,10 +264,22 @@ export class DefaultWindowFrameLifecycleController implements
     }
     this.#cancelActiveInput?.();
     const liveViews = this.listLiveViewsForFrame(frameActor);
+    const closeFrameTransaction = this.commitWorkspaceGraphTransaction({
+      kind: "close-frame",
+      frameId: windowWorkspaceFrameId(frameId)
+    });
+    if (!closeFrameTransaction.committed) {
+      return {
+        closed: false,
+        frameId,
+        reason: describeGraphTransactionFailure(closeFrameTransaction, "frame graph close failed")
+      };
+    }
     const cleanedViewActorIds: string[] = [];
     for (const liveView of liveViews) {
       const cleanup = this.disposeLiveViewRuntimeForClose(liveView);
       if (!cleanup.disposed) {
+        this.restoreWorkspaceGraphSnapshot(closeFrameTransaction.rollbackSnapshot);
         return {
           closed: false,
           frameId,
@@ -325,26 +382,32 @@ export class DefaultWindowFrameLifecycleController implements
 
     const sourceFrame = currentLiveView.frameActor;
     const sourceFrameId = sourceFrame.id;
-    const sourcePort = currentLiveView.framePort;
-    const nextActiveViewActorId = findRuntimeDockRootNextActiveViewActorIdAfterRemove(
-      sourcePort.getRuntimeDockRoot(),
-      viewActorId
-    );
     const warnings: string[] = [];
+    const closeTransaction = this.commitWorkspaceGraphTransaction({
+      kind: "close-content",
+      contentId: createWindowWorkspaceContentId(currentLiveView.identity),
+      preserveEmptyFrameIds: this.canDestroyFrame(sourceFrame)
+        ? []
+        : [windowWorkspaceFrameId(sourceFrame.id)]
+    });
+    if (!closeTransaction.committed) {
+      return {
+        closed: false,
+        reason: closeTransaction.warnings.join("; ") || "view graph close failed",
+        sourceFrameId
+      };
+    }
+    warnings.push(...closeTransaction.warnings);
+    const nextActiveViewActorId = this.findFirstActiveViewActorIdInFrame(closeTransaction.nextSnapshot, sourceFrameId);
     const cleanup = this.disposeLiveViewRuntimeForClose(currentLiveView);
     if (!cleanup.disposed) {
+      this.restoreWorkspaceGraphSnapshot(closeTransaction.rollbackSnapshot);
       return {
         closed: false,
         reason: cleanup.reason,
         sourceFrameId,
         error: cleanup.error
       };
-    }
-
-    try {
-      sourcePort.removeTab(viewActorId);
-    } catch (error) {
-      warnings.push(describeError(error, "view tab removal failed"));
     }
 
     try {
@@ -380,12 +443,9 @@ export class DefaultWindowFrameLifecycleController implements
       };
     }
 
-    if (nextActiveViewActorId && sourcePort.hasTab(nextActiveViewActorId)) {
-      sourcePort.activateTab(nextActiveViewActorId);
+    if (nextActiveViewActorId) {
       const nextLiveView = this.getLiveViewByActorId(nextActiveViewActorId);
-      if (nextLiveView) {
-        this.recordViewActivation(nextLiveView);
-      }
+      if (nextLiveView) this.recordViewActivation(nextLiveView);
     }
     this.#windowFocus?.focusActorWindow(sourceFrame, toWindowFocusReason("programmatic"));
     return {
@@ -404,9 +464,33 @@ export class DefaultWindowFrameLifecycleController implements
   ): void {
     const liveView = this.getLiveViewByActorId(viewActorId);
     if (!liveView || liveView.frameActor.id !== frameId) return;
-    liveView.framePort.activateTab(viewActorId);
+    this.activateContentPlacement(liveView);
     this.recordViewActivation(liveView);
     this.#windowFocus?.focusActorWindow(liveView.frameActor, toWindowFocusReason(reason));
+  }
+
+  resizeFrameSplit(
+    frameId: string,
+    splitId: string,
+    ratio: number,
+    _reason: Extract<WindowFrameLifecycleReason, "dock-drop" | "programmatic">
+  ): WindowFrameSplitResizeResult {
+    const frameEntry = this.getFramePortEntryById(frameId);
+    if (!frameEntry || !this.#actorSystem.hasActor(frameEntry.frameActor)) {
+      return { resized: false, reason: "frame is not live" };
+    }
+    const result = this.commitWorkspaceGraphTransaction({
+      kind: "resize-split",
+      splitId: windowWorkspaceSplitId(splitId),
+      ratio
+    });
+    return result.committed
+      ? { resized: true }
+      : {
+          resized: false,
+          reason: [...result.hardIssues, ...result.softIssues].map((issue) => issue.message).join("; ") ||
+            "split resize failed"
+        };
   }
 
   validateDockCommit(intent: WindowDockCommitIntent): WindowDockCommitValidationResult {
@@ -420,7 +504,8 @@ export class DefaultWindowFrameLifecycleController implements
     if (sourceView.frameActor.id !== intent.source.frameId) {
       return invalidDockCommit("source frame mismatch");
     }
-    if (!sourceView.framePort.hasTab(intent.source.viewActorId)) {
+    const sourcePlacement = this.findWorkspaceGraphPlacementForLiveView(sourceView);
+    if (sourcePlacement?.frameId !== windowWorkspaceFrameId(intent.source.frameId)) {
       return invalidDockCommit("source frame does not contain source tab");
     }
     if (intent.kind === "float-tab") {
@@ -450,24 +535,22 @@ export class DefaultWindowFrameLifecycleController implements
     if (!targetEntry || !this.#actorSystem.hasActor(targetEntry.frameActor)) {
       return invalidDockCommit("target frame has no live views");
     }
-    const targetPort = targetEntry.framePort;
-    if (!targetPort.hasTabset(intent.targetTabsetId)) {
+    this.ensureWorkspaceGraphFrame(targetEntry.framePort);
+    const graphTargetTabset = this.findWorkspaceGraphTabset(intent.targetFrameId, intent.targetTabsetId);
+    if (!graphTargetTabset) {
       return invalidDockCommit("target tabset is missing");
     }
     if (sameFrame && intent.kind === "merge-tabs" && intent.source.sourceTabsetId === intent.targetTabsetId) {
       return invalidDockCommit("same tabset drop is a no-op");
     }
     if (sameFrame && intent.kind === "split-tab" && intent.source.sourceTabsetId === intent.targetTabsetId) {
-      const sourceTabset = findWindowFrameDockTreeTabsetById(
-        sourceView.framePort.getRuntimeDockRoot(),
-        intent.source.sourceTabsetId
-      );
-      const hasSiblingTabs = Boolean(sourceTabset?.tabs.some((viewActorId) => viewActorId !== intent.source.viewActorId));
+      const sourceContentId = createWindowWorkspaceContentId(sourceView.identity);
+      const hasSiblingTabs = Boolean(graphTargetTabset?.contentIds.some((contentId: string) => contentId !== sourceContentId));
       if (!hasSiblingTabs) {
         return invalidDockCommit("same tabset split is a no-op");
       }
     }
-    if (!sameFrame && targetPort.hasTab(intent.source.viewActorId)) {
+    if (!sameFrame && sourcePlacement?.frameId === windowWorkspaceFrameId(intent.targetFrameId)) {
       return invalidDockCommit("target frame already contains source tab");
     }
     return { valid: true };
@@ -484,11 +567,7 @@ export class DefaultWindowFrameLifecycleController implements
     }
     const sourceFrame = sourceView.frameActor;
     const sourcePort = sourceView.framePort;
-    const sourceTab = sourcePort.listTabs()
-      .find((tab) => tab.viewActorId === sourceView.viewActor.id);
-    if (!sourceTab) {
-      return { committed: false, reason: "source frame does not contain source tab" };
-    }
+    const sourceTab = this.createLiveViewTab(sourceView);
     if (intent.kind === "float-tab") {
       return this.commitFloatTab(intent, sourceView, sourceTab);
     }
@@ -512,32 +591,44 @@ export class DefaultWindowFrameLifecycleController implements
       return this.commitSplitTab(intent, sourceView, sourceTab, targetFrame, targetPort);
     }
 
-    const rollback = {
-      parentId: this.#actorSystem.getParentId(sourceView.viewActor),
-      sourceFrame,
-      sourcePort,
-      sourceActiveViewActorId: sourcePort.getFocusedViewActorId(),
-      sourceTab,
-      targetFrame,
-      targetPort,
-      targetActiveViewActorId: targetPort.getFocusedViewActorId()
-    };
-
     this.#cancelActiveInput?.();
+    const result = this.commitWorkspaceGraphTransaction({
+      kind: "move-content",
+      contentId: createWindowWorkspaceContentId(sourceView.identity),
+      targetFrameId: windowWorkspaceFrameId(intent.targetFrameId),
+      targetTabsetId: windowWorkspaceTabsetId(intent.targetTabsetId),
+      targetFrame: this.createEmptyWorkspaceGraphFrameInput(targetPort, intent.targetTabsetId),
+      active: true,
+      preserveEmptyFrameIds: this.canDestroyFrame(sourceFrame)
+        ? []
+        : [windowWorkspaceFrameId(sourceFrame.id)]
+    }, {
+      extraFrameSurfaces: createExtraFrameSurface(targetPort)
+    });
+    if (!result.committed) {
+      return {
+        committed: false,
+        reason: describeGraphTransactionFailure(result, "dock merge failed")
+      };
+    }
+    const rollbackParentId = this.#actorSystem.getParentId(sourceView.viewActor);
     try {
-      sourceView.content.rehostWindowContent(targetPort.getContentHost(sourceView.viewActor.id));
-      sourcePort.removeTab(sourceView.viewActor.id);
-      targetPort.addTab(sourceTab, {
-        active: true,
-        targetTabsetId: intent.targetTabsetId
-      });
       sourceView.frameActor = targetFrame;
       sourceView.framePort = targetPort;
       this.#actorSystem.setParent(sourceView.viewActor, targetFrame);
       this.recordViewActivation(sourceView);
       this.#windowFocus?.focusActorWindow(targetFrame, toWindowFocusReason(intent.reason));
     } catch (error) {
-      this.rollbackMerge(sourceView, rollback);
+      sourceView.frameActor = sourceFrame;
+      sourceView.framePort = sourcePort;
+      this.restoreWorkspaceGraphSnapshot(result.rollbackSnapshot);
+      if (this.#actorSystem.hasActor(sourceView.viewActor)) {
+        try {
+          this.#actorSystem.setParent(sourceView.viewActor, rollbackParentId);
+        } catch {
+          // Preserve the original mutation failure; graph/live view state has already been restored.
+        }
+      }
       return { committed: false, reason: describeError(error, "dock merge failed") };
     }
 
@@ -596,60 +687,70 @@ export class DefaultWindowFrameLifecycleController implements
     return this.listLiveViews().map((liveView) => this.toLocation(liveView));
   }
 
+  listWorkspaceGraphFrameSurfaceSnapshots(): readonly WindowFrameSurfaceSnapshot[] {
+    return this.refreshWorkspaceGraphProjection().frameSnapshots;
+  }
+
+  listWorkspaceGraphSurfaceGeometries(): readonly WindowWorkspaceSurfaceGeometryProjection[] {
+    this.refreshWorkspaceGraphProjection();
+    return [...this.#workspaceSurfaceGeometryByFrameId.values()];
+  }
+
+  getWorkspaceGraphSnapshot(): WindowWorkspaceGraphSnapshot {
+    this.refreshWorkspaceGraphProjection();
+    return this.#workspaceGraphSnapshot;
+  }
+
   createFrameLayoutSnapshot(): WindowWorkspaceFrameLayout {
+    const graphSnapshot = this.getWorkspaceGraphSnapshot();
     const liveViews = this.listLiveViews();
     const viewsByActorId = new Map(liveViews.map((liveView) => [liveView.viewActor.id, liveView]));
     const views = Object.fromEntries(liveViews.map((liveView) => [
       liveView.viewKey,
       this.toViewDescriptor(liveView)
     ]));
-    const seenFrameIds = new Set<string>();
-    const frames: Array<WindowWorkspaceFrameLayout["frames"][number]> = [];
-    for (const liveView of liveViews) {
-      if (seenFrameIds.has(liveView.frameActor.id)) continue;
-      const isolatedFullscreenRestore = this.findFullscreenRestoreForFullscreenFrame(liveView.frameActor);
-      if (isolatedFullscreenRestore) {
-        if (seenFrameIds.has(isolatedFullscreenRestore.sourceFrameId)) continue;
-        seenFrameIds.add(isolatedFullscreenRestore.sourceFrameId);
-        const root = mapRuntimeDockRootToViewKeys(isolatedFullscreenRestore.sourceRoot, viewsByActorId);
-        if (!root) continue;
-        const bounds = isolatedFullscreenRestore.sourceBounds;
-        frames.push({
-          frameId: isolatedFullscreenRestore.sourceFrameId,
-          bounds: {
-            position: uiVec2(Math.round(bounds.left), Math.round(bounds.top)),
-            size: uiVec2(Math.round(bounds.width), Math.round(bounds.height)),
-            visible: isolatedFullscreenRestore.sourceVisibleBeforeRun ?? liveView.framePort.visible
-          },
-          presentation: isolatedFullscreenRestore.sourcePresentation,
-          root
-        });
-        continue;
-      }
-      seenFrameIds.add(liveView.frameActor.id);
-      const fullscreenRestore = this.findFullscreenRestoreForFrame(liveView.frameActor);
-      const root = mapRuntimeDockRootToViewKeys(
-        fullscreenRestore?.sourceRoot ?? liveView.framePort.getRuntimeDockRoot(),
-        viewsByActorId
-      );
+    const framesById = new Map<string, WindowWorkspaceFrameLayout["frames"][number]>();
+    for (const frame of graphSnapshot.frames) {
+      if (frame.kind === "runtime") continue;
+      const root = mapGraphDockRootToViewKeys(frame.root, viewsByActorId);
       if (!root) continue;
-      const bounds = fullscreenRestore?.sourceBounds ?? liveView.framePort.getFloatingBounds();
-      frames.push({
-        frameId: liveView.frameActor.id,
+      const liveView = this.findFirstLiveViewForGraphFrame(frame.frameId);
+      const framePort = liveView?.framePort ?? this.getFramePortById(frame.frameId);
+      if (!framePort) continue;
+      const fullscreenRestore = this.findFullscreenRestoreBySourceFrameId(frame.frameId);
+      const bounds = fullscreenRestore?.sourceBounds ?? framePort.getFloatingBounds();
+      framesById.set(frame.frameId, {
+        frameId: frame.frameId,
         bounds: {
           position: uiVec2(Math.round(bounds.left), Math.round(bounds.top)),
           size: uiVec2(Math.round(bounds.width), Math.round(bounds.height)),
           visible: fullscreenRestore
-            ? fullscreenRestore.sourceVisibleBeforeRun ?? liveView.framePort.visible
-            : liveView.framePort.visible
+            ? fullscreenRestore.sourceVisibleBeforeRun ?? framePort.visible
+            : framePort.visible
         },
-        presentation: fullscreenRestore?.sourcePresentation ?? liveView.framePort.presentation,
+        presentation: fullscreenRestore?.sourcePresentation ?? framePort.presentation,
+        root
+      });
+    }
+    for (const session of this.#fullscreenSessionsByViewActorId.values()) {
+      if (session.mode !== "isolated-frame") continue;
+      const root = mapGraphDockRootToViewKeys(session.restore.sourceFrameSnapshot.root, viewsByActorId);
+      if (!root) continue;
+      const bounds = session.restore.sourceBounds;
+      framesById.set(session.restore.sourceFrameId, {
+        frameId: session.restore.sourceFrameId,
+        bounds: {
+          position: uiVec2(Math.round(bounds.left), Math.round(bounds.top)),
+          size: uiVec2(Math.round(bounds.width), Math.round(bounds.height)),
+          visible: session.restore.sourceVisibleBeforeRun ?? true
+        },
+        presentation: session.restore.sourcePresentation,
         root
       });
     }
     return normalizeWindowWorkspaceFrameLayout({
       views,
-      frames,
+      frames: [...framesById.values()],
       hiddenViewKeys: []
     });
   }
@@ -695,6 +796,8 @@ export class DefaultWindowFrameLifecycleController implements
     const targetFrameIds = new Set<string>();
     this.#cancelActiveInput?.();
 
+    const graphContents = new Map<string, WindowWorkspaceGraphContentInput>();
+    const graphFrames: WindowWorkspaceGraphFrameInput[] = [];
     for (const frame of restorableLayout.frames) {
       const frameViewKeys = collectFrameViewKeys(frame.root);
       const frameLiveViews = frameViewKeys
@@ -706,21 +809,18 @@ export class DefaultWindowFrameLifecycleController implements
       const targetFrame = registeredTarget?.frameActor ?? targetLiveView.frameActor;
       const targetPort = registeredTarget?.framePort ?? targetLiveView.framePort;
       if (!this.#actorSystem.hasActor(targetFrame)) continue;
-      const runtimeRoot = mapFrameDockNodeToRuntimeRoot(frame.root, liveViewsByKey);
-      if (!runtimeRoot) continue;
-      const tabs = frameLiveViews.map((liveView) => createFrameTabFromLiveView(liveView, normalized));
-      const activeViewActorId = findRuntimeDockRootActiveViewActorId(runtimeRoot);
+      const graphRoot = mapFrameDockNodeToGraphDockNode(frame.root, liveViewsByKey);
+      if (!graphRoot) continue;
       targetFrameIds.add(targetFrame.id);
 
-      targetPort.restoreRuntimeDockRoot(runtimeRoot, {
-        tabs,
-        activeViewActorId
-      });
       targetPort.restoreFloatingState(frame.bounds);
       targetPort.setPresentation(shouldRestoreFrameFullscreen(frame.root) ? frame.presentation : "windowed");
 
       for (const liveView of frameLiveViews) {
-        liveView.content.rehostWindowContent(targetPort.getContentHost(liveView.viewActor.id));
+        graphContents.set(createWindowWorkspaceContentId(liveView.identity), {
+          contentId: createWindowWorkspaceContentId(liveView.identity),
+          identity: liveView.identity
+        });
         liveView.frameActor = targetFrame;
         liveView.framePort = targetPort;
         if (this.#actorSystem.hasActor(liveView.viewActor) && this.#actorSystem.hasActor(targetFrame)) {
@@ -728,12 +828,26 @@ export class DefaultWindowFrameLifecycleController implements
         }
         restoredViewKeys.add(liveView.viewKey);
       }
-      const activeLiveView = activeViewActorId ? this.getLiveViewByActorId(activeViewActorId) : null;
+      graphFrames.push({
+        frameId: windowWorkspaceFrameId(targetPort.frameId),
+        kind: targetPort.persistable ? "persistent" : "runtime",
+        root: graphRoot,
+        presentation: targetPort.presentation,
+        visible: targetPort.effectiveVisible,
+        stackPriority: this.getFramePortEntryById(targetPort.frameId)?.getStackPriority() ?? 0
+      });
+      const activeLiveView = findActiveLiveViewInFrameDockNode(frame.root, liveViewsByKey);
       if (activeLiveView) {
         this.recordViewActivation(activeLiveView);
       }
       this.#windowFocus?.focusActorWindow(targetFrame, toWindowFocusReason(reason));
     }
+
+    this.restoreWorkspaceGraphSnapshot(createWindowWorkspaceGraphSnapshot({
+      revision: this.#workspaceGraphSnapshot.revision + 1,
+      contents: [...graphContents.values()],
+      frames: graphFrames
+    }));
 
     const destroyedFrameIds: string[] = [];
     for (const [frameId, frameActor] of initialFrameActors) {
@@ -797,12 +911,15 @@ export class DefaultWindowFrameLifecycleController implements
     }
     const liveView = this.getLiveViewByActorId(viewActorId);
     if (!liveView) return;
-    liveView.framePort.activateTab(viewActorId);
-    const sourceRoot = liveView.framePort.getRuntimeDockRoot();
-    const rootViewActorIds = listRuntimeDockRootViewActorIds(sourceRoot);
+    this.activateContentPlacement(liveView);
+    const sourcePlacement = this.findWorkspaceGraphPlacementForLiveView(liveView);
+    const sourceFrameSnapshot = sourcePlacement
+      ? this.#workspaceGraphSnapshot.frames.find((frame) => frame.frameId === sourcePlacement.frameId) ?? null
+      : null;
+    if (!sourceFrameSnapshot) return;
+    const sourceFrameContentCount = countGraphFrameContentIds(sourceFrameSnapshot.root);
     if (
-      rootViewActorIds.length <= 1 &&
-      rootViewActorIds[0] === viewActorId &&
+      sourceFrameContentCount <= 1 &&
       this.canDestroyFrame(liveView.frameActor)
     ) {
       this.#fullscreenSessionsByViewActorId.set(viewActorId, {
@@ -816,7 +933,8 @@ export class DefaultWindowFrameLifecycleController implements
       this.#windowFocus?.focusActorWindow(liveView.frameActor, toWindowFocusReason("programmatic"));
       return;
     }
-    this.enterIsolatedViewFullscreen(liveView, sourceRoot, reason);
+    if (!sourcePlacement || !sourceFrameSnapshot) return;
+    this.enterIsolatedViewFullscreen(liveView, sourcePlacement, sourceFrameSnapshot, reason);
   }
 
   enterViewWorkspaceFullscreen(viewActorId: string, reason: WindowViewFullscreenReason): void {
@@ -831,8 +949,13 @@ export class DefaultWindowFrameLifecycleController implements
     }
     const liveView = this.getLiveViewByActorId(viewActorId);
     if (!liveView) return;
-    liveView.framePort.activateTab(viewActorId);
-    this.enterIsolatedViewFullscreen(liveView, liveView.framePort.getRuntimeDockRoot(), reason);
+    this.activateContentPlacement(liveView);
+    const sourcePlacement = this.findWorkspaceGraphPlacementForLiveView(liveView);
+    const sourceFrameSnapshot = sourcePlacement
+      ? this.#workspaceGraphSnapshot.frames.find((frame) => frame.frameId === sourcePlacement.frameId) ?? null
+      : null;
+    if (!sourcePlacement || !sourceFrameSnapshot) return;
+    this.enterIsolatedViewFullscreen(liveView, sourcePlacement, sourceFrameSnapshot, reason);
   }
 
   exitViewFullscreen(viewActorId: string, _reason: WindowViewFullscreenReason): void {
@@ -868,7 +991,8 @@ export class DefaultWindowFrameLifecycleController implements
 
   private enterIsolatedViewFullscreen(
     liveView: LiveWindowView,
-    sourceRoot: WindowFrameRuntimeDockNode,
+    sourcePlacement: WindowWorkspaceGraphPlacement,
+    sourceFrameSnapshot: WindowWorkspaceGraphFrameSnapshot,
     reason: WindowViewFullscreenReason
   ): void {
     if (!this.#createFloatingFrame) {
@@ -877,20 +1001,23 @@ export class DefaultWindowFrameLifecycleController implements
     }
     const sourceFrame = liveView.frameActor;
     const sourcePort = liveView.framePort;
-    const sourceTabs = sourcePort.listTabs();
-    const sourceTab = sourceTabs.find((tab) => tab.viewActorId === liveView.viewActor.id);
-    if (!sourceTab) return;
+    const sourceTab = this.createLiveViewTab(liveView);
     const restore: WindowViewFullscreenRestoreTarget = {
       sourceFrameId: sourceFrame.id,
-      sourceRoot,
-      sourceTabs,
-      sourceActiveViewActorId: sourcePort.getFocusedViewActorId(),
+      sourceFrameSnapshot,
+      sourceTargetFrame: createFullscreenRestoreTargetFrame(
+        sourceFrameSnapshot,
+        createWindowWorkspaceContentId(liveView.identity)
+      ),
+      sourceTabsetId: sourcePlacement.tabsetId,
       sourceBounds: sourcePort.getFloatingBounds(),
       sourcePresentation: sourcePort.presentation,
       sourceVisiblePath: sourcePort.visiblePath,
       sourceVisibleBeforeRun: sourcePort.visible
     };
     let createdFrame: ReturnType<WindowFloatingFrameFactory> | null = null;
+    let rollbackGraphSnapshot: WindowWorkspaceGraphSnapshot | null = null;
+    const rollbackParentId = this.#actorSystem.getParentId(liveView.viewActor);
     this.#cancelActiveInput?.();
     try {
       createdFrame = this.#createFloatingFrame({
@@ -904,13 +1031,33 @@ export class DefaultWindowFrameLifecycleController implements
         reason: reason === "programmatic" ? "programmatic" : "programmatic",
         runtimeOnly: true
       });
-      if (!createdFrame.framePort.hasTab(liveView.viewActor.id)) {
-        createdFrame.framePort.addTab(sourceTab, { active: true });
-      } else {
-        createdFrame.framePort.activateTab(liveView.viewActor.id);
+      const createdSurface = asWorkspaceGraphFrameSurface(createdFrame.framePort);
+      if (!createdSurface) {
+        throw new Error(`Fullscreen frame has no graph surface: ${createdFrame.framePort.frameId}.`);
       }
-      liveView.content.rehostWindowContent(createdFrame.framePort.getContentHost(liveView.viewActor.id));
-      sourcePort.removeTab(liveView.viewActor.id);
+      const contentId = createWindowWorkspaceContentId(liveView.identity);
+      const result = this.commitWorkspaceGraphTransaction({
+        kind: "float-content",
+        contentId,
+        frameId: windowWorkspaceFrameId(createdFrame.framePort.frameId),
+        tabsetId: createDerivedGraphTabsetId(createdFrame.framePort.frameId, contentId),
+        kindOfFrame: "runtime",
+        presentation: "fullscreen",
+        visible: createdFrame.framePort.effectiveVisible,
+        stackPriority: this.getFramePortEntryById(createdFrame.framePort.frameId)?.getStackPriority() ?? 0,
+        preserveEmptyFrameIds: this.canDestroyFrame(sourceFrame)
+          ? []
+          : [windowWorkspaceFrameId(sourceFrame.id)]
+      }, {
+        extraFrameSurfaces: [{
+          frameId: createdFrame.framePort.frameId,
+          surface: createdSurface
+        }]
+      });
+      if (!result.committed) {
+        throw new Error(describeGraphTransactionFailure(result, "fullscreen isolate failed"));
+      }
+      rollbackGraphSnapshot = result.rollbackSnapshot;
       liveView.frameActor = createdFrame.frameActor;
       liveView.framePort = createdFrame.framePort;
       this.#actorSystem.setParent(liveView.viewActor, createdFrame.frameActor);
@@ -925,14 +1072,20 @@ export class DefaultWindowFrameLifecycleController implements
       });
       this.#windowFocus?.focusActorWindow(createdFrame.frameActor, toWindowFocusReason("programmatic"));
     } catch {
+      liveView.frameActor = sourceFrame;
+      liveView.framePort = sourcePort;
+      if (rollbackGraphSnapshot) {
+        this.restoreWorkspaceGraphSnapshot(rollbackGraphSnapshot);
+      }
       if (createdFrame && this.#actorSystem.hasActor(createdFrame.frameActor)) {
         this.#actorSystem.destroyActor(createdFrame.frameActor);
       }
-      liveView.frameActor = sourceFrame;
-      liveView.framePort = sourcePort;
-      liveView.content.rehostWindowContent(sourcePort.getContentHost(liveView.viewActor.id));
       if (this.#actorSystem.hasActor(liveView.viewActor)) {
-        this.#actorSystem.setParent(liveView.viewActor, sourceFrame);
+        try {
+          this.#actorSystem.setParent(liveView.viewActor, rollbackParentId);
+        } catch {
+          // Keep the original fullscreen failure behavior.
+        }
       }
       sourcePort.setPresentation("fullscreen");
     }
@@ -957,12 +1110,24 @@ export class DefaultWindowFrameLifecycleController implements
     }
 
     try {
-      sourcePort.restoreRuntimeDockRoot(session.restore.sourceRoot, {
-        tabs: session.restore.sourceTabs,
-        activeViewActorId: session.viewActorId
+      const contentId = createWindowWorkspaceContentId(liveView.identity);
+      const result = this.commitWorkspaceGraphTransaction({
+        kind: "move-content",
+        contentId,
+        targetFrameId: windowWorkspaceFrameId(sourcePort.frameId),
+        targetTabsetId: session.restore.sourceTabsetId,
+        targetFrame: session.restore.sourceTargetFrame,
+        replaceTargetFrameIfMissingTabset: true,
+        active: true,
+        preserveEmptyFrameIds: this.canDestroyFrame(fullscreenFrame ?? liveView.frameActor)
+          ? []
+          : [windowWorkspaceFrameId(session.fullscreenFrameId)]
+      }, {
+        extraFrameSurfaces: createExtraFrameSurface(sourcePort)
       });
-      liveView.content.rehostWindowContent(sourcePort.getContentHost(session.viewActorId));
-      fullscreenPort.removeTab(session.viewActorId);
+      if (!result.committed) {
+        throw new Error(describeGraphTransactionFailure(result, "fullscreen restore failed"));
+      }
       liveView.frameActor = sourceFrame;
       liveView.framePort = sourcePort;
       this.#actorSystem.setParent(liveView.viewActor, sourceFrame);
@@ -995,14 +1160,31 @@ export class DefaultWindowFrameLifecycleController implements
           bounds: session.restore.sourceBounds,
           reason: "programmatic"
         });
-        if (!created.framePort.hasTab(session.viewActorId)) {
-          created.framePort.addTab(session.tab, { active: true });
-        } else {
-          created.framePort.activateTab(session.viewActorId);
+        const createdSurface = asWorkspaceGraphFrameSurface(created.framePort);
+        if (!createdSurface) {
+          throw new Error(`Fallback frame has no graph surface: ${created.framePort.frameId}.`);
         }
-        liveView.content.rehostWindowContent(created.framePort.getContentHost(session.viewActorId));
-        if (fullscreenPort.hasTab(session.viewActorId)) {
-          fullscreenPort.removeTab(session.viewActorId);
+        const contentId = createWindowWorkspaceContentId(liveView.identity);
+        const result = this.commitWorkspaceGraphTransaction({
+          kind: "float-content",
+          contentId,
+          frameId: windowWorkspaceFrameId(created.framePort.frameId),
+          tabsetId: createDerivedGraphTabsetId(created.framePort.frameId, contentId),
+          kindOfFrame: created.framePort.persistable ? "persistent" : "runtime",
+          presentation: "windowed",
+          visible: created.framePort.effectiveVisible,
+          stackPriority: this.getFramePortEntryById(created.framePort.frameId)?.getStackPriority() ?? 0,
+          preserveEmptyFrameIds: this.canDestroyFrame(fullscreenFrame ?? liveView.frameActor)
+            ? []
+            : [windowWorkspaceFrameId(session.fullscreenFrameId)]
+        }, {
+          extraFrameSurfaces: [{
+            frameId: created.framePort.frameId,
+            surface: createdSurface
+          }]
+        });
+        if (!result.committed) {
+          throw new Error(describeGraphTransactionFailure(result, "fullscreen fallback failed"));
         }
         liveView.frameActor = created.frameActor;
         liveView.framePort = created.framePort;
@@ -1020,12 +1202,6 @@ export class DefaultWindowFrameLifecycleController implements
         // fallback frame fails.
       }
     }
-    if (!fullscreenPort.hasTab(session.viewActorId)) {
-      fullscreenPort.addTab(session.tab, { active: true });
-    } else {
-      fullscreenPort.activateTab(session.viewActorId);
-    }
-    liveView.content.rehostWindowContent(fullscreenPort.getContentHost(session.viewActorId));
     if (fullscreenFrame) {
       liveView.frameActor = fullscreenFrame;
       liveView.framePort = fullscreenPort;
@@ -1063,6 +1239,7 @@ export class DefaultWindowFrameLifecycleController implements
   ): boolean {
     const targetEntry = this.getFramePortEntryById(preferredFrameId);
     if (!targetEntry || !this.#actorSystem.hasActor(targetEntry.frameActor)) return false;
+    this.ensureWorkspaceGraphFrame(targetEntry.framePort);
     this.openViewRuntimeInFrameEntry(viewKey, targetEntry.frameActor, targetEntry.framePort, reason);
     return true;
   }
@@ -1073,39 +1250,39 @@ export class DefaultWindowFrameLifecycleController implements
     targetFramePort: WindowFramePort,
     reason: Extract<WindowFrameLifecycleReason, "menu" | "programmatic">
   ): void {
-    const targetTabsetId = targetFramePort.listDockTargetTabsets()[0]?.targetTabsetId;
+    this.ensureWorkspaceGraphFrame(targetFramePort);
+    const targetTabsetId = this.findFirstWorkspaceGraphTabsetIdForFrame(targetFramePort.frameId);
     if (!targetTabsetId) {
       throw new Error(`Target frame has no tabset: ${targetFramePort.frameId}.`);
     }
     const created = this.#factories.createViewRuntime(viewKey, {
       reason,
-      parentFrameActor: targetFrameActor
+      parentFrameActor: targetFrameActor,
+      contentRegistration: this.#contentRegistration
     });
-    const tab: WindowFramePortTab = {
-      viewActorId: created.viewActor.id,
-      identity: this.getIdentityForViewKey(viewKey),
-      viewKey,
-      title: created.title ?? this.#factories.get(viewKey)?.label ?? viewKey
-    };
+    const identity = this.getIdentityForViewKey(viewKey);
     try {
-      targetFramePort.addTab(tab, {
-        active: true,
-        targetTabsetId
-      });
-      created.content.rehostWindowContent(targetFramePort.getContentHost(created.viewActor.id));
       if (this.#actorSystem.hasActor(created.viewActor)) {
         this.#actorSystem.setParent(created.viewActor, targetFrameActor);
       }
       this.trackCreatedViewRuntime(viewKey, created, targetFrameActor, targetFramePort);
+      const contentId = createWindowWorkspaceContentId(identity);
+      const targetFrameId = windowWorkspaceFrameId(targetFramePort.frameId);
+      const addResult = this.commitWorkspaceGraphTransaction({
+            kind: "add-content",
+            content: { contentId, identity },
+            targetFrameId,
+            targetTabsetId,
+            active: true
+          }, {
+        extraFrameSurfaces: createExtraFrameSurface(targetFramePort)
+      });
+      if (!addResult.committed) {
+        throw new Error(addResult.warnings.join("; ") || "graph add content failed");
+      }
       this.#windowFocus?.focusActorWindow(targetFrameActor, toWindowFocusReason(reason));
     } catch (error) {
-      if (targetFramePort.hasTab(created.viewActor.id)) {
-        try {
-          targetFramePort.removeTab(created.viewActor.id);
-        } catch {
-          // Continue cleanup below; the original open error is more useful.
-        }
-      }
+      this.#liveViews.delete(createWindowViewIdentityKey(identity));
       try {
         created.disposeViewRuntime?.();
       } catch {
@@ -1116,6 +1293,62 @@ export class DefaultWindowFrameLifecycleController implements
       }
       throw error;
     }
+  }
+
+  private findFirstWorkspaceGraphTabsetIdForFrame(frameId: string) {
+    this.refreshWorkspaceGraphProjection();
+    const frame = this.#workspaceGraphSnapshot.frames.find((candidate) =>
+      candidate.frameId === windowWorkspaceFrameId(frameId)
+    );
+    return frame ? findFirstWorkspaceGraphTabsetId(frame.root) : null;
+  }
+
+  private ensureWorkspaceGraphFrame(framePort: WindowFramePort): void {
+    this.refreshWorkspaceGraphProjection();
+    const frameId = windowWorkspaceFrameId(framePort.frameId);
+    if (this.#workspaceGraphSnapshot.frames.some((frame) => frame.frameId === frameId)) return;
+    const tabsetId = createDefaultWorkspaceGraphTabsetId();
+    const contents = this.#workspaceGraphSnapshot.placements.map((placement) => ({
+      contentId: placement.contentId,
+      identity: placement.identity
+    }));
+    this.#workspaceGraphSnapshot = createWindowWorkspaceGraphSnapshot({
+      revision: this.#workspaceGraphSnapshot.revision + 1,
+      contents,
+      frames: [
+        ...this.#workspaceGraphSnapshot.frames,
+        this.createEmptyWorkspaceGraphFrameInput(framePort, tabsetId)
+      ]
+    });
+    this.#workspaceGraphProjection = null;
+    this.refreshWorkspaceGraphProjection();
+  }
+
+  private findWorkspaceGraphTabset(frameId: string, tabsetId: string) {
+    this.refreshWorkspaceGraphProjection();
+    const frame = this.#workspaceGraphSnapshot.frames.find((candidate) =>
+      candidate.frameId === windowWorkspaceFrameId(frameId)
+    );
+    return frame ? findWorkspaceGraphTabset(frame.root, windowWorkspaceTabsetId(tabsetId)) : null;
+  }
+
+  private createEmptyWorkspaceGraphFrameInput(
+    framePort: WindowFramePort,
+    tabsetId: string
+  ): WindowWorkspaceGraphFrameInput {
+    return {
+      frameId: windowWorkspaceFrameId(framePort.frameId),
+      kind: framePort.persistable ? "persistent" : "runtime",
+      presentation: framePort.presentation,
+      visible: framePort.effectiveVisible,
+      stackPriority: this.getFramePortEntryById(framePort.frameId)?.getStackPriority() ?? 0,
+      root: {
+        kind: "tabset",
+        id: windowWorkspaceTabsetId(tabsetId),
+        contentIds: [],
+        activeContentId: null
+      }
+    };
   }
 
   private disposeLiveViewRuntimeForClose(liveView: LiveWindowView): {
@@ -1167,6 +1400,7 @@ export class DefaultWindowFrameLifecycleController implements
   }
 
   private toLocation(liveView: LiveWindowView): WindowViewLocation {
+    const graphPlacement = this.findWorkspaceGraphPlacementForLiveView(liveView);
     return {
       viewKey: liveView.viewKey,
       identity: liveView.identity,
@@ -1175,11 +1409,90 @@ export class DefaultWindowFrameLifecycleController implements
       ownerFrameVisiblePath: liveView.framePort.visiblePath,
       ownerFrameVisible: liveView.framePort.visible,
       ownerFrameActiveInHierarchy: this.#actorSystem.isActorActive(liveView.frameActor),
-      activeInFrame: liveView.framePort.isViewActiveInFrame(liveView.viewActor.id),
-      visibleInFrame: liveView.framePort.isViewVisibleInFrame(liveView.viewActor.id),
+      activeInFrame: graphPlacement?.active ?? false,
+      visibleInFrame: graphPlacement?.interactable ?? false,
       presentation: liveView.framePort.presentation,
       activationSequence: liveView.activationSequence
     };
+  }
+
+  private activateContentPlacement(liveView: LiveWindowView): boolean {
+    const result = this.commitWorkspaceGraphTransaction({
+      kind: "activate-content",
+      contentId: createWindowWorkspaceContentId(liveView.identity)
+    });
+    return result.committed;
+  }
+
+  private commitWorkspaceGraphTransaction(
+    transaction: WindowWorkspaceGraphTransaction,
+    options: {
+      readonly extraFrameSurfaces?: readonly {
+        readonly frameId: string;
+        readonly surface: WindowWorkspaceGraphFrameSurface;
+      }[];
+    } = {}
+  ): WindowWorkspaceGraphTransactionReconcileResult<WindowWorkspaceGraphFrameSurface> {
+    this.refreshWorkspaceGraphProjection();
+    const liveViews = this.listLiveViews();
+    const liveViewByIdentityKey = this.rebuildWorkspaceGraphRealization(liveViews);
+    for (const extra of options.extraFrameSurfaces ?? []) {
+      this.#workspaceGraphRealization.setFrameSurface(windowWorkspaceFrameId(extra.frameId), extra.surface);
+    }
+    const result = reconcileWindowWorkspaceGraphTransaction({
+      snapshot: this.#workspaceGraphSnapshot,
+      transaction,
+      realization: this.#workspaceGraphRealization.map,
+      getTitle: (identity) => {
+        const liveView = liveViewByIdentityKey.get(createWindowViewIdentityKey(identity));
+        return liveView ? getLiveViewTitle(liveView) : undefined;
+      }
+    });
+    if (!result.committed || !result.projection) return result;
+    this.#workspaceGraphSnapshot = result.nextSnapshot;
+    this.#workspaceGraphProjection = result.projection;
+    this.#workspaceSurfaceGeometryByFrameId = new Map(
+      result.projection.surfaceGeometries.map((geometry) => [geometry.frameId, geometry])
+    );
+    this.#workspaceGraphBootstrapSignature = this.createWorkspaceGraphRuntimeSignature(liveViews);
+    return result;
+  }
+
+  private findWorkspaceGraphPlacementForLiveView(liveView: LiveWindowView): WindowWorkspaceGraphPlacement | null {
+    this.refreshWorkspaceGraphProjection();
+    const contentId = createWindowWorkspaceContentId(liveView.identity);
+    return this.#workspaceGraphSnapshot.placements.find((placement) => placement.contentId === contentId) ?? null;
+  }
+
+  private findFirstActiveViewActorIdInFrame(snapshot: WindowWorkspaceGraphSnapshot, frameId: string): string | null {
+    const placement = snapshot.placements.find((candidate) =>
+      candidate.frameId === windowWorkspaceFrameId(frameId) && candidate.active
+    );
+    return placement
+      ? this.#workspaceGraphRealization.map.getViewActorId(placement.identity)
+      : null;
+  }
+
+  private restoreWorkspaceGraphSnapshot(snapshot: WindowWorkspaceGraphSnapshot): void {
+    this.#workspaceGraphSnapshot = snapshot;
+    const liveViews = this.listLiveViews();
+    const liveViewByIdentityKey = this.rebuildWorkspaceGraphRealization(liveViews);
+    const projection = reconcileWindowWorkspaceGraphCommit({
+      commit: createWindowWorkspaceGraphCommit({
+        previous: snapshot,
+        next: snapshot
+      }),
+      realization: this.#workspaceGraphRealization.map,
+      getTitle: (identity) => {
+        const liveView = liveViewByIdentityKey.get(createWindowViewIdentityKey(identity));
+        return liveView ? getLiveViewTitle(liveView) : undefined;
+      }
+    });
+    this.#workspaceGraphProjection = projection;
+    this.#workspaceSurfaceGeometryByFrameId = new Map(
+      projection.surfaceGeometries.map((geometry) => [geometry.frameId, geometry])
+    );
+    this.#workspaceGraphBootstrapSignature = this.createWorkspaceGraphRuntimeSignature(liveViews);
   }
 
   private recordViewActivation(liveView: LiveWindowView): void {
@@ -1192,30 +1505,39 @@ export class DefaultWindowFrameLifecycleController implements
   }
 
   private toViewDescriptor(liveView: LiveWindowView): WindowWorkspaceViewDescriptor {
-    const tab = liveView.framePort.listTabs()
-      .find((candidate) => candidate.viewActorId === liveView.viewActor.id);
+    const factoryTitle = this.#factories.get(liveView.viewKey)?.label;
     return {
       viewKey: liveView.viewKey,
       identity: liveView.identity,
       actorId: liveView.viewActor.id,
-      title: tab?.title
+      title: factoryTitle
     };
   }
 
-  private findFullscreenRestoreForFullscreenFrame(frameActor: Actor): WindowViewFullscreenRestoreTarget | null {
+  private createLiveViewTab(liveView: LiveWindowView): WindowFrameTab {
+    return {
+      viewActorId: liveView.viewActor.id,
+      identity: liveView.identity,
+      viewKey: liveView.viewKey,
+      title: getLiveViewTitle(liveView, this.#factories.get(liveView.viewKey)?.label)
+    };
+  }
+
+  private findFullscreenRestoreBySourceFrameId(frameId: string): WindowViewFullscreenRestoreTarget | null {
     for (const session of this.#fullscreenSessionsByViewActorId.values()) {
-      if (session.mode === "isolated-frame" && session.fullscreenFrameId === frameActor.id) {
+      if (session.mode === "isolated-frame" && session.restore.sourceFrameId === frameId) {
         return session.restore;
       }
     }
     return null;
   }
 
-  private findFullscreenRestoreForFrame(frameActor: Actor): WindowViewFullscreenRestoreTarget | null {
-    for (const session of this.#fullscreenSessionsByViewActorId.values()) {
-      if (session.mode === "isolated-frame" && session.restore.sourceFrameId === frameActor.id) {
-        return session.restore;
-      }
+  private findFirstLiveViewForGraphFrame(frameId: string): LiveWindowView | null {
+    for (const placement of this.#workspaceGraphSnapshot.placements) {
+      if (placement.frameId !== frameId) continue;
+      const viewActorId = this.#workspaceGraphRealization.map.getViewActorId(placement.identity);
+      const liveView = viewActorId ? this.getLiveViewByActorId(viewActorId) : null;
+      if (liveView) return liveView;
     }
     return null;
   }
@@ -1237,6 +1559,103 @@ export class DefaultWindowFrameLifecycleController implements
           getStackPriority: () => 0
         }
       : null;
+  }
+
+  private refreshWorkspaceGraphProjection(): WindowWorkspaceGraphProjectionResult<WindowWorkspaceGraphFrameSurface> {
+    const liveViews = this.listLiveViews();
+    this.pruneWorkspaceGraphSnapshotToLiveViews(liveViews);
+    const signature = this.createWorkspaceGraphRuntimeSignature(liveViews);
+    if (signature === this.#workspaceGraphBootstrapSignature && this.#workspaceGraphProjection) {
+      return this.#workspaceGraphProjection;
+    }
+    const liveViewByIdentityKey = this.rebuildWorkspaceGraphRealization(liveViews);
+    const commit = createWindowWorkspaceGraphCommit({
+      previous: this.#workspaceGraphSnapshot,
+      next: this.#workspaceGraphSnapshot
+    });
+    const projection = reconcileWindowWorkspaceGraphCommit({
+      commit,
+      realization: this.#workspaceGraphRealization.map,
+      getTitle: (identity) => {
+        const liveView = liveViewByIdentityKey.get(createWindowViewIdentityKey(identity));
+        return liveView ? getLiveViewTitle(liveView) : undefined;
+      }
+    });
+    this.#workspaceSurfaceGeometryByFrameId = new Map(
+      projection.surfaceGeometries.map((geometry) => [geometry.frameId, geometry])
+    );
+    this.#workspaceGraphProjection = projection;
+    this.#workspaceGraphBootstrapSignature = signature;
+    return this.#workspaceGraphProjection;
+  }
+
+  private createWorkspaceGraphRuntimeSignature(liveViews: readonly LiveWindowView[]): string {
+    return JSON.stringify(liveViews.map((liveView) => ({
+      identity: createWindowViewIdentityKey(liveView.identity),
+      viewActorId: liveView.viewActor.id,
+      frameId: liveView.framePort.frameId,
+      visible: liveView.framePort.effectiveVisible,
+      presentation: liveView.framePort.presentation,
+      stackPriority: this.getFramePortEntryById(liveView.framePort.frameId)?.getStackPriority() ?? 0
+    })));
+  }
+
+  private pruneWorkspaceGraphSnapshotToLiveViews(liveViews: readonly LiveWindowView[]): void {
+    const liveContentIds = new Set(liveViews.map((liveView) => createWindowWorkspaceContentId(liveView.identity)));
+    let snapshot = this.#workspaceGraphSnapshot;
+    let changed = false;
+    for (const placement of this.#workspaceGraphSnapshot.placements) {
+      if (liveContentIds.has(placement.contentId)) continue;
+      const result = reduceWindowWorkspaceGraphTransaction({
+        snapshot,
+        transaction: {
+          kind: "close-content",
+          contentId: placement.contentId
+        }
+      });
+      if (!result.committed) continue;
+      snapshot = result.nextSnapshot;
+      changed = true;
+    }
+    if (changed) {
+      this.#workspaceGraphSnapshot = snapshot;
+      this.#workspaceGraphProjection = null;
+    }
+  }
+
+  private rebuildWorkspaceGraphRealization(
+    liveViews: readonly LiveWindowView[]
+  ): Map<string, LiveWindowView> {
+    this.#workspaceGraphRealization = createWindowWorkspaceRealizationMap<WindowRegisteredContent, WindowWorkspaceGraphFrameSurface>();
+    const liveViewByIdentityKey = new Map<string, LiveWindowView>();
+    const realizedFrameIds = new Set<string>();
+    for (const liveView of liveViews) {
+      liveViewByIdentityKey.set(createWindowViewIdentityKey(liveView.identity), liveView);
+      this.#workspaceGraphRealization.setContent(createWindowWorkspaceContentId(liveView.identity), liveView.content);
+      this.#workspaceGraphRealization.setViewActorId(liveView.identity, liveView.viewActor.id);
+      if (!realizedFrameIds.has(liveView.framePort.frameId)) {
+        realizedFrameIds.add(liveView.framePort.frameId);
+        const frameSurface = asWorkspaceGraphFrameSurface(liveView.framePort);
+        if (frameSurface) {
+          this.#workspaceGraphRealization.setFrameSurface(
+            windowWorkspaceFrameId(liveView.framePort.frameId),
+            frameSurface
+          );
+        }
+      }
+    }
+    for (const entry of this.#framePorts?.list() ?? []) {
+      if (realizedFrameIds.has(entry.framePort.frameId)) continue;
+      realizedFrameIds.add(entry.framePort.frameId);
+      const frameSurface = asWorkspaceGraphFrameSurface(entry.framePort);
+      if (frameSurface) {
+        this.#workspaceGraphRealization.setFrameSurface(
+          windowWorkspaceFrameId(entry.framePort.frameId),
+          frameSurface
+        );
+      }
+    }
+    return liveViewByIdentityKey;
   }
 
   private pruneLiveViews(): void {
@@ -1276,68 +1695,19 @@ export class DefaultWindowFrameLifecycleController implements
       .sort((a, b) => b.activationSequence - a.activationSequence)[0] ?? null;
   }
 
-  private rollbackMerge(
-    sourceView: LiveWindowView,
-    rollback: {
-      readonly parentId: string | null;
-      readonly sourceFrame: Actor;
-      readonly sourcePort: WindowFramePort;
-      readonly sourceActiveViewActorId: string | null;
-      readonly sourceTab: ReturnType<WindowFramePort["listTabs"]>[number];
-      readonly targetFrame: Actor;
-      readonly targetPort: WindowFramePort;
-      readonly targetActiveViewActorId: string | null;
-    }
-  ): void {
-    try {
-      if (rollback.targetPort.hasTab(sourceView.viewActor.id)) {
-        rollback.targetPort.removeTab(sourceView.viewActor.id);
-      }
-      if (!rollback.sourcePort.hasTab(sourceView.viewActor.id)) {
-        rollback.sourcePort.addTab(rollback.sourceTab, { active: false });
-      }
-      if (
-        rollback.sourceActiveViewActorId &&
-        rollback.sourcePort.hasTab(rollback.sourceActiveViewActorId)
-      ) {
-        rollback.sourcePort.activateTab(rollback.sourceActiveViewActorId);
-      }
-      if (
-        rollback.targetActiveViewActorId &&
-        rollback.targetPort.hasTab(rollback.targetActiveViewActorId)
-      ) {
-        rollback.targetPort.activateTab(rollback.targetActiveViewActorId);
-      }
-      if (this.#actorSystem.hasActor(sourceView.viewActor)) {
-        this.#actorSystem.setParent(sourceView.viewActor, rollback.parentId);
-      }
-      sourceView.frameActor = rollback.sourceFrame;
-      sourceView.framePort = rollback.sourcePort;
-      sourceView.content.rehostWindowContent(rollback.sourcePort.getContentHost(sourceView.viewActor.id));
-    } catch {
-      sourceView.frameActor = rollback.sourceFrame;
-      sourceView.framePort = rollback.sourcePort;
-    }
-  }
-
   private commitFloatTab(
     intent: Extract<WindowDockCommitIntent, { readonly kind: "float-tab" }>,
     sourceView: LiveWindowView,
-    sourceTab: ReturnType<WindowFramePort["listTabs"]>[number]
+    sourceTab: WindowFramePortTab
   ): WindowDockCommitResult {
     if (!this.#createFloatingFrame) {
       return { committed: false, reason: "floating frame factory is not configured" };
     }
     const sourceFrame = sourceView.frameActor;
     const sourcePort = sourceView.framePort;
-    const rollback = {
-      parentId: this.#actorSystem.getParentId(sourceView.viewActor),
-      sourceFrame,
-      sourcePort,
-      sourceActiveViewActorId: sourcePort.getFocusedViewActorId(),
-      sourceTab
-    };
+    const rollbackParentId = this.#actorSystem.getParentId(sourceView.viewActor);
     let createdFrame: ReturnType<WindowFloatingFrameFactory> | null = null;
+    let rollbackGraphSnapshot: WindowWorkspaceGraphSnapshot | null = null;
 
     this.#cancelActiveInput?.();
     try {
@@ -1347,20 +1717,62 @@ export class DefaultWindowFrameLifecycleController implements
         bounds: intent.bounds,
         reason: intent.reason
       });
-      if (!createdFrame.framePort.hasTab(sourceView.viewActor.id)) {
-        createdFrame.framePort.addTab(sourceTab, { active: true });
-      } else {
-        createdFrame.framePort.activateTab(sourceView.viewActor.id);
+      const createdSurface = asWorkspaceGraphFrameSurface(createdFrame.framePort);
+      if (!createdSurface) {
+        throw new Error(`Floating frame has no graph surface: ${createdFrame.framePort.frameId}.`);
       }
-      sourceView.content.rehostWindowContent(createdFrame.framePort.getContentHost(sourceView.viewActor.id));
-      sourcePort.removeTab(sourceView.viewActor.id);
+      const contentId = createWindowWorkspaceContentId(sourceView.identity);
+      const result = this.commitWorkspaceGraphTransaction({
+        kind: "float-content",
+        contentId,
+        frameId: windowWorkspaceFrameId(createdFrame.framePort.frameId),
+        tabsetId: createDerivedGraphTabsetId(createdFrame.framePort.frameId, contentId),
+        kindOfFrame: createdFrame.framePort.persistable ? "persistent" : "runtime",
+        presentation: createdFrame.framePort.presentation,
+        visible: createdFrame.framePort.effectiveVisible,
+        stackPriority: this.getFramePortEntryById(createdFrame.framePort.frameId)?.getStackPriority() ?? 0,
+        preserveEmptyFrameIds: this.canDestroyFrame(sourceFrame)
+          ? []
+          : [windowWorkspaceFrameId(sourceFrame.id)]
+      }, {
+        extraFrameSurfaces: [{
+          frameId: createdFrame.framePort.frameId,
+          surface: createdSurface
+        }]
+      });
+      if (!result.committed) {
+        sourceView.frameActor = sourceFrame;
+        sourceView.framePort = sourcePort;
+        if (createdFrame && this.#actorSystem.hasActor(createdFrame.frameActor)) {
+          this.#actorSystem.destroyActor(createdFrame.frameActor);
+        }
+        return {
+          committed: false,
+          reason: describeGraphTransactionFailure(result, "dock float failed")
+        };
+      }
+      rollbackGraphSnapshot = result.rollbackSnapshot;
       sourceView.frameActor = createdFrame.frameActor;
       sourceView.framePort = createdFrame.framePort;
       this.#actorSystem.setParent(sourceView.viewActor, createdFrame.frameActor);
       this.recordViewActivation(sourceView);
       this.#windowFocus?.focusActorWindow(createdFrame.frameActor, toWindowFocusReason(intent.reason));
     } catch (error) {
-      this.rollbackFloat(sourceView, rollback, createdFrame);
+      sourceView.frameActor = sourceFrame;
+      sourceView.framePort = sourcePort;
+      if (rollbackGraphSnapshot) {
+        this.restoreWorkspaceGraphSnapshot(rollbackGraphSnapshot);
+      }
+      if (this.#actorSystem.hasActor(sourceView.viewActor)) {
+        try {
+          this.#actorSystem.setParent(sourceView.viewActor, rollbackParentId);
+        } catch {
+          // Preserve the original failure.
+        }
+      }
+      if (createdFrame && this.#actorSystem.hasActor(createdFrame.frameActor)) {
+        this.#actorSystem.destroyActor(createdFrame.frameActor);
+      }
       return { committed: false, reason: describeError(error, "dock float failed") };
     }
 
@@ -1382,113 +1794,117 @@ export class DefaultWindowFrameLifecycleController implements
   private commitSameFrameMergeTab(
     intent: Extract<WindowDockCommitIntent, { readonly kind: "merge-tabs" }>,
     sourceView: LiveWindowView,
-    sourceTab: ReturnType<WindowFramePort["listTabs"]>[number],
+    sourceTab: WindowFramePortTab,
     framePort: WindowFramePort
   ): WindowDockCommitResult {
-    const rootBefore = framePort.getRuntimeDockRoot();
-    const tabsBefore = framePort.listTabs();
-    const focusedBefore = framePort.getFocusedViewActorId();
-
+    void sourceTab;
+    void framePort;
     this.#cancelActiveInput?.();
-    try {
-      framePort.removeTab(sourceView.viewActor.id);
-      framePort.addTab(sourceTab, {
-        active: true,
-        targetTabsetId: intent.targetTabsetId
-      });
-      sourceView.content.rehostWindowContent(framePort.getContentHost(sourceView.viewActor.id));
-      this.recordViewActivation(sourceView);
-      this.#windowFocus?.focusActorWindow(sourceView.frameActor, toWindowFocusReason(intent.reason));
-    } catch (error) {
-      this.rollbackSameFrameDock(sourceView, framePort, rootBefore, tabsBefore, focusedBefore);
-      return { committed: false, reason: describeError(error, "same-frame dock merge failed") };
+    const result = this.commitWorkspaceGraphTransaction({
+      kind: "move-content",
+      contentId: createWindowWorkspaceContentId(sourceView.identity),
+      targetFrameId: windowWorkspaceFrameId(intent.targetFrameId),
+      targetTabsetId: windowWorkspaceTabsetId(intent.targetTabsetId),
+      active: true
+    });
+    if (!result.committed) {
+      return {
+        committed: false,
+        reason: [...result.hardIssues, ...result.softIssues].map((issue) => issue.message).join("; ") ||
+          "same-frame dock merge failed"
+      };
     }
 
+    this.recordViewActivation(sourceView);
+    this.#windowFocus?.focusActorWindow(sourceView.frameActor, toWindowFocusReason(intent.reason));
     return { committed: true, sourceFrameDestroyed: false };
   }
 
   private commitSameFrameSplitTab(
     intent: Extract<WindowDockCommitIntent, { readonly kind: "split-tab" }>,
     sourceView: LiveWindowView,
-    sourceTab: ReturnType<WindowFramePort["listTabs"]>[number],
+    sourceTab: WindowFramePortTab,
     framePort: WindowFramePort
   ): WindowDockCommitResult {
-    const rootBefore = framePort.getRuntimeDockRoot();
-    const tabsBefore = framePort.listTabs();
-    const focusedBefore = framePort.getFocusedViewActorId();
-
+    void sourceTab;
+    void framePort;
+    const contentId = createWindowWorkspaceContentId(sourceView.identity);
     this.#cancelActiveInput?.();
-    try {
-      framePort.splitTab(sourceTab, {
-        active: true,
-        targetTabsetId: intent.targetTabsetId,
-        placement: intent.placement
-      });
-      sourceView.content.rehostWindowContent(framePort.getContentHost(sourceView.viewActor.id));
-      this.recordViewActivation(sourceView);
-      this.#windowFocus?.focusActorWindow(sourceView.frameActor, toWindowFocusReason(intent.reason));
-    } catch (error) {
-      this.rollbackSameFrameDock(sourceView, framePort, rootBefore, tabsBefore, focusedBefore);
-      return { committed: false, reason: describeError(error, "same-frame dock split failed") };
+    const result = this.commitWorkspaceGraphTransaction({
+      kind: "split-content",
+      contentId,
+      targetFrameId: windowWorkspaceFrameId(intent.targetFrameId),
+      targetTabsetId: windowWorkspaceTabsetId(intent.targetTabsetId),
+      newTabsetId: createDerivedGraphTabsetId(intent.targetTabsetId, contentId),
+      newSplitId: createDerivedGraphSplitId(intent.targetTabsetId, contentId),
+      placement: intent.placement,
+      active: true
+    });
+    if (!result.committed) {
+      return {
+        committed: false,
+        reason: [...result.hardIssues, ...result.softIssues].map((issue) => issue.message).join("; ") ||
+          "same-frame dock split failed"
+      };
     }
 
+    this.recordViewActivation(sourceView);
+    this.#windowFocus?.focusActorWindow(sourceView.frameActor, toWindowFocusReason(intent.reason));
     return { committed: true, sourceFrameDestroyed: false };
-  }
-
-  private rollbackSameFrameDock(
-    sourceView: LiveWindowView,
-    framePort: WindowFramePort,
-    rootBefore: ReturnType<WindowFramePort["getRuntimeDockRoot"]>,
-    tabsBefore: ReturnType<WindowFramePort["listTabs"]>,
-    focusedBefore: string | null
-  ): void {
-    try {
-      framePort.restoreRuntimeDockRoot(rootBefore, {
-        tabs: tabsBefore,
-        activeViewActorId: focusedBefore
-      });
-      sourceView.content.rehostWindowContent(framePort.getContentHost(sourceView.viewActor.id));
-    } catch {
-      // Best effort rollback. The caller returns the original mutation error.
-    }
   }
 
   private commitSplitTab(
     intent: Extract<WindowDockCommitIntent, { readonly kind: "split-tab" }>,
     sourceView: LiveWindowView,
-    sourceTab: ReturnType<WindowFramePort["listTabs"]>[number],
+    sourceTab: WindowFramePortTab,
     targetFrame: Actor,
     targetPort: WindowFramePort
   ): WindowDockCommitResult {
+    void sourceTab;
     const sourceFrame = sourceView.frameActor;
     const sourcePort = sourceView.framePort;
-    const rollback = {
-      parentId: this.#actorSystem.getParentId(sourceView.viewActor),
-      sourceFrame,
-      sourcePort,
-      sourceActiveViewActorId: sourcePort.getFocusedViewActorId(),
-      sourceTab,
-      targetFrame,
-      targetPort,
-      targetActiveViewActorId: targetPort.getFocusedViewActorId()
-    };
-
     this.#cancelActiveInput?.();
+    const contentId = createWindowWorkspaceContentId(sourceView.identity);
+    const result = this.commitWorkspaceGraphTransaction({
+      kind: "split-content",
+      contentId,
+      targetFrameId: windowWorkspaceFrameId(intent.targetFrameId),
+      targetTabsetId: windowWorkspaceTabsetId(intent.targetTabsetId),
+      targetFrame: this.createEmptyWorkspaceGraphFrameInput(targetPort, intent.targetTabsetId),
+      newTabsetId: createDerivedGraphTabsetId(intent.targetTabsetId, contentId),
+      newSplitId: createDerivedGraphSplitId(intent.targetTabsetId, contentId),
+      placement: intent.placement,
+      active: true,
+      preserveEmptyFrameIds: this.canDestroyFrame(sourceFrame)
+        ? []
+        : [windowWorkspaceFrameId(sourceFrame.id)]
+    }, {
+      extraFrameSurfaces: createExtraFrameSurface(targetPort)
+    });
+    if (!result.committed) {
+      return {
+        committed: false,
+        reason: describeGraphTransactionFailure(result, "dock split failed")
+      };
+    }
+    const rollbackParentId = this.#actorSystem.getParentId(sourceView.viewActor);
     try {
-      targetPort.splitTab(sourceTab, {
-        active: true,
-        targetTabsetId: intent.targetTabsetId,
-        placement: intent.placement
-      });
-      sourceView.content.rehostWindowContent(targetPort.getContentHost(sourceView.viewActor.id));
-      sourcePort.removeTab(sourceView.viewActor.id);
       sourceView.frameActor = targetFrame;
       sourceView.framePort = targetPort;
       this.#actorSystem.setParent(sourceView.viewActor, targetFrame);
       this.recordViewActivation(sourceView);
       this.#windowFocus?.focusActorWindow(targetFrame, toWindowFocusReason(intent.reason));
     } catch (error) {
-      this.rollbackMerge(sourceView, rollback);
+      sourceView.frameActor = sourceFrame;
+      sourceView.framePort = sourcePort;
+      this.restoreWorkspaceGraphSnapshot(result.rollbackSnapshot);
+      if (this.#actorSystem.hasActor(sourceView.viewActor)) {
+        try {
+          this.#actorSystem.setParent(sourceView.viewActor, rollbackParentId);
+        } catch {
+          // Preserve the original mutation failure; graph/live view state has already been restored.
+        }
+      }
       return { committed: false, reason: describeError(error, "dock split failed") };
     }
 
@@ -1531,61 +1947,29 @@ export class DefaultWindowFrameLifecycleController implements
     }
   }
 
-  private rollbackFloat(
-    sourceView: LiveWindowView,
-    rollback: {
-      readonly parentId: string | null;
-      readonly sourceFrame: Actor;
-      readonly sourcePort: WindowFramePort;
-      readonly sourceActiveViewActorId: string | null;
-      readonly sourceTab: ReturnType<WindowFramePort["listTabs"]>[number];
-    },
-    createdFrame: ReturnType<WindowFloatingFrameFactory> | null
-  ): void {
-    try {
-      if (!rollback.sourcePort.hasTab(sourceView.viewActor.id)) {
-        rollback.sourcePort.addTab(rollback.sourceTab, { active: false });
-      }
-      if (
-        rollback.sourceActiveViewActorId &&
-        rollback.sourcePort.hasTab(rollback.sourceActiveViewActorId)
-      ) {
-        rollback.sourcePort.activateTab(rollback.sourceActiveViewActorId);
-      }
-      if (this.#actorSystem.hasActor(sourceView.viewActor)) {
-        this.#actorSystem.setParent(sourceView.viewActor, rollback.parentId);
-      }
-      sourceView.frameActor = rollback.sourceFrame;
-      sourceView.framePort = rollback.sourcePort;
-      sourceView.content.rehostWindowContent(rollback.sourcePort.getContentHost(sourceView.viewActor.id));
-    } catch {
-      sourceView.frameActor = rollback.sourceFrame;
-      sourceView.framePort = rollback.sourcePort;
-    } finally {
-      if (createdFrame && this.#actorSystem.hasActor(createdFrame.frameActor)) {
-        this.#actorSystem.destroyActor(createdFrame.frameActor);
-      }
-    }
-  }
 }
 
-function mapRuntimeDockRootToViewKeys(
-  node: WindowFrameRuntimeDockNode,
+function mapGraphDockRootToViewKeys(
+  node: WindowWorkspaceGraphDockNode,
   viewsByActorId: ReadonlyMap<string, LiveWindowView>
 ): WindowFrameDockNode | null {
   if (node.kind === "tabset") {
     const tabs: WindowViewKey[] = [];
     const seen = new Set<WindowViewKey>();
-    for (const viewActorId of node.tabs) {
-      const viewKey = viewsByActorId.get(viewActorId)?.viewKey;
+    for (const contentId of node.contentIds) {
+      const liveView = [...viewsByActorId.values()]
+        .find((candidate) => createWindowWorkspaceContentId(candidate.identity) === contentId);
+      const viewKey = liveView?.viewKey;
       if (!viewKey || seen.has(viewKey)) continue;
       seen.add(viewKey);
       tabs.push(viewKey);
     }
     if (tabs.length === 0) return null;
-    const activeTabId = node.activeViewActorId
-      ? viewsByActorId.get(node.activeViewActorId)?.viewKey
+    const activeLiveView = node.activeContentId
+      ? [...viewsByActorId.values()]
+        .find((candidate) => createWindowWorkspaceContentId(candidate.identity) === node.activeContentId)
       : null;
+    const activeTabId = activeLiveView?.viewKey ?? null;
     return {
       kind: "tabset",
       id: node.id,
@@ -1594,8 +1978,8 @@ function mapRuntimeDockRootToViewKeys(
     };
   }
 
-  const first = mapRuntimeDockRootToViewKeys(node.first, viewsByActorId);
-  const second = mapRuntimeDockRootToViewKeys(node.second, viewsByActorId);
+  const first = mapGraphDockRootToViewKeys(node.first, viewsByActorId);
+  const second = mapGraphDockRootToViewKeys(node.second, viewsByActorId);
   if (!first && !second) return null;
   if (!first) return second;
   if (!second) return first;
@@ -1609,39 +1993,80 @@ function mapRuntimeDockRootToViewKeys(
   };
 }
 
-function mapFrameDockNodeToRuntimeRoot(
-  node: WindowFrameDockNode,
-  liveViewsByKey: ReadonlyMap<WindowViewKey, LiveWindowView>
-): WindowFrameRuntimeDockNode | null {
+function countGraphFrameContentIds(node: WindowWorkspaceGraphDockNode): number {
+  if (node.kind === "tabset") return node.contentIds.length;
+  return countGraphFrameContentIds(node.first) + countGraphFrameContentIds(node.second);
+}
+
+function createFullscreenRestoreTargetFrame(
+  frame: WindowWorkspaceGraphFrameSnapshot,
+  movingContentId: string
+): WindowWorkspaceGraphFrameSnapshot {
+  return {
+    ...frame,
+    root: removeGraphContentForFullscreenRestore(frame.root, movingContentId)
+  };
+}
+
+function removeGraphContentForFullscreenRestore(
+  node: WindowWorkspaceGraphDockNode,
+  movingContentId: string
+): WindowWorkspaceGraphDockNode {
   if (node.kind === "tabset") {
-    const tabs: string[] = [];
-    const seen = new Set<string>();
-    for (const viewKey of node.tabs) {
-      const viewActorId = liveViewsByKey.get(viewKey)?.viewActor.id;
-      if (!viewActorId || seen.has(viewActorId)) continue;
-      seen.add(viewActorId);
-      tabs.push(viewActorId);
-    }
-    if (tabs.length === 0) return null;
-    const activeViewActorId = liveViewsByKey.get(node.activeTabId)?.viewActor.id;
+    const contentIds = node.contentIds.filter((contentId) => contentId !== movingContentId);
+    const activeContentId = node.activeContentId === movingContentId
+      ? contentIds[0] ?? null
+      : node.activeContentId;
     return {
-      kind: "tabset",
-      id: node.id,
-      tabs,
-      activeViewActorId: activeViewActorId && tabs.includes(activeViewActorId)
-        ? activeViewActorId
-        : tabs[0] ?? null
+      ...node,
+      contentIds,
+      activeContentId: activeContentId && contentIds.includes(activeContentId) ? activeContentId : contentIds[0] ?? null
     };
   }
 
-  const first = mapFrameDockNodeToRuntimeRoot(node.first, liveViewsByKey);
-  const second = mapFrameDockNodeToRuntimeRoot(node.second, liveViewsByKey);
+  return {
+    ...node,
+    first: removeGraphContentForFullscreenRestore(node.first, movingContentId),
+    second: removeGraphContentForFullscreenRestore(node.second, movingContentId)
+  };
+}
+
+function mapFrameDockNodeToGraphDockNode(
+  node: WindowFrameDockNode,
+  liveViewsByKey: ReadonlyMap<WindowViewKey, LiveWindowView>
+): WindowWorkspaceGraphDockNode | null {
+  if (node.kind === "tabset") {
+    const contentIds = [];
+    const seen = new Set<string>();
+    for (const viewKey of node.tabs) {
+      const liveView = liveViewsByKey.get(viewKey);
+      if (!liveView) continue;
+      const contentId = createWindowWorkspaceContentId(liveView.identity);
+      if (seen.has(contentId)) continue;
+      seen.add(contentId);
+      contentIds.push(contentId);
+    }
+    if (contentIds.length === 0) return null;
+    const activeLiveView = liveViewsByKey.get(node.activeTabId);
+    const activeContentId = activeLiveView ? createWindowWorkspaceContentId(activeLiveView.identity) : null;
+    return {
+      kind: "tabset",
+      id: windowWorkspaceTabsetId(node.id),
+      contentIds,
+      activeContentId: activeContentId && contentIds.includes(activeContentId)
+        ? activeContentId
+        : contentIds[0] ?? null
+    };
+  }
+
+  const first = mapFrameDockNodeToGraphDockNode(node.first, liveViewsByKey);
+  const second = mapFrameDockNodeToGraphDockNode(node.second, liveViewsByKey);
   if (!first && !second) return null;
   if (!first) return second;
   if (!second) return first;
   return {
     kind: "split",
-    id: node.id,
+    id: windowWorkspaceSplitId(node.id),
     direction: node.direction,
     ratio: node.ratio,
     first,
@@ -1649,18 +2074,53 @@ function mapFrameDockNodeToRuntimeRoot(
   };
 }
 
-function createFrameTabFromLiveView(
-  liveView: LiveWindowView,
-  layout: WindowWorkspaceFrameLayout
-): ReturnType<WindowFramePort["listTabs"]>[number] {
-  const currentTab = liveView.framePort.listTabs()
-    .find((tab) => tab.viewActorId === liveView.viewActor.id);
-  return {
-    viewActorId: liveView.viewActor.id,
-    identity: liveView.identity,
-    viewKey: liveView.viewKey,
-    title: layout.views[liveView.viewKey]?.title ?? currentTab?.title ?? liveView.viewKey
-  };
+function findActiveLiveViewInFrameDockNode(
+  node: WindowFrameDockNode,
+  liveViewsByKey: ReadonlyMap<WindowViewKey, LiveWindowView>
+): LiveWindowView | null {
+  if (node.kind === "tabset") {
+    return liveViewsByKey.get(node.activeTabId) ?? liveViewsByKey.get(node.tabs[0]!) ?? null;
+  }
+  return findActiveLiveViewInFrameDockNode(node.first, liveViewsByKey) ??
+    findActiveLiveViewInFrameDockNode(node.second, liveViewsByKey);
+}
+
+function getLiveViewTitle(liveView: LiveWindowView, factoryTitle?: string): string {
+  return factoryTitle ?? liveView.viewKey;
+}
+
+function asWorkspaceGraphFrameSurface(framePort: WindowFramePort): WindowWorkspaceGraphFrameSurface | null {
+  const candidate = framePort as WindowFramePort & Partial<WindowWorkspaceGraphReconcilerSurface<WindowRegisteredContent>>;
+  return typeof candidate.renderFrameSurface === "function" &&
+    typeof candidate.measureFrameSurfaceGeometry === "function" &&
+    typeof candidate.placeContent === "function"
+    ? candidate as WindowWorkspaceGraphFrameSurface
+    : null;
+}
+
+function createExtraFrameSurface(framePort: WindowFramePort): readonly {
+  readonly frameId: string;
+  readonly surface: WindowWorkspaceGraphFrameSurface;
+}[] {
+  const surface = asWorkspaceGraphFrameSurface(framePort);
+  return surface ? [{ frameId: framePort.frameId, surface }] : [];
+}
+
+function findFirstWorkspaceGraphTabsetId(node: WindowWorkspaceGraphDockNode): WindowWorkspaceTabsetId | null {
+  if (node.kind === "tabset") return node.id;
+  return findFirstWorkspaceGraphTabsetId(node.first) ?? findFirstWorkspaceGraphTabsetId(node.second);
+}
+
+function createDefaultWorkspaceGraphTabsetId(): WindowWorkspaceTabsetId {
+  return windowWorkspaceTabsetId("frame-tabset:target");
+}
+
+function findWorkspaceGraphTabset(
+  node: WindowWorkspaceGraphDockNode,
+  tabsetId: WindowWorkspaceTabsetId
+): WindowWorkspaceGraphTabsetNode | null {
+  if (node.kind === "tabset") return node.id === tabsetId ? node : null;
+  return findWorkspaceGraphTabset(node.first, tabsetId) ?? findWorkspaceGraphTabset(node.second, tabsetId);
 }
 
 function listLayoutVisibleViewKeys(layout: WindowWorkspaceFrameLayout): readonly WindowViewKey[] {
@@ -1688,98 +2148,8 @@ function mapPreferredFrameIdsByViewKey(layout: WindowWorkspaceFrameLayout): Read
   return result;
 }
 
-function findRuntimeDockRootActiveViewActorId(root: WindowFrameRuntimeDockNode): string | null {
-  if (root.kind === "tabset") return root.activeViewActorId ?? root.tabs[0] ?? null;
-  return findRuntimeDockRootActiveViewActorId(root.first) ?? findRuntimeDockRootActiveViewActorId(root.second);
-}
-
-function findRuntimeDockRootNextActiveViewActorIdAfterRemove(
-  root: WindowFrameRuntimeDockNode,
-  viewActorId: string
-): string | null {
-  return findRuntimeDockRootNextActiveViewActorIdAfterRemoveResult(root, viewActorId).nextActiveViewActorId;
-}
-
-function findRuntimeDockRootNextActiveViewActorIdAfterRemoveResult(
-  root: WindowFrameRuntimeDockNode,
-  viewActorId: string
-): {
-  readonly foundRemovedView: boolean;
-  readonly nextActiveViewActorId: string | null;
-  readonly remainingActiveViewActorId: string | null;
-} {
-  if (root.kind === "tabset") {
-    const currentActiveViewActorId = root.activeViewActorId ?? root.tabs[0] ?? null;
-    if (!root.tabs.includes(viewActorId)) {
-      return {
-        foundRemovedView: false,
-        nextActiveViewActorId: null,
-        remainingActiveViewActorId: currentActiveViewActorId
-      };
-    }
-    const remainingTabs = root.tabs.filter((tab) => tab !== viewActorId);
-    if (remainingTabs.length === 0) {
-      return {
-        foundRemovedView: true,
-        nextActiveViewActorId: null,
-        remainingActiveViewActorId: null
-      };
-    }
-    if (root.activeViewActorId && root.activeViewActorId !== viewActorId && remainingTabs.includes(root.activeViewActorId)) {
-      return {
-        foundRemovedView: true,
-        nextActiveViewActorId: root.activeViewActorId,
-        remainingActiveViewActorId: root.activeViewActorId
-      };
-    }
-    const removedIndex = root.tabs.indexOf(viewActorId);
-    const nextActiveViewActorId = remainingTabs[Math.min(removedIndex, remainingTabs.length - 1)] ?? remainingTabs[0] ?? null;
-    return {
-      foundRemovedView: true,
-      nextActiveViewActorId,
-      remainingActiveViewActorId: nextActiveViewActorId
-    };
-  }
-  const first = findRuntimeDockRootNextActiveViewActorIdAfterRemoveResult(root.first, viewActorId);
-  const second = findRuntimeDockRootNextActiveViewActorIdAfterRemoveResult(root.second, viewActorId);
-  if (first.foundRemovedView) {
-    return {
-      foundRemovedView: true,
-      nextActiveViewActorId: first.nextActiveViewActorId ?? second.remainingActiveViewActorId,
-      remainingActiveViewActorId: first.remainingActiveViewActorId ?? second.remainingActiveViewActorId
-    };
-  }
-  if (second.foundRemovedView) {
-    return {
-      foundRemovedView: true,
-      nextActiveViewActorId: second.nextActiveViewActorId ?? first.remainingActiveViewActorId,
-      remainingActiveViewActorId: first.remainingActiveViewActorId ?? second.remainingActiveViewActorId
-    };
-  }
-  return {
-    foundRemovedView: false,
-    nextActiveViewActorId: null,
-    remainingActiveViewActorId: first.remainingActiveViewActorId ?? second.remainingActiveViewActorId
-  };
-}
-
 function shouldRestoreFrameFullscreen(root: WindowFrameDockNode): boolean {
   return collectFrameViewKeys(root).length === 1;
-}
-
-function listRuntimeDockRootViewActorIds(node: WindowFrameRuntimeDockNode): readonly string[] {
-  if (node.kind === "tabset") return [...node.tabs];
-  const viewActorIds: string[] = [];
-  const seen = new Set<string>();
-  for (const viewActorId of [
-    ...listRuntimeDockRootViewActorIds(node.first),
-    ...listRuntimeDockRootViewActorIds(node.second)
-  ]) {
-    if (seen.has(viewActorId)) continue;
-    seen.add(viewActorId);
-    viewActorIds.push(viewActorId);
-  }
-  return viewActorIds;
 }
 
 function toLiveViewKey(liveView: LiveWindowView): string {
@@ -1798,6 +2168,29 @@ function invalidDockCommit(reason: string): WindowDockCommitValidationResult {
 
 function describeError(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
+}
+
+function describeGraphTransactionFailure(
+  result: {
+    readonly hardIssues: readonly { readonly message: string }[];
+    readonly softIssues: readonly { readonly message: string }[];
+    readonly warnings: readonly string[];
+  },
+  fallback: string
+): string {
+  return [
+    ...result.hardIssues.map((issue) => issue.message),
+    ...result.softIssues.map((issue) => issue.message),
+    ...result.warnings
+  ].join("; ") || fallback;
+}
+
+function createDerivedGraphTabsetId(targetTabsetId: string, contentId: string) {
+  return windowWorkspaceTabsetId(`${targetTabsetId}:tabset:${contentId}`);
+}
+
+function createDerivedGraphSplitId(targetTabsetId: string, contentId: string) {
+  return windowWorkspaceSplitId(`${targetTabsetId}:split:${contentId}`);
 }
 
 function combineWarnings(warnings: readonly string[]): string | undefined {

@@ -8,6 +8,7 @@ import {
   projectPrismAppCompositionBlockers,
   projectPrismDebtBlockers,
   projectPrismPackageTargets,
+  projectPrismPrePhase6UiFrameworkBlockers,
   projectPrismRuntimeExtractionBlockers,
   projectPrismSourceZones,
   projectPrismUiFrameworkExtractionBlockers,
@@ -107,7 +108,10 @@ export function createProjectPrismBoundarySummary(
     extractionBlockers: {
       debt: projectPrismDebtBlockers.map((blocker) => ({ ...blocker })),
       runtime: projectPrismRuntimeExtractionBlockers.map((blocker) => ({ ...blocker })),
-      uiFramework: projectPrismUiFrameworkExtractionBlockers.map((blocker) => ({ ...blocker })),
+      uiFramework: [
+        ...projectPrismUiFrameworkExtractionBlockers,
+        ...projectPrismPrePhase6UiFrameworkBlockers
+      ].map((blocker) => ({ ...blocker })),
       appComposition: projectPrismAppCompositionBlockers.map((blocker) => ({ ...blocker }))
     }
   };

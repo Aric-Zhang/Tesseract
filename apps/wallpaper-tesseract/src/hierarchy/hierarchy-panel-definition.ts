@@ -3,7 +3,6 @@ import { noopEditorCommandSink, type EditorCommandSink } from "../editor/editor-
 import { gizmoEventBindingComponentType } from "../gizmo-runtime";
 import { stateObserverBindingComponentType } from "../state-runtime";
 import { frameUpdateAttachment } from "../update-runtime";
-import { findOwningWindowContentHost } from "../window-runtime";
 import {
   HierarchyPanelComponent,
   hierarchyPanelComponentType,
@@ -28,16 +27,14 @@ export function createHierarchyPanelComponentDefinition(
     createId(_actor, options) {
       return options?.id ?? "hierarchy-panel";
     },
-    create(actor, context, options) {
+    create(actor, _context, options) {
       if (!options) {
         throw new Error("HierarchyPanelComponent options are required.");
       }
-      const host = findOwningWindowContentHost(context.actorSystem, context.componentRegistry, actor);
-      if (!host) {
-        throw new Error("HierarchyPanelComponent requires an owning FloatingWindowComponent.");
+      if (!options.contentRegistration || !options.contentId) {
+        throw new Error("HierarchyPanelComponent requires content registration options.");
       }
       return new HierarchyPanelComponent(actor, options, {
-        host,
         commandSink: services.commandSink ?? noopEditorCommandSink
       });
     }

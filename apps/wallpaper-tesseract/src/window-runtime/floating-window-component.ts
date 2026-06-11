@@ -13,12 +13,6 @@ import type {
 } from "../gizmo-runtime";
 import type { StateObserverResponder } from "../state-runtime";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
-import {
-  type FloatingWindowContentAttachment,
-  type FloatingWindowHost,
-  type WindowContentAttachmentRequest,
-  type WindowContentHost
-} from "./floating-window-host";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
 import {
   readWindowTabDragSource
@@ -38,9 +32,7 @@ import type { UiLayoutCommandSink, UiLayoutPath, UiLayoutStateChangedEvent } fro
 import type {
   WindowFramePort,
   WindowFramePresentation,
-  WindowFrameRuntimeDockNode,
-  WindowFrameSuppressionReason,
-  WindowFrameTab
+  WindowFrameSuppressionReason
 } from "./window-frame-port";
 import type { WindowViewKey } from "ui-framework";
 import { windowViewKey } from "ui-framework";
@@ -50,10 +42,15 @@ import {
   WINDOW_FRAME_TAB_PART_ID
 } from "ui-framework";
 import { handleWindowFrameTabInputEnd } from "./window-frame-tab-input";
-import { rectFromDomRect, type WindowDockSplitPlacement } from "ui-framework";
+import { rectFromDomRect } from "ui-framework";
 import type {
   WindowFrameSurfaceComponent,
-  WindowFrameSurfaceHost
+  WindowFrameSurfaceHost,
+  WindowFrameSurfaceSnapshot,
+  WindowFrameTab,
+  WindowWorkspaceGraphContentPlacement,
+  WindowWorkspaceSurfaceGeometryProjection,
+  WindowRegisteredContent
 } from "ui-framework";
 
 export const floatingWindowComponentType =
@@ -160,7 +157,7 @@ interface FloatingWindowStateBinding {
 const FLOATING_WINDOW_SPLIT_MIN_PANE_SIZE = 80;
 
 export class FloatingWindowComponent
-  implements Component, FloatingWindowHost, WindowFramePort, ActorInputParticipant, StateObserverResponder {
+  implements Component, WindowFramePort, ActorInputParticipant, StateObserverResponder {
   readonly type = floatingWindowComponentType;
   readonly actor: Actor;
   readonly state: FloatingWindowState;
@@ -334,103 +331,24 @@ export class FloatingWindowComponent
     return this.state.visible && !this.presentationSuppressed;
   }
 
+  get persistable(): boolean {
+    return this.#menuDescriptor.include;
+  }
+
   get frameId(): string {
     return this.#frameId;
   }
 
-  listTabs(): readonly WindowFrameTab[] {
-    return this.#surface.listTabs();
+  renderFrameSurface(snapshot: WindowFrameSurfaceSnapshot): void {
+    this.#surface.renderFrameSurface(snapshot);
   }
 
-  getRuntimeDockRoot(): WindowFrameRuntimeDockNode {
-    return this.#surface.getRuntimeDockRoot();
+  measureFrameSurfaceGeometry(snapshot: WindowFrameSurfaceSnapshot): WindowWorkspaceSurfaceGeometryProjection {
+    return this.#surface.measureFrameSurfaceGeometry(snapshot);
   }
 
-  restoreRuntimeDockRoot(
-    root: WindowFrameRuntimeDockNode,
-    options: {
-      readonly tabs?: readonly WindowFrameTab[];
-      readonly activeViewActorId?: string | null;
-    } = {}
-  ): void {
-    this.#surface.restoreRuntimeDockRoot(root, options);
-  }
-
-  listDockTargetTabsets() {
-    return this.#surface.listDockTargetTabsets();
-  }
-
-  getFocusedViewActorId(): string | null {
-    return this.#surface.getFocusedViewActorId();
-  }
-
-  getActiveViewActorIds(): readonly string[] {
-    return this.#surface.getActiveViewActorIds();
-  }
-
-  isViewActiveInFrame(viewActorId: string): boolean {
-    return this.#surface.isViewActiveInFrame(viewActorId);
-  }
-
-  isViewVisibleInFrame(viewActorId: string): boolean {
-    return this.#surface.isViewVisibleInFrame(viewActorId);
-  }
-
-  addTab(
-    tab: WindowFrameTab,
-    options: {
-      readonly active?: boolean;
-      readonly targetTabsetId?: string;
-    } = {}
-  ): void {
-    const result = this.#surface.addTab(tab, options);
-    if (
-      this.#presentation === "fullscreen" &&
-      result.activeViewActorChanged
-    ) {
-      this.setPresentation("windowed");
-    }
-  }
-
-  splitTab(
-    tab: WindowFrameTab,
-    options: {
-      readonly targetTabsetId: string;
-      readonly placement: WindowDockSplitPlacement;
-      readonly active?: boolean;
-    }
-  ): void {
-    const result = this.#surface.splitTab(tab, options);
-    if (
-      this.#presentation === "fullscreen" &&
-      result.activeViewActorChanged
-    ) {
-      this.setPresentation("windowed");
-    }
-  }
-
-  removeTab(viewActorId: string): void {
-    this.#surface.removeTab(viewActorId);
-  }
-
-  activateTab(viewActorId: string): void {
-    const result = this.#surface.activateTab(viewActorId);
-    if (!result.activeViewActorChanged) return;
-    if (this.#presentation === "fullscreen") {
-      this.setPresentation("windowed");
-    }
-  }
-
-  hasTab(viewActorId: string): boolean {
-    return this.#surface.hasTab(viewActorId);
-  }
-
-  hasTabset(targetTabsetId: string): boolean {
-    return this.#surface.hasTabset(targetTabsetId);
-  }
-
-  getContentHost(viewActorId: string): WindowContentHost {
-    return this.#surface.getContentHost(viewActorId);
+  placeContent(placement: WindowWorkspaceGraphContentPlacement<WindowRegisteredContent>): void {
+    this.#surface.placeContent(placement);
   }
 
   getFloatingBounds() {
@@ -464,18 +382,6 @@ export class FloatingWindowComponent
     this.#surface.refreshActiveContentState();
   }
 
-  setTitle(title: string): void {
-    const targetViewActorId = this.#surface.getFocusedViewActorId() ?? this.#surface.listTabs()[0]?.viewActorId;
-    if (!targetViewActorId) return;
-    const tabs = this.#surface.listTabs().map((tab) => (
-      tab.viewActorId === targetViewActorId ? { ...tab, title } : tab
-    ));
-    this.#surface.restoreRuntimeDockRoot(this.#surface.getRuntimeDockRoot(), {
-      tabs,
-      activeViewActorId: targetViewActorId
-    });
-  }
-
   getBounds(): DOMRectReadOnly {
     return this.#rootElement.getBoundingClientRect();
   }
@@ -486,14 +392,6 @@ export class FloatingWindowComponent
 
   getContentBounds(): DOMRectReadOnly {
     return this.#contentSlot.getBoundingClientRect();
-  }
-
-  mountContent(requestOrElement: HTMLElement | WindowContentAttachmentRequest): FloatingWindowContentAttachment {
-    return this.#surface.mountContent(requestOrElement, this);
-  }
-
-  isContentInteractable(element: HTMLElement): boolean {
-    return this.#surface.isContentInteractable(element);
   }
 
   requestVisible(visible: boolean, timeStamp?: number): void {
@@ -586,7 +484,15 @@ export class FloatingWindowComponent
     } else if (partId === WINDOW_FRAME_TAB_PART_ID) {
       this.#tabDragSink?.moveTabDrag(event.point);
     } else if (partId === "splitter") {
-      this.#surface.updateSplitRatioFromDrag(event);
+      const resize = this.#surface.updateSplitRatioFromDrag(event);
+      if (resize) {
+        this.#frameIntentSink?.requestResizeFrameSplit?.(
+          this.#frameId,
+          resize.splitId,
+          resize.ratio,
+          "dock-drop"
+        );
+      }
     } else if (isResizePart(partId)) {
       const next = getResizeState(partId, dragStartState, event.totalDelta.dx, event.totalDelta.dy, this.#minSize);
       if (next.position) {
@@ -605,8 +511,7 @@ export class FloatingWindowComponent
         frameId: this.#frameId,
         frameIntentSink: this.#frameIntentSink,
         tabDragSink: this.#tabDragSink,
-        draggingTab: true,
-        activateFallback: (viewActorId) => this.activateTab(viewActorId)
+        draggingTab: true
       });
       return;
     }
@@ -615,8 +520,7 @@ export class FloatingWindowComponent
       frameId: this.#frameId,
       frameIntentSink: this.#frameIntentSink,
       tabDragSink: this.#tabDragSink,
-      draggingTab: event.hit.partId === WINDOW_FRAME_TAB_PART_ID,
-      activateFallback: (viewActorId) => this.activateTab(viewActorId)
+      draggingTab: event.hit.partId === WINDOW_FRAME_TAB_PART_ID
     });
     if (tabResult.handled) return;
     if (event.hit.partId === "close" && event.wasClick) {

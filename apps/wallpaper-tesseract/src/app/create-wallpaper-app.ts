@@ -27,7 +27,6 @@ import {
   createToolWindowWorkspaceFloatingFramePolicies,
   installToolWindowFeatures
 } from "../features/tool-windows";
-import { SceneRuntime } from "../scene-runtime";
 import { AppFrameStateController, type AppStateObserver } from "../editor/app-state-controller";
 import { AppStateParameterStore } from "../editor/app-state-store";
 import type { AppStateCommandSink } from "../editor/app-state";
@@ -67,11 +66,10 @@ import { installWallpaperComponentDefinitions } from "./install-component-defini
 import { createWallpaperAppShell } from "./app-shell";
 import { ImmediateUpdateScheduler } from "./immediate-update-scheduler";
 import { RenderLoop } from "./render-loop";
-import {
-  WorkspaceModeController
-} from "./workspace-mode";
-import { registerUiScheduledServiceWithRuntime } from "./adapters/ui-scheduler-runtime-adapter";
+import { WorkspaceModeController } from "./workspace-mode";
+import { AppFrameOrchestrator } from "./app-frame-orchestrator";
 import { toRuntimeFrame } from "./adapters/runtime-frame-adapter";
+import { UiFrameScheduler } from "./ui-frame-scheduler";
 
 export interface WallpaperApp {
   dispose(): void;
@@ -81,8 +79,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const appShell = createWallpaperAppShell(mount);
   const floatingFrameParent = appShell.floatingOverlaySlot;
 
-  const sceneRuntime = new SceneRuntime();
   const frameClock = new UpdateFrameClock();
+  const uiFrameScheduler = new UiFrameScheduler();
   const appStateStore = new AppStateParameterStore();
   const sceneWindowState = createDefaultSceneWindowState();
   const debugWindowState = createDefaultDebugWindowState();
@@ -120,7 +118,6 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     onDebugLog: (entry) => debugLogWindow?.component.append(entry)
   });
   const runtimeContext = new AppRuntimeContext({
-    sceneRuntime,
     frameStateController: frameStateBridge,
     gizmoEventSystem
   });
@@ -133,8 +130,6 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     editorCommandSink: createEditorBackedWorkspaceCommandSink(frameStateBridge),
     uiLayoutCommandSink: createEditorBackedUiLayoutCommandSink(frameStateBridge)
   });
-
-  runtimeContext.registerRuntimeService(frameStateController);
 
   const hierarchyObjectSource = createActorHierarchyObjectSource({
     actorSystem: runtimeContext.actorSystem,
@@ -173,7 +168,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       ...createToolWindowDefaultOpenViews()
     ],
     layoutStorage,
-    registerUiScheduledService: (service) => registerUiScheduledServiceWithRuntime(runtimeContext, service)
+    registerUiScheduledService: (service) => uiFrameScheduler.register(service)
   });
   const sceneFeature = installSceneViewFeature({
     context: runtimeContext,
@@ -238,6 +233,23 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const unregisterWorkspaceModeObserver = frameStateBridge.subscribe(workspaceModeController);
 
   const renderLoop = new RenderLoop({ update });
+  const frameOrchestrator = new AppFrameOrchestrator({
+    updateRuntimeWork(frame) {
+      runtimeContext.updateRuntimeFrame(toRuntimeFrame(frame));
+    },
+    tickUiComponents(frame) {
+      runtimeContext.updateComponentFrame(frame);
+    },
+    tickUiServices(frame) {
+      uiFrameScheduler.updateFrame(frame);
+    },
+    flushEditorState(frame) {
+      frameStateController.updateFrame(frame);
+    },
+    renderFrameSources() {
+      sceneFeature.renderableSceneViews.current?.render();
+    }
+  });
 
   function measureSceneViewport(): void {
     sceneFeature.renderableSceneViews.current?.measureNow();
@@ -247,9 +259,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     const frame = frameClock.tick(timeMs);
     isUpdatingFrame = true;
     try {
-      runtimeContext.updateRuntimeFrame(toRuntimeFrame(frame));
-      sceneRuntime.updateFrame(frame);
-      sceneFeature.renderableSceneViews.current?.render();
+      frameOrchestrator.updateFrame(frame);
     } finally {
       isUpdatingFrame = false;
     }
@@ -281,6 +291,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     workspaceModeController.dispose();
     closeLiveWindowFrames(windowWorkspace.lifecycle);
     windowWorkspace.dispose();
+    uiFrameScheduler.dispose();
     windowFocus.dispose();
     runtimeContext.dispose();
     appShell.dispose();

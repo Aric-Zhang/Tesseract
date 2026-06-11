@@ -18,6 +18,7 @@ import {
 import { installStateRuntimeComponentDefinitions } from "../state-runtime";
 import {
   createWindowFocusServiceProxy,
+  createWindowWorkspaceContentId,
   DEFAULT_FLOATING_WINDOW_PRIORITY,
   installWindowComponentDefinitions,
   uiLayoutPath,
@@ -302,7 +303,7 @@ function registerFixtureViewFactories(
       multiplicity: descriptor.typeKey === "fixture-panel" ? "multi-instance" : "singleton",
       label: descriptor.title,
       order: FIXTURE_VIEWS.indexOf(descriptor),
-      createViewRuntime({ parentFrameActor, identity }) {
+      createViewRuntime({ parentFrameActor, identity, contentRegistration }) {
         const viewActor = actorSystem.createActor({
           id: `ui-fixture-view:${identity.instanceId}`,
           name: `${descriptor.title} View`,
@@ -312,6 +313,8 @@ function registerFixtureViewFactories(
           id: `${viewActor.id}:content`,
           title: descriptor.title,
           body: descriptor.body,
+          contentId: createWindowWorkspaceContentId(identity),
+          contentRegistration,
           document: documentRef
         });
         return {

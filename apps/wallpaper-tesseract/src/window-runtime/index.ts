@@ -47,6 +47,12 @@ export type {
   DockTargetRegionSource,
   DockTargetRegionSourceOptions
 } from "./dock-target-region-source";
+export { createWindowFrameTargetabilitySource } from "ui-framework";
+export type {
+  WindowFrameTargetability,
+  WindowFrameTargetabilitySource,
+  WindowFrameTargetabilitySourceOptions
+} from "ui-framework";
 export type {
   FloatingWindowParameterPaths,
   FloatingWindowState,
@@ -94,6 +100,7 @@ export type {
   WindowFrameIntentSink,
   WindowFrameLifecycleController,
   WindowFrameLifecycleReason,
+  WindowFrameSplitResizeResult,
   WindowCloseFrameResult,
   WindowCloseViewResult,
   WindowCloseViewOptions,
@@ -120,13 +127,13 @@ export type {
   WindowViewRuntimeFactoryResult
 } from "./window-view-factory-registry";
 export {
-  createWindowContentAttachment,
-  getWindowContentAttachment
-} from "./floating-window-host";
-export {
-  findOwningFloatingWindowHost,
-  findOwningWindowContentHost
-} from "./window-content-host-resolver";
+  createWindowWorkspaceContentId
+} from "ui-framework";
+export type {
+  WindowContentLayoutCommit,
+  WindowContentLayoutCommitRegistration
+} from "ui-framework";
+export { WindowContentRegistry } from "./floating-window-host";
 export {
   WindowDockPreviewComponent,
   WindowDockPreviewController
@@ -184,12 +191,8 @@ export type {
   WindowFrameSurfaceHost
 } from "ui-framework";
 export type {
-  FloatingWindowContentAttachment,
-  FloatingWindowHost,
-  WindowContentAttachment,
-  WindowContentAttachmentRequest,
-  WindowContentHost,
-  WindowContentRehostable
+  WindowContentRegistrationPort,
+  WindowRegisteredContent
 } from "./floating-window-host";
 export {
   DEFAULT_FLOATING_WINDOW_PRIORITY,

@@ -66,12 +66,12 @@ function createActorInputHit(
   partial: Pick<ActorInputHit, "partId"> & Partial<ActorInputHit>
 ): ActorInputHit {
   return {
+    ...partial,
     componentId,
     partId: partial.partId,
     kind: "chrome",
     region: "window-frame",
     localRoutePriority: 0,
-    path: [],
-    ...partial
+    path: []
   };
 }

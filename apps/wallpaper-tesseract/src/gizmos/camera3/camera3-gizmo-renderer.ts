@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import type { RuntimeCameraState } from "runtime-core";
 import { Camera3GizmoState, type AxisRenderState, type CubeFaceRenderState } from "./camera3-gizmo-state";
 
 export interface Camera3GizmoRendererOptions {
@@ -34,7 +34,7 @@ export class Camera3GizmoRenderer {
     this.context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   }
 
-  draw(camera: THREE.PerspectiveCamera | THREE.OrthographicCamera): void {
+  draw(cameraState: RuntimeCameraState): void {
     const ctx = this.context;
     ctx.clearRect(0, 0, this.size, this.size);
 
@@ -42,7 +42,7 @@ export class Camera3GizmoRenderer {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    this.state.updateAxisProjection(camera);
+    this.state.updateAxisProjection(cameraState);
     this.state.sortedAxes.sort((a, b) => a.depth - b.depth);
     for (const axis of this.state.sortedAxes) {
       if (axis.depth <= 0) this.drawAxis(axis);

@@ -61,34 +61,9 @@ function createFramePort(frameId: string): WindowFramePort {
     visiblePath: null,
     visible: true,
     effectiveVisible: true,
+    persistable: true,
     presentationSuppressed: false,
     presentation: "windowed",
-    listTabs: () => [],
-    getRuntimeDockRoot: () => ({
-      kind: "tabset",
-      id: `${frameId}:root`,
-      tabs: [],
-      activeViewActorId: null
-    }),
-    restoreRuntimeDockRoot() {},
-    listDockTargetTabsets: () => [],
-    getFocusedViewActorId: () => null,
-    getActiveViewActorIds: () => [],
-    isViewActiveInFrame: () => false,
-    isViewVisibleInFrame: () => false,
-    addTab() {},
-    splitTab() {},
-    removeTab() {},
-    activateTab() {},
-    hasTab: () => false,
-    hasTabset: () => false,
-    getContentHost: () => ({
-      id: `${frameId}:host`,
-      mountContent() {
-        throw new Error("not used");
-      },
-      isContentInteractable: () => true
-    }),
     getFloatingBounds: () => ({ left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 }),
     restoreFloatingState() {},
     setPresentation() {},

@@ -2,26 +2,22 @@ import { describe, expect, it } from "vitest";
 import type { GizmoController } from "gizmo-core";
 import type { AppStateCommand } from "../editor/app-state";
 import type { AppStateObserver } from "../editor/app-state-controller";
-import type { RuntimeObject, RuntimeRegistration } from "../runtime/ports";
-import { AppRuntimeContext, createRegisteredObject } from "./app-runtime-context";
+import type { RuntimeRegistration, UpdateFrame } from "../runtime/ports";
 import {
   componentType,
   createRegisteredActor,
   type Component
 } from "../actor-runtime";
+import { frameUpdateAttachment } from "../update-runtime";
+import { AppRuntimeContext, createRegisteredObject } from "./app-runtime-context";
 
-type TestObject = RuntimeObject;
-interface TestActorComponent extends Component {}
-type FailurePoint = "scene";
-type DisposeFailurePoint = "scene-dispose";
+interface TestActorComponent extends Component {
+  updateFrame?(frame: UpdateFrame): void;
+}
+
+type DisposeFailurePoint = "gizmo-dispose" | "frame-system-dispose";
 
 const testActorComponentType = componentType<TestActorComponent>("test-actor-component");
-
-function createTestObject(id = "test-object"): TestObject {
-  return {
-    id
-  };
-}
 
 function createRegistration(label: string, calls: string[], failDispose?: DisposeFailurePoint): RuntimeRegistration {
   return {
@@ -35,23 +31,10 @@ function createRegistration(label: string, calls: string[], failDispose?: Dispos
 }
 
 function createSystems(options: {
-  failAt?: FailurePoint;
   failDisposeAt?: DisposeFailurePoint;
   rollbackErrors?: unknown[][];
 } = {}) {
   const calls: string[] = [];
-  const sceneRuntime = {
-    register(object: RuntimeObject): RuntimeRegistration {
-      calls.push(`scene-register:${object.id}`);
-      if (options.failAt === "scene" && object.id !== "frame-update-attachment-runtime") {
-        throw new Error("scene failed");
-      }
-      return createRegistration("scene-dispose", calls, options.failDisposeAt);
-    },
-    dispose() {
-      calls.push("scene-runtime-dispose");
-    }
-  };
   const gizmoEventSystem = {
     register(object: GizmoController): RuntimeRegistration {
       calls.push(`gizmo-register:${object.id}`);
@@ -66,7 +49,7 @@ function createSystems(options: {
       calls.push("frame-submit");
     },
     subscribe(observer: AppStateObserver): RuntimeRegistration {
-      calls.push(`observer-subscribe:${(observer as unknown as RuntimeObject).id}`);
+      calls.push(`observer-subscribe:${String((observer as { id?: string }).id ?? "observer")}`);
       return createRegistration("observer-dispose", calls, options.failDisposeAt);
     },
     dispose() {
@@ -74,7 +57,6 @@ function createSystems(options: {
     }
   };
   const context = new AppRuntimeContext({
-    sceneRuntime,
     gizmoEventSystem,
     frameStateController,
     onRollbackError: (errors) => options.rollbackErrors?.push([...errors])
@@ -105,51 +87,31 @@ function registerActorComponentDefinition(context: AppRuntimeContext, calls: str
 }
 
 describe("AppRuntimeContext", () => {
-  it("registers runtime services with the scene runtime only", () => {
+  it("ticks frame-update components through the explicit component frame lane", () => {
     const { calls, context } = createSystems();
-    const object = createTestObject();
+    context.componentRegistry.registerDefinition({
+      type: testActorComponentType,
+      singleton: true,
+      attachments: [frameUpdateAttachment],
+      createId: () => "test-actor-component",
+      create(actor) {
+        return {
+          id: "test-actor-component",
+          type: testActorComponentType,
+          actor,
+          enabled: true,
+          updateFrame(frame: UpdateFrame) {
+            calls.push(`component-frame:${frame.frameIndex}`);
+          }
+        };
+      }
+    });
+    const actor = context.actorSystem.createActor({ id: "actor" });
+    context.componentRegistry.addComponent(actor, testActorComponentType);
 
-    context.registerRuntimeService(object);
+    context.updateComponentFrame({ timeMs: 10, deltaMs: 0, frameIndex: 1 });
 
-    expect(calls).toEqual([
-      "scene-register:test-object"
-    ]);
-  });
-
-  it("rejects duplicate object registration before touching lower-level systems", () => {
-    const { calls, context } = createSystems();
-    const object = createTestObject();
-    context.registerRuntimeService(object);
-    calls.length = 0;
-
-    expect(() => context.registerRuntimeService(object)).toThrow(/already registered/);
-    expect(calls).toEqual([]);
-  });
-
-  it("rejects duplicate ids before touching lower-level systems", () => {
-    const { calls, context } = createSystems();
-    context.registerRuntimeService(createTestObject("same-id"));
-    calls.length = 0;
-
-    expect(() => context.registerRuntimeService(createTestObject("same-id"))).toThrow(/id is already registered/);
-    expect(calls).toEqual([]);
-  });
-
-  it("does not continue registration when scene runtime registration fails", () => {
-    const { calls, context } = createSystems({ failAt: "scene" });
-
-    expect(() => context.registerRuntimeService(createTestObject())).toThrow("scene failed");
-    expect(calls).toEqual(["scene-register:test-object"]);
-  });
-
-  it("unmarks objects when a registration is disposed", () => {
-    const { context } = createSystems();
-    const object = createTestObject();
-    const registration = context.registerRuntimeService(object);
-
-    registration.dispose();
-
-    expect(() => context.registerRuntimeService(object)).not.toThrow();
+    expect(calls).toEqual(["component-frame:1"]);
   });
 
   it("creates idempotent registered object handles", () => {
@@ -229,10 +191,8 @@ describe("AppRuntimeContext", () => {
 
     expect(calls).toEqual([
       "tracked-object-dispose",
-      "scene-dispose",
       "gizmo-system-dispose",
-      "frame-system-dispose",
-      "scene-runtime-dispose"
+      "frame-system-dispose"
     ]);
   });
 
@@ -252,10 +212,8 @@ describe("AppRuntimeContext", () => {
 
     expect(calls).toEqual([
       "actor-component-dispose",
-      "scene-dispose",
       "gizmo-system-dispose",
-      "frame-system-dispose",
-      "scene-runtime-dispose"
+      "frame-system-dispose"
     ]);
   });
 
@@ -276,10 +234,8 @@ describe("AppRuntimeContext", () => {
 
     expect(calls).toEqual([
       "actor-component-dispose",
-      "scene-dispose",
       "gizmo-system-dispose",
-      "frame-system-dispose",
-      "scene-runtime-dispose"
+      "frame-system-dispose"
     ]);
   });
 });

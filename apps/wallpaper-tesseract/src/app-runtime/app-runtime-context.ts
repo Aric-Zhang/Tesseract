@@ -1,7 +1,7 @@
 import type { AppStateCommandSink } from "../editor/app-state";
 import type { AppStateObserver } from "../editor/app-state-controller";
 import type { RuntimeFrame } from "runtime-core";
-import type { RuntimeObject, RuntimeObjectRegistry, RuntimeRegistration } from "../runtime/ports";
+import type { RuntimeRegistration, UpdateFrame } from "../runtime/ports";
 import { ProductionRuntimeSchedulerService } from "../runtime/runtime-scheduler-service";
 import {
   ActiveInputCancellationRuntime,
@@ -31,16 +31,12 @@ interface TrackedDisposable {
 }
 
 export interface AppRuntimeContextOptions {
-  sceneRuntime: RuntimeObjectRegistry;
   frameStateController: StateObserverRegistry<AppStateObserver> & AppStateCommandSink;
   gizmoEventSystem: GizmoControllerRegistry;
   onRollbackError?: (errors: readonly unknown[]) => void;
 }
 
-type RegisterableObject = RuntimeObject;
-
 export class AppRuntimeContext {
-  readonly sceneRuntime: RuntimeObjectRegistry;
   readonly frameStateController: StateObserverRegistry<AppStateObserver> & AppStateCommandSink;
   readonly gizmoEventSystem: GizmoControllerRegistry;
   readonly actorSystem: ActorSystem;
@@ -49,14 +45,10 @@ export class AppRuntimeContext {
   private readonly runtimeScheduler: ProductionRuntimeSchedulerService;
   private readonly frameUpdateRuntime: FrameUpdateAttachmentRuntime;
   private readonly activeInputCancellationRuntime: ActiveInputCancellationRuntime;
-  private readonly frameUpdateRuntimeRegistration: RuntimeRegistration;
-  private readonly registeredObjects = new Set<object>();
-  private readonly registeredIds = new Map<string, object>();
   private readonly trackedDisposables: TrackedDisposable[] = [];
   private disposed = false;
 
   constructor(options: AppRuntimeContextOptions) {
-    this.sceneRuntime = options.sceneRuntime;
     this.frameStateController = options.frameStateController;
     this.gizmoEventSystem = options.gizmoEventSystem;
     this.onRollbackError = options.onRollbackError;
@@ -84,7 +76,6 @@ export class AppRuntimeContext {
       attachmentRuntime: componentAttachmentRuntime,
       onRollbackError: this.onRollbackError
     });
-    this.frameUpdateRuntimeRegistration = this.sceneRuntime.register(this.frameUpdateRuntime);
   }
 
   cancelActiveActorInput(): void {
@@ -95,10 +86,8 @@ export class AppRuntimeContext {
     this.runtimeScheduler.updateRuntimeFrame(frame);
   }
 
-  registerRuntimeService(object: RuntimeObject): RuntimeRegistration {
-    return this.registerObject(object, [
-      () => this.sceneRuntime.register(object)
-    ]);
+  updateComponentFrame(frame: UpdateFrame): void {
+    this.frameUpdateRuntime.updateFrame(frame);
   }
 
   trackRegisteredObject<T>(object: RegisteredObject<T>): RuntimeRegistration {
@@ -133,56 +122,9 @@ export class AppRuntimeContext {
 
     safeDispose(this.actorSystem);
     safeDispose(this.runtimeScheduler);
-    safeDispose(this.frameUpdateRuntimeRegistration);
     safeDispose(this.frameUpdateRuntime);
     safeDispose(this.gizmoEventSystem);
     safeDispose(this.frameStateController);
-    safeDispose(this.sceneRuntime);
-    this.registeredIds.clear();
-  }
-
-  private registerObject(
-    object: RegisterableObject,
-    registerSteps: Array<() => RuntimeRegistration>
-  ): RuntimeRegistration {
-    this.assertNotDisposed();
-    this.assertCanRegister(object);
-    const registrations: RuntimeRegistration[] = [];
-
-    try {
-      for (const register of registerSteps) {
-        registrations.push(register());
-      }
-      this.markRegistered(object);
-      return createRuntimeRegistration(() => {
-        disposeRegistrationsReverse(registrations, this.onRollbackError);
-        this.unmarkRegistered(object);
-      });
-    } catch (error) {
-      disposeRegistrationsReverse(registrations, this.onRollbackError);
-      throw error;
-    }
-  }
-
-  private assertCanRegister(object: RegisterableObject): void {
-    const identity = object as object;
-    if (this.registeredObjects.has(identity)) {
-      throw new Error(`AppRuntimeContext object is already registered: ${object.id}`);
-    }
-    const existing = this.registeredIds.get(object.id);
-    if (existing) {
-      throw new Error(`AppRuntimeContext id is already registered: ${object.id}`);
-    }
-  }
-
-  private markRegistered(object: RegisterableObject): void {
-    this.registeredObjects.add(object as object);
-    this.registeredIds.set(object.id, object as object);
-  }
-
-  private unmarkRegistered(object: RegisterableObject): void {
-    this.registeredObjects.delete(object as object);
-    this.registeredIds.delete(object.id);
   }
 
   private assertNotDisposed(): void {
@@ -235,23 +177,6 @@ export function createRegisteredObject<T extends { dispose?(): void }>(
       }
     }
   };
-}
-
-function disposeRegistrationsReverse(
-  registrations: readonly RuntimeRegistration[],
-  onRollbackError?: (errors: readonly unknown[]) => void
-): void {
-  const errors: unknown[] = [];
-  for (let i = registrations.length - 1; i >= 0; i -= 1) {
-    try {
-      registrations[i].dispose();
-    } catch (error) {
-      errors.push(error);
-    }
-  }
-  if (errors.length > 0) {
-    onRollbackError?.(errors);
-  }
 }
 
 function safeDispose(disposable: { dispose(): void }): void {

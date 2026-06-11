@@ -19,6 +19,7 @@
   "scripts": {
     "test": "vitest run --passWithNoTests src",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {

@@ -72,26 +72,26 @@ describe("Camera3 feature components", () => {
 
     expect(rig.projectionMode.perspectiveCamera.aspect).toBe(2);
     expect(rig.projectionMode.mode).toBe("orthographic");
-    expect(motion.activeCamera).toBeInstanceOf(THREE.OrthographicCamera);
-    expect(motion.activeCamera).not.toBe(rig.projectionMode.orthographicCamera);
+    expect(motion.getRuntimeThreeCameraForRender()).toBeInstanceOf(THREE.OrthographicCamera);
+    expect(motion.getRuntimeThreeCameraForRender()).not.toBe(rig.projectionMode.orthographicCamera);
   });
 
-  it("exposes the runtime active camera as the Camera3 view state", () => {
-    const { motion, rig } = createSubject();
+  it("exposes renderer-agnostic runtime camera state as the Camera3 view state", () => {
+    const { motion } = createSubject();
 
     motion.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 12, dy: 6 });
     motion.update(frame);
     const viewState = motion.readViewState();
 
-    expect(viewState.activeCamera).toBe(motion.activeCamera);
-    expect(viewState.activeCamera).not.toBe(rig.projectionMode.activeCamera);
+    expect(viewState.cameraState.orbit?.yaw).toBeCloseTo(-12 * 0.008);
+    expect(viewState.cameraState.orbit?.pitch).toBeCloseTo(6 * 0.008);
     expect(viewState.projectionMode).toBe("perspective");
 
     motion.submit({ type: "toggle-projection", source: "camera3-gizmo" });
     motion.update({ ...frame, frameIndex: 2 });
 
     expect(motion.readViewState().projectionMode).toBe("orthographic");
-    expect(motion.readViewState().activeCamera).toBe(motion.activeCamera);
+    expect(motion.readViewState().cameraState.projection?.mode).toBe("orthographic");
   });
 
   it("disposes motion idempotently", () => {

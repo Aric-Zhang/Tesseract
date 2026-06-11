@@ -9,6 +9,7 @@ import {
   projectPrismAppCompositionBlockers,
   projectPrismDebtBlockers,
   projectPrismPackageTargets,
+  projectPrismPrePhase6UiFrameworkBlockers,
   projectPrismRuntimeExtractionBlockers,
   projectPrismUiFrameworkExtractionBlockers
 } from "./project-prism-boundary-facts";
@@ -46,9 +47,9 @@ describe("Project Prism boundary report", () => {
       blockedBy: []
     });
     expect(targetsById.get("runtime-production-ownership")).toMatchObject({
-      status: "blocked",
-      cleanCandidateZones: [],
-      blockedBy: expect.arrayContaining(["runtime-ownership-debt"])
+      status: "allowed",
+      cleanCandidateZones: ["runtime-production-candidate"],
+      blockedBy: []
     });
     expect(targetsById.get("runtime-three-backend")).toMatchObject({
       status: "allowed",
@@ -56,12 +57,17 @@ describe("Project Prism boundary report", () => {
       blockedBy: []
     });
     expect(targetsById.get("runtime-render-production-ownership")).toMatchObject({
+      status: "allowed",
+      blockedBy: []
+    });
+    expect(targetsById.get("ui-framework")).toMatchObject({
       status: "blocked",
-      blockedBy: expect.arrayContaining(["runtime-ownership-debt"])
+      blockedBy: ["window-workspace-multi-truth-debt"]
     });
     expect(targetsById.get("editor")).toMatchObject({
-      status: "deferred",
-      cleanCandidateZones: ["editor-candidate"]
+      status: "blocked",
+      cleanCandidateZones: ["editor-candidate"],
+      blockedBy: ["window-workspace-multi-truth-debt"]
     });
   });
 
@@ -90,6 +96,7 @@ describe("Project Prism boundary report", () => {
     for (const blocker of [
       ...projectPrismRuntimeExtractionBlockers,
       ...projectPrismUiFrameworkExtractionBlockers,
+      ...projectPrismPrePhase6UiFrameworkBlockers,
       ...projectPrismAppCompositionBlockers
     ]) {
       expect(markdown).toContain(blocker.id);

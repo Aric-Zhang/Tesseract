@@ -35,7 +35,7 @@ describe("Camera3MotionController", () => {
 
     controller.subscribe({
       onCamera3MotionChanged: (event) => calls.push({
-        activeCamera: event.activeCamera,
+        projectionMode: event.cameraState.projection?.mode,
         commandTypes: event.commands.map((command) => command.type),
         frameIndex: event.frame.frameIndex,
         mode: event.projectionMode.mode
@@ -46,7 +46,7 @@ describe("Camera3MotionController", () => {
     controller.update(frame);
 
     expect(calls).toEqual([{
-      activeCamera: controller.activeCamera,
+      projectionMode: "orthographic",
       commandTypes: ["orbit-delta", "toggle-projection"],
       frameIndex: 1,
       mode: "orthographic"
@@ -60,8 +60,8 @@ describe("Camera3MotionController", () => {
     controller.update(frame);
 
     expect(projectionMode.mode).toBe("orthographic");
-    expect(controller.activeCamera).toBeInstanceOf(THREE.OrthographicCamera);
-    expect(controller.activeCamera).not.toBe(projectionMode.orthographicCamera);
+    expect(controller.getRuntimeThreeCameraForRender()).toBeInstanceOf(THREE.OrthographicCamera);
+    expect(controller.getRuntimeThreeCameraForRender()).not.toBe(projectionMode.orthographicCamera);
   });
 
   it("sets explicit projection mode through commands", () => {
@@ -73,8 +73,8 @@ describe("Camera3MotionController", () => {
     controller.update({ timeMs: 32, deltaMs: 16, frameIndex: 2 });
 
     expect(projectionMode.mode).toBe("perspective");
-    expect(controller.activeCamera).toBeInstanceOf(THREE.PerspectiveCamera);
-    expect(controller.activeCamera).not.toBe(projectionMode.perspectiveCamera);
+    expect(controller.getRuntimeThreeCameraForRender()).toBeInstanceOf(THREE.PerspectiveCamera);
+    expect(controller.getRuntimeThreeCameraForRender()).not.toBe(projectionMode.perspectiveCamera);
     expect(controller.cameraState.projection?.mode).toBe("perspective");
   });
 
@@ -88,8 +88,8 @@ describe("Camera3MotionController", () => {
     expect(controller.cameraState.projection?.viewport).toEqual({ width: 640, height: 320 });
     expect(controller.cameraState.projection?.orthographicHeight).toBeGreaterThan(0);
     expect(projectionMode.perspectiveCamera.aspect).toBe(2);
-    expect(controller.activeCamera).toBeInstanceOf(THREE.OrthographicCamera);
-    expect(controller.activeCamera).not.toBe(projectionMode.orthographicCamera);
+    expect(controller.getRuntimeThreeCameraForRender()).toBeInstanceOf(THREE.OrthographicCamera);
+    expect(controller.getRuntimeThreeCameraForRender()).not.toBe(projectionMode.orthographicCamera);
   });
 
   it("snaps to axis targets with stable yaw and pitch semantics", () => {

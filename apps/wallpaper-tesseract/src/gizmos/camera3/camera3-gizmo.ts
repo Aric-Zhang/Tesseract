@@ -133,7 +133,7 @@ export class Camera3Gizmo implements GizmoController {
   }
 
   private draw(): void {
-    this.renderer.draw(this.viewState.activeCamera);
+    this.renderer.draw(this.viewState.cameraState);
   }
 
   private getAxisFromHit(hit: GizmoHit): Camera3Axis | null {

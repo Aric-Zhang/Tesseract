@@ -1,24 +1,17 @@
 import { describe, expect, it } from "vitest";
-import type { GizmoController } from "gizmo-core";
 import { AppRuntimeContext } from "../app-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
+import type { RuntimeRegistration } from "../runtime/ports";
 import { installStateRuntimeComponentDefinitions } from "../state-runtime";
-import { installWindowComponentDefinitions } from "../window-runtime";
-import { installHierarchyComponentDefinitions } from "./install-component-definitions";
 import type {
-  AppStateCommand
-} from "../editor/app-state";
-import type { AppStateObserver } from "../editor/app-state-controller";
-import type { RuntimeObject, RuntimeRegistration } from "../runtime/ports";
-import { gizmoEventBindingComponentType } from "../gizmo-runtime";
-import { stateObserverBindingComponentType } from "../state-runtime";
-import { floatingWindowComponentType } from "../window-runtime";
+  WindowContentRegistrationPort,
+  WindowRegisteredContent
+} from "../window-runtime";
 import {
-  createActorHierarchyObjectSource,
-  createDefaultHierarchyPanelState,
-  createHierarchyPanelActor,
+  createHierarchyPanelViewActor,
   createStaticHierarchyObjectSource,
-  hierarchyPanelComponentType
+  hierarchyPanelComponentType,
+  installHierarchyComponentDefinitions
 } from "./index";
 
 class FakeDocument {
@@ -44,18 +37,20 @@ class FakeClassList {
 class FakeElement {
   readonly ownerDocument: FakeDocument;
   readonly tagName: string;
-  readonly style: Record<string, string> = {};
   readonly children: FakeElement[] = [];
   readonly dataset: Record<string, string> = {};
+  readonly style = {
+    setProperty(name: string, value: string): void {
+      Object.assign(this, { [name]: value });
+    }
+  } as CSSStyleDeclaration;
   readonly classList = new FakeClassList(this);
   readonly attributes = new Map<string, string>();
-  readonly listeners = new Map<string, Array<(event: any) => void>>();
+  readonly listeners = new Map<string, Array<(event: Event) => void>>();
   className = "";
   textContent = "";
-  hidden = false;
   type = "";
   tabIndex = 0;
-  ariaLabel = "";
   parentElement: FakeElement | null = null;
 
   constructor(ownerDocument: FakeDocument, tagName: string) {
@@ -78,13 +73,14 @@ class FakeElement {
     this.append(...children);
   }
 
-  remove(): void {
-    if (!this.parentElement) return;
-    const index = this.parentElement.children.indexOf(this);
-    if (index >= 0) {
-      this.parentElement.children.splice(index, 1);
-    }
-    this.parentElement = null;
+  setAttribute(name: string, value: string): void {
+    this.attributes.set(name, value);
+  }
+
+  addEventListener(type: string, listener: (event: Event) => void): void {
+    const listeners = this.listeners.get(type) ?? [];
+    listeners.push(listener);
+    this.listeners.set(type, listeners);
   }
 
   getBoundingClientRect(): DOMRectReadOnly {
@@ -102,16 +98,6 @@ class FakeElement {
       }
     };
   }
-
-  setAttribute(name: string, value: string): void {
-    this.attributes.set(name, value);
-  }
-
-  addEventListener(type: string, listener: (event: any) => void): void {
-    const listeners = this.listeners.get(type) ?? [];
-    listeners.push(listener);
-    this.listeners.set(type, listeners);
-  }
 }
 
 function createRegistration(label: string, calls: string[]): RuntimeRegistration {
@@ -124,280 +110,141 @@ function createRegistration(label: string, calls: string[]): RuntimeRegistration
 
 function createContext() {
   const calls: string[] = [];
-  const registeredGizmos: GizmoController[] = [];
-  const observers: AppStateObserver[] = [];
   const context = new AppRuntimeContext({
-    sceneRuntime: {
-      register(object: RuntimeObject): RuntimeRegistration {
-        calls.push(`scene-register:${object.id}`);
-        return createRegistration(`scene-dispose:${object.id}`, calls);
-      },
-      dispose(): void {
-        calls.push("scene-system-dispose");
-      }
-    },
     gizmoEventSystem: {
-      register(object: GizmoController): RuntimeRegistration {
+      register(object) {
         calls.push(`gizmo-register:${object.id}`);
-        registeredGizmos.push(object);
         return createRegistration(`gizmo-dispose:${object.id}`, calls);
       },
-      dispose(): void {
+      dispose() {
         calls.push("gizmo-system-dispose");
       }
     },
     frameStateController: {
-      submit(command: AppStateCommand): void {
-        calls.push(`frame-submit:${command.target}`);
+      submit(command) {
+        calls.push(`state-submit:${command.target}`);
       },
-      subscribe(observer: AppStateObserver): RuntimeRegistration {
+      subscribe(_observer) {
         calls.push("observer-subscribe");
-        observers.push(observer);
         return createRegistration("observer-dispose", calls);
       },
-      dispose(): void {
+      dispose() {
         calls.push("frame-system-dispose");
       }
     }
   });
   installGizmoRuntimeComponentDefinitions(context.componentRegistry);
   installStateRuntimeComponentDefinitions(context.componentRegistry);
-  installWindowComponentDefinitions(context.componentRegistry);
   installHierarchyComponentDefinitions(context.componentRegistry);
-  return { calls, context, observers, registeredGizmos };
+  return { calls, context };
 }
 
-function createParent() {
-  const document = new FakeDocument();
+function createContentRegistration(calls: string[]): WindowContentRegistrationPort {
+  const registered = new Map<string, WindowRegisteredContent>();
   return {
-    document,
-    parent: document.createElement("div")
+    getRegisteredContent(contentId): WindowRegisteredContent | null {
+      return registered.get(contentId) ?? null;
+    },
+    registerContent(request): WindowRegisteredContent {
+      calls.push(`register:${request.contentId}`);
+      const content: WindowRegisteredContent = {
+        contentId: request.contentId,
+        element: request.element,
+        interactable: request.interactable ?? true,
+        inputStackPriority: 42,
+        setInteractable() {},
+        subscribeLayoutCommit() {
+          return createRegistration("layout-dispose", calls);
+        },
+        dispose() {
+          calls.push(`content-dispose:${request.contentId}`);
+        }
+      };
+      registered.set(request.contentId, content);
+      return content;
+    }
   };
 }
 
-function findDescendantByClass(element: FakeElement, className: string): FakeElement | null {
-  if (element.className.split(" ").includes(className)) return element;
-  for (const child of element.children) {
-    const result = findDescendantByClass(child, className);
-    if (result) return result;
-  }
-  return null;
+function rowLabels(root: HTMLElement): readonly string[] {
+  return [...(root as unknown as FakeElement).children]
+    .filter((child) => child.className.includes("hierarchy-panel__row"))
+    .map((child) => child.textContent);
 }
 
-function hierarchyRows(parent: FakeElement): FakeElement[] {
-  const root = findDescendantByClass(parent, "hierarchy-panel");
-  if (!root) throw new Error("Expected hierarchy panel root.");
-  return root.children.filter((child) => child.className.includes("hierarchy-panel__row"));
-}
+describe("createHierarchyPanelViewActor", () => {
+  it("creates a registered hierarchy content view under the supplied frame actor", () => {
+    const { calls, context } = createContext();
+    const parentActor = context.actorSystem.createActor({ id: "hierarchy-frame" });
 
-describe("createHierarchyPanelActor", () => {
-  it("creates a window actor and returns a RegisteredWindowActor handle", () => {
-    const { context } = createContext();
-    const { document, parent } = createParent();
-    const initial = createDefaultHierarchyPanelState();
-
-    const handle = createHierarchyPanelActor(context, {
-      actorId: "hierarchy-actor",
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      initialWindowState: initial.window,
-      objectSource: createStaticHierarchyObjectSource([{ id: "camera", label: "Camera3" }])
+    const handle = createHierarchyPanelViewActor(context, {
+      actorId: "hierarchy-view",
+      parentActor,
+      document: new FakeDocument() as unknown as Document,
+      contentId: "content:hierarchy",
+      contentRegistration: createContentRegistration(calls),
+      objectSource: createStaticHierarchyObjectSource([
+        { id: "scene", label: "Scene" },
+        { id: "camera", label: "Camera", parentId: "scene" }
+      ])
     });
 
-    expect(handle.actor.id).toBe("hierarchy-actor");
-    expect(handle.component.actor.id).toBe("hierarchy-actor:view");
-    expect(context.actorSystem.getParent(handle.component.actor)).toBe(handle.actor);
-    expect(handle.window.type).toBe(floatingWindowComponentType);
+    expect(handle.actor.id).toBe("hierarchy-view");
+    expect(context.actorSystem.getParent(handle.actor)).toBe(parentActor);
     expect(handle.component.type).toBe(hierarchyPanelComponentType);
-    expect(context.actorSystem.getActor("hierarchy-actor")).toBe(handle.actor);
-  });
-
-  it("auto-adds actor-level gizmo and state observer bindings once", () => {
-    const { calls, context, observers, registeredGizmos } = createContext();
-    const { document, parent } = createParent();
-    const initial = createDefaultHierarchyPanelState();
-
-    const handle = createHierarchyPanelActor(context, {
-      actorId: "hierarchy-actor",
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      initialWindowState: initial.window,
-      objectSource: createStaticHierarchyObjectSource([])
-    });
-
-    expect(handle.actor.hasComponent(gizmoEventBindingComponentType)).toBe(true);
-    expect(handle.actor.hasComponent(stateObserverBindingComponentType)).toBe(true);
-    expect(handle.component.actor.hasComponent(gizmoEventBindingComponentType)).toBe(true);
-    expect(handle.component.actor.hasComponent(stateObserverBindingComponentType)).toBe(true);
-    expect(registeredGizmos).toHaveLength(2);
-    expect(observers).toHaveLength(2);
-    expect(calls.filter((call) => call.startsWith("gizmo-register:"))).toEqual([
-      "gizmo-register:hierarchy-actor:gizmo-event-binding",
-      "gizmo-register:hierarchy-actor:view:gizmo-event-binding"
-    ]);
-    expect(calls.filter((call) => call === "observer-subscribe")).toHaveLength(2);
-  });
-
-  it("propagates priority to the floating window z-index", () => {
-    const { context } = createContext();
-    const { document, parent } = createParent();
-    const initial = createDefaultHierarchyPanelState();
-
-    const handle = createHierarchyPanelActor(context, {
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      initialWindowState: initial.window,
-      objectSource: createStaticHierarchyObjectSource([]),
-      priority: 1234
-    });
-
-    expect(handle.window.inputStackPriority).toBe(1234);
-    expect(parent.children[0]?.style.zIndex).toBe("1234");
-  });
-
-  it("uses a default hierarchy window priority above the debug window layer", () => {
-    const { context } = createContext();
-    const { document, parent } = createParent();
-    const initial = createDefaultHierarchyPanelState();
-
-    const handle = createHierarchyPanelActor(context, {
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      initialWindowState: initial.window,
-      objectSource: createStaticHierarchyObjectSource([])
-    });
-
-    expect(handle.window.inputStackPriority).toBe(1100);
-    expect(parent.children[0]?.style.zIndex).toBe("1100");
-  });
-
-  it("renders the hierarchy actor itself during the initial actor-backed render", () => {
-    const { context } = createContext();
-    const { document, parent } = createParent();
-    const initial = createDefaultHierarchyPanelState();
-    context.actorSystem.createActor({ id: "scene-window", name: "Scene" });
-    context.actorSystem.createActor({ id: "camera-3", name: "Camera3" });
-    context.actorSystem.createActor({ id: "tesseract-4", name: "Tesseract4" });
-    context.actorSystem.createActor({ id: "debug-log-window", name: "Debug Log Window" });
-    const objectSource = createActorHierarchyObjectSource({
-      actorSystem: context.actorSystem,
-      metadataByActorId: {
-        "scene-window": { order: 0 },
-        "tesseract-4": { order: 10 },
-        "camera-3": { order: 20 },
-        "debug-log-window": { order: 1000 },
-        "hierarchy-panel": { order: 1010 }
-      }
-    });
-
-    createHierarchyPanelActor(context, {
-      actorId: "hierarchy-panel",
-      actorName: "Hierarchy Panel",
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      initialWindowState: initial.window,
-      objectSource
-    });
-
-    expect(hierarchyRows(parent).map((row) => row.textContent)).toEqual([
-      "Scene",
-      "Tesseract4",
-      "Camera3",
-      "Debug Log Window",
-      "Hierarchy Panel",
-      "Hierarchy View"
-    ]);
-  });
-
-  it("disposes handle and context-owned actor safely", () => {
-    const { calls, context } = createContext();
-    const { document, parent } = createParent();
-    const initial = createDefaultHierarchyPanelState();
-    const handle = createHierarchyPanelActor(context, {
-      actorId: "hierarchy-actor",
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      initialWindowState: initial.window,
-      objectSource: createStaticHierarchyObjectSource([])
-    });
-    calls.length = 0;
-
-    handle.dispose();
-    handle.dispose();
-
-    expect(context.actorSystem.getActor("hierarchy-actor")).toBeNull();
-    expect(context.actorSystem.getActor("hierarchy-actor:view")).toBeNull();
-    expect(parent.children).toEqual([]);
+    expect(handle.component.contentId).toBe("content:hierarchy");
+    expect(rowLabels(handle.component.element)).toEqual(["Scene", "Camera"]);
     expect(calls).toEqual([
-      "observer-dispose",
-      "gizmo-dispose:hierarchy-actor:view:gizmo-event-binding",
-      "observer-dispose",
-      "gizmo-dispose:hierarchy-actor:gizmo-event-binding"
+      "gizmo-register:hierarchy-view:gizmo-event-binding",
+      "observer-subscribe",
+      "register:content:hierarchy"
     ]);
   });
 
-  it("can untrack runtime ownership without destroying the hierarchy actor tree", () => {
+  it("disposes runtime tracking independently from the view actor tree", () => {
     const { calls, context } = createContext();
-    const { document, parent } = createParent();
-    const initial = createDefaultHierarchyPanelState();
-    const handle = createHierarchyPanelActor(context, {
-      actorId: "hierarchy-actor",
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      initialWindowState: initial.window,
+    const parentActor = context.actorSystem.createActor({ id: "hierarchy-frame" });
+    const handle = createHierarchyPanelViewActor(context, {
+      actorId: "hierarchy-view",
+      parentActor,
+      document: new FakeDocument() as unknown as Document,
+      contentId: "content:hierarchy",
+      contentRegistration: createContentRegistration(calls),
+      objectSource: createStaticHierarchyObjectSource([])
+    });
+
+    handle.disposeRuntimeTracking?.();
+    handle.disposeRuntimeTracking?.();
+
+    expect(context.actorSystem.getActor("hierarchy-view")).toBe(handle.actor);
+    expect(calls).toEqual([
+      "gizmo-register:hierarchy-view:gizmo-event-binding",
+      "observer-subscribe",
+      "register:content:hierarchy"
+    ]);
+  });
+
+  it("disposes the view actor and registered content through the handle", () => {
+    const { calls, context } = createContext();
+    const parentActor = context.actorSystem.createActor({ id: "hierarchy-frame" });
+    const handle = createHierarchyPanelViewActor(context, {
+      actorId: "hierarchy-view",
+      parentActor,
+      document: new FakeDocument() as unknown as Document,
+      contentId: "content:hierarchy",
+      contentRegistration: createContentRegistration(calls),
       objectSource: createStaticHierarchyObjectSource([])
     });
     calls.length = 0;
 
-    handle.disposeRuntimeTracking?.();
-    handle.disposeRuntimeTracking?.();
+    handle.dispose();
+    handle.dispose();
 
-    expect(context.actorSystem.getActor("hierarchy-actor")).toBe(handle.actor);
-    expect(context.actorSystem.getActor("hierarchy-actor:view")).toBe(handle.component.actor);
-    expect(parent.children).toHaveLength(1);
-    expect(calls).toEqual([]);
-  });
-
-  it("runtime context disposal releases still-live hierarchy panel actor handles", () => {
-    const { context } = createContext();
-    const { document, parent } = createParent();
-    const initial = createDefaultHierarchyPanelState();
-
-    createHierarchyPanelActor(context, {
-      actorId: "hierarchy-actor",
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      initialWindowState: initial.window,
-      objectSource: createStaticHierarchyObjectSource([])
-    });
-
-    context.dispose();
-
-    expect(context.actorSystem.getActor("hierarchy-actor")).toBeNull();
-    expect(parent.children).toEqual([]);
-  });
-
-  it("rolls back the actor if the content component cannot be created", () => {
-    const { context } = createContext();
-    const { document, parent } = createParent();
-    const initial = createDefaultHierarchyPanelState();
-
-    expect(() => createHierarchyPanelActor(context, {
-      actorId: "hierarchy-actor",
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      initialWindowState: initial.window,
-      objectSource: {
-        listObjects() {
-          throw new Error("source unavailable");
-        }
-      }
-    })).toThrow(/source unavailable/);
-
-    expect(context.actorSystem.getActor("hierarchy-actor")).toBeNull();
-    expect(parent.children).toEqual([]);
+    expect(context.actorSystem.getActor("hierarchy-view")).toBeNull();
+    expect(calls).toEqual([
+      "content-dispose:content:hierarchy",
+      "observer-dispose",
+      "gizmo-dispose:hierarchy-view:gizmo-event-binding"
+    ]);
   });
 });
-
-
-

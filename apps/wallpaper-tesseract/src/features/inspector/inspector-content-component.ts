@@ -1,8 +1,9 @@
 import type { Actor, Component, ComponentType } from "../../actor-runtime";
 import type {
-  WindowContentAttachment,
-  WindowContentHost,
-  WindowContentRehostable
+  WindowContentLayoutCommit,
+  WindowContentLayoutCommitRegistration,
+  WindowContentRegistrationPort,
+  WindowRegisteredContent
 } from "../../window-runtime";
 
 export const inspectorContentComponentType =
@@ -12,27 +13,24 @@ export interface InspectorContentComponentOptions {
   readonly id?: string;
   readonly label: string;
   readonly document?: Pick<Document, "createElement">;
-}
-
-export interface InspectorContentComponentServices {
-  readonly host: WindowContentHost;
+  readonly contentId: string;
+  readonly contentRegistration: WindowContentRegistrationPort;
 }
 
 const DEFAULT_INSPECTOR_CONTENT_ID = "inspector-content";
 
-export class InspectorContentComponent implements Component, WindowContentRehostable {
+export class InspectorContentComponent implements Component, WindowRegisteredContent {
   readonly type = inspectorContentComponentType;
   readonly id: string;
   readonly actor: Actor;
   enabled = true;
 
   readonly #root: HTMLDivElement;
-  #attachment: WindowContentAttachment;
+  #registration: WindowRegisteredContent;
 
   constructor(
     actor: Actor,
-    options: InspectorContentComponentOptions,
-    services: InspectorContentComponentServices
+    options: InspectorContentComponentOptions
   ) {
     this.actor = actor;
     this.id = options.id ?? DEFAULT_INSPECTOR_CONTENT_ID;
@@ -40,26 +38,37 @@ export class InspectorContentComponent implements Component, WindowContentRehost
     this.#root = documentRef.createElement("div");
     this.#root.className = "inspector-window__content";
     this.#root.textContent = options.label;
-    this.#attachment = services.host.mountContent(this.#root);
+    this.#registration = options.contentRegistration.registerContent({
+      contentId: options.contentId,
+      element: this.#root
+    });
   }
 
-  get currentWindowContentHost(): WindowContentHost | null {
-    return this.enabled ? this.#attachment.host : null;
+  get contentId(): string {
+    return this.#registration.contentId;
   }
 
-  rehostWindowContent(host: WindowContentHost): void {
-    const previous = this.#attachment;
-    this.#attachment = host.mountContent(this.#root);
-    previous.dispose();
+  get element(): HTMLElement {
+    return this.#root;
   }
 
-  setWindowContentInteractable(interactable: boolean): void {
-    this.#attachment.setInteractable(interactable);
+  get interactable(): boolean {
+    return this.#registration.interactable;
+  }
+
+  setInteractable(interactable: boolean): void {
+    this.#registration.setInteractable(interactable);
+  }
+
+  subscribeLayoutCommit(
+    callback: (commit: WindowContentLayoutCommit) => void
+  ): WindowContentLayoutCommitRegistration {
+    return this.#registration.subscribeLayoutCommit(callback);
   }
 
   dispose(): void {
     this.enabled = false;
-    this.#attachment.dispose();
+    this.#registration.dispose();
   }
 }
 

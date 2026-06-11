@@ -1,4 +1,3 @@
-export type { RuntimeObjectRegistry } from "./runtime-object-registry";
 export type { FeatureActorContext } from "./feature-actor-context";
 export type {
   StateChange,
@@ -11,7 +10,6 @@ export {
 export type {
   FrameUpdatable,
   RuntimeDisposable,
-  RuntimeObject,
   RuntimeRegistration,
   UpdateFrame
 } from "./update-frame";

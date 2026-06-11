@@ -3,6 +3,15 @@ import { ActorSystem } from "actor-core";
 import type { ActorInputHit, ActorInputMoveEvent } from "actor-input";
 import { WindowFrameSurfaceComponent, type WindowFrameSurfaceHost } from "./window-frame-surface-component";
 import type { WindowFrameTab } from "../model/window-frame-tab";
+import { createSingletonWindowViewIdentity } from "../model/window-view-identity";
+import {
+  windowWorkspaceContentId,
+  windowWorkspaceFrameId,
+  windowWorkspaceSplitId,
+  windowWorkspaceTabsetId
+} from "../model/window-workspace-graph";
+import type { WindowContentLayoutCommit, WindowRegisteredContent } from "../ports/window-content-host";
+import type { WindowFrameSurfaceSnapshot } from "../services/window-workspace-graph-reconciler";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -141,7 +150,147 @@ function findChildrenByClass(element: FakeElement, className: string): FakeEleme
   return matches;
 }
 
+function createRegisteredContent(contentId: string, element: FakeElement): WindowRegisteredContent & {
+  readonly element: FakeElement;
+} {
+  let interactable = true;
+  const subscribers: Array<(commit: WindowContentLayoutCommit) => void> = [];
+  return {
+    contentId,
+    element,
+    get interactable() {
+      return interactable;
+    },
+    setInteractable(nextInteractable: boolean) {
+      interactable = nextInteractable;
+    },
+    subscribeLayoutCommit(callback) {
+      subscribers.push(callback);
+      return {
+        dispose() {
+          const index = subscribers.indexOf(callback);
+          if (index >= 0) {
+            subscribers.splice(index, 1);
+          }
+        }
+      };
+    },
+    dispose() {
+      subscribers.length = 0;
+    }
+  } as WindowRegisteredContent & { readonly element: FakeElement };
+}
+
 describe("WindowFrameSurfaceComponent", () => {
+  it("renders graph snapshots and places registered content in graph tabsets", () => {
+    const { content, document, host, surface } = createSubject();
+    const debugContentId = windowWorkspaceContentId("content:debug");
+    const sceneContentId = windowWorkspaceContentId("content:scene");
+    const debugTabsetId = windowWorkspaceTabsetId("tabset:debug");
+    const sceneTabsetId = windowWorkspaceTabsetId("tabset:scene");
+    const debugContent = createRegisteredContent(debugContentId, document.createElement("section"));
+    const sceneContent = createRegisteredContent(sceneContentId, document.createElement("section"));
+    const snapshot: WindowFrameSurfaceSnapshot = {
+      frameId: windowWorkspaceFrameId("frame"),
+      kind: "persistent",
+      presentation: "windowed",
+      revision: 1,
+      visible: true,
+      stackPriority: 1,
+      root: {
+        kind: "split",
+        id: windowWorkspaceSplitId("split:main"),
+        direction: "vertical",
+        ratio: 0.5,
+        first: {
+          kind: "tabset",
+          id: debugTabsetId,
+          activeContentId: debugContentId,
+          tabs: [{
+            contentId: debugContentId,
+            viewActorId: "debug-view",
+            identity: createSingletonWindowViewIdentity("debug"),
+            title: "Debug",
+            active: true
+          }]
+        },
+        second: {
+          kind: "tabset",
+          id: sceneTabsetId,
+          activeContentId: sceneContentId,
+          tabs: [{
+            contentId: sceneContentId,
+            viewActorId: "scene-view",
+            identity: createSingletonWindowViewIdentity("scene"),
+            title: "Scene",
+            active: true
+          }]
+        }
+      }
+    };
+
+    surface.attachHost(host);
+    surface.renderFrameSurface(snapshot);
+    surface.placeContent({
+      content: debugContent,
+      placement: {
+        contentId: debugContentId,
+        identity: createSingletonWindowViewIdentity("debug"),
+        frameId: windowWorkspaceFrameId("frame"),
+        tabsetId: debugTabsetId,
+        active: true,
+        interactable: true
+      }
+    });
+    surface.placeContent({
+      content: sceneContent,
+      placement: {
+        contentId: sceneContentId,
+        identity: createSingletonWindowViewIdentity("scene"),
+        frameId: windowWorkspaceFrameId("frame"),
+        tabsetId: sceneTabsetId,
+        active: true,
+        interactable: true
+      }
+    });
+
+    const paneContents = findChildrenByClass(content, "pane-content");
+    const paneTabs = findChildrenByClass(content, "pane-tabs");
+    const splitters = findChildrenByClass(content, "splitter");
+    paneTabs[0]!.rect = createRect(10, 20, 120, 24);
+    paneContents[0]!.rect = createRect(10, 44, 120, 180);
+    paneTabs[1]!.rect = createRect(140, 20, 140, 24);
+    paneContents[1]!.rect = createRect(140, 44, 140, 180);
+    splitters[0]!.rect = createRect(130, 20, 10, 204);
+
+    expect(surface.measureFrameSurfaceGeometry(snapshot)).toEqual({
+      frameId: windowWorkspaceFrameId("frame"),
+      revision: 1,
+      tabsets: [{
+        tabsetId: debugTabsetId,
+        contentIds: [debugContentId],
+        tabBounds: { left: 10, top: 20, right: 130, bottom: 44, width: 120, height: 24 },
+        contentBounds: { left: 10, top: 44, right: 130, bottom: 224, width: 120, height: 180 }
+      }, {
+        tabsetId: sceneTabsetId,
+        contentIds: [sceneContentId],
+        tabBounds: { left: 140, top: 20, right: 280, bottom: 44, width: 140, height: 24 },
+        contentBounds: { left: 140, top: 44, right: 280, bottom: 224, width: 140, height: 180 }
+      }],
+      splitters: [{
+        splitId: windowWorkspaceSplitId("split:main"),
+        direction: "vertical",
+        rect: { left: 130, top: 20, right: 140, bottom: 224, width: 10, height: 204 }
+      }],
+      issues: []
+    });
+    expect(paneContents).toHaveLength(2);
+    expect(debugContent.element.parentElement).toBe(paneContents[0]);
+    expect(sceneContent.element.parentElement).toBe(paneContents[1]);
+    expect(debugContent.interactable).toBe(true);
+    expect(sceneContent.interactable).toBe(true);
+  });
+
   it("owns tab chrome, content placement, and active content state", () => {
     const { content, document, host, setEffectiveVisible, surface, tabbar } = createSubject();
 
@@ -169,6 +318,27 @@ describe("WindowFrameSurfaceComponent", () => {
 
     expect(hierarchyContent.hidden).toBe(true);
     expect(hierarchyAttachment.interactable).toBe(false);
+  });
+
+  it("uses the content declared view actor instead of letting a host rewrite placement", () => {
+    const { content, document, host, surface } = createSubject();
+
+    surface.configure({ tabs: [
+      createTab("debug-view", "Debug"),
+      createTab("scene-view", "Scene")
+    ] });
+    surface.attachHost(host);
+    const sceneContent = document.createElement("section");
+
+    const attachment = surface.getContentHost("debug-view").mountContent({
+      element: sceneContent as unknown as HTMLElement,
+      viewActorId: "scene-view"
+    });
+
+    expect(content.children).toEqual([sceneContent]);
+    expect(attachment.interactable).toBe(false);
+    surface.activateTab("scene-view");
+    expect(attachment.interactable).toBe(true);
   });
 
   it("routes tab action hits and split resize through the shared surface", () => {
@@ -201,18 +371,17 @@ describe("WindowFrameSurfaceComponent", () => {
 
     const hit = surface.hitTest({ x: 200, y: 100 });
     expect(hit?.part).toBe("splitter");
+    expect(surface.hitTest({ x: 195, y: 100 })?.part).toBe("splitter");
+    expect(hit?.data).toMatchObject({ direction: "horizontal" });
     surface.beginSplitResize(hit?.data);
-    surface.updateSplitRatioFromDrag(createActorInputMoveEvent(createActorInputHit("surface", {
+    const resize = surface.updateSplitRatioFromDrag(createActorInputMoveEvent(createActorInputHit("surface", {
       partId: "splitter"
     }), {
       totalDelta: { dx: 80, dy: 0 }
     }));
 
-    const root = surface.getRuntimeDockRoot();
-    expect(root.kind).toBe("split");
-    if (root.kind === "split") {
-      expect(root.ratio).toBeGreaterThan(0.5);
-    }
+    expect(resize?.splitId).toBe((hit?.data as { splitId?: string }).splitId);
+    expect(resize?.ratio).toBeGreaterThan(0.5);
   });
 
   it("activates tabs within their split pane without moving content to the frame root", () => {
@@ -262,6 +431,83 @@ describe("WindowFrameSurfaceComponent", () => {
     expect(debugContent.hidden).toBe(false);
     expect(sceneContent.hidden).toBe(true);
     expect(hierarchyContent.hidden).toBe(false);
+  });
+
+  it("publishes generic layout commits after split layout and active content changes", () => {
+    const { content, document, host, surface } = createSubject();
+    surface.configure({ tabs: [createTab("debug-view", "Debug")] });
+    surface.attachHost(host);
+    const debugContent = document.createElement("section");
+    const debugCommits: WindowContentLayoutCommit[] = [];
+    const debugAttachment = surface.getContentHost("debug-view").mountContent(debugContent as unknown as HTMLElement);
+    debugAttachment.subscribeLayoutCommit((commit) => debugCommits.push(commit));
+
+    const initialRoot = surface.getRuntimeDockRoot();
+    if (initialRoot.kind !== "tabset") throw new Error("Expected initial tabset.");
+    surface.splitTab(createTab("scene-view", "Scene"), {
+      targetTabsetId: initialRoot.id,
+      placement: "bottom",
+      active: true
+    });
+    const split = findChildrenByClass(content, "split")[0];
+    const splitter = findChildrenByClass(content, "splitter")[0];
+    const paneContents = findChildrenByClass(content, "pane-content");
+    if (!split || !splitter || paneContents.length !== 2) throw new Error("Expected split DOM.");
+    split.rect = createRect(0, 24, 400, 240);
+    splitter.rect = createRect(0, 140, 400, 6);
+    paneContents[0]!.rect = createRect(0, 24, 400, 116);
+    paneContents[1]!.rect = createRect(0, 146, 400, 118);
+
+    const sceneContent = document.createElement("section");
+    const sceneCommits: typeof debugCommits = [];
+    const sceneAttachment = surface.getContentHost("scene-view").mountContent(sceneContent as unknown as HTMLElement);
+    sceneAttachment.subscribeLayoutCommit((commit) => sceneCommits.push(commit));
+
+    expect(sceneCommits.at(-1)).toMatchObject({
+      surfaceId: "surface:test",
+      contentId: "scene-view",
+      active: true,
+      interactable: true,
+      contentRect: { x: 0, y: 146, width: 400, height: 118 }
+    });
+
+    surface.refreshActiveContentState();
+
+    expect(debugCommits.at(-1)).toMatchObject({
+      surfaceId: "surface:test",
+      contentId: "debug-view",
+      active: true,
+      interactable: true
+    });
+    expect(sceneCommits.at(-1)).toMatchObject({
+      surfaceId: "surface:test",
+      contentId: "scene-view",
+      active: true,
+      interactable: true,
+      contentRect: { x: 0, y: 146, width: 400, height: 118 }
+    });
+    expect(sceneCommits.at(-1)?.splits).toHaveLength(1);
+    expect(sceneCommits.at(-1)?.splits[0]?.splitId).toEqual(expect.any(String));
+    expect(sceneCommits.at(-1)?.splits[0]).toMatchObject({
+      direction: "vertical",
+      rect: { x: 0, y: 140, width: 400, height: 6 }
+    });
+
+    surface.addTab(createTab("hierarchy-view", "Hierarchy"), {
+      targetTabsetId: sceneCommits.at(-1)?.tabsetId ?? "",
+      active: false
+    });
+    const hierarchyContent = document.createElement("section");
+    const hierarchyCommits: typeof debugCommits = [];
+    const hierarchyAttachment = surface.getContentHost("hierarchy-view").mountContent(hierarchyContent as unknown as HTMLElement);
+    hierarchyAttachment.subscribeLayoutCommit((commit) => hierarchyCommits.push(commit));
+
+    surface.activateTab("hierarchy-view");
+
+    expect(debugCommits.at(-1)?.active).toBe(true);
+    expect(sceneCommits.at(-1)?.active).toBe(false);
+    expect(hierarchyCommits.at(-1)?.active).toBe(true);
+    expect(debugCommits.at(-1)?.surfaceRevision).toBeGreaterThan(sceneCommits[0]?.surfaceRevision ?? 0);
   });
 
   it("does not mount known view content to primary content when its tabset target is missing", () => {

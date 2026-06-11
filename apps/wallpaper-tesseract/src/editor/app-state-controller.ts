@@ -1,5 +1,4 @@
 import type {
-  RuntimeObject,
   RuntimeRegistration,
   StateChange,
   StateChangedEvent,
@@ -26,10 +25,7 @@ interface QueuedCommand {
   order: number;
 }
 
-export class AppFrameStateController implements RuntimeObject {
-  readonly id = "app-frame-state-controller";
-  readonly priority = -1000;
-  enabled = true;
+export class AppFrameStateController {
   readonly #store: AppStateParameterStore;
   readonly #observers: AppStateObserver[] = [];
   #pendingCommands: QueuedCommand[] = [];

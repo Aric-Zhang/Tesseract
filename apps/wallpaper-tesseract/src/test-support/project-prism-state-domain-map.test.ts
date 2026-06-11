@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readSourceFile } from "./architecture-boundaries";
+import { sourceFiles } from "./architecture-boundaries";
 import {
   projectPrismEditorStateSurface,
   projectPrismRuntimeStateSurface,
@@ -8,41 +8,24 @@ import {
 } from "./project-prism-state-domain-map";
 
 describe("Project Prism state domain map", () => {
-  it("classifies every public scene-runtime barrel export exactly once", () => {
-    const sceneRuntimeIndex = readSourceFile("./scene-runtime/index.ts");
-    const exportedNames = listSceneRuntimeBarrelExports(sceneRuntimeIndex);
-    const mappedNames = projectPrismSceneRuntimeStateDomainMap.map((entry) => entry.exportName).sort();
+  it("keeps deleted scene-runtime compatibility surface out of production sources", () => {
+    const sceneRuntimeFiles = Object.keys(sourceFiles)
+      .filter((file) => file.startsWith("./scene-runtime/"))
+      .sort();
 
-    expect(mappedNames).toEqual(exportedNames);
+    expect(sceneRuntimeFiles).toEqual([]);
+    expect(projectPrismSceneRuntimeStateDomainMap).toEqual([]);
   });
 
-  it("keeps runtime-state surface free of editor, UI layout, and mixed scene path facts", () => {
-    const runtimeNames = projectPrismRuntimeStateSurface.map((entry) => entry.exportName);
-
-    expect(runtimeNames).toEqual(expect.arrayContaining([
-      "SceneFrame",
-      "SceneFrameClock",
-      "FrameUpdatable",
-      "RuntimeDisposable",
-      "RuntimeRegistration"
-    ]));
-    expect(runtimeNames).not.toEqual(expect.arrayContaining([
-      "Vec2",
-    ]));
+  it("keeps runtime-state surface free of deleted scene-runtime compatibility facts", () => {
+    expect(projectPrismRuntimeStateSurface).toEqual([]);
   });
 
   it("keeps editor-state and UI layout-state ownership separate from runtime-core", () => {
     expect(projectPrismEditorStateSurface.map((entry) => entry.exportName)).toEqual([]);
     expect(projectPrismEditorStateSurface.every((entry) => entry.targetOwner === "editor")).toBe(true);
 
-    expect(projectPrismUiLayoutStateSurface.map((entry) => entry.exportName)).toEqual([
-      "addVec2",
-      "assertVec2",
-      "cloneVec2",
-      "equalsVec2",
-      "vec2",
-      "Vec2"
-    ]);
+    expect(projectPrismUiLayoutStateSurface.map((entry) => entry.exportName)).toEqual([]);
     expect(projectPrismUiLayoutStateSurface.every((entry) => entry.targetOwner === "ui-framework")).toBe(true);
   });
 
@@ -55,15 +38,3 @@ describe("Project Prism state domain map", () => {
     expect(missingStopConditions).toEqual([]);
   });
 });
-
-function listSceneRuntimeBarrelExports(source: string): string[] {
-  const names = new Set<string>();
-  const namedExportPattern = /export\s+(?:type\s+)?{([^}]+)}/g;
-  for (const match of source.matchAll(namedExportPattern)) {
-    for (const rawName of match[1].split(",")) {
-      const name = rawName.trim().replace(/\s+as\s+.+$/, "");
-      if (name) names.add(name);
-    }
-  }
-  return [...names].sort();
-}

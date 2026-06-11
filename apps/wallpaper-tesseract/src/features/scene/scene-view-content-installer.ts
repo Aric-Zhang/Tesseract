@@ -10,6 +10,7 @@ import {
 } from "../../gizmos/camera3";
 import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
 import type { FeatureActorContext } from "../../runtime/ports";
+import type { WindowContentRegistrationPort } from "../../window-runtime";
 import { createTesseract4Actor } from "../../tesseract4";
 import type {
   SceneViewportRendererFactory,
@@ -38,6 +39,8 @@ export interface InstallSceneViewContentOptions {
   readonly createResizeObserver?: SceneViewportResizeObserverFactory;
   readonly createCamera3GizmoView?: Camera3GizmoViewFactory;
   readonly devicePixelRatio?: () => number;
+  readonly contentId: string;
+  readonly contentRegistration: WindowContentRegistrationPort;
 }
 
 export interface InstalledSceneViewContent {
@@ -58,7 +61,9 @@ export function installSceneViewContent(options: InstallSceneViewContentOptions)
       document: options.mount.ownerDocument ?? undefined,
       createRenderer: options.createRenderer,
       createResizeObserver: options.createResizeObserver,
-      devicePixelRatio: options.devicePixelRatio
+      devicePixelRatio: options.devicePixelRatio,
+      contentId: options.contentId,
+      contentRegistration: options.contentRegistration
     });
 
     context.componentRegistry.addComponent(sceneView.viewport.actor, camera3RigComponentType, { distance: 6 });
@@ -78,12 +83,12 @@ export function installSceneViewContent(options: InstallSceneViewContentOptions)
       camera3GizmoActorId: camera3Gizmo.actor.id
     });
 
-    createTesseract4Actor(context, {
+    const tesseract4 = createTesseract4Actor(context, {
       actorId: actorIds.tesseract4ActorId,
       actorName: actorIds.tesseract4ActorName,
-      scene: sceneView.viewport.scene,
       parentActor: sceneView.viewport.actor
     });
+    tesseract4.component.attachToOutput(sceneView.renderOutput);
 
     const installedSceneView = sceneView;
     return {

@@ -39,8 +39,8 @@ export class Camera3MotionComponent implements Component, Camera3CommandSink, Ru
     });
   }
 
-  get activeCamera(): THREE.PerspectiveCamera | THREE.OrthographicCamera {
-    return this.#controller.activeCamera;
+  getRuntimeThreeCameraForRender(): THREE.PerspectiveCamera | THREE.OrthographicCamera {
+    return this.#controller.getRuntimeThreeCameraForRender();
   }
 
   get projectionMode(): Camera3ProjectionModeController {

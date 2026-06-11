@@ -1,21 +1,20 @@
-import type * as THREE from "three";
 import type { RuntimeFrame, RuntimeWork } from "runtime-core";
 import type { Actor, Component, ComponentType } from "../../actor-runtime";
-import type { UpdateFrame } from "../../runtime/ports";
+import type { RuntimeSceneRenderOutput } from "../../runtime/scene-render-output";
+import type { RuntimeRegistration } from "../../runtime/ports";
 import {
-  Tesseract4RuntimeObject,
-  type Tesseract4RuntimeObjectOptions
-} from "../tesseract4-runtime-object";
+  Tesseract4RuntimeRenderable,
+  type Tesseract4RuntimeRenderableOptions
+} from "../tesseract4-runtime-renderable";
 
 export const tesseract4ComponentType =
   "tesseract4-component" as ComponentType<Tesseract4Component>;
 
-export type Tesseract4RuntimeObjectFactory =
-  (options: Tesseract4RuntimeObjectOptions) => Tesseract4RuntimeObject;
+export type Tesseract4RuntimeRenderableFactory =
+  (options: Tesseract4RuntimeRenderableOptions) => Tesseract4RuntimeRenderable;
 
-export interface Tesseract4ComponentOptions extends Tesseract4RuntimeObjectOptions {
-  createObject?: Tesseract4RuntimeObjectFactory;
-  scene?: THREE.Scene;
+export interface Tesseract4ComponentOptions extends Tesseract4RuntimeRenderableOptions {
+  createRenderable?: Tesseract4RuntimeRenderableFactory;
 }
 
 export class Tesseract4Component implements Component, RuntimeWork {
@@ -23,32 +22,39 @@ export class Tesseract4Component implements Component, RuntimeWork {
   readonly type = tesseract4ComponentType;
   readonly actor: Actor;
   enabled = true;
-  readonly runtimeObject: Tesseract4RuntimeObject;
-  readonly #scene: THREE.Scene | null;
+  readonly runtimeRenderable: Tesseract4RuntimeRenderable;
+  readonly #sceneAttachments: RuntimeRegistration[] = [];
 
   constructor(actor: Actor, options: Tesseract4ComponentOptions = {}) {
     this.actor = actor;
-    this.#scene = options.scene ?? null;
-    this.runtimeObject = (options.createObject ?? ((objectOptions) => new Tesseract4RuntimeObject(objectOptions)))(options);
-    this.id = this.runtimeObject.id;
-    this.#scene?.add(this.object);
-  }
-
-  get object(): THREE.LineSegments {
-    return this.runtimeObject.object;
-  }
-
-  updateFrame(frame: UpdateFrame): void {
-    this.runtimeObject.updateFrame(frame);
+    this.runtimeRenderable = (options.createRenderable ?? ((objectOptions) => new Tesseract4RuntimeRenderable(objectOptions)))(options);
+    this.id = this.runtimeRenderable.id;
   }
 
   updateRuntimeFrame(frame: RuntimeFrame): void {
-    this.runtimeObject.updateFrame(frame);
+    this.runtimeRenderable.updateRuntimeFrame(frame);
+  }
+
+  attachToOutput(output: RuntimeSceneRenderOutput): RuntimeRegistration {
+    const registration = this.runtimeRenderable.attachToOutput(output);
+    this.#sceneAttachments.push(registration);
+    return {
+      dispose: () => {
+        const index = this.#sceneAttachments.indexOf(registration);
+        if (index >= 0) {
+          this.#sceneAttachments.splice(index, 1);
+        }
+        registration.dispose();
+      }
+    };
   }
 
   dispose(): void {
     this.enabled = false;
-    this.#scene?.remove(this.object);
-    this.runtimeObject.dispose();
+    for (const registration of [...this.#sceneAttachments].reverse()) {
+      registration.dispose();
+    }
+    this.#sceneAttachments.length = 0;
+    this.runtimeRenderable.dispose();
   }
 }

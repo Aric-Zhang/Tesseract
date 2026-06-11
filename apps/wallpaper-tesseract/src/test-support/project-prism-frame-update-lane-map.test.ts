@@ -9,7 +9,7 @@ import {
 } from "./project-prism-frame-update-lane-map";
 
 const productionSchedulerSurfacePattern =
-  /\bupdateFrame\s*\(|\bframeUpdateAttachment\b|\bruntimeWorkAttachment\b|\bregisterRuntimeService\b|\bsceneRuntime\.updateFrame\b/;
+  /\bupdateFrame\s*\(|\bframeUpdateAttachment\b|\bruntimeWorkAttachment\b/;
 
 describe("Project Prism frame update lane map", () => {
   it("classifies every current production frame-update surface before scheduler migration", () => {
@@ -57,12 +57,13 @@ describe("Project Prism frame update lane map", () => {
 
   it("marks current dispatchers as split debt instead of pure runtime work", () => {
     expect(projectPrismSchedulerDispatcherLane.map((entry) => entry.sourceFile)).toEqual(expect.arrayContaining([
-      "./scene-runtime/scene-runtime.ts",
       "./update-runtime/frame-update-attachment-runtime.ts",
+      "./app/app-frame-orchestrator.ts",
+      "./app/ui-frame-scheduler.ts",
       "./app/create-wallpaper-app.ts"
     ]));
     expect(projectPrismSchedulerDispatcherLane.map((entry) => entry.stopCondition).join("\n")).toContain(
-      "runtime work, UI component tick, and editor state flush"
+      "explicit runtime, UI tick, and editor state flush schedulers"
     );
   });
 });

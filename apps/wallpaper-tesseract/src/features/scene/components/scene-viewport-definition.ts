@@ -1,5 +1,4 @@
 import type { ComponentDefinition } from "../../../actor-runtime";
-import { findOwningWindowContentHost } from "../../../window-runtime";
 import {
   SceneViewportComponent,
   sceneViewportComponentType,
@@ -14,11 +13,13 @@ export const sceneViewportComponentDefinition:
     createId(_actor, options) {
       return options?.id ?? "scene-viewport";
     },
-    create(actor, context, options) {
-      const window = findOwningWindowContentHost(context.actorSystem, context.componentRegistry, actor);
-      if (!window) {
-        throw new Error("SceneViewportComponent requires an owning FloatingWindowComponent.");
+    create(actor, _context, options) {
+      if (!options?.renderOutput) {
+        throw new Error("SceneViewportComponent requires a runtime scene render output.");
       }
-      return new SceneViewportComponent(actor, window, options);
+      if (!options.contentRegistration || !options.contentId) {
+        throw new Error("SceneViewportComponent requires content registration options.");
+      }
+      return new SceneViewportComponent(actor, options);
     }
   };

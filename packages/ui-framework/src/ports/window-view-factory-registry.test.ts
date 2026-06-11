@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "actor-core";
-import type { WindowContentRehostable } from "./window-content-host";
+import {
+  WindowContentRegistry,
+  type WindowRegisteredContent
+} from "./window-content-host";
 import { getWindowViewFactoryIdentity, WindowViewFactoryRegistry } from "./window-view-factory-registry";
 
 describe("WindowViewFactoryRegistry", () => {
@@ -8,6 +11,7 @@ describe("WindowViewFactoryRegistry", () => {
     const actorSystem = new ActorSystem();
     const parentFrameActor = actorSystem.createActor({ id: "debug-frame" });
     const registry = new WindowViewFactoryRegistry();
+    const contentRegistration = new WindowContentRegistry();
     const receivedIdentities: unknown[] = [];
     const registration = registry.register({
       viewKey: "debug",
@@ -28,7 +32,8 @@ describe("WindowViewFactoryRegistry", () => {
 
     const created = registry.createViewRuntime("debug", {
       reason: "menu",
-      parentFrameActor
+      parentFrameActor,
+      contentRegistration
     });
 
     expect(registry.list().map((factory) => factory.viewKey)).toEqual(["debug"]);
@@ -40,7 +45,7 @@ describe("WindowViewFactoryRegistry", () => {
     }]);
     expect(created.viewActor.id).toBe("debug-view");
     expect(actorSystem.getParentId(created.viewActor)).toBe("debug-frame");
-    expect(created.content.currentWindowContentHost).toBeNull();
+    expect(created.content.element).toBe(createContentElement);
     registration.dispose();
     expect(registry.get("debug")).toBeNull();
   });
@@ -49,6 +54,7 @@ describe("WindowViewFactoryRegistry", () => {
     const actorSystem = new ActorSystem();
     const parentFrameActor = actorSystem.createActor({ id: "debug-frame" });
     const registry = new WindowViewFactoryRegistry();
+    const contentRegistration = new WindowContentRegistry();
     const factory = {
       viewKey: "debug",
       label: "Debug Log",
@@ -62,7 +68,8 @@ describe("WindowViewFactoryRegistry", () => {
     expect(() => registry.register(factory)).toThrow(/already registered/);
     expect(() => registry.createViewRuntime("hierarchy", {
       reason: "menu",
-      parentFrameActor
+      parentFrameActor,
+      contentRegistration
     })).toThrow(/not registered/);
   });
 
@@ -98,9 +105,19 @@ describe("WindowViewFactoryRegistry", () => {
   });
 });
 
-function createContent(): WindowContentRehostable {
+const createContentElement = {} as HTMLElement;
+
+function createContent(): WindowRegisteredContent {
   return {
-    currentWindowContentHost: null,
-    rehostWindowContent() {}
+    contentId: "content:debug",
+    element: createContentElement,
+    get interactable() {
+      return true;
+    },
+    setInteractable() {},
+    subscribeLayoutCommit() {
+      return { dispose() {} };
+    },
+    dispose() {}
   };
 }

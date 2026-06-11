@@ -1,5 +1,4 @@
 import type { ComponentDefinition } from "../../actor-runtime";
-import { findOwningWindowContentHost } from "../../window-runtime";
 import {
   InspectorContentComponent,
   inspectorContentComponentType,
@@ -14,11 +13,10 @@ export const inspectorContentComponentDefinition:
     createId(_actor, options) {
       return options?.id ?? "inspector-content";
     },
-    create(actor, context, options = { label: "Inspector" }) {
-      const host = findOwningWindowContentHost(context.actorSystem, context.componentRegistry, actor);
-      if (!host) {
-        throw new Error("InspectorContentComponent requires an owning window content host.");
+    create(actor, _context, options) {
+      if (!options?.contentRegistration || !options.contentId) {
+        throw new Error("InspectorContentComponent requires content registration options.");
       }
-      return new InspectorContentComponent(actor, options, { host });
+      return new InspectorContentComponent(actor, options);
     }
   };

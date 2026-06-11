@@ -1,38 +1,10 @@
 import { createRegisteredActor, type Actor, type RegisteredActor } from "../../actor-runtime";
 import type { FeatureActorContext } from "../../runtime/ports";
-import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
-import {
-  floatingWindowComponentType,
-  uiVec2,
-  type FloatingWindowComponent,
-  type FloatingWindowState,
-  type RegisteredWindowActor,
-  type WindowFrameIntentSink,
-  type WindowFramePortRegistry,
-  type WindowTabDragSink
-} from "../../window-runtime";
-import {
-  DEBUG_WINDOW_MIN_HEIGHT,
-  DEBUG_WINDOW_MIN_WIDTH
-} from "../debug-window-parameters";
+import type { WindowContentRegistrationPort } from "../../window-runtime";
 import {
   debugLogContentComponentType,
   type DebugLogContentComponent
 } from "./debug-log-content-component";
-
-export interface DebugLogWindowActorOptions {
-  actorId?: string;
-  actorName?: string;
-  parent: HTMLElement;
-  initialState: FloatingWindowState;
-  maxLines?: number;
-  title?: string;
-  priority?: number;
-  document?: Pick<Document, "createElement">;
-  frameIntentSink?: WindowFrameIntentSink;
-  framePortRegistry?: WindowFramePortRegistry;
-  tabDragSink?: WindowTabDragSink;
-}
 
 export interface DebugLogViewActorOptions {
   actorId?: string;
@@ -40,6 +12,8 @@ export interface DebugLogViewActorOptions {
   parentActor: Actor;
   maxLines?: number;
   document?: Pick<Document, "createElement">;
+  contentId: string;
+  contentRegistration: WindowContentRegistrationPort;
 }
 
 export interface RegisteredDebugLogViewActor extends RegisteredActor<DebugLogContentComponent> {
@@ -59,7 +33,9 @@ export function createDebugLogViewActor(
     const component = context.componentRegistry.addComponent(actor, debugLogContentComponentType, {
       id: "debug-log-content",
       maxLines: options.maxLines,
-      document: options.document
+      document: options.document,
+      contentId: options.contentId,
+      contentRegistration: options.contentRegistration
     });
     let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
     const baseHandle = createRegisteredActor({
@@ -71,72 +47,6 @@ export function createDebugLogViewActor(
     const handle: RegisteredDebugLogViewActor = {
       actor: baseHandle.actor,
       component: baseHandle.component,
-      dispose: () => baseHandle.dispose(),
-      disposeRuntimeTracking: () => {
-        untrack?.dispose();
-        untrack = null;
-      }
-    };
-    untrack = context.trackRegisteredActor(handle);
-    return handle;
-  } catch (error) {
-    if (context.actorSystem.hasActor(actor)) {
-      context.actorSystem.destroyActor(actor);
-    }
-    throw error;
-  }
-}
-
-export function createDebugLogWindowActor(
-  context: FeatureActorContext,
-  options: DebugLogWindowActorOptions
-): RegisteredWindowActor<DebugLogContentComponent> {
-  const actor = context.actorSystem.createActor({
-    id: options.actorId,
-    name: options.actorName ?? options.actorId
-  });
-  try {
-    const viewActorId = `${actor.id}:view`;
-    const window = context.componentRegistry.addComponent(actor, floatingWindowComponentType, {
-      id: "floating-window:debug-log",
-      parent: options.parent,
-      document: options.document,
-      title: options.title ?? "Debug Log",
-      paths: editorWindowLayoutPaths.debugWindow,
-      initialState: options.initialState,
-      minSize: uiVec2(DEBUG_WINDOW_MIN_WIDTH, DEBUG_WINDOW_MIN_HEIGHT),
-      className: "debug-log-window",
-      priority: options.priority ?? 1000,
-      activeViewActorId: viewActorId,
-      activeViewKey: "debug",
-      frameIntentSink: options.frameIntentSink,
-      framePortRegistry: options.framePortRegistry,
-      tabDragSink: options.tabDragSink,
-      windowMenu: {
-        viewKey: "debug"
-      }
-    });
-    const viewActor = context.actorSystem.createActor({
-      id: viewActorId,
-      name: `${options.title ?? "Debug Log"} View`,
-      parent: actor
-    });
-    const component = context.componentRegistry.addComponent(viewActor, debugLogContentComponentType, {
-      id: "debug-log-content",
-      maxLines: options.maxLines,
-      document: options.document ?? options.parent.ownerDocument ?? undefined
-    });
-    let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
-    const baseHandle = createRegisteredActor({
-      actorSystem: context.actorSystem,
-      actor,
-      component,
-      beforeDispose: () => untrack?.dispose()
-    });
-    const handle: RegisteredWindowActor<DebugLogContentComponent> = {
-      actor: baseHandle.actor,
-      component: baseHandle.component,
-      window: window as FloatingWindowComponent,
       dispose: () => baseHandle.dispose(),
       disposeRuntimeTracking: () => {
         untrack?.dispose();

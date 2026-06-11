@@ -29,15 +29,7 @@ export const projectPrismFrameUpdateLaneMap = [
     "shared-contract",
     "shared-contract",
     false,
-    "UpdateFrame/RuntimeObject compatibility contracts are deleted or moved once production scheduler lanes are split."
-  ),
-  entry(
-    "runtime-object-registry-contract",
-    "./runtime/ports/runtime-object-registry.ts",
-    "shared-contract",
-    "shared-contract",
-    false,
-    "RuntimeObjectRegistry compatibility contract is deleted after RuntimeScheduler owns runtime work."
+    "UpdateFrame remains the shared app-local frame tick contract until package ownership is finalized."
   ),
   entry(
     "runtime-ports-barrel",
@@ -45,31 +37,7 @@ export const projectPrismFrameUpdateLaneMap = [
     "barrel-export",
     "shared-contract",
     false,
-    "Barrel no longer exports mixed RuntimeObject compatibility contracts."
-  ),
-  entry(
-    "scene-runtime-dispatcher",
-    "./scene-runtime/scene-runtime.ts",
-    "scheduler-dispatcher",
-    "app-composition-delete-after-split",
-    false,
-    "SceneRuntime is deleted after runtime work, UI component tick, and editor state flush use separate owners."
-  ),
-  entry(
-    "scene-runtime-object-alias",
-    "./scene-runtime/runtime-object.ts",
-    "shared-contract",
-    "shared-contract",
-    false,
-    "scene-runtime no longer re-exports runtime object compatibility aliases."
-  ),
-  entry(
-    "scene-runtime-barrel",
-    "./scene-runtime/index.ts",
-    "barrel-export",
-    "shared-contract",
-    false,
-    "scene-runtime barrel no longer exports mixed scheduler contracts."
+    "Barrel exports only explicit frame/update contracts, not generic runtime object buses."
   ),
   entry(
     "app-render-loop-dispatch",
@@ -88,12 +56,20 @@ export const projectPrismFrameUpdateLaneMap = [
     "App runtime context no longer exposes a generic RuntimeObject registration bus."
   ),
   entry(
-    "ui-scheduler-runtime-adapter",
-    "./app/adapters/ui-scheduler-runtime-adapter.ts",
+    "app-frame-orchestrator",
+    "./app/app-frame-orchestrator.ts",
     "scheduler-dispatcher",
     "app-composition-delete-after-split",
     false,
-    "UI scheduler adapter is deleted after UI tick has its own scheduler lane."
+    "App frame orchestrator remains explicit app composition ordering, not a generic RuntimeObject bus."
+  ),
+  entry(
+    "ui-frame-scheduler",
+    "./app/ui-frame-scheduler.ts",
+    "scheduler-dispatcher",
+    "ui-component-scheduler",
+    false,
+    "UI frame scheduler owns UI scheduled service ticks and is not registered into RuntimeScheduler."
   ),
   entry(
     "frame-update-attachment-runtime",
@@ -152,12 +128,12 @@ export const projectPrismFrameUpdateLaneMap = [
     "Camera3 motion definition no longer uses frame-update attachment after camera runtime work migrates."
   ),
   entry(
-    "tesseract4-runtime-object",
-    "./tesseract4/tesseract4-runtime-object.ts",
+    "tesseract4-runtime-renderable",
+    "./tesseract4/tesseract4-runtime-renderable.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
-    "Tesseract4 world/projection update is owned by runtime packages, not app-local RuntimeObject."
+    "Tesseract4 runtime renderable moves toward runtime ownership and no longer implements app-local RuntimeObject."
   ),
   entry(
     "tesseract4-component",

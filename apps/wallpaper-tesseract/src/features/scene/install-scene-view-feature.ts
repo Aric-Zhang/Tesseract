@@ -4,7 +4,7 @@ import type {
   WindowViewFactoryRegistry,
   WindowViewLocationSource
 } from "../../window-runtime";
-import { uiVec2 } from "../../window-runtime";
+import { createWindowWorkspaceContentId, uiVec2 } from "../../window-runtime";
 import type {
   WindowWorkspaceDefaultOpenView,
   WindowWorkspaceFloatingFramePolicy
@@ -68,7 +68,9 @@ export function installSceneViewFeature(options: InstallSceneViewFeatureOptions)
         context: options.context,
         mount: options.mount,
         parentFrameActor: createOptions.parentFrameActor,
-        actorIds: options.actorIds
+        actorIds: options.actorIds,
+        contentId: createWindowWorkspaceContentId(createOptions.identity),
+        contentRegistration: createOptions.contentRegistration
       });
       const host = createEditorSceneViewHost({
         actorSystem: options.context.actorSystem,

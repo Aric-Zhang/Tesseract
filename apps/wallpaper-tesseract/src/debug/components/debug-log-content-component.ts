@@ -1,7 +1,12 @@
 import type { GizmoDebugLogEntry } from "gizmo-core";
 import type { Actor, Component, ComponentType } from "../../actor-runtime";
 import type { UpdateFrame } from "../../runtime/ports";
-import type { WindowContentAttachment, WindowContentHost, WindowContentRehostable } from "../../window-runtime";
+import type {
+  WindowContentLayoutCommit,
+  WindowContentLayoutCommitRegistration,
+  WindowContentRegistrationPort,
+  WindowRegisteredContent
+} from "../../window-runtime";
 
 export const debugLogContentComponentType =
   "debug-log-content-component" as ComponentType<DebugLogContentComponent>;
@@ -10,31 +15,28 @@ export interface DebugLogContentComponentOptions {
   id?: string;
   maxLines?: number;
   document?: Pick<Document, "createElement">;
-}
-
-export interface DebugLogContentComponentServices {
-  host: WindowContentHost;
+  contentId: string;
+  contentRegistration: WindowContentRegistrationPort;
 }
 
 const DEFAULT_DEBUG_LOG_CONTENT_ID = "debug-log-content";
 const DEFAULT_DEBUG_LOG_MESSAGE = "Gizmo debug log enabled";
 
-export class DebugLogContentComponent implements Component, WindowContentRehostable {
+export class DebugLogContentComponent implements Component, WindowRegisteredContent {
   readonly id: string;
   readonly type = debugLogContentComponentType;
   readonly actor: Actor;
   enabled = true;
   readonly content: HTMLPreElement;
 
-  #attachment: WindowContentAttachment;
+  #registration: WindowRegisteredContent;
   readonly #lines: string[] = [];
   readonly #maxLines: number;
   #logDirty = true;
 
   constructor(
     actor: Actor,
-    options: DebugLogContentComponentOptions,
-    services: DebugLogContentComponentServices
+    options: DebugLogContentComponentOptions
   ) {
     this.actor = actor;
     this.id = options.id ?? DEFAULT_DEBUG_LOG_CONTENT_ID;
@@ -43,21 +45,32 @@ export class DebugLogContentComponent implements Component, WindowContentRehosta
     this.content = documentRef.createElement("pre");
     this.content.className = "debug-log-window__content";
     this.content.textContent = DEFAULT_DEBUG_LOG_MESSAGE;
-    this.#attachment = services.host.mountContent(this.content);
+    this.#registration = options.contentRegistration.registerContent({
+      contentId: options.contentId,
+      element: this.content
+    });
   }
 
-  get currentWindowContentHost(): WindowContentHost | null {
-    return this.enabled ? this.#attachment.host : null;
+  get contentId(): string {
+    return this.#registration.contentId;
   }
 
-  rehostWindowContent(host: WindowContentHost): void {
-    const previous = this.#attachment;
-    this.#attachment = host.mountContent(this.content);
-    previous.dispose();
+  get element(): HTMLElement {
+    return this.content;
   }
 
-  setWindowContentInteractable(interactable: boolean): void {
-    this.#attachment.setInteractable(interactable);
+  get interactable(): boolean {
+    return this.#registration.interactable;
+  }
+
+  setInteractable(interactable: boolean): void {
+    this.#registration.setInteractable(interactable);
+  }
+
+  subscribeLayoutCommit(
+    callback: (commit: WindowContentLayoutCommit) => void
+  ): WindowContentLayoutCommitRegistration {
+    return this.#registration.subscribeLayoutCommit(callback);
   }
 
   append(entry: GizmoDebugLogEntry): void {
@@ -77,7 +90,7 @@ export class DebugLogContentComponent implements Component, WindowContentRehosta
 
   dispose(): void {
     this.enabled = false;
-    this.#attachment.dispose();
+    this.#registration.dispose();
   }
 }
 

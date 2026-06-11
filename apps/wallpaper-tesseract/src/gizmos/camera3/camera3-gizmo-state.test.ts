@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import * as THREE from "three";
 import { Camera3GizmoState } from "./camera3-gizmo-state";
+import type { RuntimeCameraState } from "runtime-core";
 
 function createState() {
   return new Camera3GizmoState({
@@ -14,10 +14,9 @@ function createState() {
 
 describe("Camera3GizmoState", () => {
   it("fades an axis that points along the screen normal", () => {
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
     const state = createState();
 
-    state.updateAxisProjection(camera);
+    state.updateAxisProjection(createCameraState());
 
     const zAxis = state.axes.find((axis) => axis.axis === "+z");
     const xAxis = state.axes.find((axis) => axis.axis === "+x");
@@ -27,10 +26,9 @@ describe("Camera3GizmoState", () => {
   });
 
   it("keeps cube projection values finite", () => {
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
     const state = createState();
 
-    state.updateAxisProjection(camera);
+    state.updateAxisProjection(createCameraState());
     state.updateCubeProjection();
 
     for (const vertex of state.cubeVertices) {
@@ -44,3 +42,17 @@ describe("Camera3GizmoState", () => {
     }
   });
 });
+
+function createCameraState(): RuntimeCameraState {
+  return {
+    pose: {
+      position: [0, 0, 6],
+      target: [0, 0, 0],
+      up: [0, 1, 0]
+    },
+    projectionMode: "perspective",
+    projection: {
+      mode: "perspective"
+    }
+  };
+}

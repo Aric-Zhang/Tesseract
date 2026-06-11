@@ -9,11 +9,17 @@ import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
 import {
   createSingletonWindowViewIdentity,
   floatingWindowComponentType,
+  WindowContentRegistry,
   workspaceRootDockFrameComponentType
 } from "../../window-runtime";
 import { installWindowComponentDefinitions } from "../../window-runtime";
 import { createActorInputEndEvent } from "../../test-support";
 import { createDefaultSceneWindowState, createSceneViewActor } from ".";
+import {
+  windowWorkspaceContentId,
+  windowWorkspaceFrameId,
+  windowWorkspaceTabsetId
+} from "ui-framework";
 import {
   installSceneComponentDefinitions,
   sceneModeToggleComponentType,
@@ -135,12 +141,49 @@ function addSceneTab(
 ): void {
   const frame = context.componentRegistry.getComponent(ownerFrame, workspaceRootDockFrameComponentType);
   if (!frame) throw new Error("Expected workspace root frame component.");
-  frame.addTab({
-    viewActorId,
-    viewKey: "scene",
-    identity: createSingletonWindowViewIdentity("scene"),
-    title: "Scene"
-  }, { active: true });
+  const identity = createSingletonWindowViewIdentity("scene");
+  const contentId = windowWorkspaceContentId("content:scene");
+  const tabsetId = windowWorkspaceTabsetId("frame-tabset:target");
+  frame.renderFrameSurface({
+    frameId: windowWorkspaceFrameId(frame.frameId),
+    revision: 1,
+    kind: "persistent",
+    presentation: "windowed",
+    visible: true,
+    stackPriority: 0,
+    root: {
+      kind: "tabset",
+      id: tabsetId,
+      activeContentId: contentId,
+      tabs: [{
+        contentId,
+        identity,
+        viewActorId,
+        title: "Scene",
+        active: true
+      }]
+    }
+  });
+}
+
+function attachSceneViewportToFrame(
+  context: ReturnType<typeof createContext>,
+  ownerFrame: Actor,
+  handle: ReturnType<typeof createSceneViewActor>
+): void {
+  const frame = context.componentRegistry.getComponent(ownerFrame, workspaceRootDockFrameComponentType);
+  if (!frame) throw new Error("Expected workspace root frame component.");
+  frame.placeContent({
+    content: handle.viewport,
+    placement: {
+      contentId: windowWorkspaceContentId(handle.viewport.contentId),
+      identity: createSingletonWindowViewIdentity("scene"),
+      frameId: windowWorkspaceFrameId(frame.frameId),
+      tabsetId: windowWorkspaceTabsetId("frame-tabset:target"),
+      active: true,
+      interactable: true
+    }
+  });
 }
 
 function createFakeRenderer(document: FakeDocument, calls: string[] = []): SceneViewportRenderer {
@@ -177,16 +220,19 @@ describe("createSceneViewActor", () => {
       actorId: "scene-actor:view",
       actorName: "Scene View",
       parentActor: ownerFrame,
+      contentId: "content:scene",
+      contentRegistration: new WindowContentRegistry(),
       document: document as unknown as Document,
       createRenderer: () => createFakeRenderer(document, rendererCalls)
     });
+    attachSceneViewportToFrame(context, ownerFrame, handle);
 
     expect(handle.actor.id).toBe("scene-actor:view");
     expect(context.actorSystem.getParentId(handle.actor)).toBe("workspace-root-frame");
     expect(handle.component).toBe(handle.viewport);
     expect(handle.actor.getComponent(sceneViewportComponentType)).toBe(handle.viewport);
     expect(handle.actor.getComponent(sceneModeToggleComponentType)).toBe(handle.modeToggle);
-    expect(handle.viewport.scene).toBeDefined();
+    expect(handle.renderOutput.id).toBe("scene-actor:view:render-output");
     expect(handle.viewport.viewportElement.className).toBe("scene-window__viewport");
     expect(handle.viewport.canvasHostElement.className).toBe("scene-window__canvas-host");
     expect(handle.viewport.overlayElement.className).toBe("scene-window__overlay");
@@ -217,6 +263,8 @@ describe("createSceneViewActor", () => {
       actorId: "scene-actor:view",
       actorName: "Scene View",
       parentActor: ownerFrame,
+      contentId: "content:scene",
+      contentRegistration: new WindowContentRegistry(),
       document: document as unknown as Document,
       createRenderer: () => createFakeRenderer(document)
     });
@@ -242,6 +290,8 @@ describe("createSceneViewActor", () => {
       actorId: "scene-actor:view",
       actorName: "Scene View",
       parentActor: ownerFrame,
+      contentId: "content:scene",
+      contentRegistration: new WindowContentRegistry(),
       document: document as unknown as Document,
       createRenderer: () => createFakeRenderer(document, rendererCalls),
       createResizeObserver: (callback) => {
@@ -295,10 +345,13 @@ describe("createSceneViewActor", () => {
       actorId: "scene-actor:view",
       actorName: "Scene View",
       parentActor: ownerFrame,
+      contentId: "content:scene",
+      contentRegistration: new WindowContentRegistry(),
       document: document as unknown as Document,
       createRenderer: () => createFakeRenderer(document, rendererCalls),
       devicePixelRatio: () => 1
     });
+    attachSceneViewportToFrame(context, ownerFrame, handle);
     const targetFrame = context.actorSystem.createActor({ id: "target-frame" });
     const targetWindow = context.componentRegistry.addComponent(targetFrame, floatingWindowComponentType, {
       id: "floating-window:target",
@@ -314,9 +367,40 @@ describe("createSceneViewActor", () => {
     const targetContent = findChildByClass(targetRoot, "floating-gizmo-window__content");
     (handle.viewport.viewportElement as unknown as FakeElement).rect = createRect(0, 0, 500, 280);
 
-    handle.viewport.rehostWindowContent(targetWindow);
+    const targetTabsetId = windowWorkspaceTabsetId("frame-tabset:target");
+    targetWindow.renderFrameSurface({
+      frameId: windowWorkspaceFrameId(targetWindow.frameId),
+      revision: 1,
+      kind: "persistent",
+      presentation: "windowed",
+      visible: true,
+      stackPriority: 0,
+      root: {
+        kind: "tabset",
+        id: targetTabsetId,
+        activeContentId: windowWorkspaceContentId(handle.viewport.contentId),
+        tabs: [{
+          contentId: windowWorkspaceContentId(handle.viewport.contentId),
+          identity: createSingletonWindowViewIdentity("scene"),
+          viewActorId: handle.viewport.actor.id,
+          title: "Scene",
+          active: true
+        }]
+      }
+    });
+    targetWindow.placeContent({
+      content: handle.viewport,
+      placement: {
+        contentId: windowWorkspaceContentId(handle.viewport.contentId),
+        identity: createSingletonWindowViewIdentity("scene"),
+        frameId: windowWorkspaceFrameId(targetWindow.frameId),
+        tabsetId: targetTabsetId,
+        active: true,
+        interactable: true
+      }
+    });
+    handle.viewport.measureNow();
 
-    expect(handle.viewport.currentWindowContentHost).toBe(targetWindow);
     expect(sourceContent.children).toEqual([]);
     expect(targetContent.children).toEqual([handle.viewport.viewportElement as unknown as FakeElement]);
     expect(rendererCalls).toEqual([
@@ -337,6 +421,8 @@ describe("createSceneViewActor", () => {
       actorId: "scene-actor:view",
       actorName: "Scene View",
       parentActor: ownerFrame,
+      contentId: "content:scene",
+      contentRegistration: new WindowContentRegistry(),
       document: document as unknown as Document,
       createRenderer: () => createFakeRenderer(document)
     });

@@ -3,10 +3,9 @@ import { AppRuntimeContext } from "../../app-runtime";
 import { installWallpaperComponentDefinitions } from "../../app/install-component-definitions";
 import type { AppStateCommandSink } from "../../editor/app-state";
 import type { AppStateObserver } from "../../editor/app-state-controller";
-import type { RuntimeObject, RuntimeRegistration } from "../../runtime/ports";
+import type { RuntimeRegistration } from "../../runtime/ports";
 import type { SceneViewportRenderer } from "./components";
 import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
-import type { RuntimeObjectRegistry } from "../../runtime/ports";
 import type { GizmoControllerRegistry } from "../../gizmo-runtime";
 import type { StateObserverRegistry } from "../../state-runtime";
 import {
@@ -20,9 +19,15 @@ import {
 } from "./index";
 import {
   createSingletonWindowViewIdentity,
+  WindowContentRegistry,
   workspaceRootDockFrameComponentType,
   type WindowViewLocationSource
 } from "../../window-runtime";
+import {
+  windowWorkspaceContentId,
+  windowWorkspaceFrameId,
+  windowWorkspaceTabsetId
+} from "ui-framework";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -146,12 +151,50 @@ function addSceneTabToFrame(
 ): void {
   const frame = runtimeContext.componentRegistry.getComponent(frameActor, workspaceRootDockFrameComponentType);
   if (!frame) throw new Error("Expected workspace root frame component.");
-  frame.addTab({
-    viewActorId,
-    viewKey: "scene",
-    identity: createSingletonWindowViewIdentity("scene"),
-    title: "Scene"
-  }, { active: true });
+  const identity = createSingletonWindowViewIdentity("scene");
+  const contentId = windowWorkspaceContentId("content:scene");
+  const tabsetId = windowWorkspaceTabsetId("frame-tabset:target");
+  frame.renderFrameSurface({
+    frameId: windowWorkspaceFrameId(frame.frameId),
+    revision: 1,
+    kind: "persistent",
+    presentation: "windowed",
+    visible: true,
+    stackPriority: 0,
+    root: {
+      kind: "tabset",
+      id: tabsetId,
+      activeContentId: contentId,
+      tabs: [{
+        contentId,
+        identity,
+        viewActorId,
+        title: "Scene",
+        active: true
+      }]
+    }
+  });
+}
+
+function placeSceneContentInFrame(
+  runtimeContext: AppRuntimeContext,
+  frameActor: ReturnType<typeof createWorkspaceRootFrame>,
+  content: InstalledSceneViewContent
+): void {
+  const frame = runtimeContext.componentRegistry.getComponent(frameActor, workspaceRootDockFrameComponentType);
+  if (!frame) throw new Error("Expected workspace root frame component.");
+  const identity = createSingletonWindowViewIdentity("scene");
+  frame.placeContent({
+    content: content.sceneView.viewport,
+    placement: {
+      contentId: windowWorkspaceContentId(content.sceneView.viewport.contentId),
+      identity,
+      frameId: windowWorkspaceFrameId(frame.frameId),
+      tabsetId: windowWorkspaceTabsetId("frame-tabset:target"),
+      active: true,
+      interactable: true
+    }
+  });
 }
 
 function createFakeCamera3Gizmo(document: FakeDocument, calls: string[]): Camera3GizmoViewFactory {
@@ -177,7 +220,6 @@ function createFakeCamera3Gizmo(document: FakeDocument, calls: string[]): Camera
 }
 
 function createRuntimeContext(calls: string[] = []) {
-  const sceneRuntime = createRuntimeObjectRegistry(calls);
   const frameStateController: StateObserverRegistry<AppStateObserver> & AppStateCommandSink = {
     submit: () => {},
     subscribe: (observer: AppStateObserver) => {
@@ -194,30 +236,11 @@ function createRuntimeContext(calls: string[] = []) {
     dispose: () => calls.push("gizmo-dispose")
   };
   const runtimeContext = new AppRuntimeContext({
-    sceneRuntime,
     frameStateController,
     gizmoEventSystem
   });
   installWallpaperComponentDefinitions(runtimeContext.componentRegistry);
-  return { runtimeContext, sceneRuntime };
-}
-
-function createRuntimeObjectRegistry(calls: string[]): RuntimeObjectRegistry {
-  const registrations = new Map<string, RuntimeObject>();
-  return {
-    register(object) {
-      calls.push(`runtime-register:${object.id}`);
-      registrations.set(object.id, object);
-      return createRegistration(() => {
-        calls.push(`runtime-unregister:${object.id}`);
-        registrations.delete(object.id);
-      });
-    },
-    dispose() {
-      calls.push("runtime-dispose");
-      registrations.clear();
-    }
-  };
+  return { runtimeContext };
 }
 
 function createRegistration(dispose: () => void): RuntimeRegistration {
@@ -273,6 +296,8 @@ function createSubject(options: CreateSubjectOptions = {}) {
       tesseract4ActorName: "Tesseract4",
       ...options.actorIds
     },
+    contentId: "content:scene",
+    contentRegistration: new WindowContentRegistry(),
     createRenderer: () => createFakeRenderer(document, rendererCalls),
     createCamera3GizmoView: options.createCamera3GizmoView ?? createFakeCamera3Gizmo(document, calls),
     createResizeObserver: (callback) => {
@@ -288,6 +313,7 @@ function createSubject(options: CreateSubjectOptions = {}) {
     },
     devicePixelRatio: () => 2,
   });
+  placeSceneContentInFrame(runtimeContext, rootFrameActor, content);
   const host = createEditorSceneViewHost({
     actorSystem: runtimeContext.actorSystem,
     locations: viewLocationSource,
@@ -536,6 +562,8 @@ describe("Scene view content installer and renderable view", () => {
         tesseract4ActorId: "tesseract-4",
         tesseract4ActorName: "Tesseract4"
       },
+      contentId: "content:scene",
+      contentRegistration: new WindowContentRegistry(),
       createRenderer: () => createFakeRenderer(document, rendererCalls),
       createCamera3GizmoView: createFakeCamera3Gizmo(document, calls),
     });
@@ -597,6 +625,8 @@ describe("Scene view content installer and renderable view", () => {
         tesseract4ActorId: "tesseract-4",
         tesseract4ActorName: "Tesseract4"
       },
+      contentId: "content:scene",
+      contentRegistration: new WindowContentRegistry(),
       createRenderer: () => createFakeRenderer(document, rendererCalls),
       createCamera3GizmoView: () => {
         throw new Error("camera3 failed");
@@ -645,6 +675,8 @@ describe("Scene view content installer and renderable view", () => {
         tesseract4ActorId: "scene-window:view",
         tesseract4ActorName: "Tesseract4"
       },
+      contentId: "content:scene",
+      contentRegistration: new WindowContentRegistry(),
       createRenderer: () => createFakeRenderer(document, rendererCalls),
       createCamera3GizmoView: createFakeCamera3Gizmo(document, calls)
     })).toThrow(/already exists|already registered/i);

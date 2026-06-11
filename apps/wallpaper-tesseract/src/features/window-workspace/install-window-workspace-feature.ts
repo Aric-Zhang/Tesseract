@@ -1,5 +1,6 @@
 import {
   createDockTargetRegionSource,
+  createWindowFrameTargetabilitySource,
   createWindowWorkspaceStackPriorityPort,
   createWindowWorkspaceViewCatalog,
   DefaultWindowFrameLifecycleController,
@@ -80,16 +81,25 @@ export function installWindowWorkspaceFeature(
   options: InstallWindowWorkspaceFeatureOptions
 ): InstalledWindowWorkspaceFeature {
   const framePorts = new WindowFramePortRegistry();
-  const dockTargetRegionSource = createDockTargetRegionSource({
+  let lifecycle: DefaultWindowFrameLifecycleController | null = null;
+  const frameTargetability = createWindowFrameTargetabilitySource({
     actorSystem: options.context.actorSystem,
     framePorts
+  });
+  const dockTargetRegionSource = createDockTargetRegionSource({
+    frameTargetability,
+    graphProjection: () => lifecycle
+      ? {
+          frameSnapshots: lifecycle.listWorkspaceGraphFrameSurfaceSnapshots(),
+          surfaceGeometries: lifecycle.listWorkspaceGraphSurfaceGeometries()
+        }
+      : null
   });
   const dockPreview = new WindowDockPreviewController({
     source: dockTargetRegionSource,
     parent: options.floatingFrameParent
   });
   const viewFactories = new WindowViewFactoryRegistry();
-  let lifecycle: DefaultWindowFrameLifecycleController | null = null;
   const requireLifecycle = (): DefaultWindowFrameLifecycleController => {
     if (!lifecycle) {
       throw new Error("Window frame lifecycle controller is not initialized.");
@@ -117,6 +127,9 @@ export function installWindowWorkspaceFeature(
     },
     requestActivateFrameTab(frameId, viewActorId, reason) {
       requireLifecycle().activateFrameTab(frameId, viewActorId, reason);
+    },
+    requestResizeFrameSplit(frameId, splitId, ratio, reason) {
+      requireLifecycle().resizeFrameSplit(frameId, splitId, ratio, reason);
     },
     requestCommitDock(intent) {
       requireLifecycle().commitDock(intent);

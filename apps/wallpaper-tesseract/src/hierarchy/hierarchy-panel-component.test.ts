@@ -5,15 +5,10 @@ import { installStateRuntimeComponentDefinitions } from "../state-runtime";
 import type { AppStateChangedEvent, AppStateCommand } from "../editor/app-state";
 import { editorStatePaths } from "../editor/editor-state";
 import { editorWindowLayoutPaths } from "../editor/window-layout-state";
-import { uiVec2 } from "../window-runtime";
 import { createActorInputEndEvent, createTestComponentRegistry } from "../test-support";
 import {
-  floatingWindowComponentType,
   installWindowComponentDefinitions,
-  type FloatingWindowState,
-  type WindowContentAttachment,
-  type WindowContentAttachmentRequest,
-  type WindowContentHost
+  WindowContentRegistry
 } from "../window-runtime";
 import {
   createStaticHierarchyObjectSource,
@@ -143,61 +138,6 @@ class FakeElement {
   }
 }
 
-class FakeWindowHost implements WindowContentHost {
-  readonly id = "floating-window:hierarchy";
-  readonly inputStackPriority = 1100;
-  readonly state: FloatingWindowState = {
-    position: uiVec2(0, 0),
-    size: uiVec2(280, 360),
-    visible: true
-  };
-  mounted: HTMLElement[] = [];
-  contentInteractable = true;
-
-  setTitle(): void {}
-
-  getBounds(): DOMRectReadOnly {
-    return createRect(0, 0, 280, 360);
-  }
-
-  isContentInteractable(element: HTMLElement): boolean {
-    return this.contentInteractable && this.mounted.includes(element);
-  }
-
-  mountContent(request: HTMLElement | WindowContentAttachmentRequest): WindowContentAttachment {
-    const element = isWindowContentAttachmentRequest(request) ? request.element : request;
-    this.mounted.push(element);
-    let disposed = false;
-    let interactable = true;
-    return {
-      element,
-      host: this,
-      get interactable() {
-        return !disposed && interactable;
-      },
-      setInteractable(nextInteractable: boolean): void {
-        interactable = nextInteractable;
-      },
-      dispose: () => {
-        if (disposed) return;
-        disposed = true;
-        const index = this.mounted.indexOf(element);
-        if (index >= 0) {
-          this.mounted.splice(index, 1);
-        }
-      }
-    };
-  }
-
-  requestVisible(): void {}
-}
-
-function isWindowContentAttachmentRequest(
-  request: HTMLElement | WindowContentAttachmentRequest
-): request is WindowContentAttachmentRequest {
-  return typeof request === "object" && request !== null && "element" in request;
-}
-
 function createRect(x: number, y: number, width: number, height: number): DOMRectReadOnly {
   return {
     x,
@@ -221,25 +161,26 @@ function createSubject(options: {
 } = {}) {
   const actor = new ActorSystem().createActor({ id: "hierarchy-actor" });
   const document = new FakeDocument();
-  const host = new FakeWindowHost();
+  const contentRegistration = new WindowContentRegistry();
   const commands = options.commands ?? [];
   const component = new HierarchyPanelComponent(actor, {
     document: document as unknown as Document,
+    contentId: "content:hierarchy",
+    contentRegistration,
+    inputStackPriority: () => 1100,
     objectSource: options.objectSource ?? createStaticHierarchyObjectSource(options.items ?? [
       { id: "tesseract", label: "Tesseract4" },
       { id: "camera", label: "Camera3" }
     ])
   }, {
-    host,
     commandSink: {
       submit(command) {
         commands.push(command);
       }
     }
   });
-  const root = host.mounted[0] as unknown as FakeElement;
-  if (!root) throw new Error("Expected mounted hierarchy root.");
-  return { actor, commands, component, document, host, root };
+  const root = component.element as unknown as FakeElement;
+  return { actor, commands, component, document, root };
 }
 
 function createChangedEvent(activeObject: string | null): AppStateChangedEvent {
@@ -260,7 +201,7 @@ function rows(root: FakeElement): FakeElement[] {
 }
 
 describe("HierarchyPanelComponent", () => {
-  it("renders object rows inside the floating window content host", () => {
+  it("renders object rows inside registered window content", () => {
     const { root } = createSubject();
 
     expect(root.className).toBe("hierarchy-panel");
@@ -410,7 +351,7 @@ describe("HierarchyPanelComponent", () => {
       localRoutePriority: 2000,
       hitPriority: 1,
       path: [
-        { componentId: "floating-window:hierarchy", role: "surface" },
+        { componentId: "content:hierarchy", role: "surface" },
         { componentId: "hierarchy-panel", role: "container" },
         { componentId: "hierarchy-panel", role: "control", partId: "row" }
       ],
@@ -422,33 +363,27 @@ describe("HierarchyPanelComponent", () => {
   });
 
   it("does not hit-test rows when hosted content is not interactable", () => {
-    const { component, host, root } = createSubject();
+    const { component, root } = createSubject();
     const [firstRow] = rows(root);
     root.rect = createRect(0, 0, 200, 60);
     firstRow.rect = createRect(0, 0, 200, 24);
 
     expect(component.hitTestInput({ x: 10, y: 10 })?.partId).toBe("row");
 
-    host.contentInteractable = false;
+    component.setInteractable(false);
 
     expect(component.hitTestInput({ x: 10, y: 10 })).toBeNull();
   });
 
-  it("rehosts the hierarchy root and routes hit testing through the new host", () => {
-    const { component, host, root } = createSubject();
-    const nextHost = new FakeWindowHost();
+  it("keeps the hierarchy root stable while registered content interactability changes", () => {
+    const { component, root } = createSubject();
     const [firstRow] = rows(root);
     root.rect = createRect(0, 0, 200, 60);
     firstRow.rect = createRect(0, 0, 200, 24);
 
-    component.rehostWindowContent(nextHost);
-
-    expect(component.currentWindowContentHost).toBe(nextHost);
-    expect(host.mounted).toEqual([]);
-    expect(nextHost.mounted).toEqual([root]);
     expect(component.hitTestInput({ x: 10, y: 10 })?.partId).toBe("row");
 
-    nextHost.contentInteractable = false;
+    component.setInteractable(false);
 
     expect(component.hitTestInput({ x: 10, y: 10 })).toBeNull();
   });
@@ -515,19 +450,18 @@ describe("HierarchyPanelComponent", () => {
     expect(commands.some((command) => command.target === editorWindowLayoutPaths.hierarchyWindow.visible)).toBe(false);
   });
 
-  it("disposes mounted content through the host attachment", () => {
-    const { component, host } = createSubject();
+  it("disposes registered content through the component lifecycle", () => {
+    const { component } = createSubject();
 
     component.dispose();
     component.dispose();
 
     expect(component.enabled).toBe(false);
-    expect(host.mounted).toEqual([]);
   });
 });
 
 describe("HierarchyPanelComponent definition", () => {
-  it("requires an owning FloatingWindowComponent", () => {
+  it("requires content registration options", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
     installGizmoRuntimeComponentDefinitions(registry);
@@ -539,10 +473,10 @@ describe("HierarchyPanelComponent definition", () => {
     expect(() => registry.addComponent(actor, hierarchyPanelComponentType, {
       document: new FakeDocument() as unknown as Document,
       objectSource: createStaticHierarchyObjectSource([])
-    })).toThrow(/owning FloatingWindowComponent/);
+    })).toThrow(/content registration/);
   });
 
-  it("creates and mounts when the actor has a FloatingWindowComponent", () => {
+  it("creates and registers content through its definition", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
     installGizmoRuntimeComponentDefinitions(registry);
@@ -550,28 +484,19 @@ describe("HierarchyPanelComponent definition", () => {
     installWindowComponentDefinitions(registry);
     registry.registerDefinition(hierarchyPanelComponentDefinition);
     const document = new FakeDocument();
-    const parent = document.createElement("div");
     const actor = actorSystem.createActor({ id: "hierarchy-actor" });
+    const contentRegistration = new WindowContentRegistry();
 
-    registry.addComponent(actor, floatingWindowComponentType, {
-      id: "floating-window:hierarchy",
-      parent: parent as unknown as HTMLElement,
-      document: document as unknown as Document,
-      title: "Hierarchy",
-      paths: editorWindowLayoutPaths.hierarchyWindow,
-      initialState: {
-        position: uiVec2(14, 14),
-        size: uiVec2(280, 360),
-        visible: true
-      }
-    });
     const component = registry.addComponent(actor, hierarchyPanelComponentType, {
       document: document as unknown as Document,
-      objectSource: createStaticHierarchyObjectSource([{ id: "camera", label: "Camera3" }])
+      objectSource: createStaticHierarchyObjectSource([{ id: "camera", label: "Camera3" }]),
+      contentId: "content:hierarchy",
+      contentRegistration
     });
 
     expect(component.type).toBe(hierarchyPanelComponentType);
     expect(actor.hasComponent(hierarchyPanelComponentType)).toBe(true);
+    expect(contentRegistration.getRegisteredContent("content:hierarchy")?.element).toBe(component.element);
   });
 });
 

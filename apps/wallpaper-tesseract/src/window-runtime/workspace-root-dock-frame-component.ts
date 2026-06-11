@@ -9,19 +9,11 @@ import type {
   ActorInputParticipant,
   ActorInputStartEvent
 } from "../gizmo-runtime";
-import {
-  type FloatingWindowContentAttachment,
-  type WindowContentAttachmentRequest,
-  type WindowContentHost
-} from "./floating-window-host";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
 import type {
-  WindowFrameDockTargetTabset,
   WindowFramePort,
   WindowFramePresentation,
-  WindowFrameRuntimeDockNode,
   WindowFrameSuppressionReason,
-  WindowFrameTab
 } from "./window-frame-port";
 import type { RegisteredWindowFramePort, WindowFramePortRegistry } from "./window-frame-port-registry";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
@@ -31,10 +23,15 @@ import {
   WINDOW_FRAME_TAB_ACTION_PART_ID,
   WINDOW_FRAME_TAB_PART_ID
 } from "ui-framework";
-import { rectFromDomRect, type WindowDockRect, type WindowDockSplitPlacement } from "ui-framework";
+import { rectFromDomRect, type WindowDockRect } from "ui-framework";
 import type {
   WindowFrameSurfaceComponent,
-  WindowFrameSurfaceHost
+  WindowFrameSurfaceHost,
+  WindowFrameSurfaceSnapshot,
+  WindowFrameTab,
+  WindowRegisteredContent,
+  WindowWorkspaceGraphContentPlacement,
+  WindowWorkspaceSurfaceGeometryProjection
 } from "ui-framework";
 
 export const workspaceRootDockFrameComponentType =
@@ -170,6 +167,10 @@ export class WorkspaceRootDockFrameComponent
     return !this.presentationSuppressed;
   }
 
+  get persistable(): boolean {
+    return true;
+  }
+
   get presentation(): WindowFramePresentation {
     return "windowed";
   }
@@ -178,71 +179,16 @@ export class WorkspaceRootDockFrameComponent
     return this.#priority;
   }
 
-  listTabs(): readonly WindowFrameTab[] {
-    return this.#surface.listTabs();
+  renderFrameSurface(snapshot: WindowFrameSurfaceSnapshot): void {
+    this.#surface.renderFrameSurface(snapshot);
   }
 
-  getRuntimeDockRoot(): WindowFrameRuntimeDockNode {
-    return this.#surface.getRuntimeDockRoot();
+  measureFrameSurfaceGeometry(snapshot: WindowFrameSurfaceSnapshot): WindowWorkspaceSurfaceGeometryProjection {
+    return this.#surface.measureFrameSurfaceGeometry(snapshot);
   }
 
-  restoreRuntimeDockRoot(root: WindowFrameRuntimeDockNode, options = {}): void {
-    this.#surface.restoreRuntimeDockRoot(root, options);
-  }
-
-  listDockTargetTabsets(): readonly WindowFrameDockTargetTabset[] {
-    return this.#surface.listDockTargetTabsets();
-  }
-
-  getFocusedViewActorId(): string | null {
-    return this.#surface.getFocusedViewActorId();
-  }
-
-  getActiveViewActorIds(): readonly string[] {
-    return this.#surface.getActiveViewActorIds();
-  }
-
-  isViewActiveInFrame(viewActorId: string): boolean {
-    return this.#surface.isViewActiveInFrame(viewActorId);
-  }
-
-  isViewVisibleInFrame(viewActorId: string): boolean {
-    return this.#surface.isViewVisibleInFrame(viewActorId);
-  }
-
-  addTab(tab: WindowFrameTab, options = {}): void {
-    this.#surface.addTab(tab, options);
-  }
-
-  splitTab(
-    tab: WindowFrameTab,
-    options: {
-      readonly targetTabsetId: string;
-      readonly placement: WindowDockSplitPlacement;
-      readonly active?: boolean;
-    }
-  ): void {
-    this.#surface.splitTab(tab, options);
-  }
-
-  removeTab(viewActorId: string): void {
-    this.#surface.removeTab(viewActorId);
-  }
-
-  activateTab(viewActorId: string): void {
-    this.#surface.activateTab(viewActorId);
-  }
-
-  hasTab(viewActorId: string): boolean {
-    return this.#surface.hasTab(viewActorId);
-  }
-
-  hasTabset(targetTabsetId: string): boolean {
-    return this.#surface.hasTabset(targetTabsetId);
-  }
-
-  getContentHost(viewActorId: string): WindowContentHost {
-    return this.#surface.getContentHost(viewActorId);
+  placeContent(placement: WindowWorkspaceGraphContentPlacement<WindowRegisteredContent>): void {
+    this.#surface.placeContent(placement);
   }
 
   getFloatingBounds(): WindowDockRect {
@@ -266,14 +212,6 @@ export class WorkspaceRootDockFrameComponent
   }
 
   requestVisible(): void {}
-
-  mountContent(requestOrElement: HTMLElement | WindowContentAttachmentRequest): FloatingWindowContentAttachment {
-    return this.#surface.mountContent(requestOrElement);
-  }
-
-  isContentInteractable(element: HTMLElement): boolean {
-    return this.#surface.isContentInteractable(element);
-  }
 
   hitTestInput(point: ScreenPoint): ActorInputHit | null {
     if (!this.enabled || !this.effectiveVisible || !isPointInsideRect(point, this.#root.getBoundingClientRect())) return null;
@@ -308,7 +246,15 @@ export class WorkspaceRootDockFrameComponent
 
   onInputMove(event: ActorInputMoveEvent): void {
     if (event.hit.partId === "root-splitter") {
-      this.#surface.updateSplitRatioFromDrag(event);
+      const resize = this.#surface.updateSplitRatioFromDrag(event);
+      if (resize) {
+        this.#frameIntentSink?.requestResizeFrameSplit?.(
+          this.#frameId,
+          resize.splitId,
+          resize.ratio,
+          "dock-drop"
+        );
+      }
       return;
     }
     if (event.hit.partId === WINDOW_FRAME_TAB_PART_ID && this.#draggingTab) {

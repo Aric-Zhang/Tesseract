@@ -1,5 +1,6 @@
 import type { FeatureActorContext } from "../../runtime/ports";
 import {
+  createWindowWorkspaceContentId,
   uiVec2,
   windowViewInstanceId,
   windowViewKey,
@@ -72,7 +73,9 @@ export function installInspectorFeature(options: InstallInspectorFeatureOptions)
           actorId: definition.actorId,
           actorName: definition.actorName,
           parentActor: createOptions.parentFrameActor,
-          label: definition.title
+          label: definition.title,
+          contentId: createWindowWorkspaceContentId(createOptions.identity),
+          contentRegistration: createOptions.contentRegistration
         });
         return {
           viewActor: handle.component.actor,

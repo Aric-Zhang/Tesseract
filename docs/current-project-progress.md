@@ -216,6 +216,15 @@ Remaining runtime ownership debt:
 
 ## Active Plans And Reports
 
+Project Prism architecture outline:
+
+```text
+docs/project-prism-engine-modularization-outline.md
+```
+
+This is the restored north-star plan. It was previously kept under `temp/`, but
+now lives in `docs/` so temporary artifact cleanup cannot remove it.
+
 Current next plan:
 
 ```text

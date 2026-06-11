@@ -39,16 +39,16 @@ export class SceneCamera3ViewportBindingComponent implements Component {
     this.actor = actor;
     this.id = options.id ?? "scene-camera3-viewport-binding";
     this.#motionRegistration = services.motion.subscribe({
-      onCamera3MotionChanged: () => services.gizmo.update()
+      onCamera3MotionChanged: () => services.gizmo.update(services.motion.readViewState())
     });
     this.#resizeRegistration = services.viewport.subscribeResize(({ width, height }) => {
       services.motion.resizeProjection(width, height);
-      services.gizmo.update();
+      services.gizmo.update(services.motion.readViewState());
     });
     const initialViewportSize = services.viewport.getSize();
     if (initialViewportSize) {
       services.motion.resizeProjection(initialViewportSize.width, initialViewportSize.height);
-      services.gizmo.update();
+      services.gizmo.update(services.motion.readViewState());
     } else {
       services.viewport.measureNow();
     }

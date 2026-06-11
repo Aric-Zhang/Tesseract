@@ -8,7 +8,7 @@ import type {
   ScreenPoint
 } from "gizmo-core";
 import { AppRuntimeContext } from "../../../app-runtime";
-import type { Camera3CommandSink, Camera3ControlCommand } from "../../../camera3-control";
+import type { Camera3CommandSink, Camera3ControlCommand, Camera3ViewState } from "../../../camera3-control";
 import { installGizmoRuntimeComponentDefinitions } from "../../../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../../../state-runtime";
 import type { AppStateCommand } from "../../../editor/app-state";
@@ -27,6 +27,7 @@ import { installCamera3ComponentDefinitions } from "./install-component-definiti
 
 type FakeCamera3Gizmo = Camera3Gizmo & {
   cancelEvents: GizmoCancelEvent[];
+  updateStates: Camera3ViewState[];
 };
 
 function createRegistration(label: string, calls: string[]): RuntimeRegistration {
@@ -108,7 +109,9 @@ function createFakeGizmoFactory(
       enabled: true,
       element: { remove: () => calls.push("element-remove") } as unknown as HTMLDivElement,
       cancelEvents: [],
-      update(): void {
+      updateStates: [],
+      update(viewState?: Camera3ViewState): void {
+        if (viewState) fake.updateStates.push(viewState);
         calls.push("gizmo-update");
       },
       hitTest(_point: ScreenPoint): GizmoHit | null {
@@ -151,6 +154,14 @@ function createFakeGizmoFactory(
   return { createGizmo, created, receivedOptions, commands };
 }
 
+function createViewState(mode: "perspective" | "orthographic" = "perspective"): Camera3ViewState {
+  const projectionMode = new Camera3ProjectionModeController({ mode });
+  return {
+    activeCamera: projectionMode.activeCamera,
+    projectionMode: mode
+  };
+}
+
 function createMoveEvent(gizmo: GizmoController, hit: GizmoHit): GizmoMoveEvent {
   return {
     gizmo,
@@ -189,7 +200,7 @@ describe("createCamera3GizmoActor", () => {
 
     const handle = createCamera3GizmoActor(context, {
       actorId: "camera-actor",
-      projectionMode: new Camera3ProjectionModeController(),
+      initialViewState: createViewState(),
       commandSink: createCommandSink(commands)
     }, createGizmo);
 
@@ -208,7 +219,7 @@ describe("createCamera3GizmoActor", () => {
     const handle = createCamera3GizmoActor(context, {
       actorId: "camera-actor",
       parentActor: sceneActor,
-      projectionMode: new Camera3ProjectionModeController(),
+      initialViewState: createViewState(),
       commandSink: createCommandSink(commands)
     }, createGizmo);
 
@@ -221,7 +232,7 @@ describe("createCamera3GizmoActor", () => {
 
     const handle = createCamera3GizmoActor(context, {
       actorId: "camera-actor",
-      projectionMode: new Camera3ProjectionModeController(),
+      initialViewState: createViewState(),
       commandSink: createCommandSink([])
     }, createGizmo);
 
@@ -239,7 +250,7 @@ describe("createCamera3GizmoActor", () => {
 
     createCamera3GizmoActor(context, {
       actorId: "camera-actor",
-      projectionMode: new Camera3ProjectionModeController(),
+      initialViewState: createViewState(),
       commandSink: createCommandSink([]),
       parent
     }, createGizmo);
@@ -254,7 +265,7 @@ describe("createCamera3GizmoActor", () => {
     const { createGizmo } = createFakeGizmoFactory([], commands);
     createCamera3GizmoActor(context, {
       actorId: "camera-actor",
-      projectionMode: new Camera3ProjectionModeController(),
+      initialViewState: createViewState(),
       commandSink: createCommandSink(commands)
     }, createGizmo);
     const binding = registeredGizmos[0];
@@ -293,7 +304,7 @@ describe("createCamera3GizmoActor", () => {
     });
     createCamera3GizmoActor(context, {
       actorId: "camera-actor",
-      projectionMode: new Camera3ProjectionModeController(),
+      initialViewState: createViewState(),
       commandSink: createCommandSink(commands)
     }, createGizmo);
     const binding = registeredGizmos[0];
@@ -313,7 +324,7 @@ describe("createCamera3GizmoActor", () => {
     const { createGizmo } = createFakeGizmoFactory(calls);
     const handle = createCamera3GizmoActor(context, {
       actorId: "camera-actor",
-      projectionMode: new Camera3ProjectionModeController(),
+      initialViewState: createViewState(),
       commandSink: createCommandSink([])
     }, createGizmo);
     calls.length = 0;
@@ -334,7 +345,7 @@ describe("createCamera3GizmoActor", () => {
     const { createGizmo } = createFakeGizmoFactory(calls);
     const handle = createCamera3GizmoActor(context, {
       actorId: "camera-actor",
-      projectionMode: new Camera3ProjectionModeController(),
+      initialViewState: createViewState(),
       commandSink: createCommandSink([])
     }, createGizmo);
     const binding = registeredGizmos[0];

@@ -5,7 +5,8 @@ import {
   Camera3MotionController,
   type Camera3MotionChangedEvent,
   type Camera3MotionObserver,
-  type Camera3MotionUpdateResult
+  type Camera3MotionUpdateResult,
+  type Camera3ViewState
 } from "../../../camera3-control";
 import type { Camera3CommandSink, Camera3ControlCommand } from "../../../camera3-control";
 import type { RuntimeRegistration, UpdateFrame } from "../../../runtime/ports";
@@ -50,6 +51,10 @@ export class Camera3MotionComponent implements Component, Camera3CommandSink, Ru
     return this.#controller.distance;
   }
 
+  readViewState(): Camera3ViewState {
+    return this.#controller.readViewState();
+  }
+
   submit(command: Camera3ControlCommand): void {
     this.#controller.submit(command);
   }
@@ -82,3 +87,4 @@ export class Camera3MotionComponent implements Component, Camera3CommandSink, Ru
 }
 
 export type { Camera3MotionChangedEvent, Camera3MotionObserver };
+export type { Camera3ViewState };

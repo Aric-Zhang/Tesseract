@@ -1,15 +1,15 @@
 import { Camera3GizmoHitTester } from "./camera3-gizmo-hit-test";
-import { Camera3ProjectionModeController, type Camera3Axis } from "../../features/camera3/model";
+import type { Camera3Axis } from "../../features/camera3/model";
 import { Camera3GizmoRenderer } from "./camera3-gizmo-renderer";
 import { Camera3GizmoState } from "./camera3-gizmo-state";
-import type { Camera3CommandSink } from "../../camera3-control";
+import type { Camera3CommandSink, Camera3ViewState } from "../../camera3-control";
 import type { GizmoClickEvent, GizmoController, GizmoHit, GizmoMoveEvent, ScreenPoint } from "gizmo-core";
 
 const projectionModePartId = "projection-mode";
 
 export interface Camera3GizmoOptions {
-  projectionMode: Camera3ProjectionModeController;
   commandSink: Camera3CommandSink;
+  initialViewState: Camera3ViewState;
   parent?: HTMLElement;
   size?: number;
 }
@@ -26,12 +26,12 @@ export class Camera3Gizmo implements GizmoController {
   private readonly renderer: Camera3GizmoRenderer;
   private readonly hitTester: Camera3GizmoHitTester;
   private readonly commandSink: Camera3CommandSink;
-  private readonly projectionMode: Camera3ProjectionModeController;
+  private viewState: Camera3ViewState;
   private currentModeLabel = "";
 
   constructor(options: Camera3GizmoOptions) {
     this.commandSink = options.commandSink;
-    this.projectionMode = options.projectionMode;
+    this.viewState = options.initialViewState;
     this.size = options.size ?? 132;
     this.state = new Camera3GizmoState({
       center: this.size * 0.5,
@@ -70,8 +70,9 @@ export class Camera3Gizmo implements GizmoController {
     this.draw();
   }
 
-  update(): void {
-    const nextModeLabel = this.projectionMode.mode === "perspective" ? "< Persp" : "|| Iso";
+  update(viewState = this.viewState): void {
+    this.viewState = viewState;
+    const nextModeLabel = viewState.projectionMode === "perspective" ? "< Persp" : "|| Iso";
     if (nextModeLabel !== this.currentModeLabel) {
       this.currentModeLabel = nextModeLabel;
       this.modeLabel.textContent = nextModeLabel;
@@ -132,7 +133,7 @@ export class Camera3Gizmo implements GizmoController {
   }
 
   private draw(): void {
-    this.renderer.draw(this.projectionMode.activeCamera);
+    this.renderer.draw(this.viewState.activeCamera);
   }
 
   private getAxisFromHit(hit: GizmoHit): Camera3Axis | null {

@@ -69,7 +69,7 @@ export function installSceneViewContent(options: InstallSceneViewContentOptions)
     const camera3Gizmo = createCamera3GizmoActor(context, {
       actorId: actorIds.camera3GizmoActorId,
       actorName: actorIds.camera3GizmoActorName,
-      projectionMode: camera3Motion.projectionMode,
+      initialViewState: camera3Motion.readViewState(),
       commandSink: camera3Motion,
       parent: sceneView.viewport.overlayElement,
       parentActor: sceneView.viewport.actor

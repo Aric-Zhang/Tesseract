@@ -13,6 +13,7 @@ import type {
   ActorInputParticipant
 } from "../../../gizmo-runtime";
 import { Camera3Gizmo, type Camera3GizmoOptions } from "../camera3-gizmo";
+import type { Camera3ViewState } from "../../../camera3-control";
 
 export const camera3GizmoComponentType =
   "camera3-gizmo-component" as ComponentType<Camera3GizmoComponent>;
@@ -48,8 +49,8 @@ export class Camera3GizmoComponent implements ActorInputParticipant {
     return this.gizmo.priority;
   }
 
-  update(): void {
-    this.gizmo.update();
+  update(viewState?: Camera3ViewState): void {
+    this.gizmo.update(viewState);
   }
 
   hitTestInput(point: ScreenPoint): ActorInputHit | null {

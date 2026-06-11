@@ -731,6 +731,7 @@ describe("architecture boundaries", () => {
 
     expect(camera3GizmoSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
     expect(camera3GizmoSource).not.toMatch(/\.onclick\s*=/);
+    expect(camera3GizmoSource).not.toMatch(/projectionMode\.activeCamera/);
     expect(camera3GizmoSource).toMatch(/projection-mode/);
     expect(camera3ComponentSource).toMatch(/\bonInputClick\b/);
   });

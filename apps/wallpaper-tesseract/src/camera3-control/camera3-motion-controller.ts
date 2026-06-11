@@ -29,6 +29,11 @@ export interface Camera3MotionChangedEvent {
   commands: readonly Camera3ControlCommand[];
 }
 
+export interface Camera3ViewState {
+  readonly activeCamera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
+  readonly projectionMode: "perspective" | "orthographic";
+}
+
 export interface Camera3MotionObserver {
   onCamera3MotionChanged(event: Camera3MotionChangedEvent): void;
 }
@@ -74,6 +79,13 @@ export class Camera3MotionController implements Camera3CommandSink, RuntimeObjec
 
   get cameraState(): RuntimeCameraState {
     return cloneRuntimeCameraState(this.runtimeState);
+  }
+
+  readViewState(): Camera3ViewState {
+    return {
+      activeCamera: this.activeCamera,
+      projectionMode: getProjectionMode(this.runtimeState)
+    };
   }
 
   submit(command: Camera3ControlCommand): void {

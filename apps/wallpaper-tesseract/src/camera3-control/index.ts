@@ -3,7 +3,8 @@ export type {
   Camera3MotionChangedEvent,
   Camera3MotionControllerOptions,
   Camera3MotionObserver,
-  Camera3MotionUpdateResult
+  Camera3MotionUpdateResult,
+  Camera3ViewState
 } from "./camera3-motion-controller";
 export type {
   Camera3CommandSink,

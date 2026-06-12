@@ -10,8 +10,7 @@ export const projectPrismSourceZones = [
   ]),
   definePathZone("actor-binding-debt", "App-local attachment/runtime placement that still blocks actor-input and state/runtime extraction.", [
     /^\.\/gizmo-runtime\/install-component-definitions\.ts$/,
-    /^\.\/update-runtime\//,
-    /^\.\/state-runtime\//
+    /^\.\/update-runtime\//
   ], { debt: true }),
   definePathZone("actor-input-candidate", "Actor input and gizmo-core adapter candidates.", [
     /^\.\/gizmo-runtime\/index\.ts$/
@@ -63,7 +62,6 @@ export const projectPrismSourceZones = [
     /^\.\/features\/camera3\/components\/(?:camera3-motion-component|camera3-rig-component|scene-camera3-viewport-binding-component)\.ts$/,
     /^\.\/features\/scene\/(?:install-scene-view-feature|scene-view-content-installer|renderable-scene-view|scene-window-actor-factory)\.ts$/,
     /^\.\/features\/scene\/components\/scene-viewport-component\.ts$/,
-    /^\.\/update-runtime\/frame-update-attachment-runtime\.ts$/,
     /^\.\/tesseract4\//
   ], { debt: true })
 ] as const satisfies readonly SourceZoneDefinition[];
@@ -97,8 +95,8 @@ export const projectPrismDebtBlockers = [
   {
     zoneId: "actor-binding-debt",
     blocks: ["state/runtime bridge split"],
-    blocker: "Actor-core and actor-input no longer own app-local update scheduling or focus services. Remaining binding debt is package placement for update-runtime and staged state observer binding ownership.",
-    deletionCondition: "Update runtime and state observer binding are expressed through package-owned ports outside app-local glue."
+    blocker: "Actor-core and actor-input no longer own app-local update scheduling or focus services. Remaining binding debt is package placement for runtime-work attachment ownership.",
+    deletionCondition: "Runtime-work attachment is expressed through a package-owned port outside app-local glue."
   },
   {
     zoneId: "app-composition-debt",

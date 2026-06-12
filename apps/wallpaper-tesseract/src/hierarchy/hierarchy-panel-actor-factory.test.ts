@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { AppRuntimeContext } from "../app-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
 import type { RuntimeRegistration } from "../runtime/ports";
-import { installStateRuntimeComponentDefinitions } from "../state-runtime";
+import { installEditorStateObserverComponentDefinitions } from "editor";
 import type {
   WindowContentRegistrationPort,
   WindowRegisteredContent
@@ -134,7 +134,7 @@ function createContext() {
     }
   });
   installGizmoRuntimeComponentDefinitions(context.componentRegistry);
-  installStateRuntimeComponentDefinitions(context.componentRegistry);
+  installEditorStateObserverComponentDefinitions(context.componentRegistry);
   installHierarchyComponentDefinitions(context.componentRegistry);
   return { calls, context };
 }

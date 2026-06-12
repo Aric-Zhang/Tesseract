@@ -1,6 +1,6 @@
 import type { ComponentDefinition } from "../actor-runtime";
 import { gizmoEventBindingComponentType } from "../gizmo-runtime";
-import { stateObserverBindingComponentType } from "../state-runtime";
+import { stateObserverBindingComponentType } from "editor";
 import {
   FloatingWindowComponent,
   floatingWindowComponentType,

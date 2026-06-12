@@ -6,7 +6,7 @@ import type {
   ActorInputHit,
   ActorInputParticipant
 } from "../../gizmo-runtime";
-import type { StateObserverResponder } from "../../state-runtime";
+import type { StateObserverResponder } from "editor";
 import type { StateChangedEvent } from "../../runtime/ports";
 import type {
   WindowFrameIntentSink,

@@ -3,7 +3,7 @@ export {
   stateObserverBindingComponentType
 } from "./state-observer-binding-component";
 export { stateObserverBindingComponentDefinition } from "./state-observer-binding-definition";
-export { installStateRuntimeComponentDefinitions } from "./install-component-definitions";
+export { installEditorStateObserverComponentDefinitions } from "./install-component-definitions";
 export type {
   StateObserverRegistry,
   StateObserverRegistration

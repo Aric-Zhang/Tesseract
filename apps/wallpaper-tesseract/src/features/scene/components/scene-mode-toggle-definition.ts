@@ -1,7 +1,7 @@
 import type { ComponentDefinition } from "../../../actor-runtime";
 import { noopEditorCommandSink, type EditorCommandSink } from "editor";
 import { gizmoEventBindingComponentType } from "../../../gizmo-runtime";
-import { stateObserverBindingComponentType } from "../../../state-runtime";
+import { stateObserverBindingComponentType } from "editor";
 import {
   SceneModeToggleComponent,
   sceneModeToggleComponentType,

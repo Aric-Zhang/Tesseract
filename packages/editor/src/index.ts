@@ -42,3 +42,4 @@ export {
   createEditorBackedWorkspaceCommandSink,
   registerWorkspaceModeParameters
 } from "./adapters/workspace-mode-editor-state-adapter";
+export * from "./state-observer";

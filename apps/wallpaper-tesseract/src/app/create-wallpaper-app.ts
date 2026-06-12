@@ -36,7 +36,7 @@ import {
   registerWorkspaceModeParameters
 } from "editor";
 import { UpdateFrameClock } from "../runtime/ports";
-import type { StateObserverRegistry } from "../state-runtime";
+import type { StateObserverRegistry } from "editor";
 import {
   createWindowFocusServiceProxy,
   type UiLayoutCommandSink,

@@ -3,7 +3,7 @@ import {
   installGizmoRuntimeComponentDefinitions,
   type GizmoEventBindingComponentDefinitionOptions
 } from "../gizmo-runtime";
-import { installStateRuntimeComponentDefinitions } from "../state-runtime";
+import { installEditorStateObserverComponentDefinitions } from "editor";
 import type { EditorCommandSink } from "editor";
 import { installDebugLogComponentDefinitions } from "../debug";
 import { installAppMenuComponentDefinitions } from "../features/app-menu";
@@ -28,7 +28,7 @@ export function installWallpaperComponentDefinitions(
   installGizmoRuntimeComponentDefinitions(componentRegistry, {
     gizmoEventBinding: options.gizmoEventBinding
   });
-  installStateRuntimeComponentDefinitions(componentRegistry);
+  installEditorStateObserverComponentDefinitions(componentRegistry);
   installWindowComponentDefinitions(componentRegistry, {
     commandSink: options.uiLayoutCommandSink
   });

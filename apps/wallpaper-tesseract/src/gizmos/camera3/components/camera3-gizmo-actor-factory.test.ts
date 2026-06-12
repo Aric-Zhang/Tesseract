@@ -10,7 +10,7 @@ import type {
 import { AppRuntimeContext } from "../../../app-runtime";
 import type { Camera3CommandSink, Camera3ControlCommand, Camera3ViewState } from "../../../camera3-control";
 import { installGizmoRuntimeComponentDefinitions } from "../../../gizmo-runtime";
-import { installStateRuntimeComponentDefinitions } from "../../../state-runtime";
+import { installEditorStateObserverComponentDefinitions } from "editor";
 import type { AppStateCommand } from "editor";
 import type { AppStateObserver } from "editor";
 import type { RuntimeRegistration } from "../../../runtime/ports";
@@ -65,7 +65,7 @@ function createContext() {
     }
   });
   installGizmoRuntimeComponentDefinitions(context.componentRegistry);
-  installStateRuntimeComponentDefinitions(context.componentRegistry);
+  installEditorStateObserverComponentDefinitions(context.componentRegistry);
   installCamera3ComponentDefinitions(context.componentRegistry);
   return { calls, context, registeredGizmos };
 }

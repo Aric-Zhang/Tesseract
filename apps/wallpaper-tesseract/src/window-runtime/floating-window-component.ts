@@ -11,7 +11,7 @@ import type {
   ActorInputParticipant,
   ActorInputStartEvent
 } from "../gizmo-runtime";
-import type { StateObserverResponder } from "../state-runtime";
+import type { StateObserverResponder } from "editor";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
 import {

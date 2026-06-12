@@ -197,6 +197,18 @@ and barrel export were deleted. Actor factories now use
 `ActorCreationContext` from `actor-core`, which keeps actor/component creation
 off app-runtime glue without introducing an editor-owned facade.
 
+## Step 2.6: Move Editor State And UI Frame Bindings To Package Owners
+
+Purpose: remove the last app-local binding owners that would otherwise force
+Debug/Hierarchy/Inspector extraction to import `state-runtime` or
+`update-runtime` glue.
+
+Status: complete. The app-local `state-runtime` directory was deleted and its
+state observer binding contract/runtime moved to `packages/editor`. The UI
+component frame update attachment/runtime moved from app-local `update-runtime`
+to `packages/ui-framework`. The remaining app-local `update-runtime` barrel now
+contains runtime-work attachment debt only.
+
 Current fact:
 
 - Debug, Hierarchy, Inspector, Scene, and Camera3 actor factories/importers use

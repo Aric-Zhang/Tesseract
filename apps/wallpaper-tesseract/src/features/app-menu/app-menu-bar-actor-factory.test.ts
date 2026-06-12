@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry, type RegisteredActor } from "../../actor-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
-import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
+import { installEditorStateObserverComponentDefinitions } from "editor";
 import { gizmoEventBindingComponentType } from "../../gizmo-runtime";
-import { stateObserverBindingComponentType } from "../../state-runtime";
+import { stateObserverBindingComponentType } from "editor";
 import { editorStatePath } from "editor";
 import type { WindowWorkspaceViewCatalog } from "../../window-runtime";
 import {
@@ -96,7 +96,7 @@ function createContext() {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
   installGizmoRuntimeComponentDefinitions(componentRegistry);
-  installStateRuntimeComponentDefinitions(componentRegistry);
+  installEditorStateObserverComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
   return {
     actorSystem,

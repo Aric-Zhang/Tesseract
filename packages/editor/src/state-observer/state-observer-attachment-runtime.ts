@@ -4,8 +4,8 @@ import type {
   ComponentAttachmentDescriptor,
   ComponentAttachmentRegistration,
   ComponentAttachmentRuntime
-} from "../actor-runtime";
-import { componentAttachmentKind } from "../actor-runtime";
+} from "actor-core";
+import { componentAttachmentKind } from "actor-core";
 import type { StateObserverRegistry } from "./state-observer-registry";
 
 export const stateObserverAttachmentKind = componentAttachmentKind("state-observer-binding");
@@ -43,4 +43,3 @@ export class StateObserverAttachmentRuntime<TObserver> implements ComponentAttac
 const noopAttachmentRegistration: ComponentAttachmentRegistration = {
   dispose(): void {}
 };
-

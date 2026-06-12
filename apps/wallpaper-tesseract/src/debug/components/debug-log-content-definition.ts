@@ -1,5 +1,5 @@
 import type { ComponentDefinition } from "../../actor-runtime";
-import { frameUpdateAttachment } from "../../update-runtime";
+import { frameUpdateAttachment } from "ui-framework";
 import {
   DebugLogContentComponent,
   debugLogContentComponentType,

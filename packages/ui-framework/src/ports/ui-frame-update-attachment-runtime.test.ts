@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
-import type { Actor, Component, ComponentDefinition } from "../actor-runtime";
-import { ActorSystem, ComponentRegistry, componentType } from "../actor-runtime";
-import type { UpdateFrame } from "../runtime/ports";
+import type { Actor, Component, ComponentDefinition } from "actor-core";
+import { ActorSystem, ComponentRegistry, componentType } from "actor-core";
+import type { UiFrame } from "./ui-scheduler";
 import {
   FrameUpdateAttachmentRuntime,
   frameUpdateAttachment,
   type FrameUpdateParticipant
-} from "./frame-update-attachment-runtime";
+} from "./ui-frame-update-attachment-runtime";
 
 interface TestUpdateComponent extends Component, FrameUpdateParticipant {}
 
 interface TestUpdateComponentOptions {
   id: string;
   enabled?: boolean;
-  updateFrame: (frame: UpdateFrame) => void;
+  updateFrame: (frame: UiFrame) => void;
 }
 
 const testUpdateComponentType = componentType<TestUpdateComponent>("test-update-component");
@@ -59,7 +59,7 @@ function addUpdateComponent(
   return registry.addComponent(actor, testUpdateComponentType, options);
 }
 
-function frame(frameIndex = 0): UpdateFrame {
+function frame(frameIndex = 0): UiFrame {
   return {
     timeMs: frameIndex * 16,
     deltaMs: frameIndex === 0 ? 0 : 16,

@@ -8,7 +8,7 @@ import {
   createRegisteredActor,
   type Component
 } from "../actor-runtime";
-import { frameUpdateAttachment } from "../update-runtime";
+import { frameUpdateAttachment } from "ui-framework";
 import { AppRuntimeContext, createRegisteredObject } from "./app-runtime-context";
 
 interface TestActorComponent extends Component {

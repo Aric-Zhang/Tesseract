@@ -15,7 +15,7 @@ import {
   GizmoControllerAttachmentRuntime,
   installGizmoRuntimeComponentDefinitions
 } from "../gizmo-runtime";
-import { installStateRuntimeComponentDefinitions } from "../state-runtime";
+import { installEditorStateObserverComponentDefinitions } from "editor";
 import {
   createWindowFocusServiceProxy,
   createWindowWorkspaceContentId,
@@ -145,7 +145,7 @@ export function installUiFrameworkFixture(
       actorInputStackPriority: windowFocus
     }
   });
-  installStateRuntimeComponentDefinitions(componentRegistry);
+  installEditorStateObserverComponentDefinitions(componentRegistry);
   installWindowComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
   installComponentDefinition(componentRegistry, genericFixtureViewComponentDefinition);

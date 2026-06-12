@@ -5,9 +5,9 @@ import type {
   ComponentAttachmentDescriptor,
   ComponentAttachmentRegistration,
   ComponentAttachmentRuntime
-} from "../actor-runtime";
-import { componentAttachmentKind } from "../actor-runtime";
-import type { UpdateFrame } from "../runtime/ports";
+} from "actor-core";
+import { componentAttachmentKind } from "actor-core";
+import type { UiFrame } from "./ui-scheduler";
 
 export const frameUpdateAttachmentKind = componentAttachmentKind("frame-update");
 
@@ -16,7 +16,7 @@ export const frameUpdateAttachment: ComponentAttachmentDescriptor = {
 };
 
 export interface FrameUpdateParticipant {
-  updateFrame(frame: UpdateFrame): void;
+  updateFrame(frame: UiFrame): void;
 }
 
 export interface FrameUpdateAttachmentRuntimeOptions {
@@ -69,7 +69,7 @@ export class FrameUpdateAttachmentRuntime implements ComponentAttachmentRuntime 
     };
   }
 
-  updateFrame(frame: UpdateFrame): void {
+  updateFrame(frame: UiFrame): void {
     const actors = this.#actorSystem.listActorsInTreeOrder();
     for (const actor of actors) {
       if (!this.#actorSystem.hasActor(actor) || !this.#actorSystem.isActorActive(actor)) continue;

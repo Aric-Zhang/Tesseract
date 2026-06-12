@@ -73,11 +73,11 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "frame-update-attachment-runtime",
-    "./update-runtime/frame-update-attachment-runtime.ts",
+    "packages/ui-framework/src/ports/ui-frame-update-attachment-runtime.ts",
     "scheduler-dispatcher",
     "ui-component-scheduler",
     false,
-    "FrameUpdateAttachmentRuntime remains an actor/component tick dispatcher or is replaced by a UI component scheduler; it is not moved wholesale into RuntimeScheduler."
+    "FrameUpdateAttachmentRuntime is owned by ui-framework as a UI component tick dispatcher; it is not moved wholesale into RuntimeScheduler."
   ),
   entry(
     "runtime-work-attachment-runtime",
@@ -91,13 +91,13 @@ export const projectPrismFrameUpdateLaneMap = [
     "frame-update-runtime-barrel",
     "./update-runtime/index.ts",
     "barrel-export",
-    "ui-component-scheduler",
+    "runtime-scheduler",
     false,
-    "update-runtime barrel exports only UI/component tick contracts after runtime work migrates."
+    "update-runtime barrel exports only runtime-work attachment debt until that bridge migrates."
   ),
   entry(
     "app-frame-state-controller",
-    "./editor/app-state-controller.ts",
+    "packages/editor/src/app-state-controller.ts",
     "editor-state-flush",
     "editor-state-flush-scheduler",
     false,

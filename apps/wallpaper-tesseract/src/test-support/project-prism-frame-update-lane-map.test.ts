@@ -51,13 +51,13 @@ describe("Project Prism frame update lane map", () => {
       "./hierarchy/hierarchy-panel-component.ts"
     ]));
     expect(projectPrismEditorStateFlushLane.map((entry) => entry.sourceFile)).toEqual([
-      "./editor/app-state-controller.ts"
+      "packages/editor/src/app-state-controller.ts"
     ]);
   });
 
   it("marks current dispatchers as split debt instead of pure runtime work", () => {
     expect(projectPrismSchedulerDispatcherLane.map((entry) => entry.sourceFile)).toEqual(expect.arrayContaining([
-      "./update-runtime/frame-update-attachment-runtime.ts",
+      "packages/ui-framework/src/ports/ui-frame-update-attachment-runtime.ts",
       "./app/app-frame-orchestrator.ts",
       "./app/ui-frame-scheduler.ts",
       "./app/create-wallpaper-app.ts"

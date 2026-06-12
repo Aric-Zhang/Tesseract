@@ -11,8 +11,9 @@ import {
 import {
   StateObserverAttachmentRuntime,
   type StateObserverRegistry
-} from "../state-runtime";
-import { FrameUpdateAttachmentRuntime, RuntimeWorkAttachmentRuntime } from "../update-runtime";
+} from "editor";
+import { FrameUpdateAttachmentRuntime } from "ui-framework";
+import { RuntimeWorkAttachmentRuntime } from "../update-runtime";
 import {
   ActorSystem,
   ComponentRegistry,

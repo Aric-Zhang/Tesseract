@@ -7,7 +7,7 @@ import type { RuntimeRegistration } from "../../runtime/ports";
 import type { SceneViewportRenderer } from "./components";
 import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
 import type { GizmoControllerRegistry } from "../../gizmo-runtime";
-import type { StateObserverRegistry } from "../../state-runtime";
+import type { StateObserverRegistry } from "editor";
 import {
   createEditorSceneViewHost,
   createRenderableSceneView,

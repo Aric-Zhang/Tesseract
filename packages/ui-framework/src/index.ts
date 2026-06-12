@@ -15,6 +15,7 @@ export * from "./model/window-workspace-graph";
 export * from "./model/window-workspace-layout";
 export * from "./model/window-workspace-layout-persistence";
 export * from "./ports/ui-actor-context";
+export * from "./ports/ui-frame-update-attachment-runtime";
 export * from "./ports/ui-geometry";
 export * from "./ports/ui-layout-state";
 export * from "./ports/ui-scheduler";

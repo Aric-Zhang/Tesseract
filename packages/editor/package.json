@@ -22,7 +22,11 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "actor-core": "0.1.0",
     "runtime-core": "0.1.0",
     "ui-framework": "0.1.0"
+  },
+  "devDependencies": {
+    "actor-input": "0.1.0"
   }
 }

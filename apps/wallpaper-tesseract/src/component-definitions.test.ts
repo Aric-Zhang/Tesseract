@@ -23,9 +23,9 @@ import {
   installHierarchyComponentDefinitions
 } from "./hierarchy";
 import {
-  installStateRuntimeComponentDefinitions,
+  installEditorStateObserverComponentDefinitions,
   stateObserverBindingComponentType
-} from "./state-runtime";
+} from "editor";
 import {
   tesseract4ComponentType,
   installTesseract4ComponentDefinitions
@@ -45,7 +45,7 @@ describe("component definition installers", () => {
     const registry = createRegistry();
 
     installGizmoRuntimeComponentDefinitions(registry);
-    installStateRuntimeComponentDefinitions(registry);
+    installEditorStateObserverComponentDefinitions(registry);
 
     expect(registry.getDefinition(gizmoEventBindingComponentType).type).toBe(
       gizmoEventBindingComponentDefinition.type
@@ -124,9 +124,9 @@ describe("component definition installers", () => {
     const registry = createRegistry();
 
     installGizmoRuntimeComponentDefinitions(registry);
-    installStateRuntimeComponentDefinitions(registry);
+    installEditorStateObserverComponentDefinitions(registry);
     installGizmoRuntimeComponentDefinitions(registry);
-    installStateRuntimeComponentDefinitions(registry);
+    installEditorStateObserverComponentDefinitions(registry);
 
     expect(registry.getDefinition(gizmoEventBindingComponentType).type).toBe(
       gizmoEventBindingComponentDefinition.type
@@ -155,7 +155,7 @@ describe("component definition installers", () => {
     const registry = createRegistry();
 
     installGizmoRuntimeComponentDefinitions(registry);
-    installStateRuntimeComponentDefinitions(registry);
+    installEditorStateObserverComponentDefinitions(registry);
 
     expect(() => registry.getDefinition(floatingWindowComponentType)).toThrow(/is not registered/);
   });

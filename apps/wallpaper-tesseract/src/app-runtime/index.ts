@@ -8,4 +8,4 @@ export type {
   RegisteredObject
 } from "./app-runtime-context";
 export type { GizmoControllerRegistry } from "../gizmo-runtime";
-export type { StateObserverRegistry } from "../state-runtime";
+export type { StateObserverRegistry } from "editor";

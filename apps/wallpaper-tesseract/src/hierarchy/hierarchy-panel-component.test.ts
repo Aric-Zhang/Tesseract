@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../actor-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
-import { installStateRuntimeComponentDefinitions } from "../state-runtime";
+import { installEditorStateObserverComponentDefinitions } from "editor";
 import type { AppStateChangedEvent, AppStateCommand } from "editor";
 import { editorStatePaths } from "editor";
 import { editorWindowLayoutPaths } from "editor";
@@ -465,7 +465,7 @@ describe("HierarchyPanelComponent definition", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
     installGizmoRuntimeComponentDefinitions(registry);
-    installStateRuntimeComponentDefinitions(registry);
+    installEditorStateObserverComponentDefinitions(registry);
     installWindowComponentDefinitions(registry);
     registry.registerDefinition(hierarchyPanelComponentDefinition);
     const actor = actorSystem.createActor({ id: "hierarchy-actor" });
@@ -480,7 +480,7 @@ describe("HierarchyPanelComponent definition", () => {
     const actorSystem = new ActorSystem();
     const { registry } = createTestComponentRegistry({ actorSystem });
     installGizmoRuntimeComponentDefinitions(registry);
-    installStateRuntimeComponentDefinitions(registry);
+    installEditorStateObserverComponentDefinitions(registry);
     installWindowComponentDefinitions(registry);
     registry.registerDefinition(hierarchyPanelComponentDefinition);
     const document = new FakeDocument();

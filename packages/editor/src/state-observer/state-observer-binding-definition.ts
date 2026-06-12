@@ -1,4 +1,4 @@
-import type { ComponentDefinition } from "../actor-runtime";
+import type { ComponentDefinition } from "actor-core";
 import { stateObserverAttachment } from "./state-observer-attachment-runtime";
 import {
   StateObserverBindingComponent,

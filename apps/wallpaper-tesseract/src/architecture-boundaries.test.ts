@@ -88,7 +88,7 @@ describe("architecture boundaries", () => {
     expect(zoneMap.debtEntries.map((entry) => entry.file)).toEqual(expect.arrayContaining([
       "./app-runtime/app-runtime-context.ts",
       "./app/create-wallpaper-app.ts",
-      "./update-runtime/frame-update-attachment-runtime.ts",
+      "./update-runtime/runtime-work-attachment-runtime.ts",
       "./tesseract4/tesseract4-runtime-renderable.ts"
     ]));
   });
@@ -900,7 +900,7 @@ describe("architecture boundaries", () => {
     expect(sourceFiles["./component-definitions.ts"]).toBeUndefined();
     expect(appInstallerSource).toMatch(/\binstallWallpaperComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallGizmoRuntimeComponentDefinitions\b/);
-    expect(appInstallerSource).toMatch(/\binstallStateRuntimeComponentDefinitions\b/);
+    expect(appInstallerSource).toMatch(/\binstallEditorStateObserverComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallWindowComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallAppMenuComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallSceneComponentDefinitions\b/);
@@ -1439,18 +1439,17 @@ describe("architecture boundaries", () => {
       ))
       .map(([file]) => file)
       .sort();
-    const responderSource = sourceFiles["./state-runtime/state-observer-responder.ts"] ?? "";
-    const stateRuntimeSceneImports = Object.entries(sourceFiles)
-      .filter(([file]) => file.startsWith("./state-runtime/"))
+    const responderSource = collectWorkspaceSourceFiles("packages/editor/src")["packages/editor/src/state-observer/state-observer-responder.ts"] ?? "";
+    const editorStateObserverSceneImports = Object.entries(collectWorkspaceSourceFiles("packages/editor/src/state-observer"))
       .filter(([file]) => !file.endsWith(".test.ts"))
       .filter(([, source]) => /from\s+["'][^"']*scene-runtime/.test(source))
       .map(([file]) => file)
       .sort();
 
     expect(responderSource).toMatch(/\bonStateChanged\b/);
-    expect(responderSource).toMatch(/\bStateChangedEvent\b/);
+    expect(responderSource).toMatch(/\bAppStateChangedEvent\b/);
     expect(uiResponderSceneObserverUses).toEqual([]);
-    expect(stateRuntimeSceneImports).toEqual([]);
+    expect(editorStateObserverSceneImports).toEqual([]);
   });
 
   it("removes legacy component capability adapters and metadata", () => {

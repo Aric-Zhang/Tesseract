@@ -71,6 +71,10 @@ Current gate:
   `runtime/ports`. Actor factories now depend on `actor-core`'s
   `ActorCreationContext`, so feature actor creation no longer pulls editor
   extraction back through app runtime glue.
+- The old app-local `state-runtime` directory has been deleted. Editor state
+  observer binding now lives in `packages/editor`, and UI component frame
+  update attachment now lives in `packages/ui-framework`; `update-runtime`
+  only retains runtime-work attachment debt.
 - Current graph progress is real: `WindowFramePort` is now shell-only,
   production placement mutation goes through graph transaction/reconcile paths,
   graph transaction DOM atomicity was hardened, and `persistable` replaced the
@@ -291,8 +295,10 @@ temp/project-prism-phase-6-editor-extraction-plan.md
 Treat this as the current execution plan for Phase 6. The pre-entry checkpoint
 is committed, the first editor-owned state/adapters have moved into
 `packages/editor`, and the feature actor creation contract has moved out of
-app-local runtime ports. The next hard cleanup extracts tool windows, then
-splits Scene runtime render-output ownership before Scene
+app-local runtime ports. The Step 3 preflight binding cleanup is also complete:
+state observer binding is editor-owned and UI frame update attachment is
+ui-framework-owned. The next hard cleanup extracts tool windows, then splits
+Scene runtime render-output ownership before Scene
 presentation extraction, resolves Camera3 motion/rig ownership before Camera3
 gizmo extraction, then moves component definition installers and app
 composition wiring into a new `packages/editor` package. The plan keeps

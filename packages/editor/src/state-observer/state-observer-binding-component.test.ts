@@ -1,21 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem, componentType } from "../actor-runtime";
-import type { ComponentDefinition } from "../actor-runtime";
-import { CompositeComponentAttachmentRuntime } from "../app-runtime/composite-component-attachment-runtime";
-import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
-import { installStateRuntimeComponentDefinitions } from "../state-runtime";
-import type { AppStateChangedEvent } from "editor";
-import type { AppStateObserver } from "editor";
-import type { RuntimeRegistration } from "../runtime/ports";
 import {
-  createRecordingRuntimeRegistration,
-  createTestComponentRegistry
-} from "../test-support";
+  ActorSystem,
+  ComponentRegistry,
+  componentType,
+  installComponentDefinition,
+  type Component,
+  type ComponentAttachmentDescriptor,
+  type ComponentAttachmentRegistration,
+  type ComponentAttachmentRuntime,
+  type ComponentDefinition
+} from "actor-core";
+import { gizmoEventBindingComponentDefinition } from "actor-input";
+import type { AppStateChangedEvent, AppStateObserver } from "../app-state";
 import {
   FrameUpdateAttachmentRuntime,
   frameUpdateAttachment,
   type FrameUpdateParticipant
-} from "../update-runtime";
+} from "ui-framework";
+import { installEditorStateObserverComponentDefinitions } from "./install-component-definitions";
 import {
   stateObserverBindingComponentType
 } from "./state-observer-binding-component";
@@ -24,15 +26,46 @@ import type { StateObserverResponder } from "./state-observer-responder";
 
 interface TestStateObserverResponder extends StateObserverResponder, FrameUpdateParticipant {}
 
+interface TestRegistration {
+  dispose(): void;
+}
+
+class TestCompositeAttachmentRuntime implements ComponentAttachmentRuntime {
+  constructor(private readonly runtimes: readonly ComponentAttachmentRuntime[]) {}
+
+  attach(
+    actor: Component["actor"],
+    component: Component,
+    attachments: readonly ComponentAttachmentDescriptor[]
+  ): ComponentAttachmentRegistration {
+    const registrations = this.runtimes.map((runtime) => runtime.attach(actor, component, attachments));
+    return {
+      dispose() {
+        for (const registration of registrations.slice().reverse()) {
+          registration.dispose();
+        }
+      }
+    };
+  }
+}
+
+function createRecordingRegistration(label: string, calls: string[]): TestRegistration {
+  return {
+    dispose() {
+      calls.push(label);
+    }
+  };
+}
+
 function createRegistry() {
   const calls: string[] = [];
   const observers: AppStateObserver[] = [];
   const stateAttachmentRuntime = new StateObserverAttachmentRuntime<AppStateObserver>({
     registry: {
-      subscribe(observer: AppStateObserver): RuntimeRegistration {
+      subscribe(observer: AppStateObserver): TestRegistration {
         calls.push("observer-subscribe");
         observers.push(observer);
-        return createRecordingRuntimeRegistration("observer-dispose", calls);
+        return createRecordingRegistration("observer-dispose", calls);
       },
       dispose(): void {
         calls.push("frame-system-dispose");
@@ -48,13 +81,13 @@ function createRegistry() {
   });
   const actorSystem = new ActorSystem();
   const updateRuntime = new FrameUpdateAttachmentRuntime({ actorSystem });
-  const attachmentRuntime = new CompositeComponentAttachmentRuntime([
+  const attachmentRuntime = new TestCompositeAttachmentRuntime([
     stateAttachmentRuntime,
     updateRuntime
   ]);
-  const { registry } = createTestComponentRegistry({ actorSystem, attachmentRuntime });
-  installGizmoRuntimeComponentDefinitions(registry);
-  installStateRuntimeComponentDefinitions(registry);
+  const registry = new ComponentRegistry({ actorSystem, attachmentRuntime });
+  installComponentDefinition(registry, gizmoEventBindingComponentDefinition);
+  installEditorStateObserverComponentDefinitions(registry);
   return { actorSystem, calls, observers, registry, updateRuntime };
 }
 

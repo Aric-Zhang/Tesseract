@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../../actor-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
-import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
+import { installEditorStateObserverComponentDefinitions } from "editor";
 import { installDebugLogComponentDefinitions } from "../../debug";
 import { createTestComponentRegistry } from "../../test-support";
 import {
@@ -73,7 +73,7 @@ function createRegistry() {
   const setup = createTestComponentRegistry();
   const registry = setup.registry;
   installGizmoRuntimeComponentDefinitions(registry);
-  installStateRuntimeComponentDefinitions(registry);
+  installEditorStateObserverComponentDefinitions(registry);
   installDebugLogComponentDefinitions(registry);
   return setup;
 }

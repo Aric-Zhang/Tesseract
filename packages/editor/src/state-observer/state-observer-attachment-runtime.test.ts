@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "../actor-runtime";
-import type { Component } from "../actor-runtime";
-import { componentAttachmentKind } from "../actor-runtime";
+import { ActorSystem, componentAttachmentKind, type Component } from "actor-core";
 import {
   stateObserverAttachment,
   StateObserverAttachmentRuntime
@@ -99,4 +97,3 @@ describe("StateObserverAttachmentRuntime", () => {
     expect(() => runtime.attach(actor, component, [stateObserverAttachment])).toThrow("Expected TestObserver.");
   });
 });
-

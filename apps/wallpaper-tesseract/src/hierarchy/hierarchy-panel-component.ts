@@ -3,7 +3,7 @@ import type { Actor, Component, ComponentType } from "../actor-runtime";
 import { editorStatePaths, type EditorCommandSink } from "editor";
 import type { ActorInputEndEvent, ActorInputHit, ActorInputParticipant } from "../gizmo-runtime";
 import type { StateChangedEvent } from "../runtime/ports";
-import type { StateObserverResponder } from "../state-runtime";
+import type { StateObserverResponder } from "editor";
 import type {
   WindowContentLayoutCommit,
   WindowContentLayoutCommitRegistration,

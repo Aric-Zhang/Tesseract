@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, type Actor } from "../actor-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
-import { installStateRuntimeComponentDefinitions } from "../state-runtime";
+import { installEditorStateObserverComponentDefinitions } from "editor";
 import { createTestComponentRegistry } from "../test-support";
 import {
   FloatingWindowComponent,
@@ -102,7 +102,7 @@ function createWorkspace(options: CreateWorkspaceOptions) {
   const document = new FakeDocument();
   const { registry } = createTestComponentRegistry({ actorSystem });
   installGizmoRuntimeComponentDefinitions(registry);
-  installStateRuntimeComponentDefinitions(registry);
+  installEditorStateObserverComponentDefinitions(registry);
   installWindowComponentDefinitions(registry);
   const framePorts = new WindowFramePortRegistry();
   const windows: Record<string, WindowFixture> = {};

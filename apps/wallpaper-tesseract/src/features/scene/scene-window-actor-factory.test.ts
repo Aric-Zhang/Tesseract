@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry, type Actor, type RegisteredActor } from "../../actor-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
-import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
+import { installEditorStateObserverComponentDefinitions } from "editor";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
 import type { AppStateCommand } from "editor";
 import { editorStatePaths } from "editor";
@@ -103,7 +103,7 @@ function createContext(commands: AppStateCommand[] = []) {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
   installGizmoRuntimeComponentDefinitions(componentRegistry);
-  installStateRuntimeComponentDefinitions(componentRegistry);
+  installEditorStateObserverComponentDefinitions(componentRegistry);
   installWindowComponentDefinitions(componentRegistry, {
     commandSink: { submit: (command) => commands.push(command as AppStateCommand) }
   });

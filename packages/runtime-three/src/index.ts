@@ -7,6 +7,22 @@ export type {
   RuntimeThreeCameraObject
 } from "./runtime-three-camera-backend";
 export {
+  RuntimeThreeOrbitCamera
+} from "./runtime-three-orbit-camera";
+export type {
+  RuntimeThreeOrbitCameraOptions,
+  RuntimeThreeOrbitCameraState
+} from "./runtime-three-orbit-camera";
+export {
+  RuntimeThreeCameraMotionController
+} from "./runtime-three-camera-motion-controller";
+export type {
+  RuntimeThreeCameraMotionChangedEvent,
+  RuntimeThreeCameraMotionControllerOptions,
+  RuntimeThreeCameraMotionObserver,
+  RuntimeThreeCameraMotionUpdateResult
+} from "./runtime-three-camera-motion-controller";
+export {
   RuntimeThreeSceneBackend
 } from "./runtime-three-scene-backend";
 export type {

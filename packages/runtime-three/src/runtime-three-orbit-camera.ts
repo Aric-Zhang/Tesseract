@@ -7,9 +7,9 @@ import {
   type RuntimeCameraProjectionMode,
   type RuntimeCameraState
 } from "runtime-core";
-import { RuntimeThreeCameraBackend, type RuntimeThreeCameraObject } from "runtime-three";
+import { RuntimeThreeCameraBackend, type RuntimeThreeCameraObject } from "./runtime-three-camera-backend";
 
-export interface Camera3RuntimeOrbitState {
+export interface RuntimeThreeOrbitCameraState {
   readonly target: readonly [number, number, number];
   readonly distance: number;
   readonly yaw: number;
@@ -17,20 +17,20 @@ export interface Camera3RuntimeOrbitState {
   readonly roll?: number;
 }
 
-export interface Camera3RuntimeCameraOptions {
+export interface RuntimeThreeOrbitCameraOptions {
   readonly id?: RuntimeCameraId;
-  readonly orbit?: Partial<Camera3RuntimeOrbitState>;
+  readonly orbit?: Partial<RuntimeThreeOrbitCameraState>;
   readonly projectionMode?: RuntimeCameraProjectionMode;
   readonly label?: string;
 }
 
-export class Camera3RuntimeCamera {
+export class RuntimeThreeOrbitCamera {
   readonly id: RuntimeCameraId;
   readonly #backend: RuntimeThreeCameraBackend;
   #state: RuntimeCameraState;
 
-  constructor(options: Camera3RuntimeCameraOptions = {}) {
-    this.id = options.id ?? runtimeCameraId("camera3:main");
+  constructor(options: RuntimeThreeOrbitCameraOptions = {}) {
+    this.id = options.id ?? runtimeCameraId("camera-3d:main");
     this.#state = createRuntimeStateFromOrbit({
       target: options.orbit?.target ?? [0, 0, 0],
       distance: options.orbit?.distance ?? 6,
@@ -110,7 +110,7 @@ export class Camera3RuntimeCamera {
 }
 
 function createRuntimeStateFromOrbit(
-  orbit: Camera3RuntimeOrbitState,
+  orbit: RuntimeThreeOrbitCameraState,
   projectionMode: RuntimeCameraProjectionMode
 ): RuntimeCameraState {
   return {
@@ -223,7 +223,7 @@ function getOrbitState(state: RuntimeCameraState): NonNullable<RuntimeCameraStat
   };
 }
 
-function createPoseFromOrbit(orbit: Camera3RuntimeOrbitState): RuntimeCameraState["pose"] {
+function createPoseFromOrbit(orbit: RuntimeThreeOrbitCameraState): RuntimeCameraState["pose"] {
   const [targetX = 0, targetY = 0, targetZ = 0] = orbit.target;
   const cosPitch = Math.cos(orbit.pitch);
   const directionX = Math.sin(orbit.yaw) * cosPitch;
@@ -269,6 +269,6 @@ function sameRuntimeCameraState(a: RuntimeCameraState, b: RuntimeCameraState): b
 
 function assertFinite(value: number, label: string): void {
   if (!Number.isFinite(value)) {
-    throw new Error(`Camera3RuntimeCamera ${label} must be finite.`);
+    throw new Error(`RuntimeThreeOrbitCamera ${label} must be finite.`);
   }
 }

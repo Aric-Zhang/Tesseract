@@ -3,9 +3,7 @@ export {
   camera3MotionComponentType
 } from "./camera3-motion-component";
 export type {
-  Camera3MotionComponentOptions,
-  Camera3MotionChangedEvent,
-  Camera3MotionObserver
+  Camera3MotionComponentOptions
 } from "./camera3-motion-component";
 export {
   SceneCamera3ViewportBindingComponent,

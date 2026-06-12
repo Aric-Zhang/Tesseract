@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import { Camera3MotionController } from "./camera3-motion-controller";
+import { RuntimeThreeCameraMotionController } from "./runtime-three-camera-motion-controller";
 
 const frame = { timeMs: 16, deltaMs: 16, frameIndex: 1 };
 const orbitSensitivity = 0.008;
 
-function createController(options: ConstructorParameters<typeof Camera3MotionController>[0] = {}) {
-  return new Camera3MotionController(options);
+function createController(options: ConstructorParameters<typeof RuntimeThreeCameraMotionController>[0] = {}) {
+  return new RuntimeThreeCameraMotionController(options);
 }
 
-describe("Camera3MotionController", () => {
+describe("RuntimeThreeCameraMotionController", () => {
   it("queues commands and applies them during the frame update", () => {
     const controller = createController();
 

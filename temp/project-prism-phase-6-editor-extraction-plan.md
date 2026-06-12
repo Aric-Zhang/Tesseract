@@ -440,12 +440,13 @@ Candidate source:
 
 - `apps/wallpaper-tesseract/src/gizmos/camera3/**`
 - `apps/wallpaper-tesseract/src/features/camera3/components/**`
-- `apps/wallpaper-tesseract/src/camera3-control/**`
+- `packages/runtime-three/src/runtime-three-camera-motion-controller.ts`
+- `packages/runtime-three/src/runtime-three-orbit-camera.ts`
 
 Known caution:
 
-- `camera3-control` is runtime ownership-shaped. Do not place runtime camera
-  ownership in editor.
+- Camera motion/orbit ownership is runtime-three-owned. Do not place runtime
+  camera ownership in editor or recreate app-local `camera3-control`.
 - The old `features/camera3/model` shadow camera state was deleted during
   Step 5A. Do not recreate it as an editor facade.
 
@@ -455,13 +456,13 @@ Purpose: decide and clean ownership before any Camera3 presentation move.
 
 Completed work:
 
-- Audited `Camera3MotionController`, `Camera3Rig`, and
+- Audited the former `Camera3MotionController`, `Camera3Rig`, and
   `Camera3ProjectionModeController`.
 - Chose runtime camera state as the single truth. `Camera3Rig`,
   `Camera3ProjectionModeController`, `Camera3RigComponent`, and their tests were
   deleted instead of migrated.
-- `Camera3MotionController` now initializes and mutates `Camera3RuntimeCamera`
-  directly from plain options.
+- Camera motion command execution now initializes and mutates runtime camera
+  state directly from plain options.
 - Motion, component, gizmo, and boundary tests now assert runtime camera state
   directly.
 - No `Camera3MotionController` facade was added in `packages/editor` or app
@@ -469,16 +470,17 @@ Completed work:
 
 Exit gate:
 
-- `packages/editor` does not export or own `Camera3MotionController`.
+- `packages/editor` does not export or own camera motion control.
 - `Camera3Rig` has no production owner; the type and component were deleted.
-- Runtime camera truth is not duplicated between editor and runtime staging.
-- `camera3-control` no longer imports editor gizmo presentation.
+- Runtime camera truth is not duplicated between editor and runtime-three.
+- App-local `camera3-control` is deleted.
 
 Validation:
 
 ```text
 npm run test -w runtime-core
-npm run test -w wallpaper-tesseract -- architecture-boundaries camera3-motion-controller camera3-components
+npm run test -w runtime-three
+npm run test -w wallpaper-tesseract -- architecture-boundaries camera3-components
 npm run typecheck -w wallpaper-tesseract
 ```
 
@@ -491,27 +493,29 @@ Completed work:
 
 - Moved pure Camera3 gizmo UI, hit testing, state projection, renderer, actor
   factory, component definition, and tests to `packages/editor`.
-- Kept `Camera3MotionController` in app-local runtime staging because it creates
-  and mutates runtime camera state.
+- Moved Camera3 motion command execution and orbit camera state into
+  `packages/runtime-three` as `RuntimeThreeCameraMotionController` and
+  `RuntimeThreeOrbitCamera`; deleted the old app-local `camera3-control`
+  directory and `runtime/camera3-runtime-camera.ts`.
 - Moved camera command/view-state contracts to `runtime-core` so editor no
-  longer imports app-local `camera3-control`.
+  longer imports app-local Camera3 runtime ownership.
 - Deleted old app-local `gizmos/camera3` paths and replaced app imports with
   editor public API/CSS exports.
 
 Exit gate:
 
 - Editor owns Camera3 presentation only.
-- Runtime camera state/commands are owned by runtime packages or accepted
-  runtime staging, not duplicated in editor.
-- `camera3-control` is narrowed to a non-editor runtime staging file with an
-  explicit deletion condition.
+- Runtime camera state/commands are owned by `runtime-core` contracts and
+  `runtime-three` implementation, not duplicated in editor or app-local staging.
+- The app-local `camera3-control` owner is deleted.
 - App composition does not instantiate Camera3 gizmo internals.
 
 Validation:
 
 ```text
 npm run test -w editor
-npm run test -w wallpaper-tesseract -- architecture-boundaries camera3-gizmo camera3-components camera3-motion-controller
+npm run test -w runtime-three
+npm run test -w wallpaper-tesseract -- architecture-boundaries camera3-gizmo camera3-components
 npm run typecheck -w wallpaper-tesseract
 ```
 

@@ -5,16 +5,15 @@ import type {
   RuntimeCameraProjectionMode,
   RuntimeCameraViewState,
   RuntimeFrame,
+  RuntimeRegistration,
   RuntimeWork
 } from "runtime-core";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import {
-  Camera3MotionController,
-  type Camera3MotionChangedEvent,
-  type Camera3MotionObserver,
-  type Camera3MotionUpdateResult,
-} from "../../../camera3-control";
-import type { RuntimeRegistration, UpdateFrame } from "../../../runtime/ports";
+  RuntimeThreeCameraMotionController,
+  type RuntimeThreeCameraMotionObserver,
+  type RuntimeThreeCameraMotionUpdateResult
+} from "runtime-three";
 
 export const camera3MotionComponentType =
   "camera3-motion-component" as ComponentType<Camera3MotionComponent>;
@@ -37,12 +36,12 @@ export class Camera3MotionComponent implements Component, RuntimeCameraCommandSi
   readonly id: string;
   readonly priority = -100;
   enabled = true;
-  readonly #controller: Camera3MotionController;
+  readonly #controller: RuntimeThreeCameraMotionController;
 
   constructor(actor: Actor, options: Camera3MotionComponentOptions = {}) {
     this.actor = actor;
     this.id = options.id ?? "camera3-motion-controller";
-    this.#controller = new Camera3MotionController(options);
+    this.#controller = new RuntimeThreeCameraMotionController(options);
   }
 
   getRuntimeThreeCameraForRender(): THREE.PerspectiveCamera | THREE.OrthographicCamera {
@@ -61,11 +60,11 @@ export class Camera3MotionComponent implements Component, RuntimeCameraCommandSi
     this.#controller.submit(command);
   }
 
-  subscribe(observer: Camera3MotionObserver): RuntimeRegistration {
+  subscribe(observer: RuntimeThreeCameraMotionObserver): RuntimeRegistration {
     return this.#controller.subscribe(observer);
   }
 
-  updateFrame(frame: UpdateFrame): void {
+  updateFrame(frame: RuntimeFrame): void {
     this.#controller.updateFrame(frame);
   }
 
@@ -77,7 +76,7 @@ export class Camera3MotionComponent implements Component, RuntimeCameraCommandSi
     this.#controller.updateFrame(frame);
   }
 
-  update(frame: UpdateFrame): Camera3MotionUpdateResult {
+  update(frame: RuntimeFrame): RuntimeThreeCameraMotionUpdateResult {
     return this.#controller.update(frame);
   }
 
@@ -87,5 +86,3 @@ export class Camera3MotionComponent implements Component, RuntimeCameraCommandSi
     this.#controller.dispose();
   }
 }
-
-export type { Camera3MotionChangedEvent, Camera3MotionObserver };

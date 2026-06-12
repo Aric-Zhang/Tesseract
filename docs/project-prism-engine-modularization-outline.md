@@ -40,7 +40,8 @@ actor-core, actor-input, ui-framework, runtime-core, and runtime-three now
 exist as workspace packages.
 Phase 5.5 pre-Phase 6 window-workspace cleanup is complete: generic SceneRuntime/RuntimeObject bus
 deletion has landed, app frame orchestration is explicit, Tesseract runtime
-renderable staging exists, Camera3 has runtime-camera staging, and
+renderable staging exists, Camera3 motion/orbit camera ownership has moved to
+runtime-three, and
 WindowWorkspaceGraph is the intended production placement truth.
 The surface internals, content host/attachment mechanics, and old dock-surface
 model have been deleted. The final smoke evidence contract now validates
@@ -583,7 +584,8 @@ planned:
   deleted.
 - App frame orchestration is explicit instead of a hidden runtime-object update
   bus.
-- Tesseract and Camera3 have runtime ownership staging paths.
+- Tesseract has runtime ownership staging; Camera3 motion/orbit camera ownership
+  has moved into runtime-three.
 - `WindowWorkspaceGraph` is the intended window placement truth.
 
 The next work is therefore not another broad extraction pass or another
@@ -949,7 +951,7 @@ Current status:
 - App frame orchestration is explicit.
 - Tesseract no longer uses `Tesseract4RuntimeObject`; it has runtime renderable
   staging.
-- Camera3 has runtime-camera staging used by the motion controller.
+- Camera3 motion/orbit camera ownership has moved into `runtime-three`.
 - Scene View frame-source registration exists, but Scene View still owns enough
   renderer setup that render ownership is not fully clean.
 
@@ -959,7 +961,8 @@ Work:
   registration or scene-wide update buses;
 - finish Scene View inversion so Scene View hosts runtime frame sources instead
   of creating default runtime renderer ownership directly;
-- collapse Camera3 editor-facing facades onto the runtime-camera staging owner;
+- keep Camera3 editor presentation on runtime command/view-state contracts and
+  prevent app-local camera motion owners from returning;
 - keep Tesseract runtime renderable ownership moving toward runtime package
   placement without reintroducing app-local runtime object interfaces;
 - make Camera Gizmo mutate camera state through runtime commands and actor-input

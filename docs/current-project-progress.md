@@ -148,9 +148,11 @@ Important app source areas:
   `installEditorComponentDefinitions` package installer.
 - `apps/wallpaper-tesseract/src/features/camera3`: Camera3 motion and Scene
   viewport binding runtime staging components.
-- `apps/wallpaper-tesseract/src/camera3-control`: Camera3 motion controller and
-  app-local runtime camera ownership staging. Editor presentation consumes only
-  `runtime-core` camera command/view-state contracts.
+- `packages/runtime-three/src/runtime-three-camera-motion-controller.ts` and
+  `runtime-three-orbit-camera.ts`: runtime-three now owns Camera3 motion
+  command execution, orbit camera state, and Three camera realization. The old
+  app-local `camera3-control` directory and `runtime/camera3-runtime-camera.ts`
+  are deleted.
 - `apps/wallpaper-tesseract/src/gizmo-runtime`: component-side binding between
   actors and `gizmo-core`.
 - `apps/wallpaper-tesseract/src/runtime`: app-local production runtime staging,
@@ -317,13 +319,14 @@ have moved into `packages/editor`; their old app-local directories are
 deleted. Scene presentation now lives in `packages/editor` and consumes a
 structural render target instead of owning runtime render output or
 `THREE.Camera` rendering. App-local `features/scene` is now runtime wiring
-only. Camera3 runtime camera state is the single truth, Camera3 gizmo
-presentation has moved into `packages/editor`, and app composition now installs
-editor component definitions through the unified editor package installer. The
+only. Camera3 runtime camera state is the single truth, its motion/orbit camera
+owner has moved into `packages/runtime-three`, Camera3 gizmo presentation has
+moved into `packages/editor`, and app composition now installs editor component
+definitions through the unified editor package installer. The
 final Phase 6 browser smoke evidence was regenerated as
 `temp/project-prism-phase-6-smoke-data.json` and validates with the smoke
 evidence-file test. The remaining hard cleanup is runtime-owner work for
-app-local Scene/Camera3 staging and Tesseract, plus Phase 7 bootstrap
+app-local Scene/Camera3 viewport binding, Tesseract, and Phase 7 bootstrap
 thinning. The plan keeps
 deletion-first rules explicit: no app-local compatibility barrels, no duplicate
 state or runtime ownership, no fake facades, and no package extraction step is

@@ -5,12 +5,13 @@ import type {
   RuntimeCameraControlCommand,
   RuntimeCameraProjectionMode,
   RuntimeCameraState,
-  RuntimeCameraViewState
+  RuntimeCameraViewState,
+  RuntimeFrame,
+  RuntimeRegistration
 } from "runtime-core";
-import { Camera3RuntimeCamera } from "../runtime/camera3-runtime-camera";
-import type { RuntimeRegistration, UpdateFrame } from "../runtime/ports";
+import { RuntimeThreeOrbitCamera } from "./runtime-three-orbit-camera";
 
-export interface Camera3MotionControllerOptions {
+export interface RuntimeThreeCameraMotionControllerOptions {
   readonly target?: readonly [number, number, number];
   readonly distance?: number;
   readonly yaw?: number;
@@ -21,37 +22,37 @@ export interface Camera3MotionControllerOptions {
   readonly projectionMode?: RuntimeCameraProjectionMode;
 }
 
-export interface Camera3MotionUpdateResult {
+export interface RuntimeThreeCameraMotionUpdateResult {
   changed: boolean;
   commandCount: number;
 }
 
-export interface Camera3MotionChangedEvent {
-  frame: UpdateFrame;
+export interface RuntimeThreeCameraMotionChangedEvent {
+  frame: RuntimeFrame;
   cameraState: RuntimeCameraState;
   commands: readonly RuntimeCameraControlCommand[];
 }
 
-export interface Camera3MotionObserver {
-  onCamera3MotionChanged(event: Camera3MotionChangedEvent): void;
+export interface RuntimeThreeCameraMotionObserver {
+  onCamera3MotionChanged(event: RuntimeThreeCameraMotionChangedEvent): void;
 }
 
-interface Camera3Snapshot {
+interface RuntimeThreeCameraSnapshot {
   state: RuntimeCameraState;
 }
 
-export class Camera3MotionController implements RuntimeCameraCommandSink {
+export class RuntimeThreeCameraMotionController implements RuntimeCameraCommandSink {
   readonly runtimeCameraId: RuntimeCameraId;
   private pendingCommands: RuntimeCameraControlCommand[] = [];
-  private readonly observers: Camera3MotionObserver[] = [];
-  private readonly runtimeCamera: Camera3RuntimeCamera;
+  private readonly observers: RuntimeThreeCameraMotionObserver[] = [];
+  private readonly runtimeCamera: RuntimeThreeOrbitCamera;
   private readonly locked: boolean;
   private readonly orbitSensitivity: number;
 
-  constructor(options: Camera3MotionControllerOptions = {}) {
+  constructor(options: RuntimeThreeCameraMotionControllerOptions = {}) {
     this.locked = options.locked ?? false;
     this.orbitSensitivity = options.orbitSensitivity ?? 0.008;
-    this.runtimeCamera = new Camera3RuntimeCamera({
+    this.runtimeCamera = new RuntimeThreeOrbitCamera({
       orbit: {
         target: options.target ?? [0, 0, 0],
         distance: options.distance ?? 6,
@@ -88,7 +89,7 @@ export class Camera3MotionController implements RuntimeCameraCommandSink {
     this.pendingCommands.push(command);
   }
 
-  subscribe(observer: Camera3MotionObserver): RuntimeRegistration {
+  subscribe(observer: RuntimeThreeCameraMotionObserver): RuntimeRegistration {
     if (!this.observers.includes(observer)) {
       this.observers.push(observer);
     }
@@ -102,7 +103,7 @@ export class Camera3MotionController implements RuntimeCameraCommandSink {
     };
   }
 
-  updateFrame(frame: UpdateFrame): void {
+  updateFrame(frame: RuntimeFrame): void {
     this.update(frame);
   }
 
@@ -110,7 +111,7 @@ export class Camera3MotionController implements RuntimeCameraCommandSink {
     this.runtimeCamera.resizeProjection(width, height);
   }
 
-  update(frame: UpdateFrame): Camera3MotionUpdateResult {
+  update(frame: RuntimeFrame): RuntimeThreeCameraMotionUpdateResult {
     const commands = this.pendingCommands;
     this.pendingCommands = [];
     if (commands.length === 0) {
@@ -158,14 +159,14 @@ export class Camera3MotionController implements RuntimeCameraCommandSink {
     }
   }
 
-  private snapshot(): Camera3Snapshot {
+  private snapshot(): RuntimeThreeCameraSnapshot {
     return {
       state: this.runtimeCamera.state
     };
   }
 
-  private notify(frame: UpdateFrame, commands: readonly RuntimeCameraControlCommand[]): void {
-    const event: Camera3MotionChangedEvent = {
+  private notify(frame: RuntimeFrame, commands: readonly RuntimeCameraControlCommand[]): void {
+    const event: RuntimeThreeCameraMotionChangedEvent = {
       frame,
       cameraState: this.cameraState,
       commands
@@ -197,10 +198,10 @@ function validateCommand(command: RuntimeCameraControlCommand): void {
 
 function assertFinite(value: number, label: string): void {
   if (!Number.isFinite(value)) {
-    throw new Error(`Camera3MotionController ${label} must be finite.`);
+      throw new Error(`RuntimeThreeCameraMotionController ${label} must be finite.`);
   }
 }
 
-function sameSnapshot(a: Camera3Snapshot, b: Camera3Snapshot): boolean {
+function sameSnapshot(a: RuntimeThreeCameraSnapshot, b: RuntimeThreeCameraSnapshot): boolean {
   return JSON.stringify(a.state) === JSON.stringify(b.state);
 }

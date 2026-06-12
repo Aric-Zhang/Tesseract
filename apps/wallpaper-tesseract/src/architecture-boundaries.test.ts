@@ -773,10 +773,13 @@ describe("architecture boundaries", () => {
       sourceFiles["./features/camera3/components/camera3-motion-definition.ts"] ?? "";
     const camera3MotionSource =
       sourceFiles["./features/camera3/components/camera3-motion-component.ts"] ?? "";
-    const camera3ControllerSource = sourceFiles["./camera3-control/camera3-motion-controller.ts"] ?? "";
+    const camera3ControllerSource =
+      runtimeThreePackageSources["packages/runtime-three/src/runtime-three-camera-motion-controller.ts"] ?? "";
     const appInstallSource = sourceFiles["./app/install-component-definitions.ts"] ?? "";
 
     expect(sceneViewInstallerSource).not.toMatch(/\bnew\s+Camera3MotionController\b/);
+    expect(sourceFiles["./camera3-control/camera3-motion-controller.ts"]).toBeUndefined();
+    expect(sourceFiles["./runtime/camera3-runtime-camera.ts"]).toBeUndefined();
     expect(sceneViewInstallerSource).not.toMatch(/\bnew\s+Camera3Rig\b/);
     expect(sceneViewInstallerSource).not.toMatch(/\bnew\s+Camera3ProjectionModeController\b/);
     expect(sceneViewInstallerSource).not.toMatch(/subscribeResize\s*\(/);
@@ -794,7 +797,9 @@ describe("architecture boundaries", () => {
     expect(camera3MotionDefinitionSource).not.toMatch(/\brequires:\s*\[\s*{/);
     expect(camera3MotionDefinitionSource).not.toMatch(/\bcamera3RigComponentType\b/);
     expect(camera3MotionSource).not.toMatch(/\bCamera3RigComponent\b/);
+    expect(camera3MotionSource).toMatch(/\bRuntimeThreeCameraMotionController\b/);
     expect(camera3ControllerSource).not.toMatch(/\bCamera3Rig\b|\bCamera3ProjectionModeController\b/);
+    expect(camera3ControllerSource).not.toMatch(/\b(?:AppRuntimeContext|FeatureActorContext|runtime\/ports)\b/);
     expect(appInstallSource).toMatch(/installEditorComponentDefinitions[\s\S]*installCamera3FeatureComponentDefinitions/);
   });
 
@@ -1545,14 +1550,16 @@ describe("architecture boundaries", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps Camera3 control independent from Camera3 gizmo UI modules", () => {
-    const violations = Object.entries(sourceFiles)
-      .filter(([file]) => file.startsWith("./camera3-control/"))
-      .filter(([, source]) => /from\s+["'](?:\.\.\/)+gizmos\/camera3/.test(source))
-      .map(([file]) => file)
+  it("keeps Camera3 motion control out of app-local staging", () => {
+    const runtimeThreeMotionSource =
+      runtimeThreePackageSources["packages/runtime-three/src/runtime-three-camera-motion-controller.ts"] ?? "";
+    const appLocalCamera3ControlFiles = Object.keys(sourceFiles)
+      .filter((file) => file.startsWith("./camera3-control/"))
       .sort();
 
-    expect(violations).toEqual([]);
+    expect(appLocalCamera3ControlFiles).toEqual([]);
+    expect(runtimeThreeMotionSource).toMatch(/\bRuntimeThreeCameraMotionController\b/);
+    expect(runtimeThreeMotionSource).not.toMatch(/\b(?:Camera3MotionController|gizmos\/camera3|editor)\b/);
   });
 
   it("removes the Camera3 legacy factory surface", () => {

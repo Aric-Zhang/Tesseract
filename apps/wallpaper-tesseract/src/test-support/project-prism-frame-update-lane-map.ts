@@ -104,12 +104,12 @@ export const projectPrismFrameUpdateLaneMap = [
     "AppFrameStateController remains editor/app state flush owner until it is moved behind an editor scheduler port."
   ),
   entry(
-    "camera3-motion-controller",
-    "./camera3-control/camera3-motion-controller.ts",
+    "runtime-three-camera-motion-controller",
+    "packages/runtime-three/src/runtime-three-camera-motion-controller.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
-    "Camera motion consumes RuntimeScheduler/RuntimeCamera commands rather than app-local RuntimeObject scheduling."
+    "Runtime-three camera motion consumes RuntimeScheduler/RuntimeCamera commands rather than app-local RuntimeObject scheduling."
   ),
   entry(
     "camera3-motion-component",

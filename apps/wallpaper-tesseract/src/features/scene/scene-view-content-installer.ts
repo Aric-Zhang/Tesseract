@@ -9,7 +9,7 @@ import {
   createCamera3GizmoActor
 } from "../../gizmos/camera3";
 import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
-import type { FeatureActorContext } from "../../runtime/ports";
+import type { ActorCreationContext } from "actor-core";
 import type { WindowContentRegistrationPort } from "../../window-runtime";
 import { createTesseract4Actor } from "../../tesseract4";
 import type {
@@ -31,7 +31,7 @@ export interface SceneViewContentActorIds {
 }
 
 export interface InstallSceneViewContentOptions {
-  readonly context: FeatureActorContext;
+  readonly context: ActorCreationContext;
   readonly mount: HTMLElement;
   readonly parentFrameActor: Actor;
   readonly actorIds: SceneViewContentActorIds;

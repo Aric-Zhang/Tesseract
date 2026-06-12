@@ -67,6 +67,10 @@ Current gate:
 - `packages/editor` exists and owns the former app-local editor state/adapters.
   The app-local `src/editor` directory has been deleted rather than preserved
   as a compatibility barrel.
+- The former app-local `FeatureActorContext` has been deleted from
+  `runtime/ports`. Actor factories now depend on `actor-core`'s
+  `ActorCreationContext`, so feature actor creation no longer pulls editor
+  extraction back through app runtime glue.
 - Current graph progress is real: `WindowFramePort` is now shell-only,
   production placement mutation goes through graph transaction/reconcile paths,
   graph transaction DOM atomicity was hardened, and `persistable` replaced the
@@ -285,10 +289,10 @@ temp/project-prism-phase-6-editor-extraction-plan.md
 ```
 
 Treat this as the current execution plan for Phase 6. The pre-entry checkpoint
-is committed, and the first editor-owned state/adapters have moved into
-`packages/editor`. The next hard cleanup is the feature actor creation contract
-before tool-window moves; after that the plan extracts
-tool windows, splits Scene runtime render-output ownership before Scene
+is committed, the first editor-owned state/adapters have moved into
+`packages/editor`, and the feature actor creation contract has moved out of
+app-local runtime ports. The next hard cleanup extracts tool windows, then
+splits Scene runtime render-output ownership before Scene
 presentation extraction, resolves Camera3 motion/rig ownership before Camera3
 gizmo extraction, then moves component definition installers and app
 composition wiring into a new `packages/editor` package. The plan keeps

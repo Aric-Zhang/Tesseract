@@ -1,4 +1,4 @@
-import type { FeatureActorContext } from "../../runtime/ports";
+import type { ActorCreationContext } from "actor-core";
 import {
   createWindowWorkspaceContentId,
   uiVec2,
@@ -34,7 +34,7 @@ const INSPECTOR_INSTANCE_DEFINITIONS = [
 ] as const;
 
 export interface InstallInspectorFeatureOptions {
-  readonly context: FeatureActorContext;
+  readonly context: ActorCreationContext;
   readonly viewFactories: WindowViewFactoryRegistry;
 }
 

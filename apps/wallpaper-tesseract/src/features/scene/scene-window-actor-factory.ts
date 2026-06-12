@@ -1,5 +1,4 @@
-import { createRegisteredActor, type Actor, type RegisteredActor } from "../../actor-runtime";
-import type { FeatureActorContext } from "../../runtime/ports";
+import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
 import {
   createRuntimeSceneRenderOutput,
   type RuntimeSceneRenderOutput
@@ -35,7 +34,7 @@ export interface RegisteredSceneViewActor extends RegisteredActor<SceneViewportC
 }
 
 export function createSceneViewActor(
-  context: FeatureActorContext,
+  context: ActorCreationContext,
   options: SceneViewActorOptions
 ): RegisteredSceneViewActor {
   const renderOutput = options.renderOutput ?? createRuntimeSceneRenderOutput({
@@ -61,7 +60,7 @@ export function createSceneViewActor(
       id: "scene-mode-toggle",
       document: options.document
     });
-    let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
+    let untrack: ReturnType<ActorCreationContext["trackRegisteredActor"]> | null = null;
     const baseHandle = createRegisteredActor({
       actorSystem: context.actorSystem,
       actor,

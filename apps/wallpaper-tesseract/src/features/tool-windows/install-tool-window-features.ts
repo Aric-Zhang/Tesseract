@@ -13,7 +13,7 @@ import {
   type HierarchyObjectSource
 } from "../../hierarchy";
 import { editorWindowLayoutPaths } from "editor";
-import type { FeatureActorContext } from "../../runtime/ports";
+import type { ActorCreationContext } from "actor-core";
 import {
   createWindowWorkspaceContentId,
   uiVec2,
@@ -32,7 +32,7 @@ export interface ToolWindowActorIds {
 }
 
 export interface InstallToolWindowFeaturesOptions {
-  readonly context: FeatureActorContext;
+  readonly context: ActorCreationContext;
   readonly viewFactories: WindowViewFactoryRegistry;
   readonly actorIds: ToolWindowActorIds;
   readonly debugLogLabel: string;

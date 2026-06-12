@@ -192,6 +192,11 @@ Purpose: remove the app-local `FeatureActorContext` dependency before moving
 Debug, Hierarchy, Inspector, Scene, or Camera3 actor factories. This is a hard
 precondition for Step 3; do not defer it to a stop condition.
 
+Status: complete. The app-local `runtime/ports/feature-actor-context.ts` file
+and barrel export were deleted. Actor factories now use
+`ActorCreationContext` from `actor-core`, which keeps actor/component creation
+off app-runtime glue without introducing an editor-owned facade.
+
 Current fact:
 
 - Debug, Hierarchy, Inspector, Scene, and Camera3 actor factories/importers use

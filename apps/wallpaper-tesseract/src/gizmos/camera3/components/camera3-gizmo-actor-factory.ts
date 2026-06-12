@@ -1,5 +1,4 @@
-import { createRegisteredActor, type Actor, type RegisteredActor } from "../../../actor-runtime";
-import type { FeatureActorContext } from "../../../runtime/ports";
+import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
 import { camera3GizmoComponentType, type Camera3GizmoViewFactory } from "./camera3-gizmo-component";
 import type { Camera3GizmoComponentOptions, Camera3GizmoComponent } from "./camera3-gizmo-component";
 
@@ -10,7 +9,7 @@ export interface Camera3GizmoActorOptions extends Camera3GizmoComponentOptions {
 }
 
 export function createCamera3GizmoActor(
-  context: FeatureActorContext,
+  context: ActorCreationContext,
   options: Camera3GizmoActorOptions,
   createGizmo?: Camera3GizmoViewFactory
 ): RegisteredActor<Camera3GizmoComponent> {
@@ -24,7 +23,7 @@ export function createCamera3GizmoActor(
       ...options,
       createGizmo: createGizmo ?? options.createGizmo
     });
-    let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
+    let untrack: ReturnType<ActorCreationContext["trackRegisteredActor"]> | null = null;
     const handle = createRegisteredActor({
       actorSystem: context.actorSystem,
       actor,

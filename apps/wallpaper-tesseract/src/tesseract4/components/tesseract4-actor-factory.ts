@@ -1,5 +1,4 @@
-import { createRegisteredActor, type Actor, type RegisteredActor } from "../../actor-runtime";
-import type { FeatureActorContext } from "../../runtime/ports";
+import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
 import {
   tesseract4ComponentType,
   type Tesseract4Component,
@@ -14,7 +13,7 @@ export interface Tesseract4ActorOptions extends Tesseract4ComponentOptions {
 }
 
 export function createTesseract4Actor(
-  context: FeatureActorContext,
+  context: ActorCreationContext,
   options: Tesseract4ActorOptions = {},
   createRenderable?: Tesseract4RuntimeRenderableFactory
 ): RegisteredActor<Tesseract4Component> {
@@ -28,7 +27,7 @@ export function createTesseract4Actor(
       ...options,
       createRenderable: createRenderable ?? options.createRenderable
     });
-    let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
+    let untrack: ReturnType<ActorCreationContext["trackRegisteredActor"]> | null = null;
     const handle = createRegisteredActor({
       actorSystem: context.actorSystem,
       actor,

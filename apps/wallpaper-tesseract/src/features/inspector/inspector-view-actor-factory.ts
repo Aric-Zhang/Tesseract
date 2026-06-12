@@ -1,5 +1,4 @@
-import { createRegisteredActor, type Actor, type RegisteredActor } from "../../actor-runtime";
-import type { FeatureActorContext } from "../../runtime/ports";
+import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
 import type { WindowContentRegistrationPort } from "../../window-runtime";
 import {
   inspectorContentComponentType,
@@ -21,7 +20,7 @@ export interface RegisteredInspectorViewActor extends RegisteredActor<InspectorC
 }
 
 export function createInspectorViewActor(
-  context: FeatureActorContext,
+  context: ActorCreationContext,
   options: InspectorViewActorOptions
 ): RegisteredInspectorViewActor {
   const actor = context.actorSystem.createActor({
@@ -37,7 +36,7 @@ export function createInspectorViewActor(
       contentId: options.contentId,
       contentRegistration: options.contentRegistration
     });
-    let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
+    let untrack: ReturnType<ActorCreationContext["trackRegisteredActor"]> | null = null;
     const baseHandle = createRegisteredActor({
       actorSystem: context.actorSystem,
       actor,

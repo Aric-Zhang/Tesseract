@@ -1,5 +1,6 @@
 export { ActorSystem } from "./actor-system";
 export type { ActorComponentDisposer } from "./actor-system";
+export type { ActorCreationContext, ActorRegistration } from "./actor-creation-context";
 export type { Actor, ActorOptions } from "./actor";
 export {
   componentType

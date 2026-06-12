@@ -1,4 +1,4 @@
-import type { FeatureActorContext } from "../../runtime/ports";
+import type { ActorCreationContext } from "actor-core";
 import { editorWindowLayoutPaths } from "editor";
 import type {
   WindowViewFactoryRegistry,
@@ -26,7 +26,7 @@ import {
 } from "./scene-window-state";
 
 export interface InstallSceneViewFeatureOptions {
-  readonly context: FeatureActorContext;
+  readonly context: ActorCreationContext;
   readonly mount: HTMLElement;
   readonly actorIds: SceneViewContentActorIds;
   readonly viewFactories: WindowViewFactoryRegistry;

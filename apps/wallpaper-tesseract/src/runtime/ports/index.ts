@@ -1,4 +1,3 @@
-export type { FeatureActorContext } from "./feature-actor-context";
 export type {
   StateChange,
   StateChangedEvent,

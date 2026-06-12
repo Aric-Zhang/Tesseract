@@ -1,5 +1,4 @@
-import { createRegisteredActor, type Actor, type RegisteredActor } from "../../actor-runtime";
-import type { FeatureActorContext } from "../../runtime/ports";
+import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
 import type { WindowContentRegistrationPort } from "../../window-runtime";
 import {
   debugLogContentComponentType,
@@ -21,7 +20,7 @@ export interface RegisteredDebugLogViewActor extends RegisteredActor<DebugLogCon
 }
 
 export function createDebugLogViewActor(
-  context: FeatureActorContext,
+  context: ActorCreationContext,
   options: DebugLogViewActorOptions
 ): RegisteredDebugLogViewActor {
   const actor = context.actorSystem.createActor({
@@ -37,7 +36,7 @@ export function createDebugLogViewActor(
       contentId: options.contentId,
       contentRegistration: options.contentRegistration
     });
-    let untrack: ReturnType<FeatureActorContext["trackRegisteredActor"]> | null = null;
+    let untrack: ReturnType<ActorCreationContext["trackRegisteredActor"]> | null = null;
     const baseHandle = createRegisteredActor({
       actorSystem: context.actorSystem,
       actor,

@@ -1561,20 +1561,24 @@ describe("architecture boundaries", () => {
     expect(source).not.toMatch(/^\s*onGizmo(?:Start|Move|End|Cancel|Click|DoubleClick)\b/m);
   });
 
-  it("keeps feature actor factories on the narrow FeatureActorContext port", () => {
+  it("keeps feature actor factories on the actor-core creation context", () => {
     const factoryFiles = [
       "./debug/components/debug-log-window-actor-factory.ts",
+      "./features/inspector/inspector-view-actor-factory.ts",
+      "./features/scene/scene-window-actor-factory.ts",
       "./hierarchy/hierarchy-panel-actor-factory.ts",
       "./gizmos/camera3/components/camera3-gizmo-actor-factory.ts",
       "./tesseract4/components/tesseract4-actor-factory.ts"
     ];
     const violations = factoryFiles
-      .filter((file) => /\bAppRuntimeContext\b/.test(sourceFiles[file] ?? ""))
+      .filter((file) => /\b(?:AppRuntimeContext|FeatureActorContext|runtime\/ports)\b/.test(sourceFiles[file] ?? ""))
       .sort();
+    const runtimePortSource = sourceFiles["./runtime/ports/index.ts"] ?? "";
 
     expect(violations).toEqual([]);
+    expect(runtimePortSource).not.toMatch(/FeatureActorContext|ActorCreationContext/);
     for (const file of factoryFiles) {
-      expect(sourceFiles[file] ?? "").toMatch(/\bFeatureActorContext\b/);
+      expect(sourceFiles[file] ?? "").toMatch(/\bActorCreationContext\b/);
     }
   });
 

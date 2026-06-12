@@ -49,3 +49,9 @@ export * from "./inspector";
 export * from "./tool-windows";
 export * from "./scene";
 export * from "./camera3";
+export {
+  installEditorComponentDefinitions
+} from "./install-component-definitions";
+export type {
+  InstallEditorComponentDefinitionsOptions
+} from "./install-component-definitions";

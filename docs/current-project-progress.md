@@ -136,13 +136,16 @@ Important app source areas:
   app-local runtime wiring, Camera3, Tesseract, or runtime render output.
 - `packages/editor/src/inspector`: multi-instance Inspector pilot and view
   identity reference implementation.
-- `packages/editor/src/debug`, `packages/editor/src/hierarchy`, and
-  `packages/editor/src/tool-windows`: Debug and Hierarchy presentation,
-  component definitions, default window state, and tool-window installer.
-- `apps/wallpaper-tesseract/src/features/camera3`: Camera3 feature components.
+- `packages/editor/src/debug`, `packages/editor/src/hierarchy`,
+  `packages/editor/src/camera3`, and `packages/editor/src/tool-windows`: Debug,
+  Hierarchy, Camera3 gizmo presentation, component definitions, default window
+  state, and tool-window installer. `packages/editor` also owns the unified
+  `installEditorComponentDefinitions` package installer.
+- `apps/wallpaper-tesseract/src/features/camera3`: Camera3 motion and Scene
+  viewport binding runtime staging components.
 - `apps/wallpaper-tesseract/src/camera3-control`: Camera3 motion controller and
-  editor/gizmo command facade over app-local runtime camera ownership staging.
-  Camera3 still has model/facade cleanup remaining before Phase 6.
+  app-local runtime camera ownership staging. Editor presentation consumes only
+  `runtime-core` camera command/view-state contracts.
 - `apps/wallpaper-tesseract/src/gizmo-runtime`: component-side binding between
   actors and `gizmo-core`.
 - `apps/wallpaper-tesseract/src/runtime`: app-local production runtime staging,
@@ -162,8 +165,6 @@ Important app source areas:
   `actor-input`, `runtime-core`, and `ui-framework`) and do not let it import
   app-local `runtime/ports`, `window-runtime`, `app-runtime`, or feature
   runtime owners.
-- `apps/wallpaper-tesseract/src/gizmos`: editor feature candidate for later
-  package extraction after Camera3/runtime ownership is clean enough.
 - `apps/wallpaper-tesseract/src/test-support`: boundary facts, Prism maps, and
   generated-report support. Keep these honest; do not remove blockers without
   code reality changing.

@@ -516,19 +516,21 @@ Browser smoke:
 - Click and double-click behavior still route through actor input.
 - Gizmo active camera state follows runtime-derived view state.
 
-## Step 6: Move Editor Component Definition Installation
+## Step 6: Move Editor Component Definition Installation - Complete
 
 Purpose: app composition should install editor components through the editor
 package, not by collecting concrete feature definitions.
 
-Work:
+Completed work:
 
-- Create editor-owned installers for:
-  - tool window components;
-  - Scene View editor components;
-  - Camera3 editor/gizmo components.
-- Delete app-local feature definition installer barrels after each component set
-  moves.
+- Created `packages/editor/src/install-component-definitions.ts` as the unified
+  editor package installer for state-observer, Inspector, Scene, Camera3 gizmo,
+  Debug, and Hierarchy definitions.
+- Replaced app composition's direct imports of concrete editor feature
+  installers with `installEditorComponentDefinitions`.
+- Collapsed app component-definition tests so they verify the editor package
+  installer instead of preserving app knowledge of each editor feature
+  installer.
 - Keep component dependencies in `ComponentDefinition.requires`; do not add
   hidden registration in app composition.
 - If a definition requires app-local update/runtime/state binding, either move

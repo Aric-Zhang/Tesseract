@@ -795,7 +795,7 @@ describe("architecture boundaries", () => {
     expect(camera3MotionDefinitionSource).not.toMatch(/\bcamera3RigComponentType\b/);
     expect(camera3MotionSource).not.toMatch(/\bCamera3RigComponent\b/);
     expect(camera3ControllerSource).not.toMatch(/\bCamera3Rig\b|\bCamera3ProjectionModeController\b/);
-    expect(appInstallSource).toMatch(/installSceneComponentDefinitions[\s\S]*installCamera3FeatureComponentDefinitions/);
+    expect(appInstallSource).toMatch(/installEditorComponentDefinitions[\s\S]*installCamera3FeatureComponentDefinitions/);
   });
 
   it("keeps Camera3 UI controls on actor input instead of DOM click handlers", () => {
@@ -929,13 +929,14 @@ describe("architecture boundaries", () => {
     expect(sourceFiles["./component-definitions.ts"]).toBeUndefined();
     expect(appInstallerSource).toMatch(/\binstallWallpaperComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallGizmoRuntimeComponentDefinitions\b/);
-    expect(appInstallerSource).toMatch(/\binstallEditorStateObserverComponentDefinitions\b/);
+    expect(appInstallerSource).toMatch(/\binstallEditorComponentDefinitions\b/);
+    expect(appInstallerSource).not.toMatch(/\binstallEditorStateObserverComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallWindowComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallAppMenuComponentDefinitions\b/);
-    expect(appInstallerSource).toMatch(/\binstallSceneComponentDefinitions\b/);
-    expect(appInstallerSource).toMatch(/\binstallCamera3ComponentDefinitions\b/);
-    expect(appInstallerSource).toMatch(/\binstallDebugLogComponentDefinitions\b/);
-    expect(appInstallerSource).toMatch(/\binstallHierarchyComponentDefinitions\b/);
+    expect(appInstallerSource).not.toMatch(/\binstallSceneComponentDefinitions\b/);
+    expect(appInstallerSource).not.toMatch(/\binstallCamera3ComponentDefinitions\b/);
+    expect(appInstallerSource).not.toMatch(/\binstallDebugLogComponentDefinitions\b/);
+    expect(appInstallerSource).not.toMatch(/\binstallHierarchyComponentDefinitions\b/);
     expect(appInstallerSource).toMatch(/\binstallTesseract4ComponentDefinitions\b/);
   });
 

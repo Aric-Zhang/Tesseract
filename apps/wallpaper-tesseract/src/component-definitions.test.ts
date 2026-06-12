@@ -3,23 +3,17 @@ import { installWallpaperComponentDefinitions } from "./app/install-component-de
 import {
   debugLogContentComponentType,
   hierarchyPanelComponentType,
-  installDebugLogComponentDefinitions,
-  installHierarchyComponentDefinitions,
-  installSceneComponentDefinitions,
   camera3GizmoComponentType,
-  installCamera3ComponentDefinitions,
+  installEditorComponentDefinitions,
   sceneModeToggleComponentType,
-  sceneViewportComponentType
+  sceneViewportComponentType,
+  stateObserverBindingComponentType
 } from "editor";
 import {
   gizmoEventBindingComponentDefinition,
   gizmoEventBindingComponentType,
   installGizmoRuntimeComponentDefinitions
 } from "./gizmo-runtime";
-import {
-  installEditorStateObserverComponentDefinitions,
-  stateObserverBindingComponentType
-} from "editor";
 import {
   tesseract4ComponentType,
   installTesseract4ComponentDefinitions
@@ -35,41 +29,26 @@ function createRegistry() {
 }
 
 describe("component definition installers", () => {
-  it("installs gizmo and state runtime definitions explicitly", () => {
+  it("installs gizmo runtime definitions explicitly", () => {
     const registry = createRegistry();
 
     installGizmoRuntimeComponentDefinitions(registry);
-    installEditorStateObserverComponentDefinitions(registry);
 
     expect(registry.getDefinition(gizmoEventBindingComponentType).type).toBe(
       gizmoEventBindingComponentDefinition.type
     );
-    expect(registry.getDefinition(stateObserverBindingComponentType).type).toBe(
-      stateObserverBindingComponentType
-    );
   });
 
-  it("installs camera3 component definitions explicitly", () => {
+  it("installs editor component definitions through the editor package", () => {
     const registry = createRegistry();
 
-    installCamera3ComponentDefinitions(registry);
+    installEditorComponentDefinitions(registry);
 
+    expect(registry.getDefinition(stateObserverBindingComponentType).type).toBe(stateObserverBindingComponentType);
+    expect(registry.getDefinition(sceneViewportComponentType).type).toBe(sceneViewportComponentType);
+    expect(registry.getDefinition(sceneModeToggleComponentType).type).toBe(sceneModeToggleComponentType);
     expect(registry.getDefinition(camera3GizmoComponentType).type).toBe(camera3GizmoComponentType);
-  });
-
-  it("installs debug component definitions explicitly", () => {
-    const registry = createRegistry();
-
-    installDebugLogComponentDefinitions(registry);
-
     expect(registry.getDefinition(debugLogContentComponentType).type).toBe(debugLogContentComponentType);
-  });
-
-  it("installs hierarchy component definitions explicitly", () => {
-    const registry = createRegistry();
-
-    installHierarchyComponentDefinitions(registry);
-
     expect(registry.getDefinition(hierarchyPanelComponentType).type).toBe(hierarchyPanelComponentType);
   });
 
@@ -79,15 +58,6 @@ describe("component definition installers", () => {
     installWindowComponentDefinitions(registry);
 
     expect(registry.getDefinition(floatingWindowComponentType).type).toBe(floatingWindowComponentType);
-  });
-
-  it("installs scene component definitions explicitly", () => {
-    const registry = createRegistry();
-
-    installSceneComponentDefinitions(registry);
-
-    expect(registry.getDefinition(sceneViewportComponentType).type).toBe(sceneViewportComponentType);
-    expect(registry.getDefinition(sceneModeToggleComponentType).type).toBe(sceneModeToggleComponentType);
   });
 
   it("installs tesseract4 component definitions explicitly", () => {
@@ -118,9 +88,7 @@ describe("component definition installers", () => {
     const registry = createRegistry();
 
     installGizmoRuntimeComponentDefinitions(registry);
-    installEditorStateObserverComponentDefinitions(registry);
     installGizmoRuntimeComponentDefinitions(registry);
-    installEditorStateObserverComponentDefinitions(registry);
 
     expect(registry.getDefinition(gizmoEventBindingComponentType).type).toBe(
       gizmoEventBindingComponentDefinition.type
@@ -136,11 +104,11 @@ describe("component definition installers", () => {
     expect(registry.getDefinition(floatingWindowComponentType).type).toBe(floatingWindowComponentType);
   });
 
-  it("allows repeated installation of the same hierarchy definitions", () => {
+  it("allows repeated installation of the same editor definitions", () => {
     const registry = createRegistry();
 
-    installHierarchyComponentDefinitions(registry);
-    installHierarchyComponentDefinitions(registry);
+    installEditorComponentDefinitions(registry);
+    installEditorComponentDefinitions(registry);
 
     expect(registry.getDefinition(hierarchyPanelComponentType).type).toBe(hierarchyPanelComponentType);
   });
@@ -149,7 +117,6 @@ describe("component definition installers", () => {
     const registry = createRegistry();
 
     installGizmoRuntimeComponentDefinitions(registry);
-    installEditorStateObserverComponentDefinitions(registry);
 
     expect(() => registry.getDefinition(floatingWindowComponentType)).toThrow(/is not registered/);
   });

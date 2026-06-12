@@ -1,9 +1,8 @@
 import * as THREE from "three";
-import type { RuntimeCameraState } from "runtime-core";
-import type { Camera3Axis } from "../../features/camera3/model";
+import type { RuntimeCameraAxis, RuntimeCameraState } from "runtime-core";
 
 export interface AxisRenderState {
-  axis: Camera3Axis;
+  axis: RuntimeCameraAxis;
   label: string;
   color: string;
   dimColor: string;

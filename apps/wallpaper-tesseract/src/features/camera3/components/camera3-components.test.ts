@@ -8,13 +8,10 @@ import {
   Camera3MotionComponent,
   camera3MotionComponentType
 } from "./camera3-motion-component";
-import {
-  Camera3RigComponent,
-  camera3RigComponentType
-} from "./camera3-rig-component";
 import { installCamera3FeatureComponentDefinitions } from "./install-component-definitions";
 
 const frame = { timeMs: 16, deltaMs: 16, frameIndex: 1 };
+const orbitSensitivity = 0.008;
 
 function createSubject() {
   const actorSystem = new ActorSystem();
@@ -27,53 +24,48 @@ function createSubject() {
   installCamera3FeatureComponentDefinitions(registry);
   const actor = actorSystem.createActor({ id: "scene-view" });
   const motion = registry.addComponent(actor, camera3MotionComponentType);
-  const rig = registry.getComponent(actor, camera3RigComponentType);
-  if (!rig) throw new Error("Expected Camera3RigComponent.");
-  return { actor, actorSystem, motion, registry, rig, scheduler };
+  return { actor, actorSystem, motion, registry, scheduler };
 }
 
 describe("Camera3 feature components", () => {
-  it("auto-adds the rig component before creating motion", () => {
-    const { actor, motion, rig } = createSubject();
+  it("creates motion as the camera runtime owner", () => {
+    const { actor, motion } = createSubject();
 
     expect(motion).toBeInstanceOf(Camera3MotionComponent);
-    expect(rig).toBeInstanceOf(Camera3RigComponent);
     expect(motion.actor).toBe(actor);
-    expect(rig.actor).toBe(actor);
   });
 
-  it("applies camera motion commands through component-owned rig state", () => {
-    const { motion, rig } = createSubject();
+  it("applies camera motion commands through component-owned runtime state", () => {
+    const { motion } = createSubject();
 
     motion.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 10, dy: 5 });
     const result = motion.update(frame);
 
     expect(result).toEqual({ changed: true, commandCount: 1 });
-    expect(rig.rig.yaw).toBeCloseTo(-10 * rig.rig.orbitSensitivity);
-    expect(rig.rig.pitch).toBeCloseTo(5 * rig.rig.orbitSensitivity);
+    expect(motion.readViewState().cameraState.orbit?.yaw).toBeCloseTo(-10 * orbitSensitivity);
+    expect(motion.readViewState().cameraState.orbit?.pitch).toBeCloseTo(5 * orbitSensitivity);
   });
 
   it("updates motion components through the actor system frame pass", () => {
-    const { motion, rig, scheduler } = createSubject();
+    const { motion, scheduler } = createSubject();
 
     motion.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 8, dy: 4 });
     scheduler.updateRuntimeFrame(frame);
 
-    expect(rig.rig.yaw).toBeCloseTo(-8 * rig.rig.orbitSensitivity);
-    expect(rig.rig.pitch).toBeCloseTo(4 * rig.rig.orbitSensitivity);
+    expect(motion.readViewState().cameraState.orbit?.yaw).toBeCloseTo(-8 * orbitSensitivity);
+    expect(motion.readViewState().cameraState.orbit?.pitch).toBeCloseTo(4 * orbitSensitivity);
   });
 
   it("updates active projection camera and projection size through components", () => {
-    const { motion, rig } = createSubject();
+    const { motion } = createSubject();
 
     motion.resizeProjection(640, 320);
     motion.submit({ type: "toggle-projection", source: "camera3-gizmo" });
     motion.update(frame);
 
-    expect(rig.projectionMode.perspectiveCamera.aspect).toBe(2);
-    expect(rig.projectionMode.mode).toBe("orthographic");
+    expect(motion.readViewState().cameraState.projection?.viewport).toEqual({ width: 640, height: 320 });
+    expect(motion.readViewState().projectionMode).toBe("orthographic");
     expect(motion.getRuntimeThreeCameraForRender()).toBeInstanceOf(THREE.OrthographicCamera);
-    expect(motion.getRuntimeThreeCameraForRender()).not.toBe(rig.projectionMode.orthographicCamera);
   });
 
   it("exposes renderer-agnostic runtime camera state as the Camera3 view state", () => {
@@ -83,8 +75,8 @@ describe("Camera3 feature components", () => {
     motion.update(frame);
     const viewState = motion.readViewState();
 
-    expect(viewState.cameraState.orbit?.yaw).toBeCloseTo(-12 * 0.008);
-    expect(viewState.cameraState.orbit?.pitch).toBeCloseTo(6 * 0.008);
+    expect(viewState.cameraState.orbit?.yaw).toBeCloseTo(-12 * orbitSensitivity);
+    expect(viewState.cameraState.orbit?.pitch).toBeCloseTo(6 * orbitSensitivity);
     expect(viewState.projectionMode).toBe("perspective");
 
     motion.submit({ type: "toggle-projection", source: "camera3-gizmo" });

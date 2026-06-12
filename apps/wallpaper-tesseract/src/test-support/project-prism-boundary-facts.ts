@@ -53,8 +53,7 @@ export const projectPrismSourceZones = [
   definePathZone("runtime-ownership-debt", "Runtime-like world/camera/object code still owned by editor/app folders.", [
     /^\.\/app\/create-wallpaper-app\.ts$/,
     /^\.\/camera3-control\//,
-    /^\.\/features\/camera3\/model\//,
-    /^\.\/features\/camera3\/components\/(?:camera3-motion-component|camera3-rig-component|scene-camera3-viewport-binding-component)\.ts$/,
+    /^\.\/features\/camera3\/components\/(?:camera3-motion-component|scene-camera3-viewport-binding-component)\.ts$/,
     /^\.\/features\/scene\/(?:index|install-scene-view-feature|scene-view-content-installer|renderable-scene-view)\.ts$/,
     /^\.\/tesseract4\//
   ], { debt: true })

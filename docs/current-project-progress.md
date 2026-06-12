@@ -232,9 +232,10 @@ Remaining runtime ownership debt:
   package placement: content installer/renderable runtime wiring is still
   app-local and must stay out of `packages/editor` during presentation
   extraction.
-- Camera3 has a runtime camera staging object that owns the runtime-three camera
-  backend, but the editor-facing `Camera3Rig` facade and model cleanup still
-  block declaring camera ownership fully clean.
+- Camera3 runtime camera state is now the single camera truth. The old
+  `Camera3Rig` / `Camera3ProjectionModeController` model and rig component were
+  deleted instead of moved into editor presentation. Remaining Camera3 debt is
+  package placement for motion/gizmo components and app-local runtime wiring.
 
 ## Active Plans And Reports
 

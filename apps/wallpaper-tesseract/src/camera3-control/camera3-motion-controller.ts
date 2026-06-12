@@ -4,14 +4,19 @@ import type {
   RuntimeCameraProjectionMode,
   RuntimeCameraState
 } from "runtime-core";
-import { Camera3ProjectionModeController, Camera3Rig } from "../features/camera3/model";
 import { Camera3RuntimeCamera } from "../runtime/camera3-runtime-camera";
 import type { RuntimeRegistration, UpdateFrame } from "../runtime/ports";
 import type { Camera3CommandSink, Camera3ControlCommand } from "./camera3-control-command";
 
 export interface Camera3MotionControllerOptions {
-  rig: Camera3Rig;
-  projectionMode: Camera3ProjectionModeController;
+  readonly target?: readonly [number, number, number];
+  readonly distance?: number;
+  readonly yaw?: number;
+  readonly pitch?: number;
+  readonly roll?: number;
+  readonly locked?: boolean;
+  readonly orbitSensitivity?: number;
+  readonly projectionMode?: RuntimeCameraProjectionMode;
 }
 
 export interface Camera3MotionUpdateResult {
@@ -21,8 +26,6 @@ export interface Camera3MotionUpdateResult {
 
 export interface Camera3MotionChangedEvent {
   frame: UpdateFrame;
-  rig: Camera3Rig;
-  projectionMode: Camera3ProjectionModeController;
   cameraState: RuntimeCameraState;
   commands: readonly Camera3ControlCommand[];
 }
@@ -44,25 +47,24 @@ export class Camera3MotionController implements Camera3CommandSink {
   readonly runtimeCameraId: RuntimeCameraId;
   private pendingCommands: Camera3ControlCommand[] = [];
   private readonly observers: Camera3MotionObserver[] = [];
-  private readonly rig: Camera3Rig;
-  private readonly projectionMode: Camera3ProjectionModeController;
   private readonly runtimeCamera: Camera3RuntimeCamera;
+  private readonly locked: boolean;
+  private readonly orbitSensitivity: number;
 
-  constructor(options: Camera3MotionControllerOptions) {
-    this.rig = options.rig;
-    this.projectionMode = options.projectionMode;
+  constructor(options: Camera3MotionControllerOptions = {}) {
+    this.locked = options.locked ?? false;
+    this.orbitSensitivity = options.orbitSensitivity ?? 0.008;
     this.runtimeCamera = new Camera3RuntimeCamera({
       orbit: {
-        target: [this.rig.target.x, this.rig.target.y, this.rig.target.z],
-        distance: this.rig.distance,
-        yaw: this.rig.yaw,
-        pitch: this.rig.pitch,
-        roll: this.rig.roll
+        target: options.target ?? [0, 0, 0],
+        distance: options.distance ?? 6,
+        yaw: options.yaw ?? 0,
+        pitch: options.pitch ?? 0,
+        roll: options.roll ?? 0
       },
-      projectionMode: this.projectionMode.mode
+      projectionMode: options.projectionMode
     });
     this.runtimeCameraId = this.runtimeCamera.id;
-    this.syncEditorModelFromRuntimeState();
   }
 
   getRuntimeThreeCameraForRender(): THREE.PerspectiveCamera | THREE.OrthographicCamera {
@@ -108,10 +110,7 @@ export class Camera3MotionController implements Camera3CommandSink {
   }
 
   resizeProjection(width: number, height: number): void {
-    const changed = this.runtimeCamera.resizeProjection(width, height);
-    if (changed) {
-      this.syncEditorModelFromRuntimeState();
-    }
+    this.runtimeCamera.resizeProjection(width, height);
   }
 
   update(frame: UpdateFrame): Camera3MotionUpdateResult {
@@ -127,7 +126,6 @@ export class Camera3MotionController implements Camera3CommandSink {
     }
     const changed = !sameSnapshot(before, this.snapshot());
     if (changed) {
-      this.syncEditorModelFromRuntimeState();
       this.notify(frame, commands);
     }
     return { changed, commandCount: commands.length };
@@ -142,15 +140,15 @@ export class Camera3MotionController implements Camera3CommandSink {
   private applyCommand(command: Camera3ControlCommand): void {
     switch (command.type) {
       case "orbit-delta":
-        if (!this.rig.locked) {
+        if (!this.locked) {
           this.runtimeCamera.orbitDelta({
-            yaw: -command.dx * this.rig.orbitSensitivity,
-            pitch: command.dy * this.rig.orbitSensitivity
+            yaw: -command.dx * this.orbitSensitivity,
+            pitch: command.dy * this.orbitSensitivity
           });
         }
         return;
       case "snap-axis":
-        if (!this.rig.locked) {
+        if (!this.locked) {
           this.runtimeCamera.snapAxis(command.axis);
         }
         return;
@@ -169,33 +167,9 @@ export class Camera3MotionController implements Camera3CommandSink {
     };
   }
 
-  private syncEditorModelFromRuntimeState(): void {
-    const runtimeState = this.runtimeCamera.state;
-    const orbit = runtimeState.orbit;
-    if (orbit) {
-      const [targetX = 0, targetY = 0, targetZ = 0] = orbit.target;
-      this.rig.target.set(targetX, targetY, targetZ);
-      this.rig.distance = orbit.distance;
-      this.rig.yaw = orbit.yaw;
-      this.rig.pitch = orbit.pitch;
-      this.rig.roll = orbit.roll ?? 0;
-    }
-    this.projectionMode.setMode(getProjectionMode(runtimeState));
-    const projection = runtimeState.projection;
-    if (projection?.viewport) {
-      this.projectionMode.resize(
-        projection.viewport.width,
-        projection.viewport.height,
-        this.distance
-      );
-    }
-  }
-
   private notify(frame: UpdateFrame, commands: readonly Camera3ControlCommand[]): void {
     const event: Camera3MotionChangedEvent = {
       frame,
-      rig: this.rig,
-      projectionMode: this.projectionMode,
       cameraState: this.cameraState,
       commands
     };

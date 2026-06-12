@@ -6,9 +6,6 @@ import {
   camera3MotionComponentType
 } from "./camera3-motion-component";
 import {
-  camera3RigComponentType
-} from "./camera3-rig-component";
-import {
   getCamera3GizmoComponent,
   SceneCamera3ViewportBindingComponent,
   sceneCamera3ViewportBindingComponentType,
@@ -21,7 +18,6 @@ export const sceneCamera3ViewportBindingComponentDefinition:
     singleton: true,
     requires: [
       { type: sceneViewportComponentType, autoAdd: false },
-      { type: camera3RigComponentType, autoAdd: true },
       { type: camera3MotionComponentType, autoAdd: true }
     ],
     createId(_actor, options) {
@@ -32,16 +28,14 @@ export const sceneCamera3ViewportBindingComponentDefinition:
         throw new Error("SceneCamera3ViewportBindingComponent options.camera3GizmoActorId is required.");
       }
       const viewport = context.componentRegistry.getComponent(actor, sceneViewportComponentType);
-      const rig = context.componentRegistry.getComponent(actor, camera3RigComponentType);
       const motion = context.componentRegistry.getComponent(actor, camera3MotionComponentType);
       const camera3Actor = context.actorSystem.getActor(options.camera3GizmoActorId);
       const gizmo = camera3Actor ? getCamera3GizmoComponent(camera3Actor) : null;
-      if (!viewport || !rig || !motion || !gizmo) {
-        throw new Error("SceneCamera3ViewportBindingComponent requires Scene viewport, Camera3 rig, motion, and gizmo.");
+      if (!viewport || !motion || !gizmo) {
+        throw new Error("SceneCamera3ViewportBindingComponent requires Scene viewport, Camera3 motion, and gizmo.");
       }
       return new SceneCamera3ViewportBindingComponent(actor, options, {
         viewport,
-        rig,
         motion,
         gizmo
       });

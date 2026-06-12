@@ -1,9 +1,9 @@
 import { Camera3GizmoHitTester } from "./camera3-gizmo-hit-test";
-import type { Camera3Axis } from "../../features/camera3/model";
 import { Camera3GizmoRenderer } from "./camera3-gizmo-renderer";
 import { Camera3GizmoState } from "./camera3-gizmo-state";
 import type { Camera3CommandSink, Camera3ViewState } from "../../camera3-control";
 import type { GizmoClickEvent, GizmoController, GizmoHit, GizmoMoveEvent, ScreenPoint } from "gizmo-core";
+import type { RuntimeCameraAxis } from "runtime-core";
 
 const projectionModePartId = "projection-mode";
 
@@ -136,12 +136,12 @@ export class Camera3Gizmo implements GizmoController {
     this.renderer.draw(this.viewState.cameraState);
   }
 
-  private getAxisFromHit(hit: GizmoHit): Camera3Axis | null {
+  private getAxisFromHit(hit: GizmoHit): RuntimeCameraAxis | null {
     const axis = (hit.data as { axis?: unknown } | undefined)?.axis;
     return typeof axis === "string" && this.isCamera3Axis(axis) ? axis : null;
   }
 
-  private isCamera3Axis(axis: string): axis is Camera3Axis {
+  private isCamera3Axis(axis: string): axis is RuntimeCameraAxis {
     return axis === "+x" || axis === "-x" || axis === "+y" || axis === "-y" || axis === "+z" || axis === "-z";
   }
 }

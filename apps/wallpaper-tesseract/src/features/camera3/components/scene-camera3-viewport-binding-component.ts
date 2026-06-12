@@ -8,7 +8,6 @@ import {
   camera3GizmoComponentType
 } from "../../../gizmos/camera3/components";
 import type { Camera3MotionComponent } from "./camera3-motion-component";
-import type { Camera3RigComponent } from "./camera3-rig-component";
 
 export const sceneCamera3ViewportBindingComponentType =
   "scene-camera3-viewport-binding-component" as ComponentType<SceneCamera3ViewportBindingComponent>;
@@ -31,7 +30,6 @@ export class SceneCamera3ViewportBindingComponent implements Component {
     options: SceneCamera3ViewportBindingComponentOptions,
     services: {
       readonly viewport: SceneViewportComponent;
-      readonly rig: Camera3RigComponent;
       readonly motion: Camera3MotionComponent;
       readonly gizmo: Camera3GizmoComponent;
     }

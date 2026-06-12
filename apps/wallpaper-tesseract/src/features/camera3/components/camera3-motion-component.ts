@@ -1,5 +1,5 @@
 import type * as THREE from "three";
-import type { RuntimeFrame, RuntimeWork } from "runtime-core";
+import type { RuntimeCameraProjectionMode, RuntimeFrame, RuntimeWork } from "runtime-core";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import {
   Camera3MotionController,
@@ -10,14 +10,20 @@ import {
 } from "../../../camera3-control";
 import type { Camera3CommandSink, Camera3ControlCommand } from "../../../camera3-control";
 import type { RuntimeRegistration, UpdateFrame } from "../../../runtime/ports";
-import type { Camera3RigComponent } from "./camera3-rig-component";
-import type { Camera3ProjectionModeController } from "../model";
 
 export const camera3MotionComponentType =
   "camera3-motion-component" as ComponentType<Camera3MotionComponent>;
 
 export interface Camera3MotionComponentOptions {
   readonly id?: string;
+  readonly target?: readonly [number, number, number];
+  readonly distance?: number;
+  readonly yaw?: number;
+  readonly pitch?: number;
+  readonly roll?: number;
+  readonly locked?: boolean;
+  readonly orbitSensitivity?: number;
+  readonly projectionMode?: RuntimeCameraProjectionMode;
 }
 
 export class Camera3MotionComponent implements Component, Camera3CommandSink, RuntimeWork {
@@ -26,25 +32,16 @@ export class Camera3MotionComponent implements Component, Camera3CommandSink, Ru
   readonly id: string;
   readonly priority = -100;
   enabled = true;
-  readonly #rig: Camera3RigComponent;
   readonly #controller: Camera3MotionController;
 
-  constructor(actor: Actor, rig: Camera3RigComponent, options: Camera3MotionComponentOptions = {}) {
+  constructor(actor: Actor, options: Camera3MotionComponentOptions = {}) {
     this.actor = actor;
     this.id = options.id ?? "camera3-motion-controller";
-    this.#rig = rig;
-    this.#controller = new Camera3MotionController({
-      rig: rig.rig,
-      projectionMode: rig.projectionMode
-    });
+    this.#controller = new Camera3MotionController(options);
   }
 
   getRuntimeThreeCameraForRender(): THREE.PerspectiveCamera | THREE.OrthographicCamera {
     return this.#controller.getRuntimeThreeCameraForRender();
-  }
-
-  get projectionMode(): Camera3ProjectionModeController {
-    return this.#rig.projectionMode;
   }
 
   get distance(): number {

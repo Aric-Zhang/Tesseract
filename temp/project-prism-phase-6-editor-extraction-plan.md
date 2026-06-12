@@ -435,39 +435,37 @@ Candidate source:
 
 - `apps/wallpaper-tesseract/src/gizmos/camera3/**`
 - `apps/wallpaper-tesseract/src/features/camera3/components/**`
-- `apps/wallpaper-tesseract/src/features/camera3/model/**`
 - `apps/wallpaper-tesseract/src/camera3-control/**`
 
 Known caution:
 
-- `camera3-control` and `features/camera3/model` are currently runtime
-  ownership-shaped. Do not place runtime camera ownership in editor.
-- `Camera3MotionController` currently mixes editor-facing rig/model concepts
-  with runtime camera mutation. `packages/editor` must not temporarily own it.
+- `camera3-control` is runtime ownership-shaped. Do not place runtime camera
+  ownership in editor.
+- The old `features/camera3/model` shadow camera state was deleted during
+  Step 5A. Do not recreate it as an editor facade.
 
-### Step 5A: Camera3 Motion And Rig Ownership Decision
+### Step 5A: Camera3 Motion And Rig Ownership Decision - Complete
 
 Purpose: decide and clean ownership before any Camera3 presentation move.
 
-Work:
+Completed work:
 
-- Audit `Camera3MotionController`, `Camera3Rig`, and
+- Audited `Camera3MotionController`, `Camera3Rig`, and
   `Camera3ProjectionModeController`.
-- If `Camera3Rig` is only editor projection/view state, move it into
-  `packages/editor` with the gizmo presentation and delete app-local exports.
-- If `Camera3Rig` participates in runtime camera truth, move it to the runtime
-  owner or replace it with runtime camera command/query contracts.
-- Move or delete `Camera3MotionController` so runtime camera mutation is owned
-  by runtime packages or accepted runtime staging, not by editor.
-- Do not add a `Camera3MotionController` facade in `packages/editor` or app
+- Chose runtime camera state as the single truth. `Camera3Rig`,
+  `Camera3ProjectionModeController`, `Camera3RigComponent`, and their tests were
+  deleted instead of migrated.
+- `Camera3MotionController` now initializes and mutates `Camera3RuntimeCamera`
+  directly from plain options.
+- Motion, component, gizmo, and boundary tests now assert runtime camera state
+  directly.
+- No `Camera3MotionController` facade was added in `packages/editor` or app
   composition.
-- Update tests so they assert the chosen owner directly.
 
 Exit gate:
 
 - `packages/editor` does not export or own `Camera3MotionController`.
-- `Camera3Rig` has exactly one owner, documented by import paths and boundary
-  tests.
+- `Camera3Rig` has no production owner; the type and component were deleted.
 - Runtime camera truth is not duplicated between editor and runtime staging.
 - `camera3-control` no longer imports editor gizmo presentation.
 

@@ -1,4 +1,4 @@
-import type { Camera3Axis, Camera3ProjectionMode } from "../features/camera3/model";
+import type { RuntimeCameraAxis, RuntimeCameraProjectionMode } from "runtime-core";
 
 export type Camera3ControlSource = "camera3-gizmo" | "scene-pointer" | "keyboard" | "debug" | "script";
 
@@ -22,7 +22,7 @@ export interface Camera3OrbitDeltaCommand {
 export interface Camera3SnapAxisCommand {
   type: "snap-axis";
   source: Camera3ControlSource;
-  axis: Camera3Axis;
+  axis: RuntimeCameraAxis;
 }
 
 export interface Camera3ToggleProjectionCommand {
@@ -33,5 +33,5 @@ export interface Camera3ToggleProjectionCommand {
 export interface Camera3SetProjectionModeCommand {
   type: "set-projection-mode";
   source: Camera3ControlSource;
-  mode: Camera3ProjectionMode;
+  mode: RuntimeCameraProjectionMode;
 }

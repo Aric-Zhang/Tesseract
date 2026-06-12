@@ -6,7 +6,6 @@ import {
 } from "../../runtime/scene-render-output";
 import {
   camera3MotionComponentType,
-  camera3RigComponentType,
   sceneCamera3ViewportBindingComponentType,
   type Camera3MotionComponent
 } from "../camera3/components";
@@ -75,10 +74,10 @@ export function installSceneViewContent(options: InstallSceneViewContentOptions)
       contentRegistration: options.contentRegistration
     });
 
-    context.componentRegistry.addComponent(sceneView.viewport.actor, camera3RigComponentType, { distance: 6 });
     const camera3Motion = context.componentRegistry.addComponent(
       sceneView.viewport.actor,
-      camera3MotionComponentType
+      camera3MotionComponentType,
+      { distance: 6 }
     );
     const camera3Gizmo = createCamera3GizmoActor(context, {
       actorId: actorIds.camera3GizmoActorId,

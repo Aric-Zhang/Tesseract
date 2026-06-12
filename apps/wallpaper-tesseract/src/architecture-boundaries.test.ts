@@ -765,13 +765,16 @@ describe("architecture boundaries", () => {
     expect(editorSceneViewHostSource).toMatch(/actorSystem\.isActorActive\s*\(\s*options\.sceneView\.viewport\.actor\s*\)/);
   });
 
-  it("keeps Camera3 rig, motion, and viewport subscriptions in components", () => {
+  it("keeps Camera3 motion and viewport subscriptions in components without shadow rig state", () => {
     const sceneViewInstallerSource = sourceFiles["./features/scene/scene-view-content-installer.ts"] ?? "";
     const camera3ComponentsSource = sourceFiles["./features/camera3/components/index.ts"] ?? "";
     const camera3BindingSource =
       sourceFiles["./features/camera3/components/scene-camera3-viewport-binding-component.ts"] ?? "";
     const camera3MotionDefinitionSource =
       sourceFiles["./features/camera3/components/camera3-motion-definition.ts"] ?? "";
+    const camera3MotionSource =
+      sourceFiles["./features/camera3/components/camera3-motion-component.ts"] ?? "";
+    const camera3ControllerSource = sourceFiles["./camera3-control/camera3-motion-controller.ts"] ?? "";
     const appInstallSource = sourceFiles["./app/install-component-definitions.ts"] ?? "";
 
     expect(sceneViewInstallerSource).not.toMatch(/\bnew\s+Camera3MotionController\b/);
@@ -779,17 +782,20 @@ describe("architecture boundaries", () => {
     expect(sceneViewInstallerSource).not.toMatch(/\bnew\s+Camera3ProjectionModeController\b/);
     expect(sceneViewInstallerSource).not.toMatch(/subscribeResize\s*\(/);
     expect(sceneViewInstallerSource).not.toMatch(/onCamera3MotionChanged/);
-    expect(sceneViewInstallerSource).toMatch(/\bcamera3RigComponentType\b/);
+    expect(sceneViewInstallerSource).not.toMatch(/\bcamera3RigComponentType\b/);
     expect(sceneViewInstallerSource).toMatch(/\bcamera3MotionComponentType\b/);
     expect(sceneViewInstallerSource).toMatch(/\bsceneCamera3ViewportBindingComponentType\b/);
-    expect(camera3ComponentsSource).toMatch(/\bCamera3RigComponent\b/);
+    expect(camera3ComponentsSource).not.toMatch(/\bCamera3RigComponent\b/);
     expect(camera3ComponentsSource).toMatch(/\bCamera3MotionComponent\b/);
     expect(camera3ComponentsSource).toMatch(/\bSceneCamera3ViewportBindingComponent\b/);
     expect(camera3BindingSource).toMatch(/subscribeResize\s*\(/);
     expect(camera3BindingSource).toMatch(/onCamera3MotionChanged/);
+    expect(camera3BindingSource).not.toMatch(/\bCamera3RigComponent\b/);
     expect(camera3MotionDefinitionSource).not.toMatch(/\bruntime-object\b/);
-    expect(camera3MotionDefinitionSource).toMatch(/\brequires:\s*\[\s*{/);
-    expect(camera3MotionDefinitionSource).toMatch(/\bcamera3RigComponentType\b/);
+    expect(camera3MotionDefinitionSource).not.toMatch(/\brequires:\s*\[\s*{/);
+    expect(camera3MotionDefinitionSource).not.toMatch(/\bcamera3RigComponentType\b/);
+    expect(camera3MotionSource).not.toMatch(/\bCamera3RigComponent\b/);
+    expect(camera3ControllerSource).not.toMatch(/\bCamera3Rig\b|\bCamera3ProjectionModeController\b/);
     expect(appInstallSource).toMatch(/installSceneComponentDefinitions[\s\S]*installCamera3FeatureComponentDefinitions/);
   });
 

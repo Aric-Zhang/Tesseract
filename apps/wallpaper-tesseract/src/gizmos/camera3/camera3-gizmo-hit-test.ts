@@ -1,5 +1,5 @@
 import type { GizmoHit, ScreenPoint } from "gizmo-core";
-import type { Camera3Axis } from "../../features/camera3/model";
+import type { RuntimeCameraAxis } from "runtime-core";
 import type { Camera3GizmoState } from "./camera3-gizmo-state";
 
 export interface Camera3GizmoHitTesterOptions {
@@ -52,8 +52,8 @@ export class Camera3GizmoHitTester {
     };
   }
 
-  private hitAxis(x: number, y: number): Camera3Axis | null {
-    let bestAxis: Camera3Axis | null = null;
+  private hitAxis(x: number, y: number): RuntimeCameraAxis | null {
+    let bestAxis: RuntimeCameraAxis | null = null;
     let bestDistance = Infinity;
     for (const axis of this.state.axes) {
       if (axis.visibility <= 0.01) continue;

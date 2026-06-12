@@ -1,10 +1,8 @@
-import * as THREE from "three";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import type { RuntimeRegistration } from "../../../runtime/ports";
 import type {
   RuntimeSceneRenderer,
-  RuntimeSceneRendererFactory,
-  RuntimeSceneRenderOutput
+  RuntimeSceneRendererFactory
 } from "../../../runtime/scene-render-output";
 import type {
   WindowContentLayoutCommit,
@@ -19,7 +17,7 @@ export const sceneViewportComponentType =
 export interface SceneViewportComponentOptions {
   id?: string;
   document?: Pick<Document, "createElement">;
-  renderOutput: RuntimeSceneRenderOutput;
+  renderTarget: SceneViewportRenderTarget;
   contentId: string;
   contentRegistration: WindowContentRegistrationPort;
   createResizeObserver?: SceneViewportResizeObserverFactory;
@@ -28,6 +26,12 @@ export interface SceneViewportComponentOptions {
 
 export type SceneViewportRenderer = RuntimeSceneRenderer;
 export type SceneViewportRendererFactory = RuntimeSceneRendererFactory;
+
+export interface SceneViewportRenderTarget {
+  readonly domElement: HTMLElement;
+  setSize(width: number, height: number, pixelRatio: number): void;
+  dispose(): void;
+}
 
 export interface SceneViewportSize {
   readonly width: number;
@@ -54,7 +58,7 @@ export class SceneViewportComponent implements Component, WindowRegisteredConten
 
   #registration: WindowRegisteredContent;
   readonly #devicePixelRatio: () => number;
-  readonly #renderOutput: RuntimeSceneRenderOutput;
+  readonly #renderTarget: SceneViewportRenderTarget;
   readonly #resizeSubscribers: Array<(size: SceneViewportSize) => void> = [];
   readonly #resizeObserver: SceneViewportResizeObserver | null;
   #layoutCommitRegistration: RuntimeRegistration | null = null;
@@ -70,14 +74,14 @@ export class SceneViewportComponent implements Component, WindowRegisteredConten
     this.#devicePixelRatio = options.devicePixelRatio ?? (() => (
       typeof window === "undefined" ? 1 : window.devicePixelRatio
     ));
-    this.#renderOutput = options.renderOutput;
+    this.#renderTarget = options.renderTarget;
     this.viewportElement = documentRef.createElement("div");
     this.viewportElement.className = "scene-window__viewport";
     this.canvasHostElement = documentRef.createElement("div");
     this.canvasHostElement.className = "scene-window__canvas-host";
     this.overlayElement = documentRef.createElement("div");
     this.overlayElement.className = "scene-window__overlay";
-    this.canvasHostElement.append(this.#renderOutput.domElement);
+    this.canvasHostElement.append(this.#renderTarget.domElement);
     this.viewportElement.append(this.canvasHostElement, this.overlayElement);
     this.#registration = options.contentRegistration.registerContent({
       contentId: options.contentId,
@@ -141,14 +145,10 @@ export class SceneViewportComponent implements Component, WindowRegisteredConten
     if (this.#lastSize && this.#lastSize.width === width && this.#lastSize.height === height) return;
     const size = { width, height };
     this.#lastSize = size;
-    this.#renderOutput.setSize(width, height, this.#devicePixelRatio());
+    this.#renderTarget.setSize(width, height, this.#devicePixelRatio());
     for (const subscriber of [...this.#resizeSubscribers]) {
       subscriber(size);
     }
-  }
-
-  render(camera: THREE.Camera): void {
-    this.#renderOutput.render(camera);
   }
 
   dispose(): void {
@@ -157,6 +157,7 @@ export class SceneViewportComponent implements Component, WindowRegisteredConten
     this.#layoutCommitRegistration = null;
     this.#resizeObserver?.disconnect();
     this.#registration.dispose();
+    this.#renderTarget.dispose();
     this.#resizeSubscribers.length = 0;
   }
 }

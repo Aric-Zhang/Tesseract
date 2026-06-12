@@ -220,12 +220,14 @@ Remaining runtime ownership debt:
   ticks, UI scheduled services, editor state flush, and render frame sources.
 - `Tesseract4RuntimeObject` has been deleted. Tesseract now uses a runtime
   renderable staging object, while actor/editor binding remains app-local debt.
-- `SceneViewportComponent` still owns a `THREE.Scene` and creates the default
-  runtime-three WebGL renderer, so Scene View is not yet only a host for runtime
-  frame sources.
-- `SceneViewFrameSourceRegistry` exists, but the current Scene View frame source
-  path is not yet the full runtime-owned render output model required for Phase
-  6.
+- `SceneViewportComponent` now hosts a structural render target and owns DOM
+  placement/measurement only; it no longer renders with `THREE.Camera` or
+  imports the full runtime render output.
+- `SceneViewFrameSourceRegistry` renders through the runtime render output
+  after current graph/view visibility checks. The remaining Scene debt is
+  package placement: content installer/renderable runtime wiring is still
+  app-local and must stay out of `packages/editor` during presentation
+  extraction.
 - Camera3 has a runtime camera staging object that owns the runtime-three camera
   backend, but the editor-facing `Camera3Rig` facade and model cleanup still
   block declaring camera ownership fully clean.
@@ -298,8 +300,10 @@ app-local runtime ports. The Step 3 preflight binding cleanup is also complete:
 state observer binding is editor-owned and UI frame update attachment is
 ui-framework-owned. Debug, Hierarchy, Inspector, and the tool-window installer
 have moved into `packages/editor`; their old app-local directories are
-deleted. The next hard cleanup splits Scene runtime render-output ownership before Scene
-presentation extraction, resolves Camera3 motion/rig ownership before Camera3
+deleted. Scene presentation now consumes a structural render target instead of
+owning runtime render output or `THREE.Camera` rendering. The next hard cleanup
+moves Scene presentation without moving app-local runtime wiring into
+`packages/editor`, resolves Camera3 motion/rig ownership before Camera3
 gizmo extraction, then moves component definition installers and app
 composition wiring into a new `packages/editor` package. The plan keeps
 deletion-first rules explicit: no app-local compatibility barrels, no duplicate

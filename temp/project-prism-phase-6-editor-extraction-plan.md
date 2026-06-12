@@ -328,11 +328,18 @@ Candidate source:
 Known caution:
 
 - Some Scene files are currently marked `runtime-ownership-debt`.
-- `scene-window-actor-factory.ts` still creates `RuntimeSceneRenderOutput`.
-- `scene-viewport-component.ts` still renders directly with `THREE.Camera`.
+- `scene-window-actor-factory.ts` used to create `RuntimeSceneRenderOutput`.
+- `scene-viewport-component.ts` used to render directly with `THREE.Camera`.
 - Do not move those responsibilities into `packages/editor`.
 
 ### Step 4A: Runtime Render Output Owner Cleanup
+
+Status: complete. `scene-window-actor-factory.ts` now receives a structural
+Scene viewport render target instead of creating or typing
+`RuntimeSceneRenderOutput`; `scene-viewport-component.ts` only hosts and sizes
+that target. `renderable-scene-view.ts` performs graph-visible rendering
+through the runtime render output, and `editor-scene-view-host.ts` no longer
+exposes `renderWithCamera`.
 
 Purpose: make Scene View a consumer of runtime frame-source/render-output
 contracts before moving editor presentation.

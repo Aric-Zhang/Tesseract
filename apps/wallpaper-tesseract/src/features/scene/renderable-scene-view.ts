@@ -7,6 +7,7 @@ import {
 } from "runtime-core";
 import type { Camera3MotionComponent } from "../camera3/components";
 import type { EditorSceneViewHost } from "./editor-scene-view-host";
+import type { RuntimeSceneRenderOutput } from "../../runtime/scene-render-output";
 
 export interface RenderableSceneView {
   readonly viewActorId: string;
@@ -70,6 +71,7 @@ export class SceneViewFrameSourceRegistry implements RenderableSceneViewRegistry
 export interface CreateRenderableSceneViewOptions {
   readonly host: EditorSceneViewHost;
   readonly camera3Motion: Camera3MotionComponent;
+  readonly renderOutput: RuntimeSceneRenderOutput;
 }
 
 export function createRenderableSceneView(options: CreateRenderableSceneViewOptions): RenderableSceneView {
@@ -83,7 +85,7 @@ export function createRenderableSceneView(options: CreateRenderableSceneViewOpti
     },
     render() {
       if (!options.host.isVisibleInCurrentLocation()) return;
-      options.host.renderWithCamera(options.camera3Motion.getRuntimeThreeCameraForRender());
+      options.renderOutput.render(options.camera3Motion.getRuntimeThreeCameraForRender());
     }
   };
 }

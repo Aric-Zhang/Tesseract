@@ -1,4 +1,3 @@
-import type * as THREE from "three";
 import type { ActorSystemView } from "../../actor-runtime";
 import type { WindowViewLocationSource } from "../../window-runtime";
 import type { RegisteredSceneViewActor } from "./scene-window-actor-factory";
@@ -7,7 +6,6 @@ export interface EditorSceneViewHost {
   readonly viewActorId: string;
   measureNow(): void;
   isVisibleInCurrentLocation(): boolean;
-  renderWithCamera(camera: THREE.Camera): void;
 }
 
 export interface CreateEditorSceneViewHostOptions {
@@ -31,9 +29,6 @@ export function createEditorSceneViewHost(options: CreateEditorSceneViewHostOpti
         location.visibleInFrame &&
         options.actorSystem.hasActor(options.sceneView.viewport.actor) &&
         options.actorSystem.isActorActive(options.sceneView.viewport.actor);
-    },
-    renderWithCamera(camera) {
-      options.sceneView.viewport.render(camera);
     }
   };
 }

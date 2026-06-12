@@ -742,9 +742,9 @@ describe("architecture boundaries", () => {
     expect(sceneFeatureInstallerSource).not.toMatch(/\bCurrentRenderableSceneViewRegistry\b/);
     expect(sceneViewInstallerSource).not.toMatch(/\bcreateSceneWindowActor\b/);
     expect(sceneViewInstallerSource).toMatch(/\bcreateSceneViewActor\b/);
-    expect(renderableSceneViewSource).toMatch(/host\.renderWithCamera/);
+    expect(renderableSceneViewSource).toMatch(/renderOutput\.render/);
     expect(renderableSceneViewSource).not.toMatch(/sceneView\.viewport\.render/);
-    expect(editorSceneViewHostSource).toMatch(/sceneView\.viewport\.render/);
+    expect(editorSceneViewHostSource).not.toMatch(/renderWithCamera|sceneView\.viewport\.render/);
   });
 
   it("guards Scene viewport rendering behind current view ownership and active state", () => {
@@ -754,7 +754,7 @@ describe("architecture boundaries", () => {
     expect(renderableSceneViewSource).toMatch(/\bisRenderable\s*\(\)\s*{/);
     expect(renderableSceneViewSource).not.toMatch(/sceneWindow\.window\.state\.visible/);
     expect(renderableSceneViewSource).toMatch(/host\.isVisibleInCurrentLocation/);
-    expect(renderableSceneViewSource).toMatch(/host\.renderWithCamera\(options\.camera3Motion\.getRuntimeThreeCameraForRender\(\)\)/);
+    expect(renderableSceneViewSource).toMatch(/renderOutput\.render\(options\.camera3Motion\.getRuntimeThreeCameraForRender\(\)\)/);
     expect(renderableSceneViewSource).not.toMatch(/camera3Motion\.activeCamera/);
     expect(editorSceneViewHostSource).toMatch(/locations\.getLocationByViewActorId/);
     expect(editorSceneViewHostSource).toMatch(/location\.ownerFrameVisible/);

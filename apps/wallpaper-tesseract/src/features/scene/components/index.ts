@@ -6,6 +6,7 @@ export type { SceneViewportComponentOptions } from "./scene-viewport-component";
 export type {
   SceneViewportRenderer,
   SceneViewportRendererFactory,
+  SceneViewportRenderTarget,
   SceneViewportResizeObserver,
   SceneViewportResizeObserverFactory,
   SceneViewportSize

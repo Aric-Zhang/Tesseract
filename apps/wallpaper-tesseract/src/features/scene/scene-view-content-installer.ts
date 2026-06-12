@@ -1,4 +1,5 @@
 import type { Actor } from "../../actor-runtime";
+import { createRuntimeSceneRenderOutput, type RuntimeSceneRenderOutput } from "../../runtime/scene-render-output";
 import {
   camera3MotionComponentType,
   camera3RigComponentType,
@@ -46,6 +47,7 @@ export interface InstallSceneViewContentOptions {
 export interface InstalledSceneViewContent {
   readonly sceneView: RegisteredSceneViewActor;
   readonly camera3Motion: Camera3MotionComponent;
+  readonly renderOutput: RuntimeSceneRenderOutput;
   disposeActorTree(): void;
 }
 
@@ -54,12 +56,16 @@ export function installSceneViewContent(options: InstallSceneViewContentOptions)
   let sceneView: RegisteredSceneViewActor | null = null;
 
   try {
+    const renderOutput = createRuntimeSceneRenderOutput({
+      id: `${actorIds.sceneWindowActorId}:view:render-output`,
+      createRenderer: options.createRenderer
+    });
     sceneView = createSceneViewActor(context, {
       actorId: `${actorIds.sceneWindowActorId}:view`,
       actorName: `${actorIds.sceneWindowActorName} View`,
       parentActor: options.parentFrameActor,
       document: options.mount.ownerDocument ?? undefined,
-      createRenderer: options.createRenderer,
+      renderTarget: renderOutput,
       createResizeObserver: options.createResizeObserver,
       devicePixelRatio: options.devicePixelRatio,
       contentId: options.contentId,
@@ -88,12 +94,13 @@ export function installSceneViewContent(options: InstallSceneViewContentOptions)
       actorName: actorIds.tesseract4ActorName,
       parentActor: sceneView.viewport.actor
     });
-    tesseract4.component.attachToOutput(sceneView.renderOutput);
+    tesseract4.component.attachToOutput(renderOutput);
 
     const installedSceneView = sceneView;
     return {
       sceneView: installedSceneView,
       camera3Motion,
+      renderOutput,
       disposeActorTree() {
         installedSceneView.dispose();
       }

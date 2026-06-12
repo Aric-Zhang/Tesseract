@@ -79,7 +79,8 @@ export function installSceneViewFeature(options: InstallSceneViewFeatureOptions)
       });
       const renderable = createRenderableSceneView({
         host,
-        camera3Motion: content.camera3Motion
+        camera3Motion: content.camera3Motion,
+        renderOutput: content.renderOutput
       });
       const renderableRegistration = renderableSceneViews.register(renderable);
       return {

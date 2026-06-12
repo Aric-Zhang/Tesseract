@@ -321,7 +321,8 @@ function createSubject(options: CreateSubjectOptions = {}) {
   });
   const renderable = createRenderableSceneView({
     host,
-    camera3Motion: content.camera3Motion
+    camera3Motion: content.camera3Motion,
+    renderOutput: content.renderOutput
   });
   const runtime = createTestSceneViewHandle(content, renderable);
   return {
@@ -574,7 +575,8 @@ describe("Scene view content installer and renderable view", () => {
     });
     const renderable = createRenderableSceneView({
       host,
-      camera3Motion: content.camera3Motion
+      camera3Motion: content.camera3Motion,
+      renderOutput: content.renderOutput
     });
     const runtime = createTestSceneViewHandle(
       content,

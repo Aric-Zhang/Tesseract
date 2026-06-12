@@ -14,6 +14,7 @@ import {
 } from "../../window-runtime";
 import { installWindowComponentDefinitions } from "../../window-runtime";
 import { createActorInputEndEvent } from "../../test-support";
+import { createRuntimeSceneRenderOutput } from "../../runtime/scene-render-output";
 import { createDefaultSceneWindowState, createSceneViewActor } from ".";
 import {
   windowWorkspaceContentId,
@@ -207,6 +208,17 @@ function createFakeRenderer(document: FakeDocument, calls: string[] = []): Scene
   };
 }
 
+function createFakeRenderOutput(
+  document: FakeDocument,
+  calls: string[] = [],
+  id = "scene-actor:view:render-output"
+) {
+  return createRuntimeSceneRenderOutput({
+    id,
+    createRenderer: () => createFakeRenderer(document, calls)
+  });
+}
+
 describe("createSceneViewActor", () => {
   it("creates a Scene view actor under an owning frame actor", () => {
     const context = createContext();
@@ -223,7 +235,7 @@ describe("createSceneViewActor", () => {
       contentId: "content:scene",
       contentRegistration: new WindowContentRegistry(),
       document: document as unknown as Document,
-      createRenderer: () => createFakeRenderer(document, rendererCalls)
+      renderTarget: createFakeRenderOutput(document, rendererCalls)
     });
     attachSceneViewportToFrame(context, ownerFrame, handle);
 
@@ -232,7 +244,6 @@ describe("createSceneViewActor", () => {
     expect(handle.component).toBe(handle.viewport);
     expect(handle.actor.getComponent(sceneViewportComponentType)).toBe(handle.viewport);
     expect(handle.actor.getComponent(sceneModeToggleComponentType)).toBe(handle.modeToggle);
-    expect(handle.renderOutput.id).toBe("scene-actor:view:render-output");
     expect(handle.viewport.viewportElement.className).toBe("scene-window__viewport");
     expect(handle.viewport.canvasHostElement.className).toBe("scene-window__canvas-host");
     expect(handle.viewport.overlayElement.className).toBe("scene-window__overlay");
@@ -266,7 +277,7 @@ describe("createSceneViewActor", () => {
       contentId: "content:scene",
       contentRegistration: new WindowContentRegistry(),
       document: document as unknown as Document,
-      createRenderer: () => createFakeRenderer(document)
+      renderTarget: createFakeRenderOutput(document)
     });
 
     handle.disposeRuntimeTracking?.();
@@ -293,7 +304,7 @@ describe("createSceneViewActor", () => {
       contentId: "content:scene",
       contentRegistration: new WindowContentRegistry(),
       document: document as unknown as Document,
-      createRenderer: () => createFakeRenderer(document, rendererCalls),
+      renderTarget: createFakeRenderOutput(document, rendererCalls),
       createResizeObserver: (callback) => {
         resizeCallbacks.push(callback);
         return {
@@ -315,7 +326,6 @@ describe("createSceneViewActor", () => {
     const resizeCallback = resizeCallbacks[0];
     if (!resizeCallback) throw new Error("Expected resize callback.");
     resizeCallback();
-    handle.viewport.render({} as never);
     unregister.dispose();
     (handle.viewport.viewportElement as unknown as FakeElement).rect = createRect(0, 0, 800, 450);
     handle.viewport.measureNow();
@@ -326,7 +336,6 @@ describe("createSceneViewActor", () => {
       "setClearColor:461069:1",
       "setPixelRatio:2",
       "setSize:640:360:false",
-      "render",
       "setPixelRatio:2",
       "setSize:800:450:false",
       "dispose"
@@ -348,7 +357,7 @@ describe("createSceneViewActor", () => {
       contentId: "content:scene",
       contentRegistration: new WindowContentRegistry(),
       document: document as unknown as Document,
-      createRenderer: () => createFakeRenderer(document, rendererCalls),
+      renderTarget: createFakeRenderOutput(document, rendererCalls),
       devicePixelRatio: () => 1
     });
     attachSceneViewportToFrame(context, ownerFrame, handle);
@@ -424,7 +433,7 @@ describe("createSceneViewActor", () => {
       contentId: "content:scene",
       contentRegistration: new WindowContentRegistry(),
       document: document as unknown as Document,
-      createRenderer: () => createFakeRenderer(document)
+      renderTarget: createFakeRenderOutput(document)
     });
     (handle.modeToggle.buttonElement as unknown as FakeElement).rect = createRect(700, 500, 40, 40);
 

@@ -1,14 +1,10 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
-import {
-  createRuntimeSceneRenderOutput,
-  type RuntimeSceneRenderOutput
-} from "../../runtime/scene-render-output";
 import type { WindowContentRegistrationPort } from "../../window-runtime";
 import {
   sceneModeToggleComponentType,
   type SceneModeToggleComponent,
   sceneViewportComponentType,
-  type SceneViewportRendererFactory,
+  type SceneViewportRenderTarget,
   type SceneViewportResizeObserverFactory,
   type SceneViewportComponent
 } from "./components";
@@ -18,9 +14,8 @@ export interface SceneViewActorOptions {
   actorName?: string;
   parentActor: Actor;
   document?: Pick<Document, "createElement">;
-  createRenderer?: SceneViewportRendererFactory;
   createResizeObserver?: SceneViewportResizeObserverFactory;
-  renderOutput?: RuntimeSceneRenderOutput;
+  renderTarget: SceneViewportRenderTarget;
   devicePixelRatio?: () => number;
   contentId: string;
   contentRegistration: WindowContentRegistrationPort;
@@ -29,7 +24,6 @@ export interface SceneViewActorOptions {
 export interface RegisteredSceneViewActor extends RegisteredActor<SceneViewportComponent> {
   readonly viewport: SceneViewportComponent;
   readonly modeToggle: SceneModeToggleComponent;
-  readonly renderOutput: RuntimeSceneRenderOutput;
   disposeRuntimeTracking?(): void;
 }
 
@@ -37,10 +31,6 @@ export function createSceneViewActor(
   context: ActorCreationContext,
   options: SceneViewActorOptions
 ): RegisteredSceneViewActor {
-  const renderOutput = options.renderOutput ?? createRuntimeSceneRenderOutput({
-    id: `${options.actorId ?? "scene"}:render-output`,
-    createRenderer: options.createRenderer
-  });
   const actor = context.actorSystem.createActor({
     id: options.actorId,
     name: options.actorName ?? options.actorId,
@@ -50,7 +40,7 @@ export function createSceneViewActor(
     const viewport = context.componentRegistry.addComponent(actor, sceneViewportComponentType, {
       id: "scene-viewport",
       document: options.document,
-      renderOutput,
+      renderTarget: options.renderTarget,
       contentId: options.contentId,
       contentRegistration: options.contentRegistration,
       createResizeObserver: options.createResizeObserver,
@@ -72,13 +62,8 @@ export function createSceneViewActor(
       component: baseHandle.component,
       viewport,
       modeToggle,
-      renderOutput,
       dispose: () => {
-        try {
-          baseHandle.dispose();
-        } finally {
-          renderOutput.dispose();
-        }
+        baseHandle.dispose();
       },
       disposeRuntimeTracking: () => {
         untrack?.dispose();
@@ -91,7 +76,6 @@ export function createSceneViewActor(
     if (context.actorSystem.hasActor(actor)) {
       context.actorSystem.destroyActor(actor);
     }
-    renderOutput.dispose();
     throw error;
   }
 }

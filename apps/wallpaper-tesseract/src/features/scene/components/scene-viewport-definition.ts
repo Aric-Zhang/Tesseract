@@ -14,8 +14,8 @@ export const sceneViewportComponentDefinition:
       return options?.id ?? "scene-viewport";
     },
     create(actor, _context, options) {
-      if (!options?.renderOutput) {
-        throw new Error("SceneViewportComponent requires a runtime scene render output.");
+      if (!options?.renderTarget) {
+        throw new Error("SceneViewportComponent requires a runtime scene render target.");
       }
       if (!options.contentRegistration || !options.contentId) {
         throw new Error("SceneViewportComponent requires content registration options.");

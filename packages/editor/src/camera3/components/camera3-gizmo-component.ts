@@ -3,17 +3,17 @@ import type {
   GizmoHit,
   ScreenPoint
 } from "gizmo-core";
-import type { Actor, ComponentType } from "../../../actor-runtime";
-import { actorInputScopeRoutePriority } from "../../../gizmo-runtime";
+import type { Actor, ComponentType } from "actor-core";
+import { actorInputScopeRoutePriority } from "actor-input";
 import type {
   ActorInputCancelEvent,
   ActorInputClickEvent,
   ActorInputHit,
   ActorInputMoveEvent,
   ActorInputParticipant
-} from "../../../gizmo-runtime";
+} from "actor-input";
 import { Camera3Gizmo, type Camera3GizmoOptions } from "../camera3-gizmo";
-import type { Camera3ViewState } from "../../../camera3-control";
+import type { RuntimeCameraViewState } from "runtime-core";
 
 export const camera3GizmoComponentType =
   "camera3-gizmo-component" as ComponentType<Camera3GizmoComponent>;
@@ -49,7 +49,7 @@ export class Camera3GizmoComponent implements ActorInputParticipant {
     return this.gizmo.priority;
   }
 
-  update(viewState?: Camera3ViewState): void {
+  update(viewState?: RuntimeCameraViewState): void {
     this.gizmo.update(viewState);
   }
 

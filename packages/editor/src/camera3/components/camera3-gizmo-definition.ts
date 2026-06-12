@@ -1,5 +1,5 @@
-import type { ComponentDefinition } from "../../../actor-runtime";
-import { gizmoEventBindingComponentType } from "../../../gizmo-runtime";
+import type { ComponentDefinition } from "actor-core";
+import { gizmoEventBindingComponentType } from "actor-input";
 import {
   Camera3GizmoComponent,
   camera3GizmoComponentType,

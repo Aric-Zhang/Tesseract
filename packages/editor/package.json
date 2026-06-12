@@ -20,7 +20,8 @@
     "./debug/debug-log.css": "./src/debug/debug-log.css",
     "./hierarchy/hierarchy.css": "./src/hierarchy/hierarchy.css",
     "./inspector/inspector.css": "./src/inspector/inspector.css",
-    "./scene/scene-window.css": "./src/scene/scene-window.css"
+    "./scene/scene-window.css": "./src/scene/scene-window.css",
+    "./camera3/camera3-gizmo.css": "./src/camera3/camera3-gizmo.css"
   },
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -31,7 +32,12 @@
   "dependencies": {
     "actor-core": "0.1.0",
     "actor-input": "0.1.0",
+    "gizmo-core": "0.1.0",
     "runtime-core": "0.1.0",
+    "three": "^0.181.2",
     "ui-framework": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.184.1"
   }
 }

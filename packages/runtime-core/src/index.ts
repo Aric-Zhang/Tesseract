@@ -41,6 +41,16 @@ export type {
   RuntimeCameraOrbitState,
   RuntimeCameraState
 } from "./runtime-camera";
+export type {
+  RuntimeCameraCommandSink,
+  RuntimeCameraControlCommand,
+  RuntimeCameraControlSource,
+  RuntimeCameraOrbitDeltaCommand,
+  RuntimeCameraSetProjectionModeCommand,
+  RuntimeCameraSnapAxisCommand,
+  RuntimeCameraToggleProjectionCommand,
+  RuntimeCameraViewState
+} from "./runtime-camera-control";
 export {
   RuntimeFrameSourceRegistry,
   RuntimeMutableFrameSource

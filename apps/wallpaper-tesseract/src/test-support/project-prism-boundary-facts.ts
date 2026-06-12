@@ -33,8 +33,7 @@ export const projectPrismSourceZones = [
   ]),
   definePathZone("editor-candidate", "Concrete editor features and editor presentation components.", [
     /^packages\/editor\/src\//,
-    /^\.\/features\/camera3\/components\//,
-    /^\.\/gizmos\//
+    /^\.\/features\/camera3\/components\//
   ]),
   definePathZone("app-composition", "Wallpaper app bootstrap and composition layer.", [
     /^\.\/app\/(?!app-shell\.ts$)[^/]+\.ts$/,

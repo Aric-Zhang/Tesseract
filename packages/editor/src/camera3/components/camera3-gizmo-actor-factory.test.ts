@@ -7,18 +7,30 @@ import type {
   GizmoMoveEvent,
   ScreenPoint
 } from "gizmo-core";
-import { AppRuntimeContext } from "../../../app-runtime";
-import type { Camera3CommandSink, Camera3ControlCommand, Camera3ViewState } from "../../../camera3-control";
-import { installGizmoRuntimeComponentDefinitions } from "../../../gizmo-runtime";
-import { installEditorStateObserverComponentDefinitions } from "editor";
-import type { AppStateCommand } from "editor";
-import type { AppStateObserver } from "editor";
-import type { RuntimeRegistration } from "../../../runtime/ports";
 import {
+  ActorSystem,
+  ComponentRegistry,
+  installComponentDefinition,
+  type ActorCreationContext,
+  type Component,
+  type ComponentAttachmentDescriptor,
+  type ComponentAttachmentRegistration,
+  type ComponentAttachmentRuntime,
+  type RegisteredActor
+} from "actor-core";
+import {
+  ActiveInputCancellationRuntime,
   actorInputScopeRoutePriority,
+  gizmoEventBindingComponentDefinition,
   gizmoEventBindingComponentType,
+  GizmoControllerAttachmentRuntime,
   isActorInputParticipant
-} from "../../../gizmo-runtime";
+} from "actor-input";
+import type {
+  RuntimeCameraCommandSink,
+  RuntimeCameraControlCommand,
+  RuntimeCameraViewState
+} from "runtime-core";
 import type { Camera3Gizmo, Camera3GizmoOptions } from "../camera3-gizmo";
 import { camera3GizmoComponentType } from "./camera3-gizmo-component";
 import { createCamera3GizmoActor } from "./camera3-gizmo-actor-factory";
@@ -26,10 +38,33 @@ import { installCamera3ComponentDefinitions } from "./install-component-definiti
 
 type FakeCamera3Gizmo = Camera3Gizmo & {
   cancelEvents: GizmoCancelEvent[];
-  updateStates: Camera3ViewState[];
+  updateStates: RuntimeCameraViewState[];
 };
 
-function createRegistration(label: string, calls: string[]): RuntimeRegistration {
+interface TestRegistration {
+  dispose(): void;
+}
+
+class TestCompositeAttachmentRuntime implements ComponentAttachmentRuntime {
+  constructor(private readonly runtimes: readonly ComponentAttachmentRuntime[]) {}
+
+  attach(
+    actor: Component["actor"],
+    component: Component,
+    attachments: readonly ComponentAttachmentDescriptor[]
+  ): ComponentAttachmentRegistration {
+    const registrations = this.runtimes.map((runtime) => runtime.attach(actor, component, attachments));
+    return {
+      dispose() {
+        for (const registration of registrations.slice().reverse()) {
+          registration.dispose();
+        }
+      }
+    };
+  }
+}
+
+function createRegistration(label: string, calls: string[]): TestRegistration {
   return {
     dispose() {
       calls.push(label);
@@ -40,37 +75,40 @@ function createRegistration(label: string, calls: string[]): RuntimeRegistration
 function createContext() {
   const calls: string[] = [];
   const registeredGizmos: GizmoController[] = [];
-  const context = new AppRuntimeContext({
-    gizmoEventSystem: {
-      register(object: GizmoController): RuntimeRegistration {
-        calls.push(`gizmo-register:${object.id}`);
-        registeredGizmos.push(object);
-        return createRegistration(`gizmo-dispose:${object.id}`, calls);
-      },
-      dispose(): void {
-        calls.push("gizmo-system-dispose");
-      }
-    },
-    frameStateController: {
-      submit(_command: AppStateCommand): void {
-        calls.push("frame-submit");
-      },
-      subscribe(_observer: AppStateObserver): RuntimeRegistration {
-        calls.push("observer-subscribe");
-        return createRegistration("observer-dispose", calls);
-      },
-      dispose(): void {
-        calls.push("frame-system-dispose");
-      }
-    }
+  const actorSystem = new ActorSystem();
+  const componentRegistry = new ComponentRegistry({
+    actorSystem,
+    attachmentRuntime: new TestCompositeAttachmentRuntime([
+      new GizmoControllerAttachmentRuntime({
+        registry: {
+          register(object: GizmoController): TestRegistration {
+            calls.push(`gizmo-register:${object.id}`);
+            registeredGizmos.push(object);
+            return createRegistration(`gizmo-dispose:${object.id}`, calls);
+          },
+          dispose(): void {
+            calls.push("gizmo-system-dispose");
+          }
+        }
+      }),
+      new ActiveInputCancellationRuntime()
+    ])
   });
-  installGizmoRuntimeComponentDefinitions(context.componentRegistry);
-  installEditorStateObserverComponentDefinitions(context.componentRegistry);
-  installCamera3ComponentDefinitions(context.componentRegistry);
-  return { calls, context, registeredGizmos };
+  const trackedActors: RegisteredActor[] = [];
+  const context: ActorCreationContext = {
+    actorSystem,
+    componentRegistry,
+    trackRegisteredActor(actor) {
+      trackedActors.push(actor);
+      return createRegistration(`actor-untrack:${actor.actor.id}`, calls);
+    }
+  };
+  installComponentDefinition(componentRegistry, gizmoEventBindingComponentDefinition);
+  installCamera3ComponentDefinitions(componentRegistry);
+  return { calls, context, registeredGizmos, trackedActors };
 }
 
-function createCommandSink(commands: Camera3ControlCommand[]): Camera3CommandSink {
+function createCommandSink(commands: RuntimeCameraControlCommand[]): RuntimeCameraCommandSink {
   return {
     submit(command) {
       commands.push(command);
@@ -80,7 +118,7 @@ function createCommandSink(commands: Camera3ControlCommand[]): Camera3CommandSin
 
 function createFakeGizmoFactory(
   calls: string[],
-  commands: Camera3ControlCommand[] = [],
+  commands: RuntimeCameraControlCommand[] = [],
   hit: GizmoHit = {
     gizmoId: "camera3-view-gizmo",
     partId: "axis-x",
@@ -100,7 +138,7 @@ function createFakeGizmoFactory(
       element: { remove: () => calls.push("element-remove") } as unknown as HTMLDivElement,
       cancelEvents: [],
       updateStates: [],
-      update(viewState?: Camera3ViewState): void {
+      update(viewState?: RuntimeCameraViewState): void {
         if (viewState) fake.updateStates.push(viewState);
         calls.push("gizmo-update");
       },
@@ -144,7 +182,7 @@ function createFakeGizmoFactory(
   return { createGizmo, created, receivedOptions, commands };
 }
 
-function createViewState(mode: "perspective" | "orthographic" = "perspective"): Camera3ViewState {
+function createViewState(mode: "perspective" | "orthographic" = "perspective"): RuntimeCameraViewState {
   return {
     cameraState: {
       pose: {
@@ -192,7 +230,7 @@ function createClickEvent(gizmo: GizmoController, hit: GizmoHit): GizmoClickEven
 describe("createCamera3GizmoActor", () => {
   it("creates an actor and returns a RegisteredActor handle", () => {
     const { context } = createContext();
-    const commands: Camera3ControlCommand[] = [];
+    const commands: RuntimeCameraControlCommand[] = [];
     const { createGizmo } = createFakeGizmoFactory([], commands);
 
     const handle = createCamera3GizmoActor(context, {
@@ -210,7 +248,7 @@ describe("createCamera3GizmoActor", () => {
   it("parents the actor when parentActor is provided", () => {
     const { context } = createContext();
     const sceneActor = context.actorSystem.createActor({ id: "scene-window" });
-    const commands: Camera3ControlCommand[] = [];
+    const commands: RuntimeCameraControlCommand[] = [];
     const { createGizmo } = createFakeGizmoFactory([], commands);
 
     const handle = createCamera3GizmoActor(context, {
@@ -258,7 +296,7 @@ describe("createCamera3GizmoActor", () => {
 
   it("routes move and double-click events through the binding to the wrapped gizmo", () => {
     const { context, registeredGizmos } = createContext();
-    const commands: Camera3ControlCommand[] = [];
+    const commands: RuntimeCameraControlCommand[] = [];
     const { createGizmo } = createFakeGizmoFactory([], commands);
     createCamera3GizmoActor(context, {
       actorId: "camera-actor",
@@ -292,7 +330,7 @@ describe("createCamera3GizmoActor", () => {
 
   it("routes projection mode clicks through actor input instead of DOM click handlers", () => {
     const { context, registeredGizmos } = createContext();
-    const commands: Camera3ControlCommand[] = [];
+    const commands: RuntimeCameraControlCommand[] = [];
     const { createGizmo } = createFakeGizmoFactory([], commands, {
       gizmoId: "camera3-view-gizmo",
       partId: "projection-mode",
@@ -331,6 +369,7 @@ describe("createCamera3GizmoActor", () => {
 
     expect(context.actorSystem.getActor("camera-actor")).toBeNull();
     expect(calls).toEqual([
+      "actor-untrack:camera-actor",
       "gizmo-dispose",
       "element-remove",
       "gizmo-dispose:camera-actor:gizmo-event-binding"
@@ -357,6 +396,7 @@ describe("createCamera3GizmoActor", () => {
     handle.dispose();
 
     expect(calls).toEqual([
+      "actor-untrack:camera-actor",
       "gizmo-cancel:gizmo-disabled",
       "gizmo-dispose",
       "element-remove",
@@ -364,6 +404,3 @@ describe("createCamera3GizmoActor", () => {
     ]);
   });
 });
-
-
-

@@ -1,15 +1,14 @@
 import { Camera3GizmoHitTester } from "./camera3-gizmo-hit-test";
 import { Camera3GizmoRenderer } from "./camera3-gizmo-renderer";
 import { Camera3GizmoState } from "./camera3-gizmo-state";
-import type { Camera3CommandSink, Camera3ViewState } from "../../camera3-control";
 import type { GizmoClickEvent, GizmoController, GizmoHit, GizmoMoveEvent, ScreenPoint } from "gizmo-core";
-import type { RuntimeCameraAxis } from "runtime-core";
+import type { RuntimeCameraAxis, RuntimeCameraCommandSink, RuntimeCameraViewState } from "runtime-core";
 
 const projectionModePartId = "projection-mode";
 
 export interface Camera3GizmoOptions {
-  commandSink: Camera3CommandSink;
-  initialViewState: Camera3ViewState;
+  commandSink: RuntimeCameraCommandSink;
+  initialViewState: RuntimeCameraViewState;
   parent?: HTMLElement;
   size?: number;
 }
@@ -25,8 +24,8 @@ export class Camera3Gizmo implements GizmoController {
   private readonly state: Camera3GizmoState;
   private readonly renderer: Camera3GizmoRenderer;
   private readonly hitTester: Camera3GizmoHitTester;
-  private readonly commandSink: Camera3CommandSink;
-  private viewState: Camera3ViewState;
+  private readonly commandSink: RuntimeCameraCommandSink;
+  private viewState: RuntimeCameraViewState;
   private currentModeLabel = "";
 
   constructor(options: Camera3GizmoOptions) {

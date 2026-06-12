@@ -5,7 +5,7 @@ import type { AppStateCommandSink } from "editor";
 import type { AppStateObserver } from "editor";
 import type { RuntimeRegistration } from "../../runtime/ports";
 import type { RuntimeSceneRenderer } from "../../runtime/scene-render-output";
-import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
+import type { Camera3GizmoViewFactory } from "editor";
 import type { GizmoControllerRegistry } from "../../gizmo-runtime";
 import type { StateObserverRegistry } from "editor";
 import { createEditorSceneViewHost } from "editor";

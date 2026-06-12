@@ -1,12 +1,14 @@
 import type * as THREE from "three";
 import type {
   RuntimeCameraId,
+  RuntimeCameraCommandSink,
+  RuntimeCameraControlCommand,
   RuntimeCameraProjectionMode,
-  RuntimeCameraState
+  RuntimeCameraState,
+  RuntimeCameraViewState
 } from "runtime-core";
 import { Camera3RuntimeCamera } from "../runtime/camera3-runtime-camera";
 import type { RuntimeRegistration, UpdateFrame } from "../runtime/ports";
-import type { Camera3CommandSink, Camera3ControlCommand } from "./camera3-control-command";
 
 export interface Camera3MotionControllerOptions {
   readonly target?: readonly [number, number, number];
@@ -27,12 +29,7 @@ export interface Camera3MotionUpdateResult {
 export interface Camera3MotionChangedEvent {
   frame: UpdateFrame;
   cameraState: RuntimeCameraState;
-  commands: readonly Camera3ControlCommand[];
-}
-
-export interface Camera3ViewState {
-  readonly cameraState: RuntimeCameraState;
-  readonly projectionMode: "perspective" | "orthographic";
+  commands: readonly RuntimeCameraControlCommand[];
 }
 
 export interface Camera3MotionObserver {
@@ -43,9 +40,9 @@ interface Camera3Snapshot {
   state: RuntimeCameraState;
 }
 
-export class Camera3MotionController implements Camera3CommandSink {
+export class Camera3MotionController implements RuntimeCameraCommandSink {
   readonly runtimeCameraId: RuntimeCameraId;
-  private pendingCommands: Camera3ControlCommand[] = [];
+  private pendingCommands: RuntimeCameraControlCommand[] = [];
   private readonly observers: Camera3MotionObserver[] = [];
   private readonly runtimeCamera: Camera3RuntimeCamera;
   private readonly locked: boolean;
@@ -79,14 +76,14 @@ export class Camera3MotionController implements Camera3CommandSink {
     return this.runtimeCamera.state;
   }
 
-  readViewState(): Camera3ViewState {
+  readViewState(): RuntimeCameraViewState {
     return {
       cameraState: this.cameraState,
       projectionMode: getProjectionMode(this.cameraState)
     };
   }
 
-  submit(command: Camera3ControlCommand): void {
+  submit(command: RuntimeCameraControlCommand): void {
     validateCommand(command);
     this.pendingCommands.push(command);
   }
@@ -137,7 +134,7 @@ export class Camera3MotionController implements Camera3CommandSink {
     this.runtimeCamera.dispose();
   }
 
-  private applyCommand(command: Camera3ControlCommand): void {
+  private applyCommand(command: RuntimeCameraControlCommand): void {
     switch (command.type) {
       case "orbit-delta":
         if (!this.locked) {
@@ -167,7 +164,7 @@ export class Camera3MotionController implements Camera3CommandSink {
     };
   }
 
-  private notify(frame: UpdateFrame, commands: readonly Camera3ControlCommand[]): void {
+  private notify(frame: UpdateFrame, commands: readonly RuntimeCameraControlCommand[]): void {
     const event: Camera3MotionChangedEvent = {
       frame,
       cameraState: this.cameraState,
@@ -183,7 +180,7 @@ function getProjectionMode(state: RuntimeCameraState): RuntimeCameraProjectionMo
   return state.projection?.mode ?? state.projectionMode ?? "perspective";
 }
 
-function validateCommand(command: Camera3ControlCommand): void {
+function validateCommand(command: RuntimeCameraControlCommand): void {
   switch (command.type) {
     case "orbit-delta":
       assertFinite(command.dx, "orbit-delta.dx");

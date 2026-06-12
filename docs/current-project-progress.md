@@ -234,8 +234,10 @@ Remaining runtime ownership debt:
   extraction.
 - Camera3 runtime camera state is now the single camera truth. The old
   `Camera3Rig` / `Camera3ProjectionModeController` model and rig component were
-  deleted instead of moved into editor presentation. Remaining Camera3 debt is
-  package placement for motion/gizmo components and app-local runtime wiring.
+  deleted instead of moved into editor presentation. Camera3 gizmo presentation,
+  hit testing, actor-input component, styles, and tests now live under
+  `packages/editor/src/camera3`. Remaining Camera3 debt is app-local motion
+  runtime staging and Scene binding placement.
 
 ## Active Plans And Reports
 

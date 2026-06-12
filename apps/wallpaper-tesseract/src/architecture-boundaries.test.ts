@@ -509,8 +509,7 @@ describe("architecture boundaries", () => {
       /^\.\/window-runtime\/floating-window-component\.ts$/,
       /^\.\/window-runtime\/window-frame-lifecycle-controller\.ts$/,
       /^\.\/window-runtime\/window-view-factory-registry\.ts$/,
-      /^\.\/tesseract4\/components\/tesseract4-actor-factory\.ts$/,
-      /^\.\/gizmos\/camera3\/components\/camera3-gizmo-actor-factory\.ts$/
+      /^\.\/tesseract4\/components\/tesseract4-actor-factory\.ts$/
     ];
     const violations = listModuleEdges(sourceFiles)
       .filter((edge) => appCompositionFiles.has(edge.fromFile))
@@ -800,9 +799,12 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps Camera3 UI controls on actor input instead of DOM click handlers", () => {
-    const camera3GizmoSource = sourceFiles["./gizmos/camera3/camera3-gizmo.ts"] ?? "";
-    const camera3ComponentSource = sourceFiles["./gizmos/camera3/components/camera3-gizmo-component.ts"] ?? "";
+    const camera3GizmoSource = editorPackageSources["packages/editor/src/camera3/camera3-gizmo.ts"] ?? "";
+    const camera3ComponentSource =
+      editorPackageSources["packages/editor/src/camera3/components/camera3-gizmo-component.ts"] ?? "";
 
+    expect(sourceFiles["./gizmos/camera3/camera3-gizmo.ts"]).toBeUndefined();
+    expect(sourceFiles["./gizmos/camera3/components/camera3-gizmo-component.ts"]).toBeUndefined();
     expect(camera3GizmoSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
     expect(camera3GizmoSource).not.toMatch(/\.onclick\s*=/);
     expect(camera3GizmoSource).not.toMatch(/projectionMode\.activeCamera/);
@@ -829,7 +831,7 @@ describe("architecture boundaries", () => {
 
   it("parents the Camera3 actor gizmo inside the Scene viewport overlay", () => {
     const sceneViewInstallerSource = sourceFiles["./features/scene/scene-view-content-installer.ts"] ?? "";
-    const camera3Styles = readSourceFile("./gizmos/camera3/camera3-gizmo.css");
+    const camera3Styles = readWorkspaceSourceFile("packages/editor/src/camera3/camera3-gizmo.css");
     const camera3ActorCall = /createCamera3GizmoActor\s*\(\s*context\s*,\s*{[\s\S]*?parentActor:\s*sceneView\.viewport\.actor[\s\S]*?}/
       .exec(sceneViewInstallerSource)?.[0] ?? "";
 
@@ -942,7 +944,7 @@ describe("architecture boundaries", () => {
     const floatingWindowStyles = readSourceFile("./window-runtime/floating-window.css");
     const debugLogStyles = readWorkspaceSourceFile("packages/editor/src/debug/debug-log.css");
     const hierarchyStyles = readWorkspaceSourceFile("packages/editor/src/hierarchy/hierarchy.css");
-    const camera3GizmoStyles = readSourceFile("./gizmos/camera3/camera3-gizmo.css");
+    const camera3GizmoStyles = readWorkspaceSourceFile("packages/editor/src/camera3/camera3-gizmo.css");
     const sceneWindowStyles = readWorkspaceSourceFile("packages/editor/src/scene/scene-window.css");
     const appMenuStyles = readSourceFile("./features/app-menu/app-menu.css");
     const appShellStyles = readSourceFile("./app/app-shell.css");
@@ -964,7 +966,7 @@ describe("architecture boundaries", () => {
     expect(appStyleManifestSource).toMatch(/["']editor\/scene\/scene-window\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']editor\/debug\/debug-log\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']editor\/hierarchy\/hierarchy\.css["']/);
-    expect(appStyleManifestSource).toMatch(/["']\.\.\/gizmos\/camera3\/camera3-gizmo\.css["']/);
+    expect(appStyleManifestSource).toMatch(/["']editor\/camera3\/camera3-gizmo\.css["']/);
   });
 
   it("keeps App Menu routed through actor input and state observer bindings", () => {
@@ -1553,9 +1555,10 @@ describe("architecture boundaries", () => {
   });
 
   it("removes the Camera3 legacy factory surface", () => {
-    const normalIndex = sourceFiles["./gizmos/camera3/index.ts"] ?? "";
-    const componentIndex = sourceFiles["./gizmos/camera3/components/index.ts"] ?? "";
-    const componentSource = sourceFiles["./gizmos/camera3/components/camera3-gizmo-component.ts"] ?? "";
+    const normalIndex = editorPackageSources["packages/editor/src/camera3/index.ts"] ?? "";
+    const componentIndex = editorPackageSources["packages/editor/src/camera3/components/index.ts"] ?? "";
+    const componentSource =
+      editorPackageSources["packages/editor/src/camera3/components/camera3-gizmo-component.ts"] ?? "";
     const violations = Object.entries(sourceFiles)
       .filter(([file]) => (
         file !== "./architecture-boundaries.test.ts"
@@ -1567,6 +1570,8 @@ describe("architecture boundaries", () => {
       .map(([file]) => file)
       .sort();
 
+    expect(sourceFiles["./gizmos/camera3/index.ts"]).toBeUndefined();
+    expect(sourceFiles["./gizmos/camera3/components/index.ts"]).toBeUndefined();
     expect(normalIndex).not.toMatch(/\bcreateCamera3Gizmo\b/);
     expect(normalIndex).not.toMatch(/\bCamera3GizmoFactory\b/);
     expect(componentIndex).not.toMatch(/\bCamera3GizmoFactory\b/);
@@ -1577,7 +1582,7 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps Camera3 actor component on ActorInputParticipant instead of legacy GizmoResponder", () => {
-    const source = sourceFiles["./gizmos/camera3/components/camera3-gizmo-component.ts"] ?? "";
+    const source = editorPackageSources["packages/editor/src/camera3/components/camera3-gizmo-component.ts"] ?? "";
 
     expect(source).toMatch(/\bActorInputParticipant\b/);
     expect(source).toMatch(/\bhitTestInput\b/);
@@ -1593,7 +1598,7 @@ describe("architecture boundaries", () => {
       ["packages/editor/src/inspector/inspector-view-actor-factory.ts", editorPackageSources["packages/editor/src/inspector/inspector-view-actor-factory.ts"] ?? ""],
       ["packages/editor/src/scene/scene-window-actor-factory.ts", editorPackageSources["packages/editor/src/scene/scene-window-actor-factory.ts"] ?? ""],
       ["packages/editor/src/hierarchy/hierarchy-panel-actor-factory.ts", editorPackageSources["packages/editor/src/hierarchy/hierarchy-panel-actor-factory.ts"] ?? ""],
-      ["./gizmos/camera3/components/camera3-gizmo-actor-factory.ts", sourceFiles["./gizmos/camera3/components/camera3-gizmo-actor-factory.ts"] ?? ""],
+      ["packages/editor/src/camera3/components/camera3-gizmo-actor-factory.ts", editorPackageSources["packages/editor/src/camera3/components/camera3-gizmo-actor-factory.ts"] ?? ""],
       ["./tesseract4/components/tesseract4-actor-factory.ts", sourceFiles["./tesseract4/components/tesseract4-actor-factory.ts"] ?? ""]
     ]);
     const violations = [...factorySources]

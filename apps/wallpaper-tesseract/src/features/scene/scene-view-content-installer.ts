@@ -11,8 +11,8 @@ import {
 } from "../camera3/components";
 import {
   createCamera3GizmoActor
-} from "../../gizmos/camera3";
-import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
+} from "editor";
+import type { Camera3GizmoViewFactory } from "editor";
 import type { ActorCreationContext } from "actor-core";
 import type { WindowContentRegistrationPort } from "ui-framework";
 import { createTesseract4Actor } from "../../tesseract4";

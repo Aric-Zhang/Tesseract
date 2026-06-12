@@ -477,31 +477,29 @@ npm run test -w wallpaper-tesseract -- architecture-boundaries camera3-motion-co
 npm run typecheck -w wallpaper-tesseract
 ```
 
-### Step 5B: Camera3 Gizmo Presentation Extraction
+### Step 5B: Camera3 Gizmo Presentation Extraction - Complete
 
 Purpose: move Camera3 presentation only after Step 5A removes mixed runtime
 camera ownership.
 
-Work:
+Completed work:
 
-- Move pure Camera3 gizmo UI, hit testing, state projection, renderer, actor
+- Moved pure Camera3 gizmo UI, hit testing, state projection, renderer, actor
   factory, component definition, and tests to `packages/editor`.
-- Keep model/control code with the runtime owner if it creates or mutates
-  runtime camera state. Move it to runtime package only when doing so removes
-  the app-local owner; do not add a forwarding facade.
-- Convert package imports to `runtime-core` camera state and command/query
-  ports. If the editor still needs an app-local `Camera3MotionController`, stop
-  and clean runtime ownership first.
-- Delete old `gizmos/camera3` and app feature component barrels after imports
-  move.
+- Kept `Camera3MotionController` in app-local runtime staging because it creates
+  and mutates runtime camera state.
+- Moved camera command/view-state contracts to `runtime-core` so editor no
+  longer imports app-local `camera3-control`.
+- Deleted old app-local `gizmos/camera3` paths and replaced app imports with
+  editor public API/CSS exports.
 
 Exit gate:
 
 - Editor owns Camera3 presentation only.
 - Runtime camera state/commands are owned by runtime packages or accepted
   runtime staging, not duplicated in editor.
-- `camera3-control` is deleted, moved to the runtime owner, or narrowed to a
-  non-editor runtime staging file with an explicit deletion condition.
+- `camera3-control` is narrowed to a non-editor runtime staging file with an
+  explicit deletion condition.
 - App composition does not instantiate Camera3 gizmo internals.
 
 Validation:

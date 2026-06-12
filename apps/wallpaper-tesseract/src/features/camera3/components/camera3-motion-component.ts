@@ -1,14 +1,19 @@
 import type * as THREE from "three";
-import type { RuntimeCameraProjectionMode, RuntimeFrame, RuntimeWork } from "runtime-core";
+import type {
+  RuntimeCameraCommandSink,
+  RuntimeCameraControlCommand,
+  RuntimeCameraProjectionMode,
+  RuntimeCameraViewState,
+  RuntimeFrame,
+  RuntimeWork
+} from "runtime-core";
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import {
   Camera3MotionController,
   type Camera3MotionChangedEvent,
   type Camera3MotionObserver,
   type Camera3MotionUpdateResult,
-  type Camera3ViewState
 } from "../../../camera3-control";
-import type { Camera3CommandSink, Camera3ControlCommand } from "../../../camera3-control";
 import type { RuntimeRegistration, UpdateFrame } from "../../../runtime/ports";
 
 export const camera3MotionComponentType =
@@ -26,7 +31,7 @@ export interface Camera3MotionComponentOptions {
   readonly projectionMode?: RuntimeCameraProjectionMode;
 }
 
-export class Camera3MotionComponent implements Component, Camera3CommandSink, RuntimeWork {
+export class Camera3MotionComponent implements Component, RuntimeCameraCommandSink, RuntimeWork {
   readonly type = camera3MotionComponentType;
   readonly actor: Actor;
   readonly id: string;
@@ -48,11 +53,11 @@ export class Camera3MotionComponent implements Component, Camera3CommandSink, Ru
     return this.#controller.distance;
   }
 
-  readViewState(): Camera3ViewState {
+  readViewState(): RuntimeCameraViewState {
     return this.#controller.readViewState();
   }
 
-  submit(command: Camera3ControlCommand): void {
+  submit(command: RuntimeCameraControlCommand): void {
     this.#controller.submit(command);
   }
 
@@ -84,4 +89,3 @@ export class Camera3MotionComponent implements Component, Camera3CommandSink, Ru
 }
 
 export type { Camera3MotionChangedEvent, Camera3MotionObserver };
-export type { Camera3ViewState };

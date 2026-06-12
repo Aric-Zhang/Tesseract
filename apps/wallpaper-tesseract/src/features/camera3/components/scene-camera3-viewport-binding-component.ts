@@ -6,7 +6,7 @@ import {
 import {
   Camera3GizmoComponent,
   camera3GizmoComponentType
-} from "../../../gizmos/camera3/components";
+} from "editor";
 import type { Camera3MotionComponent } from "./camera3-motion-component";
 
 export const sceneCamera3ViewportBindingComponentType =

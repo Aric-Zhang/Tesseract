@@ -10,7 +10,7 @@ import { installAppMenuComponentDefinitions } from "../features/app-menu";
 import { installCamera3FeatureComponentDefinitions } from "../features/camera3/components";
 import { installInspectorComponentDefinitions } from "editor";
 import { installSceneComponentDefinitions } from "editor";
-import { installCamera3ComponentDefinitions } from "../gizmos/camera3/components";
+import { installCamera3ComponentDefinitions } from "editor";
 import { installHierarchyComponentDefinitions } from "editor";
 import { installTesseract4ComponentDefinitions } from "../tesseract4/components";
 import { installWindowComponentDefinitions, type UiLayoutCommandSink } from "../window-runtime";

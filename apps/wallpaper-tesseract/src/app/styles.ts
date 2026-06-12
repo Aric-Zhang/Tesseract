@@ -8,4 +8,4 @@ import "../window-runtime/window-frame-tab-chrome.css";
 import "editor/scene/scene-window.css";
 import "editor/debug/debug-log.css";
 import "editor/hierarchy/hierarchy.css";
-import "../gizmos/camera3/camera3-gizmo.css";
+import "editor/camera3/camera3-gizmo.css";

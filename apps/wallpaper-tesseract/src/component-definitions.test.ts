@@ -6,13 +6,11 @@ import {
   installDebugLogComponentDefinitions,
   installHierarchyComponentDefinitions,
   installSceneComponentDefinitions,
+  camera3GizmoComponentType,
+  installCamera3ComponentDefinitions,
   sceneModeToggleComponentType,
   sceneViewportComponentType
 } from "editor";
-import {
-  camera3GizmoComponentType,
-  installCamera3ComponentDefinitions
-} from "./gizmos/camera3/components";
 import {
   gizmoEventBindingComponentDefinition,
   gizmoEventBindingComponentType,

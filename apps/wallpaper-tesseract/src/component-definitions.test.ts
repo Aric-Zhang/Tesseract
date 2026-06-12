@@ -1,27 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { installWallpaperComponentDefinitions } from "./app/install-component-definitions";
-import { installDebugLogComponentDefinitions } from "editor";
 import {
-  debugLogContentComponentType
+  debugLogContentComponentType,
+  hierarchyPanelComponentType,
+  installDebugLogComponentDefinitions,
+  installHierarchyComponentDefinitions,
+  installSceneComponentDefinitions,
+  sceneModeToggleComponentType,
+  sceneViewportComponentType
 } from "editor";
 import {
   camera3GizmoComponentType,
   installCamera3ComponentDefinitions
 } from "./gizmos/camera3/components";
 import {
-  installSceneComponentDefinitions,
-  sceneModeToggleComponentType,
-  sceneViewportComponentType
-} from "./features/scene";
-import {
   gizmoEventBindingComponentDefinition,
   gizmoEventBindingComponentType,
   installGizmoRuntimeComponentDefinitions
 } from "./gizmo-runtime";
-import {
-  hierarchyPanelComponentType,
-  installHierarchyComponentDefinitions
-} from "editor";
 import {
   installEditorStateObserverComponentDefinitions,
   stateObserverBindingComponentType

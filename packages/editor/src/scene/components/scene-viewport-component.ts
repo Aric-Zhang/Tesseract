@@ -1,15 +1,11 @@
-import type { Actor, Component, ComponentType } from "../../../actor-runtime";
-import type { RuntimeRegistration } from "../../../runtime/ports";
-import type {
-  RuntimeSceneRenderer,
-  RuntimeSceneRendererFactory
-} from "../../../runtime/scene-render-output";
+import type { Actor, Component, ComponentType } from "actor-core";
+import type { RuntimeRegistration } from "runtime-core";
 import type {
   WindowContentLayoutCommit,
   WindowContentLayoutCommitRegistration,
   WindowContentRegistrationPort,
   WindowRegisteredContent
-} from "../../../window-runtime";
+} from "ui-framework";
 
 export const sceneViewportComponentType =
   "scene-viewport-component" as ComponentType<SceneViewportComponent>;
@@ -23,9 +19,6 @@ export interface SceneViewportComponentOptions {
   createResizeObserver?: SceneViewportResizeObserverFactory;
   devicePixelRatio?: () => number;
 }
-
-export type SceneViewportRenderer = RuntimeSceneRenderer;
-export type SceneViewportRendererFactory = RuntimeSceneRendererFactory;
 
 export interface SceneViewportRenderTarget {
   readonly domElement: HTMLElement;

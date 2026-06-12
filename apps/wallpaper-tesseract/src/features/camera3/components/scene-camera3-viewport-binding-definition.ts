@@ -1,7 +1,7 @@
 import type { ComponentDefinition } from "../../../actor-runtime";
 import {
   sceneViewportComponentType
-} from "../../scene/components";
+} from "editor";
 import {
   camera3MotionComponentType
 } from "./camera3-motion-component";

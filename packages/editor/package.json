@@ -19,7 +19,8 @@
     },
     "./debug/debug-log.css": "./src/debug/debug-log.css",
     "./hierarchy/hierarchy.css": "./src/hierarchy/hierarchy.css",
-    "./inspector/inspector.css": "./src/inspector/inspector.css"
+    "./inspector/inspector.css": "./src/inspector/inspector.css",
+    "./scene/scene-window.css": "./src/scene/scene-window.css"
   },
   "types": "./dist/index.d.ts",
   "scripts": {

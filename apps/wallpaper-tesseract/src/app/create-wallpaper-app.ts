@@ -6,11 +6,13 @@ import {
   type DebugLogContentComponent
 } from "editor";
 import {
-  createSceneDefaultOpenView,
   createDefaultSceneWindowState,
-  createSceneWindowWorkspaceFloatingFramePolicy,
-  installSceneViewFeature,
   registerSceneWindowParameters
+} from "editor";
+import {
+  createSceneDefaultOpenView,
+  createSceneWindowWorkspaceFloatingFramePolicy,
+  installSceneViewFeature
 } from "../features/scene";
 import { installAppMenuFeature } from "../features/app-menu";
 import {

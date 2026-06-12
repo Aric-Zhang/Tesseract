@@ -1,5 +1,9 @@
 import type { Actor } from "../../actor-runtime";
-import { createRuntimeSceneRenderOutput, type RuntimeSceneRenderOutput } from "../../runtime/scene-render-output";
+import {
+  createRuntimeSceneRenderOutput,
+  type RuntimeSceneRendererFactory,
+  type RuntimeSceneRenderOutput
+} from "../../runtime/scene-render-output";
 import {
   camera3MotionComponentType,
   camera3RigComponentType,
@@ -11,16 +15,15 @@ import {
 } from "../../gizmos/camera3";
 import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
 import type { ActorCreationContext } from "actor-core";
-import type { WindowContentRegistrationPort } from "../../window-runtime";
+import type { WindowContentRegistrationPort } from "ui-framework";
 import { createTesseract4Actor } from "../../tesseract4";
 import type {
-  SceneViewportRendererFactory,
   SceneViewportResizeObserverFactory
-} from "./components";
+} from "editor";
 import {
   createSceneViewActor,
   type RegisteredSceneViewActor
-} from "./scene-window-actor-factory";
+} from "editor";
 
 export interface SceneViewContentActorIds {
   readonly sceneWindowActorId: string;
@@ -36,7 +39,7 @@ export interface InstallSceneViewContentOptions {
   readonly mount: HTMLElement;
   readonly parentFrameActor: Actor;
   readonly actorIds: SceneViewContentActorIds;
-  readonly createRenderer?: SceneViewportRendererFactory;
+  readonly createRenderer?: RuntimeSceneRendererFactory;
   readonly createResizeObserver?: SceneViewportResizeObserverFactory;
   readonly createCamera3GizmoView?: Camera3GizmoViewFactory;
   readonly devicePixelRatio?: () => number;

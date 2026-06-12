@@ -1,5 +1,5 @@
-import type { ActorSystemView } from "../../actor-runtime";
-import type { WindowViewLocationSource } from "../../window-runtime";
+import type { ActorSystemView } from "actor-core";
+import type { WindowViewLocationSource } from "ui-framework";
 import type { RegisteredSceneViewActor } from "./scene-window-actor-factory";
 
 export interface EditorSceneViewHost {

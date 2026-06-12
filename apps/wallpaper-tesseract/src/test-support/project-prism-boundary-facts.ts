@@ -33,7 +33,6 @@ export const projectPrismSourceZones = [
   ]),
   definePathZone("editor-candidate", "Concrete editor features and editor presentation components.", [
     /^packages\/editor\/src\//,
-    /^\.\/features\/scene\//,
     /^\.\/features\/camera3\/components\//,
     /^\.\/gizmos\//
   ]),
@@ -56,8 +55,7 @@ export const projectPrismSourceZones = [
     /^\.\/camera3-control\//,
     /^\.\/features\/camera3\/model\//,
     /^\.\/features\/camera3\/components\/(?:camera3-motion-component|camera3-rig-component|scene-camera3-viewport-binding-component)\.ts$/,
-    /^\.\/features\/scene\/(?:install-scene-view-feature|scene-view-content-installer|renderable-scene-view|scene-window-actor-factory)\.ts$/,
-    /^\.\/features\/scene\/components\/scene-viewport-component\.ts$/,
+    /^\.\/features\/scene\/(?:index|install-scene-view-feature|scene-view-content-installer|renderable-scene-view)\.ts$/,
     /^\.\/tesseract4\//
   ], { debt: true })
 ] as const satisfies readonly SourceZoneDefinition[];

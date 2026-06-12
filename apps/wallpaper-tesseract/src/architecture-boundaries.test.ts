@@ -717,7 +717,7 @@ describe("architecture boundaries", () => {
     const sceneFeatureInstallerSource = sourceFiles["./features/scene/install-scene-view-feature.ts"] ?? "";
     const sceneViewInstallerSource = sourceFiles["./features/scene/scene-view-content-installer.ts"] ?? "";
     const renderableSceneViewSource = sourceFiles["./features/scene/renderable-scene-view.ts"] ?? "";
-    const editorSceneViewHostSource = sourceFiles["./features/scene/editor-scene-view-host.ts"] ?? "";
+    const editorSceneViewHostSource = editorPackageSources["packages/editor/src/scene/editor-scene-view-host.ts"] ?? "";
 
     expect(appSource).not.toMatch(/\bnew\s+THREE\.WebGLRenderer\b/);
     expect(appSource).not.toMatch(/replaceChildren\s*\(\s*renderer\.domElement\s*\)/);
@@ -742,6 +742,9 @@ describe("architecture boundaries", () => {
     expect(sceneFeatureInstallerSource).not.toMatch(/\bCurrentRenderableSceneViewRegistry\b/);
     expect(sceneViewInstallerSource).not.toMatch(/\bcreateSceneWindowActor\b/);
     expect(sceneViewInstallerSource).toMatch(/\bcreateSceneViewActor\b/);
+    expect(sourceFiles["./features/scene/editor-scene-view-host.ts"]).toBeUndefined();
+    expect(sourceFiles["./features/scene/scene-window-actor-factory.ts"]).toBeUndefined();
+    expect(sourceFiles["./features/scene/components/index.ts"]).toBeUndefined();
     expect(renderableSceneViewSource).toMatch(/renderOutput\.render/);
     expect(renderableSceneViewSource).not.toMatch(/sceneView\.viewport\.render/);
     expect(editorSceneViewHostSource).not.toMatch(/renderWithCamera|sceneView\.viewport\.render/);
@@ -749,7 +752,7 @@ describe("architecture boundaries", () => {
 
   it("guards Scene viewport rendering behind current view ownership and active state", () => {
     const renderableSceneViewSource = sourceFiles["./features/scene/renderable-scene-view.ts"] ?? "";
-    const editorSceneViewHostSource = sourceFiles["./features/scene/editor-scene-view-host.ts"] ?? "";
+    const editorSceneViewHostSource = editorPackageSources["packages/editor/src/scene/editor-scene-view-host.ts"] ?? "";
 
     expect(renderableSceneViewSource).toMatch(/\bisRenderable\s*\(\)\s*{/);
     expect(renderableSceneViewSource).not.toMatch(/sceneWindow\.window\.state\.visible/);
@@ -934,7 +937,7 @@ describe("architecture boundaries", () => {
     const debugLogStyles = readWorkspaceSourceFile("packages/editor/src/debug/debug-log.css");
     const hierarchyStyles = readWorkspaceSourceFile("packages/editor/src/hierarchy/hierarchy.css");
     const camera3GizmoStyles = readSourceFile("./gizmos/camera3/camera3-gizmo.css");
-    const sceneWindowStyles = readSourceFile("./features/scene/scene-window.css");
+    const sceneWindowStyles = readWorkspaceSourceFile("packages/editor/src/scene/scene-window.css");
     const appMenuStyles = readSourceFile("./features/app-menu/app-menu.css");
     const appShellStyles = readSourceFile("./app/app-shell.css");
     const appStyleManifestSource = sourceFiles["./app/styles.ts"] ?? "";
@@ -952,7 +955,7 @@ describe("architecture boundaries", () => {
     expect(appStyleManifestSource).toMatch(/["']\.\/app-shell\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/features\/app-menu\/app-menu\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/window-runtime\/floating-window\.css["']/);
-    expect(appStyleManifestSource).toMatch(/["']\.\.\/features\/scene\/scene-window\.css["']/);
+    expect(appStyleManifestSource).toMatch(/["']editor\/scene\/scene-window\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']editor\/debug\/debug-log\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']editor\/hierarchy\/hierarchy\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/gizmos\/camera3\/camera3-gizmo\.css["']/);
@@ -1582,7 +1585,7 @@ describe("architecture boundaries", () => {
     const factorySources = new Map([
       ["packages/editor/src/debug/components/debug-log-window-actor-factory.ts", editorPackageSources["packages/editor/src/debug/components/debug-log-window-actor-factory.ts"] ?? ""],
       ["packages/editor/src/inspector/inspector-view-actor-factory.ts", editorPackageSources["packages/editor/src/inspector/inspector-view-actor-factory.ts"] ?? ""],
-      ["./features/scene/scene-window-actor-factory.ts", sourceFiles["./features/scene/scene-window-actor-factory.ts"] ?? ""],
+      ["packages/editor/src/scene/scene-window-actor-factory.ts", editorPackageSources["packages/editor/src/scene/scene-window-actor-factory.ts"] ?? ""],
       ["packages/editor/src/hierarchy/hierarchy-panel-actor-factory.ts", editorPackageSources["packages/editor/src/hierarchy/hierarchy-panel-actor-factory.ts"] ?? ""],
       ["./gizmos/camera3/components/camera3-gizmo-actor-factory.ts", sourceFiles["./gizmos/camera3/components/camera3-gizmo-actor-factory.ts"] ?? ""],
       ["./tesseract4/components/tesseract4-actor-factory.ts", sourceFiles["./tesseract4/components/tesseract4-actor-factory.ts"] ?? ""]

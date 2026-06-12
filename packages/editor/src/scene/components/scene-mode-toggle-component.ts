@@ -1,18 +1,18 @@
 import type { ScreenPoint } from "gizmo-core";
-import type { Actor, Component, ComponentType } from "../../../actor-runtime";
-import { actorInputScopeRoutePriority } from "../../../gizmo-runtime";
+import type { Actor, Component, ComponentType } from "actor-core";
+import { actorInputScopeRoutePriority } from "actor-input";
 import type {
   ActorInputEndEvent,
   ActorInputHit,
   ActorInputParticipant
-} from "../../../gizmo-runtime";
+} from "actor-input";
 import {
   editorStatePaths,
   type EditorCommandSink,
   type EditorWorkspaceMode
-} from "editor";
-import type { StateChangedEvent } from "../../../runtime/ports";
-import type { StateObserverResponder } from "editor";
+} from "../../editor-state";
+import type { AppStateChangedEvent as StateChangedEvent } from "../../app-state";
+import type { StateObserverResponder } from "../../state-observer/state-observer-responder";
 import type { SceneViewportComponent } from "./scene-viewport-component";
 
 export const sceneModeToggleComponentType =

@@ -2,7 +2,7 @@ import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import type { RuntimeRegistration } from "../../../runtime/ports";
 import {
   SceneViewportComponent
-} from "../../scene/components";
+} from "editor";
 import {
   Camera3GizmoComponent,
   camera3GizmoComponentType

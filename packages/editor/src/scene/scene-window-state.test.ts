@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { AppFrameStateController } from "editor";
-import { AppStateParameterStore } from "editor";
-import { editorWindowLayoutPaths } from "editor";
-import { uiVec2 } from "../../window-runtime";
+import { AppFrameStateController } from "../app-state-controller";
+import { AppStateParameterStore } from "../app-state-store";
+import { editorWindowLayoutPaths } from "../window-layout-state";
+import { uiVec2 } from "ui-framework";
 import {
   createDefaultSceneWindowState,
   registerSceneWindowParameters,

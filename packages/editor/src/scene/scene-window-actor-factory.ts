@@ -1,5 +1,5 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
-import type { WindowContentRegistrationPort } from "../../window-runtime";
+import type { WindowContentRegistrationPort } from "ui-framework";
 import {
   sceneModeToggleComponentType,
   type SceneModeToggleComponent,

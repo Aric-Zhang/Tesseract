@@ -6,7 +6,7 @@ import {
   type RuntimeRegistration
 } from "runtime-core";
 import type { Camera3MotionComponent } from "../camera3/components";
-import type { EditorSceneViewHost } from "./editor-scene-view-host";
+import type { EditorSceneViewHost } from "editor";
 import type { RuntimeSceneRenderOutput } from "../../runtime/scene-render-output";
 
 export interface RenderableSceneView {

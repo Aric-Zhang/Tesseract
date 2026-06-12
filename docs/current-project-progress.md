@@ -129,7 +129,11 @@ Important app source areas:
 - `apps/wallpaper-tesseract/src/features/app-menu`: app menu actor/component
   and type/instance based window command model.
 - `apps/wallpaper-tesseract/src/features/scene`: Scene feature installation,
-  renderable Scene view staging, and current Scene view ownership debt.
+  renderable Scene view staging, content installer runtime wiring, and current
+  Camera3/Tesseract render-output ownership debt.
+- `packages/editor/src/scene`: Scene View presentation state, viewport/mode
+  toggle components, actor factory, DOM host, and CSS. It must not import
+  app-local runtime wiring, Camera3, Tesseract, or runtime render output.
 - `packages/editor/src/inspector`: multi-instance Inspector pilot and view
   identity reference implementation.
 - `packages/editor/src/debug`, `packages/editor/src/hierarchy`, and
@@ -300,10 +304,10 @@ app-local runtime ports. The Step 3 preflight binding cleanup is also complete:
 state observer binding is editor-owned and UI frame update attachment is
 ui-framework-owned. Debug, Hierarchy, Inspector, and the tool-window installer
 have moved into `packages/editor`; their old app-local directories are
-deleted. Scene presentation now consumes a structural render target instead of
-owning runtime render output or `THREE.Camera` rendering. The next hard cleanup
-moves Scene presentation without moving app-local runtime wiring into
-`packages/editor`, resolves Camera3 motion/rig ownership before Camera3
+deleted. Scene presentation now lives in `packages/editor` and consumes a
+structural render target instead of owning runtime render output or
+`THREE.Camera` rendering. App-local `features/scene` is now runtime wiring
+only. The next hard cleanup resolves Camera3 motion/rig ownership before Camera3
 gizmo extraction, then moves component definition installers and app
 composition wiring into a new `packages/editor` package. The plan keeps
 deletion-first rules explicit: no app-local compatibility barrels, no duplicate

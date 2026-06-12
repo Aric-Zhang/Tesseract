@@ -1,5 +1,11 @@
 import type { ActorCreationContext } from "actor-core";
-import { editorWindowLayoutPaths } from "editor";
+import {
+  createEditorSceneViewHost,
+  editorWindowLayoutPaths,
+  SCENE_WINDOW_MIN_HEIGHT,
+  SCENE_WINDOW_MIN_WIDTH,
+  SCENE_WINDOW_PRIORITY_DEVELOP
+} from "editor";
 import type {
   WindowViewFactoryRegistry,
   WindowViewLocationSource
@@ -10,7 +16,6 @@ import type {
   WindowWorkspaceFloatingFramePolicy
 } from "../window-workspace";
 import { WORKSPACE_ROOT_FRAME_ID } from "../../window-runtime";
-import { createEditorSceneViewHost } from "./editor-scene-view-host";
 import {
   createRenderableSceneView,
   SceneViewFrameSourceRegistry
@@ -19,12 +24,6 @@ import {
   installSceneViewContent,
   type SceneViewContentActorIds
 } from "./scene-view-content-installer";
-import {
-  SCENE_WINDOW_MIN_HEIGHT,
-  SCENE_WINDOW_MIN_WIDTH,
-  SCENE_WINDOW_PRIORITY_DEVELOP
-} from "./scene-window-state";
-
 export interface InstallSceneViewFeatureOptions {
   readonly context: ActorCreationContext;
   readonly mount: HTMLElement;

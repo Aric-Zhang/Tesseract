@@ -383,6 +383,15 @@ npm run typecheck -w wallpaper-tesseract
 
 ### Step 4B: Editor Scene Presentation Extraction
 
+Status: complete for presentation extraction. Scene View state, CSS,
+viewport/mode-toggle components, actor factory, and editor Scene host moved to
+`packages/editor/src/scene`. App-local `features/scene` now keeps only
+runtime-facing wiring (`install-scene-view-feature`,
+`scene-view-content-installer`, and `renderable-scene-view`) because those files
+still compose Camera3, Tesseract, and runtime render output ownership. Do not
+move that runtime wiring into `packages/editor`; delete or relocate it only
+after Camera3/Tesseract runtime owners are clarified.
+
 Purpose: move the remaining Scene View presentation after Step 4A proves
 runtime ownership is no longer mixed into the editor-facing files.
 
@@ -397,9 +406,10 @@ Exit gate:
 - `packages/editor` has no direct world/camera/renderer/render-output
   construction for Scene.
 - Scene View content registration remains graph/window-framework based.
-- App imports Scene View installer from `editor`, not app `features/scene`.
-- Any remaining app-local Scene runtime file has a runtime owner and deletion
-  condition; no idle duplicate remains.
+- App imports Scene presentation state, components, actor factory, host, and
+  CSS from `editor`, not app `features/scene`.
+- App-local Scene runtime wiring remains only for Camera3/Tesseract/render
+  output composition and has a deletion condition; no idle duplicate remains.
 
 Validation:
 

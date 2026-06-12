@@ -4,12 +4,12 @@ import { installWallpaperComponentDefinitions } from "../../app/install-componen
 import type { AppStateCommandSink } from "editor";
 import type { AppStateObserver } from "editor";
 import type { RuntimeRegistration } from "../../runtime/ports";
-import type { SceneViewportRenderer } from "./components";
+import type { RuntimeSceneRenderer } from "../../runtime/scene-render-output";
 import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";
 import type { GizmoControllerRegistry } from "../../gizmo-runtime";
 import type { StateObserverRegistry } from "editor";
+import { createEditorSceneViewHost } from "editor";
 import {
-  createEditorSceneViewHost,
   createRenderableSceneView,
   SceneViewFrameSourceRegistry,
   installSceneViewContent,
@@ -108,7 +108,7 @@ function findChildByClass(element: FakeElement, className: string): FakeElement 
   return child;
 }
 
-function createFakeRenderer(document: FakeDocument, calls: string[]): SceneViewportRenderer {
+function createFakeRenderer(document: FakeDocument, calls: string[]): RuntimeSceneRenderer {
   return {
     domElement: document.createElement("canvas") as unknown as HTMLElement,
     setClearColor(color, alpha): void {

@@ -1,7 +1,7 @@
 import type { ActorInputEndEvent } from "../gizmo-runtime";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
 import { readWindowTabDragSource } from "ui-framework";
-import type { WindowDockCommitIntent, WindowFrameIntentSink } from "./window-frame-lifecycle";
+import type { WindowDockCommitIntent, WindowDockCommitResult, WindowFrameIntentSink } from "./window-frame-lifecycle";
 import {
   WINDOW_FRAME_TAB_ACTION_PART_ID,
   WINDOW_FRAME_TAB_PART_ID
@@ -21,6 +21,11 @@ export interface WindowFrameTabInputEndOptions {
 export interface WindowFrameTabInputEndResult {
   readonly handled: boolean;
   readonly draggingTab: boolean;
+  readonly dockCommit?: {
+    readonly preview: WindowTabDragSessionEndResult["preview"];
+    readonly intent: WindowDockCommitIntent;
+    readonly result: WindowDockCommitResult;
+  };
 }
 
 export function handleWindowFrameTabInputEnd(
@@ -63,7 +68,24 @@ export function handleWindowFrameTabInputEnd(
 
   const result = tabDragSink?.endTabDrag() ?? null;
   const intent = result ? createDockCommitIntent(result) : null;
-  if (intent) frameIntentSink?.requestCommitDock?.(intent);
+  const unavailableCommitResult: WindowDockCommitResult = {
+    committed: false,
+    reason: "dock commit sink unavailable"
+  };
+  const commitResult = intent
+    ? frameIntentSink?.requestCommitDock?.(intent) ?? unavailableCommitResult
+    : null;
+  if (result && intent && commitResult) {
+    return {
+      handled: true,
+      draggingTab: false,
+      dockCommit: {
+        preview: result.preview,
+        intent,
+        result: commitResult
+      }
+    };
+  }
   return { handled: true, draggingTab: false };
 }
 

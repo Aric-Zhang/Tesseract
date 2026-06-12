@@ -162,7 +162,10 @@ function createSubject(options: CreateSubjectOptions = {}): Subject {
     requestActivateFrameTab: (frameId, viewActorId, reason) => (
       frameIntents.push(`activate:${frameId}:${viewActorId}:${reason}`)
     ),
-    requestCommitDock: () => frameIntents.push("commit-dock"),
+    requestCommitDock: () => {
+      frameIntents.push("commit-dock");
+      return { committed: true, sourceFrameDestroyed: false };
+    },
     requestOpenOrFocusViewType: (typeKey, reason) => frameIntents.push(`open-type:${typeKey}:${reason}`),
     requestCreateViewInstance: (typeKey, reason) => frameIntents.push(`new-instance:${typeKey}:${reason}`),
     requestFocusViewInstance: (identity, reason) => frameIntents.push(`focus-instance:${identity.instanceId}:${reason}`)

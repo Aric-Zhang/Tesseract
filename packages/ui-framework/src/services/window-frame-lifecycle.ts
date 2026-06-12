@@ -268,5 +268,5 @@ export interface WindowFrameIntentSink {
     ratio: number,
     reason: Extract<WindowFrameLifecycleReason, "dock-drop" | "programmatic">
   ): void;
-  requestCommitDock?(intent: WindowDockCommitIntent): void;
+  requestCommitDock?(intent: WindowDockCommitIntent): WindowDockCommitResult;
 }

@@ -353,17 +353,16 @@ evidence-file test. The remaining hard cleanup is runtime-owner work for
 app-local Scene/Camera3 viewport binding, Tesseract, and Phase 7 bootstrap
 thinning.
 
-Active post-Phase-6 gate: after Phase 6 extraction, a visible Debug/Scene
-repeated dock investigation found a real graph reducer bug that is fixed in the
-working tree but still needs lifecycle/controller regression coverage, root
-validation, browser evidence refresh, and commit. It also exposed dock/debug
-diagnostic debt: commit failures can be silent, Debug Log lacks the semantic
-dock trace, and dock split ids are still derived by lifecycle callers. The
-Phase 6 plan now contains `Step 10: Post-Phase-6 Dock Regression And
-Diagnostics Gate`; complete that gate before starting a larger architecture
-move. Step 10 treats lifecycle-side dock id derivation as a hard cleanup item,
-requires a testable dock commit diagnostic exit, and requires rebuilding package
-outputs consumed by the app before browser smoke.
+Completed post-Phase-6 dock gate: after Phase 6 extraction, a visible
+Debug/Scene repeated dock investigation found a real graph reducer bug and
+dock/debug diagnostic gaps. `Step 10: Post-Phase-6 Dock Regression And
+Diagnostics Gate` is now complete: split dock ids are allocated by
+`WindowWorkspaceGraph`, lifecycle callers no longer pass `newTabsetId` /
+`newSplitId`, `requestCommitDock` returns `WindowDockCommitResult`, tab input
+exposes a narrow assertable dock evidence object, root validation passed, and
+browser evidence proves the repeated two-tab Debug/Scene dock path visually
+lands in the expected root layout. DCK-003 and DEV-001 remain watch items in
+the permanent defect ledger, but they do not block the next architecture slice.
 
 The plan keeps
 deletion-first rules explicit: no app-local compatibility barrels, no duplicate

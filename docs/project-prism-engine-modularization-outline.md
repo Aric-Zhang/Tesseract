@@ -32,7 +32,7 @@ Completed pre-Phase 6 final gate record:
 temp/project-prism-pre-phase-6-final-gate-plan.md
 ```
 
-Completed Phase 6 detailed execution record and active post-Phase-6 dock gate:
+Completed Phase 6 detailed execution record and completed post-Phase-6 dock gate:
 
 ```text
 temp/project-prism-phase-6-editor-extraction-plan.md
@@ -56,11 +56,12 @@ graph snapshots, DOM placement, actor-input hits, persistence descriptors, and
 required scenario coverage through a reproducible evidence-file validator.
 `window-workspace-multi-truth-debt` has been removed from boundary facts.
 Confirmed defects and non-blocking follow-up cleanup now belong in
-docs/known-defects-and-todos.md instead of temporary plans. The current Phase 6
-execution record also contains an active post-Phase-6 dock regression and
-diagnostics gate for the 2026-06-13 Debug/Scene repeated dock investigation;
-complete or explicitly fold that gate into the next runtime-owner slice before
-starting another broad architecture move.
+docs/known-defects-and-todos.md instead of temporary plans. The Phase 6
+execution record also contains the completed post-Phase-6 dock regression and
+diagnostics gate for the 2026-06-13 Debug/Scene repeated dock investigation.
+That gate moved split dock id allocation into `WindowWorkspaceGraph`, made dock
+commit results assertable, and verified the repeated Debug/Scene dock path with
+root validation and browser evidence.
 ```
 
 ## Codename

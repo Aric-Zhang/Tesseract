@@ -132,7 +132,7 @@ export function installWindowWorkspaceFeature(
       requireLifecycle().resizeFrameSplit(frameId, splitId, ratio, reason);
     },
     requestCommitDock(intent) {
-      requireLifecycle().commitDock(intent);
+      return requireLifecycle().commitDock(intent);
     }
   };
   const floatingFrameCounters = new Map<WindowViewKey, number>();

@@ -397,8 +397,6 @@ describe("WindowWorkspaceGraph", () => {
         contentId: debugContentId,
         targetFrameId: frameId,
         targetTabsetId,
-        newTabsetId: sourceTabsetId,
-        newSplitId: sourceSplitId,
         placement: "bottom"
       }
     });
@@ -448,8 +446,6 @@ describe("WindowWorkspaceGraph", () => {
         contentId: sceneContentId,
         targetFrameId: frameId,
         targetTabsetId: topTabsetId,
-        newTabsetId: bottomTabsetId,
-        newSplitId: windowWorkspaceSplitId("split:self"),
         placement: "bottom"
       }
     });

@@ -745,7 +745,16 @@ Final exit gate:
 - `temp/project-prism-phase-6-smoke-data.json` exists and validates.
 - Browser smoke passes with graph/DOM/input/persistence parity preserved.
 
-## Step 10: Post-Phase-6 Dock Regression And Diagnostics Gate - Active
+## Step 10: Post-Phase-6 Dock Regression And Diagnostics Gate - Complete
+
+Status: complete on 2026-06-13. The repeated Debug/Scene dock regression is
+covered at reducer, lifecycle/controller, and browser-smoke levels. Split dock
+node ids are now allocated by `WindowWorkspaceGraph`, not lifecycle callers.
+`WindowFrameIntentSink.requestCommitDock` returns `WindowDockCommitResult`, and
+`handleWindowFrameTabInputEnd` exposes a narrow `dockCommit` evidence object
+containing the drag preview, generated intent, and commit result. This keeps the
+diagnostic path assertable without making Debug Log or app composition a
+placement owner.
 
 Purpose: close the real Debug/Scene repeated dock regression found after Phase
 6 extraction, and remove the diagnostic blind spots that made the failure look
@@ -756,9 +765,9 @@ This is not a compatibility or logging expansion project. The work must keep
 here may report lifecycle/graph results, but they must not store placement
 state, derive alternate dock targets, or become a second decision path.
 
-Blocking items before the next large Phase 6+ slice:
+Completed items before the next large Phase 6+ slice:
 
-1. DCK-005 fixed-pending-verification must become fully verified and committed.
+1. DCK-005 fixed-pending-verification became fully verified.
    - Keep the reducer fix that removes the source content and collapses empty
      branches before duplicate dock node validation.
    - Add a lifecycle/controller-level regression test for the actual repeated
@@ -780,7 +789,7 @@ npm run build
      or add a narrow follow-up evidence file if regenerating the full Phase 6
      smoke would hide the regression detail.
 
-2. DCK-001 and DCK-002 must get one narrow semantic dock trace.
+2. DCK-001 and DCK-002 received one narrow semantic dock trace.
    - `requestCommitDock(intent)` must no longer discard useful commit failure
      information silently.
    - Use exactly one explicit contract exit:
@@ -802,7 +811,7 @@ preview -> dock intent -> lifecycle validation -> graph transaction -> commit re
    - Debug Log may display this trace only as diagnostic output. It must not
      become a dock target source, graph cache, or lifecycle authority.
 
-3. DCK-004 is a hard Step 10 cleanup item.
+3. DCK-004 was completed as a hard Step 10 cleanup item.
    - Move dock split id allocation into the graph reducer. The existence of
      public `newTabsetId` / `newSplitId` inputs and lifecycle-side derived id
      construction is already enough evidence of unnecessary complexity.
@@ -815,7 +824,7 @@ preview -> dock intent -> lifecycle validation -> graph transaction -> commit re
    - Delete or rewrite tests and fixtures that only exist to preserve the old
      caller-provided id transaction API.
 
-4. DCK-003 and DEV-001 are follow-up cleanup/watch items, not blockers by
+4. DCK-003 and DEV-001 remain follow-up cleanup/watch items, not blockers by
    themselves.
    - If Step 10 touches gizmo debug logging, fix the
      `buttons-zero-without-capture` wording or behavior in the same pass.
@@ -834,23 +843,43 @@ npm run dev -w wallpaper-tesseract
 
 Exit gate:
 
-- DCK-005 is no longer `fixed-pending-verification`; it is either closed or
-  explicitly folded into a broader graph-id cleanup commit.
+- DCK-005 is no longer `fixed-pending-verification`.
 - A lifecycle/controller-level `commitDock` regression test covers the repeated
   two-tab split dock path that reproduced the visual failure.
 - DCK-004 is closed: split dock graph node ids are allocated by the graph model,
   not lifecycle callers, and the transaction API no longer exposes
   `newTabsetId` / `newSplitId`.
-- Root validation passes after rebuilding any package output consumed by the
-  app dev server.
+- Root validation passed after rebuilding package output consumed by the app
+  dev server.
 - Browser evidence includes the repeated two-tab `Debug`/`Scene` dock scenario
   and proves the final visual layout, graph snapshot, and DOM parent parity.
 - A failed dock commit produces a concise semantic reason through a return value
-  or narrow diagnostic sink that tests/smoke evidence can assert.
+  that tests can assert.
 - No new package API, app-local facade, fake test port, or alternate placement
   model was added to carry the diagnostics.
 - `docs/known-defects-and-todos.md` and `docs/current-project-progress.md` are
   updated with the verified status.
+
+Verification completed:
+
+```text
+npm run test -w ui-framework -- window-workspace-graph window-frame-lifecycle-controller
+npm run test -w wallpaper-tesseract -- window-frame-tab-input app-menu-bar-component architecture-boundaries
+npm run typecheck -w ui-framework
+npm run typecheck -w wallpaper-tesseract
+npm run build -w ui-framework
+npm run build -w editor
+npm run test
+npm run typecheck
+npm run build
+```
+
+Browser evidence:
+
+```text
+temp/project-prism-phase-6-step10-dock-regression-evidence.json
+temp/project-prism-phase-6-step10-debug-scene-repeat-dock.png
+```
 
 Stop and amend this Step 10 plan if:
 

@@ -1835,8 +1835,6 @@ export class DefaultWindowFrameLifecycleController implements
       contentId,
       targetFrameId: windowWorkspaceFrameId(intent.targetFrameId),
       targetTabsetId: windowWorkspaceTabsetId(intent.targetTabsetId),
-      newTabsetId: createDerivedGraphTabsetId(intent.targetTabsetId, contentId),
-      newSplitId: createDerivedGraphSplitId(intent.targetTabsetId, contentId),
       placement: intent.placement,
       active: true
     });
@@ -1871,8 +1869,6 @@ export class DefaultWindowFrameLifecycleController implements
       targetFrameId: windowWorkspaceFrameId(intent.targetFrameId),
       targetTabsetId: windowWorkspaceTabsetId(intent.targetTabsetId),
       targetFrame: this.createEmptyWorkspaceGraphFrameInput(targetPort, intent.targetTabsetId),
-      newTabsetId: createDerivedGraphTabsetId(intent.targetTabsetId, contentId),
-      newSplitId: createDerivedGraphSplitId(intent.targetTabsetId, contentId),
       placement: intent.placement,
       active: true,
       preserveEmptyFrameIds: this.canDestroyFrame(sourceFrame)
@@ -2187,10 +2183,6 @@ function describeGraphTransactionFailure(
 
 function createDerivedGraphTabsetId(targetTabsetId: string, contentId: string) {
   return windowWorkspaceTabsetId(`${targetTabsetId}:tabset:${contentId}`);
-}
-
-function createDerivedGraphSplitId(targetTabsetId: string, contentId: string) {
-  return windowWorkspaceSplitId(`${targetTabsetId}:split:${contentId}`);
 }
 
 function combineWarnings(warnings: readonly string[]): string | undefined {

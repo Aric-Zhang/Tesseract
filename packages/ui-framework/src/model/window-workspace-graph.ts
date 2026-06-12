@@ -110,8 +110,6 @@ export type WindowWorkspaceGraphTransaction =
       readonly targetFrameId: WindowWorkspaceFrameId;
       readonly targetTabsetId: WindowWorkspaceTabsetId;
       readonly targetFrame?: WindowWorkspaceGraphFrameInput;
-      readonly newTabsetId: WindowWorkspaceTabsetId;
-      readonly newSplitId: WindowWorkspaceSplitId;
       readonly placement: WindowDockSplitPlacement;
       readonly active?: boolean;
       readonly preserveEmptyFrameIds?: readonly WindowWorkspaceFrameId[];
@@ -438,12 +436,16 @@ export function reduceWindowWorkspaceGraphTransaction(options: {
       if (!targetFrameAfterRemoval || !findTabset(framesAfterRemoval, transaction.targetFrameId, transaction.targetTabsetId)) {
         return noCommit(`cannot split into unknown tabset ${transaction.targetTabsetId}`);
       }
-      if (
-        hasDockNodeId(targetFrameAfterRemoval.root, transaction.newTabsetId) ||
-        hasDockNodeId(targetFrameAfterRemoval.root, transaction.newSplitId)
-      ) {
-        return noCommit(`cannot split with duplicate dock node id`);
-      }
+      const allocatedTabsetId = allocateSplitTabsetId(
+        targetFrameAfterRemoval.root,
+        transaction.targetTabsetId,
+        transaction.contentId
+      );
+      const allocatedSplitId = allocateSplitId(
+        targetFrameAfterRemoval.root,
+        transaction.targetTabsetId,
+        transaction.contentId
+      );
       const frames = framesAfterRemoval.map((frame) => frame.frameId === transaction.targetFrameId
         ? {
             ...frame,
@@ -451,8 +453,8 @@ export function reduceWindowWorkspaceGraphTransaction(options: {
               node: frame.root,
               targetTabsetId: transaction.targetTabsetId,
               contentId: transaction.contentId,
-              newTabsetId: transaction.newTabsetId,
-              newSplitId: transaction.newSplitId,
+              allocatedTabsetId,
+              allocatedSplitId,
               placement: transaction.placement,
               active: transaction.active ?? true
             })
@@ -697,6 +699,41 @@ function hasDockNodeId(node: WindowWorkspaceGraphDockNode, id: WindowWorkspaceTa
     : false;
 }
 
+function allocateSplitTabsetId(
+  node: WindowWorkspaceGraphDockNode,
+  targetTabsetId: WindowWorkspaceTabsetId,
+  contentId: WindowWorkspaceContentId
+): WindowWorkspaceTabsetId {
+  return allocateDockNodeId(
+    node,
+    windowWorkspaceTabsetId(`${targetTabsetId}:tabset:${contentId}`)
+  ) as WindowWorkspaceTabsetId;
+}
+
+function allocateSplitId(
+  node: WindowWorkspaceGraphDockNode,
+  targetTabsetId: WindowWorkspaceTabsetId,
+  contentId: WindowWorkspaceContentId
+): WindowWorkspaceSplitId {
+  return allocateDockNodeId(
+    node,
+    windowWorkspaceSplitId(`${targetTabsetId}:split:${contentId}`)
+  ) as WindowWorkspaceSplitId;
+}
+
+function allocateDockNodeId(
+  node: WindowWorkspaceGraphDockNode,
+  baseId: WindowWorkspaceTabsetId | WindowWorkspaceSplitId
+): WindowWorkspaceTabsetId | WindowWorkspaceSplitId {
+  if (!hasDockNodeId(node, baseId)) return baseId;
+  let suffix = 2;
+  while (true) {
+    const candidate = `${baseId}:${suffix}` as WindowWorkspaceTabsetId | WindowWorkspaceSplitId;
+    if (!hasDockNodeId(node, candidate)) return candidate;
+    suffix += 1;
+  }
+}
+
 function setActiveContent(
   node: WindowWorkspaceGraphDockNode,
   contentId: WindowWorkspaceContentId
@@ -835,8 +872,8 @@ function splitTabsetWithContent(options: {
   readonly node: WindowWorkspaceGraphDockNode;
   readonly targetTabsetId: WindowWorkspaceTabsetId;
   readonly contentId: WindowWorkspaceContentId;
-  readonly newTabsetId: WindowWorkspaceTabsetId;
-  readonly newSplitId: WindowWorkspaceSplitId;
+  readonly allocatedTabsetId: WindowWorkspaceTabsetId;
+  readonly allocatedSplitId: WindowWorkspaceSplitId;
   readonly placement: WindowDockSplitPlacement;
   readonly active: boolean;
 }): WindowWorkspaceGraphDockNode {
@@ -844,7 +881,7 @@ function splitTabsetWithContent(options: {
     if (options.node.id !== options.targetTabsetId) return options.node;
     const newTabset: WindowWorkspaceGraphTabsetNode = {
       kind: "tabset",
-      id: options.newTabsetId,
+      id: options.allocatedTabsetId,
       contentIds: [options.contentId],
       activeContentId: options.contentId
     };
@@ -858,7 +895,7 @@ function splitTabsetWithContent(options: {
         : "vertical";
     return {
       kind: "split",
-      id: options.newSplitId,
+      id: options.allocatedSplitId,
       direction,
       ratio: 0.5,
       first: newFirst ? newTabset : target,

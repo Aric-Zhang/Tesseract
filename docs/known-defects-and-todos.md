@@ -27,19 +27,19 @@ should include status, evidence, impact, next action, and verification.
   future debugging.
 - `closed`: retained only when recent context is still useful for handoff.
 
-## Active Entries
+## Current Entries
 
-Current execution plan for the dock-related active entries:
+Completed execution plan for the dock-related Step 10 entries:
 `temp/project-prism-phase-6-editor-extraction-plan.md`, Step 10.
 
 ### DCK-001: Dock commit failures are silent
 
-Status: `open`
+Status: `closed`
 
 Area: `apps/wallpaper-tesseract/src/features/window-workspace`,
 `packages/ui-framework/src/services`
 
-Evidence:
+Original evidence:
 
 - `requestCommitDock(intent)` currently calls `requireLifecycle().commitDock(intent)`
   and discards the result.
@@ -56,27 +56,29 @@ Impact:
 
 Next action:
 
-- Route `WindowDockCommitResult` through one explicit, testable contract exit:
-  either make `WindowFrameIntentSink.requestCommitDock` return the result, or
-  give the lifecycle owner a narrow diagnostic sink for the existing result and
-  reasons.
-- Do not use internal-only logging as the contract; QA and smoke evidence must
-  be able to assert the semantic result.
-- Keep production behavior unchanged except for narrow diagnostics and tests.
+Completed fix:
 
-Verification:
+- `WindowFrameIntentSink.requestCommitDock` now returns
+  `WindowDockCommitResult`.
+- `install-window-workspace-feature.ts` returns the lifecycle `commitDock`
+  result instead of discarding it.
+- `handleWindowFrameTabInputEnd` exposes a narrow `dockCommit` evidence object
+  for tests and smoke plumbing without owning placement state.
 
-- A failed dock commit should produce a concise reason in debug/smoke evidence.
-- Existing dock behavior and graph/DOM parity tests must still pass.
+Verification completed:
+
+- `npm run test -w wallpaper-tesseract -- window-frame-tab-input`
+- `npm run test -w wallpaper-tesseract -- architecture-boundaries`
+- Root `npm run test`, `npm run typecheck`, and `npm run build`
 
 ### DCK-002: Debug Log does not show dock semantic trace
 
-Status: `open`
+Status: `closed`
 
 Area: `packages/editor/src/debug`, `apps/wallpaper-tesseract/src/window-runtime`,
 `packages/ui-framework/src/services`
 
-Evidence:
+Original evidence:
 
 - Debug Log records gizmo pointer lifecycle events such as `pointermove`,
   `capture`, and `end`.
@@ -90,15 +92,17 @@ Impact:
 
 Next action:
 
-- Add a narrow dock trace event stream or smoke evidence hook owned by the
-  lifecycle/debug boundary and backed by the same explicit result contract used
-  for DCK-001.
-- Do not make Debug Log a placement owner or alternate source of truth.
+Completed fix:
 
-Verification:
+- The semantic trace is exposed through the tab-input `dockCommit` result:
+  `preview -> dock intent -> commit result`.
+- Debug Log remains a low-level gizmo log and was not made a placement owner,
+  graph cache, or lifecycle authority.
 
-- A repeated dock scenario should expose the final commit result and target
-  tabset id in one place.
+Verification completed:
+
+- `window-frame-tab-input.test.ts` asserts the preview, generated intent, and
+  failed commit reason in one place.
 
 ### DCK-003: Gizmo "ignore" log is misleading for buttons-zero-without-capture
 
@@ -127,14 +131,14 @@ Verification:
 
 ### DCK-004: Dock node id derivation still lives outside the graph reducer
 
-Status: `open`
+Status: `closed`
 
-Step 10 blocker: yes.
+Step 10 blocker: resolved.
 
 Area: `packages/ui-framework/src/services/window-frame-lifecycle-controller.ts`,
 `packages/ui-framework/src/model/window-workspace-graph.ts`
 
-Evidence:
+Original evidence:
 
 - `commitSameFrameSplitTab` and cross-frame split code pass
   `newTabsetId` / `newSplitId` into graph transactions.
@@ -149,19 +153,25 @@ Impact:
 
 Next action:
 
-- Move split/tabset id allocation into the graph model/reducer.
-- Remove `newTabsetId` and `newSplitId` from the public transaction surface.
-- Prefer deleting lifecycle-side id derivation over adding another id adapter.
+Completed fix:
 
-Verification:
+- Split tabset/split id allocation moved into `WindowWorkspaceGraph`.
+- `newTabsetId` and `newSplitId` were removed from the public
+  `WindowWorkspaceGraphTransaction` split surface.
+- Lifecycle split callers no longer derive or pass dock node ids.
+- `createDerivedGraphSplitId` was deleted.
 
-- Graph tests should cover repeated split/dock cycles without caller-provided
-  dock node ids.
+Verification completed:
+
+- `rg "newTabsetId|newSplitId|createDerivedGraphSplitId" apps packages --glob "*.ts"`
+  returns no old public/caller API matches.
+- Graph tests cover repeated split/dock cycles without caller-provided dock
+  node ids.
 - Persistence should remain logical and must not contain actor or DOM ids.
 
 ### DCK-005: Repeated same-frame split can reuse ids released by source collapse
 
-Status: `fixed-pending-verification`
+Status: `closed`
 
 Area: `packages/ui-framework/src/model/window-workspace-graph.ts`
 
@@ -173,10 +183,12 @@ Evidence:
   `cannot split with duplicate dock node id` because duplicate id validation
   ran before source removal collapsed the old branch.
 
-Current fix:
+Completed fix:
 
 - `split-content` now removes the source content and collapses empty branches
-  before checking whether `newTabsetId` or `newSplitId` still conflict.
+  before allocating split dock node ids.
+- Split dock id allocation is now graph-owned, so lifecycle callers no longer
+  need to understand or pass released dock node ids.
 - Regression coverage was added for splitting into a sibling tabset after the
   source branch releases derived ids.
 
@@ -187,14 +199,12 @@ Verification completed:
 - `npm run typecheck -w ui-framework`
 - Visible Chromium verification showed the repeated dock path producing the
   expected Scene-left / Debug-right layout.
-
-Remaining verification:
-
-- Run broader root checks before committing this fix.
-- Add lifecycle/controller-level coverage for the actual repeated `commitDock`
-  split path, not only reducer-level coverage.
-- Add or update browser smoke evidence if this scenario should become a
-  permanent Phase 6+ regression gate.
+- `window-frame-lifecycle-controller.test.ts` covers the actual repeated
+  `commitDock` split path.
+- Root `npm run test`, `npm run typecheck`, and `npm run build`
+- Browser evidence:
+  `temp/project-prism-phase-6-step10-dock-regression-evidence.json`
+  and `temp/project-prism-phase-6-step10-debug-scene-repeat-dock.png`
 
 ### DEV-001: App dev server consumes built package output for ui-framework
 

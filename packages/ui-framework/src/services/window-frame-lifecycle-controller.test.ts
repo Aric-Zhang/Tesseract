@@ -1236,6 +1236,65 @@ describe("DefaultWindowFrameLifecycleController", () => {
     )).toEqual([]);
   });
 
+  it("commits repeated sibling split dock after the source branch releases graph ids", () => {
+    const subject = createSubject();
+    subject.controller.openView("scene", "programmatic");
+    subject.controller.openView("debug", "programmatic");
+
+    expect(subject.controller.commitDock({
+      kind: "split-tab",
+      operation: "cross-frame-split",
+      source: {
+        frameId: "debug-frame-1",
+        viewActorId: "debug-view-1",
+        viewKey: "debug"
+      },
+      targetFrameId: "scene-frame",
+      targetTabsetId: "frame-tabset:target",
+      placement: "right",
+      reason: "dock-drop"
+    })).toEqual({ committed: true, sourceFrameDestroyed: true });
+
+    const beforeRepeat = subject.controller.getWorkspaceGraphSnapshot();
+    const scenePlacement = beforeRepeat.placements.find((placement) => placement.identity.viewKey === "scene");
+    const debugPlacement = beforeRepeat.placements.find((placement) => placement.identity.viewKey === "debug");
+    if (!scenePlacement || !debugPlacement) throw new Error("Expected Scene and Debug graph placements.");
+
+    const repeatResult = subject.controller.commitDock({
+      kind: "split-tab",
+      operation: "same-frame-split",
+      source: {
+        frameId: "scene-frame",
+        sourceTabsetId: debugPlacement.tabsetId,
+        viewActorId: "debug-view-1",
+        viewKey: "debug"
+      },
+      targetFrameId: "scene-frame",
+      targetTabsetId: scenePlacement.tabsetId,
+      placement: "bottom",
+      reason: "dock-drop"
+    });
+
+    expect(repeatResult).toEqual({ committed: true, sourceFrameDestroyed: false });
+    const afterRepeat = subject.controller.getWorkspaceGraphSnapshot();
+    const frame = afterRepeat.frames.find((candidate) => candidate.frameId === "scene-frame");
+    expect(frame?.root).toMatchObject({
+      kind: "split",
+      direction: "vertical"
+    });
+    expect(afterRepeat.placements.map((placement) => ({
+      viewKey: placement.identity.viewKey,
+      frameId: placement.frameId
+    }))).toEqual(expect.arrayContaining([
+      { viewKey: "scene", frameId: "scene-frame" },
+      { viewKey: "debug", frameId: "scene-frame" }
+    ]));
+    expect(subject.actorSystem.getActor("debug-frame-1")).toBeNull();
+    expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("scene-frame");
+    expect(asOptionalTestFramePort(subject.controller.getLiveViewByActorId("debug-view-1")?.framePort)
+      ?.readRenderedViewActorIds().sort()).toEqual(["debug-view-1", "scene-view"]);
+  });
+
   it("resizes a graph split without mutating frame-local placement APIs", () => {
     const subject = createSubject();
     subject.controller.openView("debug", "programmatic");

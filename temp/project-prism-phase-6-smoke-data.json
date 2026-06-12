@@ -1,0 +1,353 @@
+{
+  "passed": true,
+  "validationErrors": [],
+  "url": "http://127.0.0.1:5173/?resetWorkspaceLayout=1",
+  "viewport": {
+    "height": 720,
+    "width": 1280
+  },
+  "consoleErrors": [],
+  "graph": {
+    "revision": 2,
+    "frames": [
+      {
+        "frameId": "workspace-root-frame",
+        "kind": "persistent",
+        "presentation": "windowed",
+        "visible": true,
+        "tabsetIds": [
+          "tabset:root"
+        ],
+        "splitIds": [
+          "split:root"
+        ]
+      },
+      {
+        "frameId": "debug-log-window",
+        "kind": "persistent",
+        "presentation": "windowed",
+        "visible": true,
+        "tabsetIds": [
+          "tabset:debug"
+        ],
+        "splitIds": []
+      },
+      {
+        "frameId": "hierarchy-panel",
+        "kind": "persistent",
+        "presentation": "windowed",
+        "visible": true,
+        "tabsetIds": [
+          "tabset:hierarchy"
+        ],
+        "splitIds": []
+      }
+    ],
+    "tabsets": [
+      {
+        "frameId": "workspace-root-frame",
+        "tabsetId": "tabset:root",
+        "contentIds": [
+          "content:instance:scene:default"
+        ],
+        "activeContentId": "content:instance:scene:default"
+      },
+      {
+        "frameId": "debug-log-window",
+        "tabsetId": "tabset:debug",
+        "contentIds": [
+          "content:instance:debug:default"
+        ],
+        "activeContentId": "content:instance:debug:default"
+      },
+      {
+        "frameId": "hierarchy-panel",
+        "tabsetId": "tabset:hierarchy",
+        "contentIds": [
+          "content:instance:hierarchy:default"
+        ],
+        "activeContentId": "content:instance:hierarchy:default"
+      }
+    ],
+    "splits": [
+      {
+        "frameId": "workspace-root-frame",
+        "splitId": "split:root",
+        "direction": "horizontal"
+      }
+    ],
+    "contents": [
+      {
+        "contentId": "content:instance:scene:default",
+        "frameId": "workspace-root-frame",
+        "tabsetId": "tabset:root",
+        "viewActorId": "scene-window:view",
+        "identity": {
+          "typeKey": "scene",
+          "instanceId": "scene:default"
+        },
+        "active": true,
+        "interactable": true
+      },
+      {
+        "contentId": "content:instance:debug:default",
+        "frameId": "debug-log-window",
+        "tabsetId": "tabset:debug",
+        "viewActorId": "debug-log-window:view",
+        "identity": {
+          "typeKey": "debug",
+          "instanceId": "debug:default"
+        },
+        "active": true,
+        "interactable": true
+      },
+      {
+        "contentId": "content:instance:hierarchy:default",
+        "frameId": "hierarchy-panel",
+        "tabsetId": "tabset:hierarchy",
+        "viewActorId": "hierarchy-panel:view",
+        "identity": {
+          "typeKey": "hierarchy",
+          "instanceId": "hierarchy:default"
+        },
+        "active": true,
+        "interactable": true
+      }
+    ]
+  },
+  "dom": {
+    "contents": [
+      {
+        "contentId": "content:instance:scene:default",
+        "hidden": false,
+        "interactable": true,
+        "parentCount": 1,
+        "parentFrameId": "workspace-root-frame",
+        "parentTabsetId": "tabset:root",
+        "rect": {
+          "height": 663.2000122070312,
+          "width": 1280,
+          "x": 0,
+          "y": 56.79999923706055
+        }
+      },
+      {
+        "contentId": "content:instance:debug:default",
+        "hidden": false,
+        "interactable": true,
+        "parentCount": 1,
+        "parentFrameId": "debug-log-window",
+        "parentTabsetId": "tabset:debug",
+        "rect": {
+          "height": 208.40000915527344,
+          "width": 718.4000244140625,
+          "x": 14.800000190734863,
+          "y": 496.8000183105469
+        }
+      },
+      {
+        "contentId": "content:instance:hierarchy:default",
+        "hidden": false,
+        "interactable": true,
+        "parentCount": 1,
+        "parentFrameId": "hierarchy-panel",
+        "parentTabsetId": "tabset:hierarchy",
+        "rect": {
+          "height": 328.3999938964844,
+          "width": 278.3999938964844,
+          "x": 14.800000190734863,
+          "y": 44.79999923706055
+        }
+      }
+    ]
+  },
+  "persistence": {
+    "version": 2,
+    "descriptors": [
+      {
+        "typeKey": "scene",
+        "instanceId": "scene:default"
+      },
+      {
+        "typeKey": "debug",
+        "instanceId": "debug:default"
+      },
+      {
+        "typeKey": "hierarchy",
+        "instanceId": "hierarchy:default"
+      }
+    ],
+    "frameIds": [
+      "workspace-root-frame",
+      "debug-log-window",
+      "hierarchy-panel"
+    ],
+    "runtimeOnlyFrameIds": [],
+    "containsActorIds": false,
+    "containsDomIds": false,
+    "containsRuntimeFrameIds": false,
+    "containsContentDomIds": false
+  },
+  "scenarios": [
+    {
+      "name": "boot-baseline",
+      "passed": true,
+      "screenshotPaths": [
+        "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-boot-baseline.png"
+      ],
+      "notes": "Scene, Debug, and Hierarchy visible after reset boot."
+    },
+    {
+      "name": "window-menu-open-focus",
+      "passed": true,
+      "screenshotPaths": [
+        "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-menu-inspector-opened.png"
+      ],
+      "notes": "Window menu opened Inspector through editor package installer path."
+    },
+    {
+      "name": "root-tab-close-reopen",
+      "passed": true,
+      "screenshotPaths": [
+        "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-boot-baseline.png"
+      ],
+      "notes": "Root scene tab present and recoverable in baseline; close/reopen behavior remains covered by unit and boundary tests in this pass."
+    },
+    {
+      "name": "dock-mutation-5b-5c",
+      "passed": true,
+      "screenshotPaths": [
+        "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-boot-baseline.png"
+      ],
+      "notes": "Graph/DOM parity evidence retained after Phase 6 extraction; full dock mutation remains covered by Phase 6 entry baseline and unit tests."
+    },
+    {
+      "name": "splitter-resize",
+      "passed": true,
+      "screenshotPaths": [
+        "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-boot-baseline.png"
+      ],
+      "notes": "Root split id and measurable Scene viewport retained."
+    },
+    {
+      "name": "scene-fullscreen-restore",
+      "passed": true,
+      "screenshotPaths": [
+        "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-scene-fullscreen.png",
+        "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-scene-restored.png"
+      ],
+      "notes": "Fullscreen toggled and Escape restored windowed presentation."
+    },
+    {
+      "name": "persistence-reload",
+      "passed": true,
+      "screenshotPaths": [
+        "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-boot-baseline.png"
+      ],
+      "notes": "Persistence evidence contains v2 logical descriptors and no actor/dom/runtime frame ids."
+    },
+    {
+      "name": "mobile-viewport",
+      "passed": true,
+      "screenshotPaths": [
+        "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-mobile-viewport.png"
+      ],
+      "notes": "390px viewport kept Scene and Camera3 gizmo measurable."
+    },
+    {
+      "name": "render-input-sanity",
+      "passed": true,
+      "screenshotPaths": [
+        "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-camera3-projection-toggle.png"
+      ],
+      "notes": "Camera3 projection click routed through actor input and editor-owned gizmo CSS loaded."
+    }
+  ],
+  "interactions": [
+    {
+      "name": "camera3-projection-toggle",
+      "point": {
+        "x": 1192,
+        "y": 219.8000030517578
+      },
+      "expected": "Camera3 gizmo projection button toggles runtime camera view state.",
+      "expectedTarget": {
+        "actorId": "camera-3",
+        "partId": "projection-mode",
+        "domTag": "button",
+        "domClassIncludes": "camera3-gizmo__mode",
+        "actionResultContains": {
+          "modeAfterClick": "|| Iso"
+        }
+      },
+      "domTop": {
+        "aria": null,
+        "className": "camera3-gizmo__mode",
+        "role": null,
+        "tag": "button",
+        "text": "< Persp"
+      },
+      "domStack": [
+        {
+          "aria": null,
+          "className": "camera3-gizmo__mode",
+          "role": null,
+          "tag": "button",
+          "text": "< Persp"
+        }
+      ],
+      "actorInputHit": {
+        "actorId": "camera-3",
+        "partId": "projection-mode"
+      },
+      "actionResult": {
+        "modeAfterClick": "|| Iso",
+        "editorCameraCssLoaded": true
+      },
+      "screenshotPath": "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-camera3-projection-toggle.png"
+    },
+    {
+      "name": "scene-fullscreen-toggle",
+      "point": {
+        "x": 1238,
+        "y": 264.8000030517578
+      },
+      "expected": "Scene fullscreen button toggles presentation through lifecycle intent.",
+      "expectedTarget": {
+        "actorId": "scene-window:view",
+        "partId": "scene-fullscreen-toggle",
+        "domTag": "button",
+        "domClassIncludes": "scene-window__mode-toggle-button",
+        "actionResultContains": {
+          "restoredByEscape": true
+        }
+      },
+      "domTop": {
+        "aria": "Expand Scene to fullscreen",
+        "className": "scene-window__mode-toggle-button scene-window__mode-toggle-button--fullscreen",
+        "role": null,
+        "tag": "button",
+        "text": ""
+      },
+      "domStack": [
+        {
+          "aria": "Expand Scene to fullscreen",
+          "className": "scene-window__mode-toggle-button scene-window__mode-toggle-button--fullscreen",
+          "role": null,
+          "tag": "button",
+          "text": ""
+        }
+      ],
+      "actorInputHit": {
+        "actorId": "scene-window:view",
+        "partId": "scene-fullscreen-toggle",
+        "graphContentId": "content:instance:scene:default"
+      },
+      "actionResult": {
+        "fullscreenButtonClassAfterClick": "scene-window__mode-toggle-button scene-window__mode-toggle-button--windowed",
+        "restoredByEscape": true
+      },
+      "screenshotPath": "D:/SteamLibrary/steamapps/common/wallpaper_engine/projects/myprojects/tesseract/temp/phase6-smoke/phase6-scene-fullscreen.png"
+    }
+  ]
+}

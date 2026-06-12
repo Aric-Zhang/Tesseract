@@ -12,3 +12,7 @@ temp/*
 !temp/project-prism-phase-6-entry-smoke-report.md
 !temp/project-prism-phase-6-entry-browser-observations.json
 !temp/project-prism-phase-6-entry-splitter-probe.json
+!temp/project-prism-phase-6-smoke-data.json
+!temp/project-prism-phase-6-smoke-report.md
+!temp/phase6-smoke/
+!temp/phase6-smoke/*.png

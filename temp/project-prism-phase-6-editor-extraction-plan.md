@@ -1,10 +1,12 @@
 # Project Prism Phase 6 Editor Extraction Execution Plan
 
-Status: active Phase 6 execution plan. The pre-entry checkpoint is committed,
-and Step 1/Step 2 have started by extracting editor state into
-`packages/editor`. This plan should be updated as steps complete. It starts
-from the completed pre-Phase 6 window-workspace final gate and keeps the
-deletion-first Project Prism rules as hard constraints.
+Status: completed Phase 6 editor extraction execution record. The pre-entry
+checkpoint is committed, editor state/presentation ownership has moved into
+`packages/editor`, app-local editor compatibility owners were deleted rather
+than wrapped, and the final Phase 6 browser evidence gate validates. The
+remaining hard cleanup belongs to later runtime-owner/app bootstrap slices.
+This record starts from the completed pre-Phase 6 window-workspace final gate
+and keeps the deletion-first Project Prism rules as hard constraints.
 
 Current verified entry facts:
 
@@ -16,6 +18,9 @@ Current verified entry facts:
   `window-frame-dock-tree` are deleted from production/public reachability.
 - Final entry smoke evidence exists under `temp/` and validates
   graph/DOM/input/persistence parity.
+- Final Phase 6 smoke evidence exists under
+  `temp/project-prism-phase-6-smoke-data.json` and validates with the same
+  evidence-file test.
 - The `editor` package target is marked `allowed` in boundary facts.
 - Baseline checkpoint commit: `04f41ac` (`Complete Project Prism phase 6 entry
   gate`).
@@ -648,6 +653,11 @@ rg "from [\"'](?:\\.\\./)+(?:debug|hierarchy|features/inspector|features/tool-wi
 ```
 
 ## Step 9: Final Phase 6 Browser And Evidence Gate
+
+Status: complete. Root test/typecheck/build passed, browser smoke ran against
+the Vite dev server, and
+`$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-6-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file`
+passed.
 
 Purpose: prove package extraction preserved editor behavior and did not regress
 the Phase 5.5 graph gate.

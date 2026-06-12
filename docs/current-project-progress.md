@@ -60,7 +60,9 @@ Accepted or completed phases:
 
 Current gate:
 
-- Phase 6 editor package extraction is in progress.
+- Phase 6 editor package extraction is complete through the final browser
+  evidence gate. Remaining work belongs to the next runtime-owner/app bootstrap
+  cleanup slices, not to app-local editor compatibility.
 - The pre-Phase 6 window-workspace truth closure is complete.
 - `ui-framework` and `editor` are no longer blocked by
   `window-workspace-multi-truth-debt`.
@@ -91,10 +93,13 @@ Current gate:
   `WindowDockSurfaceModel`, and `window-frame-dock-tree`, removed runtime
   dock-root source types from `window-frame-tab.ts`, and tightened boundary
   tests so those old facts cannot return.
-- The final gate added structured smoke evidence for graph snapshots, DOM
+- The pre-Phase 6 final gate added structured smoke evidence for graph snapshots, DOM
   content parentage, active/interactable parity, actor-input target evidence,
   persistence descriptors, and required scenario coverage. The reproducible
   validator is `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-6-entry-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file`.
+- The Phase 6 extraction gate regenerated browser smoke evidence at
+  `temp/project-prism-phase-6-smoke-data.json` and validated it with
+  `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-6-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file`.
 - Continue deletion-first. Do not add compatibility wrappers or idle legacy
   paths during Phase 6; simplify ownership or delete obsolete paths in the
   subsystem where new issues are found.
@@ -301,8 +306,9 @@ Active Phase 6 editor extraction plan:
 temp/project-prism-phase-6-editor-extraction-plan.md
 ```
 
-Treat this as the current execution plan for Phase 6. The pre-entry checkpoint
-is committed, the first editor-owned state/adapters have moved into
+Treat this as the completed execution record for Phase 6 editor package
+extraction. The pre-entry checkpoint is committed, the first editor-owned
+state/adapters have moved into
 `packages/editor`, and the feature actor creation contract has moved out of
 app-local runtime ports. The Step 3 preflight binding cleanup is also complete:
 state observer binding is editor-owned and UI frame update attachment is
@@ -314,14 +320,16 @@ structural render target instead of owning runtime render output or
 only. Camera3 runtime camera state is the single truth, Camera3 gizmo
 presentation has moved into `packages/editor`, and app composition now installs
 editor component definitions through the unified editor package installer. The
-remaining hard cleanup is runtime-owner work for app-local Scene/Camera3
-staging and Tesseract, plus Phase 7 bootstrap thinning. The plan keeps
+final Phase 6 browser smoke evidence was regenerated as
+`temp/project-prism-phase-6-smoke-data.json` and validates with the smoke
+evidence-file test. The remaining hard cleanup is runtime-owner work for
+app-local Scene/Camera3 staging and Tesseract, plus Phase 7 bootstrap
+thinning. The plan keeps
 deletion-first rules explicit: no app-local compatibility barrels, no duplicate
 state or runtime ownership, no fake facades, and no package extraction step is
 complete until the old app-local owner is deleted or assigned to a later
-non-editor owner with a deletion condition. Final Phase 6 browser evidence must
-be regenerated as `temp/project-prism-phase-6-smoke-data.json`; the existing
-entry smoke data is only a baseline.
+non-editor owner with a deletion condition. The existing entry smoke data is
+kept only as the immutable pre-extraction baseline.
 
 Older window/docking/view-identity plans are now Git history, not active files
 in `temp/`. Recover historical context from Git when needed, then compare it

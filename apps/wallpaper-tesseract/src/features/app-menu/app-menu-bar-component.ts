@@ -188,7 +188,7 @@ export class AppMenuBarComponent
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       if (!this.#menuOpen) {
-        this.setMenuOpen(true);
+        this.setMenuOpen(true, { activateFirstRow: true });
         return;
       }
       this.moveActiveRow(event.key === "ArrowDown" ? 1 : -1);
@@ -197,7 +197,7 @@ export class AppMenuBarComponent
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       if (!this.#menuOpen) {
-        this.setMenuOpen(true);
+        this.setMenuOpen(true, { activateFirstRow: true });
         return;
       }
       const row = this.#rows[this.#activeRowIndex];
@@ -246,7 +246,10 @@ export class AppMenuBarComponent
         });
       }
     }
-    if (this.#activeRowIndex >= this.#rows.length || !this.#rows[this.#activeRowIndex]?.enabled) {
+    if (this.#activeRowIndex >= this.#rows.length) {
+      this.#activeRowIndex = -1;
+    }
+    if (this.#activeRowIndex >= 0 && !this.#rows[this.#activeRowIndex]?.enabled) {
       this.#activeRowIndex = this.findFirstEnabledRowIndex();
     }
     this.applyOpenState();
@@ -261,9 +264,9 @@ export class AppMenuBarComponent
     this.applyOpenState();
   }
 
-  private setMenuOpen(open: boolean): void {
+  private setMenuOpen(open: boolean, options: { readonly activateFirstRow?: boolean } = {}): void {
     this.#menuOpen = open;
-    this.#activeRowIndex = open ? this.findFirstEnabledRowIndex() : -1;
+    this.#activeRowIndex = open && options.activateFirstRow ? this.findFirstEnabledRowIndex() : -1;
     this.applyOpenState();
   }
 

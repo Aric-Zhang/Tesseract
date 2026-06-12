@@ -22,7 +22,7 @@
   color: inherit;
   font: inherit;
   text-align: left;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .app-menu-bar__button {
@@ -50,6 +50,7 @@
   border-radius: 6px;
   background: rgba(16, 20, 25, 0.94);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  pointer-events: auto;
 }
 
 .app-menu-bar__menu[hidden] {
@@ -79,16 +80,19 @@
   width: 18px;
   min-width: 18px;
   place-items: center;
+  pointer-events: none;
 }
 
 .app-menu-bar__menu-item-label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 .app-menu-bar__menu-item-shortcut {
   color: rgba(188, 205, 220, 0.58);
+  pointer-events: none;
 }
 
 .app-menu-bar__checkbox {
@@ -127,7 +131,7 @@
 }
 
 .app-menu-bar__menu-item:focus-visible,
-.app-menu-bar__menu-item:hover,
+.app-menu-bar__menu-item:not(.is-disabled):hover,
 .app-menu-bar__menu-item[data-keyboard-active="true"] {
   outline: none;
   background: rgba(124, 195, 255, 0.14);

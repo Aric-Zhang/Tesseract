@@ -350,6 +350,7 @@ describe("AppMenuBarComponent", () => {
     component.onInputEnd(createActorInputEndEvent(buttonHit, { wasClick: true, timeStamp: 10 }));
     expect(menu(root).hidden).toBe(false);
     expect(menuButton(root).getAttribute("aria-expanded")).toBe("true");
+    expect(rows(root).map((row) => row.dataset.keyboardActive)).toEqual(["false", "false", "false"]);
     const sceneHit = component.hitTestInput({ x: 640, y: 50 });
     if (!sceneHit) throw new Error("Expected Scene row hit.");
     expect(buttonHit.scopeRoutePriority).toBe(actorInputScopeRoutePriority.appOverlay);

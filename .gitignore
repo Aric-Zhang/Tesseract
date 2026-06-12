@@ -4,4 +4,11 @@ coverage/
 .vite/
 .cache/
 npm-debug.log*
-temp/
+temp/*
+!temp/project-prism-pre-phase-6-surface-simplification-plan.md
+!temp/project-prism-pre-phase-6-final-gate-plan.md
+!temp/project-prism-phase-6-editor-extraction-plan.md
+!temp/project-prism-phase-6-entry-smoke-data.json
+!temp/project-prism-phase-6-entry-smoke-report.md
+!temp/project-prism-phase-6-entry-browser-observations.json
+!temp/project-prism-phase-6-entry-splitter-probe.json

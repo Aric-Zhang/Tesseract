@@ -35,8 +35,6 @@ import type {
   WindowFrameSuppressionReason
 } from "./window-frame-port";
 import type { WindowViewKey } from "ui-framework";
-import { windowViewKey } from "ui-framework";
-import { createSingletonWindowViewIdentity } from "ui-framework";
 import {
   WINDOW_FRAME_TAB_ACTION_PART_ID,
   WINDOW_FRAME_TAB_PART_ID
@@ -47,7 +45,7 @@ import type {
   WindowFrameSurfaceComponent,
   WindowFrameSurfaceHost,
   WindowFrameSurfaceSnapshot,
-  WindowFrameTab,
+  WindowWorkspaceGraphContentActiveState,
   WindowWorkspaceGraphContentPlacement,
   WindowWorkspaceSurfaceGeometryProjection,
   WindowRegisteredContent
@@ -101,9 +99,6 @@ export interface FloatingWindowComponentOptions {
   presentation?: FloatingWindowPresentation;
   closeMode?: FloatingWindowCloseMode;
   frameId?: string;
-  tabs?: readonly WindowFrameTab[];
-  activeViewActorId?: string;
-  activeViewKey?: WindowViewKey;
   frameIntentSink?: WindowFrameIntentSink;
   tabDragSink?: WindowTabDragSink;
   windowMenu?: FloatingWindowMenuOptions;
@@ -205,11 +200,6 @@ export class FloatingWindowComponent
     this.#presentation = options.presentation ?? "windowed";
     this.state = cloneFloatingWindowState(options.initialState);
     this.#stateBinding = createFloatingWindowStateBinding(options, services, this.id);
-    this.#surface.configure({
-      tabs: createInitialTabs(options),
-      activeViewActorId: options.activeViewActorId
-    });
-
     const documentRef = resolveDocument(options);
     this.#rootElement = documentRef.createElement("div");
     this.#rootElement.className = this.#rootClassName;
@@ -349,6 +339,14 @@ export class FloatingWindowComponent
 
   placeContent(placement: WindowWorkspaceGraphContentPlacement<WindowRegisteredContent>): void {
     this.#surface.placeContent(placement);
+  }
+
+  removeContent(contentId: Parameters<WindowFrameSurfaceComponent["removeContent"]>[0]): void {
+    this.#surface.removeContent(contentId);
+  }
+
+  setContentActive(state: WindowWorkspaceGraphContentActiveState): void {
+    this.#surface.setContentActive(state);
   }
 
   getFloatingBounds() {
@@ -773,19 +771,6 @@ function createMenuDescriptor(
 
 function joinClassNames(...classNames: Array<string | undefined>): string {
   return classNames.filter(Boolean).join(" ");
-}
-
-function createInitialTabs(options: FloatingWindowComponentOptions): WindowFrameTab[] {
-  if (options.tabs !== undefined) {
-    return options.tabs.map((tab) => ({ ...tab }));
-  }
-  const viewKey = options.activeViewKey ?? options.windowMenu?.viewKey ?? windowViewKey(options.id);
-  return [{
-    viewActorId: options.activeViewActorId ?? `${options.id}:view`,
-    identity: createSingletonWindowViewIdentity(viewKey),
-    viewKey,
-    title: options.title
-  }];
 }
 
 function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {

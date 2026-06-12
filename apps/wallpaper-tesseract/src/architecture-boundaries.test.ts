@@ -260,31 +260,25 @@ describe("architecture boundaries", () => {
     });
   });
 
-  it("keeps Phase 6 blocked while window workspace placement still has multiple truth sources", () => {
+  it("allows Phase 6 after the window workspace graph gate is proven", () => {
     const uiFrameworkTarget = projectPrismPackageTargets.find((target) => target.id === "ui-framework");
     const editorTarget = projectPrismPackageTargets.find((target) => target.id === "editor");
-    const uiBlocker = [
-      ...projectPrismUiFrameworkExtractionBlockers,
-      ...projectPrismPrePhase6UiFrameworkBlockers
-    ].find((blocker) => blocker.id === "window-workspace-multi-truth-debt");
+    const smokeContractSource = sourceFiles["./test-support/project-prism-smoke-contract.ts"] ?? "";
+    const smokeEvidenceFileTestSource =
+      sourceFiles["./test-support/project-prism-smoke-evidence-file.test.ts"] ?? "";
 
-    expect(uiBlocker).toMatchObject({
-      requiredPort: expect.stringContaining("WindowWorkspaceGraph"),
-      deletionCondition: expect.stringContaining("WindowWorkspaceGraph")
-    });
-    expect(uiBlocker?.files).toEqual(expect.arrayContaining([
-      "packages/ui-framework/src/chrome/window-frame-surface-component.ts",
-      "packages/ui-framework/src/ports/window-frame-port.ts",
-      "packages/ui-framework/src/ports/window-content-host.ts",
-      "packages/ui-framework/src/services/window-frame-lifecycle-controller.ts"
-    ]));
+    expect(projectPrismPrePhase6UiFrameworkBlockers).toEqual([]);
+    expect(smokeContractSource).toMatch(/\bProjectPrismGraphSnapshotEvidence\b/);
+    expect(smokeContractSource).toMatch(/\bProjectPrismDomEvidence\b/);
+    expect(smokeContractSource).toMatch(/\bProjectPrismPersistenceEvidence\b/);
+    expect(smokeEvidenceFileTestSource).toMatch(/\bPROJECT_PRISM_SMOKE_EVIDENCE\b/);
     expect(uiFrameworkTarget).toMatchObject({
-      extractionStatus: "blocked",
-      blockedBy: ["window-workspace-multi-truth-debt"]
+      extractionStatus: "allowed",
+      blockedBy: []
     });
     expect(editorTarget).toMatchObject({
-      extractionStatus: "blocked",
-      blockedBy: ["window-workspace-multi-truth-debt"]
+      extractionStatus: "allowed",
+      blockedBy: []
     });
   });
 
@@ -555,17 +549,9 @@ describe("architecture boundaries", () => {
     expect(forbiddenFixtureEdges).toEqual([]);
   });
 
-  it("removes deprecated AppRuntimeContext legacy registration calls", () => {
-    expect(findForbiddenMethodCalls([
-      "registerLegacyRuntimeObject",
-      "registerLegacyGizmoObject",
-      "registerLegacyStatefulGizmoObject"
-    ], new Set())).toEqual([]);
-  });
-
-  it("removes the old non-legacy AppRuntimeContext registration names", () => {
+  it("removes AppRuntimeContext runtime/gizmo registration names", () => {
     expect(findForbiddenSourceMatches(
-      /\bregister(?:RuntimeObject|GizmoObject|StatefulGizmoObject)\b/
+      /\bregister(?:Legacy)?(?:RuntimeObject|GizmoObject|StatefulGizmoObject)\b/
     )).toEqual([]);
   });
 
@@ -575,21 +561,10 @@ describe("architecture boundaries", () => {
     expect(demoSource).not.toMatch(/\bnew\s+(DebugLogWindow|Camera3Gizmo|Tesseract4RuntimeObject)\s*\(/);
   });
 
-  it("removes legacy DebugLogWindow imports and factories", () => {
-    expect(findForbiddenSourceMatches(
-      /(?:from\s+["'](?:\.\/|\.\.\/)debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()|(?:debug\/legacy)/
-    )).toEqual([]);
-    expect(sourceFiles["./debug/components/debug-log-window-actor-factory.ts"] ?? "").not.toMatch(
-      /(?:from\s+["']\.\.\/debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()/
-    );
-    expect(sourceFiles["./debug/components/debug-log-content-component.ts"] ?? "").not.toMatch(
-      /(?:from\s+["']\.\.\/debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()/
-    );
-  });
-
-  it("keeps the normal debug entrypoint off the legacy window factory", () => {
-    const oldFullWindowFactories = /\b(?:createDebugLogWindowActor|DebugLogWindowActorOptions|createHierarchyPanelActor|HierarchyPanelActorOptions)\b/;
-    const violations = Object.entries(sourceFiles)
+  it("keeps Debug and Hierarchy full-window legacy surfaces deleted", () => {
+    const oldFullWindowFactories =
+      /\b(?:createDebugLogWindowActor|DebugLogWindowActorOptions|createHierarchyPanelActor|HierarchyPanelActorOptions)\b/;
+    const fullWindowFactoryViolations = Object.entries(sourceFiles)
       .filter(([file]) => (
         file !== "./architecture-boundaries.test.ts" &&
         !file.endsWith(".test.ts")
@@ -598,6 +573,15 @@ describe("architecture boundaries", () => {
       .map(([file]) => file)
       .sort();
 
+    expect(findForbiddenSourceMatches(
+      /\bGizmoDebugPanel\b|gizmo-debug-panel|(?:from\s+["'](?:\.\/|\.\.\/)debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()|(?:debug\/legacy)/
+    )).toEqual([]);
+    expect(sourceFiles["./debug/components/debug-log-window-actor-factory.ts"] ?? "").not.toMatch(
+      /(?:from\s+["']\.\.\/debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()/
+    );
+    expect(sourceFiles["./debug/components/debug-log-content-component.ts"] ?? "").not.toMatch(
+      /(?:from\s+["']\.\.\/debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()/
+    );
     expect(sourceFiles["./debug/index.ts"] ?? "").not.toMatch(/\bcreateDebugLogWindow\b/);
     expect(sourceFiles["./debug/index.ts"] ?? "").not.toMatch(/\bGizmoDebugPanel\b/);
     expect(sourceFiles["./debug/index.ts"] ?? "").toMatch(/\bcreateDebugLogViewActor\b/);
@@ -605,23 +589,7 @@ describe("architecture boundaries", () => {
     expect(sourceFiles["./hierarchy/index.ts"] ?? "").not.toMatch(/\bcreateHierarchyPanelActor\b/);
     expect(sourceFiles["./debug/index.ts"] ?? "").toMatch(/\bcreateDefaultDebugWindowState\b/);
     expect(sourceFiles["./debug/index.ts"] ?? "").toMatch(/\bregisterDebugWindowParameters\b/);
-    expect(violations).toEqual([]);
-  });
-
-  it("removes the unused legacy GizmoDebugPanel surface", () => {
-    expect(findForbiddenSourceMatches(/\bGizmoDebugPanel\b|gizmo-debug-panel/)).toEqual([]);
-  });
-
-  it("keeps floating window content components behind the host interface", () => {
-    const contentFiles = [
-      "./debug/components/debug-log-content-component.ts",
-      "./hierarchy/hierarchy-panel-component.ts"
-    ];
-    const violations = contentFiles
-      .filter((file) => /\b(?:rootElement|contentElement)\b/.test(sourceFiles[file] ?? ""))
-      .sort();
-
-    expect(violations).toEqual([]);
+    expect(fullWindowFactoryViolations).toEqual([]);
   });
 
   it("keeps hierarchy pointer selection on the gizmo path instead of DOM click mutation", () => {
@@ -655,21 +623,6 @@ describe("architecture boundaries", () => {
     expect(appSource).toMatch(/\bHIERARCHY_PANEL_ACTOR_ID\b/);
   });
 
-  it("keeps migrated window and hierarchy input off legacy GizmoResponder", () => {
-    const violations = Object.entries(sourceFiles)
-      .filter(([file]) => file.startsWith("./window-runtime/") || file.startsWith("./hierarchy/"))
-      .filter(([, source]) => (
-        /\bGizmoResponder\b/.test(source) ||
-        /\bhitTestGizmo\b/.test(source) ||
-        /\bonGizmo(?:Start|Move|End|Cancel|Click|DoubleClick)\b/.test(source) ||
-        /\bgizmoPriority\b/.test(source)
-      ))
-      .map(([file]) => file)
-      .sort();
-
-    expect(violations).toEqual([]);
-  });
-
   it("removes the legacy GizmoResponder adapter from production code", () => {
     const violations = Object.entries(sourceFiles)
       .filter(([file]) => (
@@ -684,8 +637,14 @@ describe("architecture boundaries", () => {
       ))
       .map(([file]) => file)
       .sort();
+    const windowAndHierarchyOnGizmoViolations = Object.entries(sourceFiles)
+      .filter(([file]) => file.startsWith("./window-runtime/") || file.startsWith("./hierarchy/"))
+      .filter(([, source]) => /\bonGizmo(?:Start|Move|End|Cancel|Click|DoubleClick)\b/.test(source))
+      .map(([file]) => file)
+      .sort();
 
     expect(violations).toEqual([]);
+    expect(windowAndHierarchyOnGizmoViolations).toEqual([]);
   });
 
 
@@ -993,36 +952,67 @@ describe("architecture boundaries", () => {
     expect(tabActionSource).not.toMatch(/\brequestCloseFrame\b|\bcloseFrame\b/);
   });
 
-  it("keeps legacy dock surface ownership explicit until the workspace graph replaces it", () => {
+  it("keeps window workspace surfaces graph-first and old placement surfaces deleted", () => {
     const floatingWindowSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
     const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
     const floatingDefinitionSource = sourceFiles["./window-runtime/floating-window-definition.ts"] ?? "";
     const rootDefinitionSource = sourceFiles["./window-runtime/workspace-root-dock-frame-definition.ts"] ?? "";
     const installSource = sourceFiles["./window-runtime/install-component-definitions.ts"] ?? "";
+    const framePortSource = uiFrameworkPackageSources["packages/ui-framework/src/ports/window-frame-port.ts"] ?? "";
     const surfaceSource = uiFrameworkPackageSources["packages/ui-framework/src/chrome/window-frame-surface-component.ts"] ?? "";
     const uiPublicApiSource = uiFrameworkPackageSources["packages/ui-framework/src/index.ts"] ?? "";
     const appWindowRuntimeIndex = sourceFiles["./window-runtime/index.ts"] ?? "";
     const appFloatingHostBarrel = sourceFiles["./window-runtime/floating-window-host.ts"] ?? "";
+    const lifecycleApiSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-frame-lifecycle.ts"] ?? "";
+    const controllerSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-frame-lifecycle-controller.ts"] ?? "";
+    const deletedPlacementNames =
+      /\b(?:WindowContentHost|WindowContentAttachment|createWindowContentAttachment|getWindowContentAttachment|WindowDockSurfaceModel|WindowFrameRuntimeDockNode|WindowFrameRuntimeTabsetNode|WindowFrameRuntimeSplitNode|getRuntimeDockRoot|restoreRuntimeDockRoot|listDockTargetTabsets|listTabs|getFocusedViewActorId|getActiveViewActorIds|isViewActiveInFrame|isViewVisibleInFrame|addTab|splitTab|removeTab|activateTab|hasTab|hasTabset|getContentHost|mountContent)\b/;
+    const deletedPlacementImports =
+      /from\s+["'][^"']*(?:window-frame-dock-tree|window-dock-surface-model|window-content-host)["']/;
+    const productionSources = Object.entries({
+      ...sourceFiles,
+      ...uiFrameworkPackageSources
+    })
+      .filter(([file]) => (
+        file !== "./architecture-boundaries.test.ts" &&
+        !file.endsWith(".test.ts") &&
+        !file.includes("dist/")
+      ));
+    const deletedPlacementNameViolations = productionSources
+      .filter(([, source]) => deletedPlacementNames.test(source))
+      .map(([file]) => file)
+      .sort();
+    const deletedPlacementImportViolations = productionSources
+      .filter(([, source]) => deletedPlacementImports.test(source))
+      .map(([file]) => file)
+      .sort();
 
     expect(surfaceSource).toMatch(/\brenderWindowFrameTabsetTabs\b/);
-    expect(uiPublicApiSource).not.toMatch(/\b(?:createWindowContentAttachment|getWindowContentAttachment|WindowContentHost|WindowContentAttachment|WindowContentAttachmentRequest)\b/);
-    expect(appWindowRuntimeIndex).not.toMatch(/\b(?:createWindowContentAttachment|getWindowContentAttachment|WindowContentHost|WindowContentAttachment|WindowContentAttachmentRequest|FloatingWindowHost|FloatingWindowContentAttachment)\b/);
-    expect(appFloatingHostBarrel).not.toMatch(/\b(?:createWindowContentAttachment|getWindowContentAttachment|WindowContentHost|WindowContentAttachment|WindowContentAttachmentRequest|FloatingWindowHost|FloatingWindowContentAttachment)\b/);
-    expect(floatingWindowSource).not.toMatch(/\bWindowDockSurfaceModel\b/);
-    expect(rootFrameSource).not.toMatch(/\bWindowDockSurfaceModel\b/);
-    expect(floatingWindowSource).not.toMatch(/#contentAttachments|#tabElementsByViewActorId|renderTabsetTabs|renderSplitNode/);
-    expect(rootFrameSource).not.toMatch(/#contentAttachments|#tabElementsByViewActorId|renderTabsetTabs|renderSplitNode/);
+    expect(surfaceSource).not.toMatch(/#tabs\b|#root\b|#focusedViewActorId\b/);
+    expect(surfaceSource).not.toMatch(/target\?\.content\s*\?\?\s*host\.primaryContent/);
     expect(floatingWindowSource).not.toMatch(/new\s+WindowFrameSurfaceComponent/);
     expect(rootFrameSource).not.toMatch(/new\s+WindowFrameSurfaceComponent/);
-    expect(floatingWindowSource).not.toMatch(/#surface\.dispose\(/);
-    expect(rootFrameSource).not.toMatch(/#surface\.dispose\(/);
     expect(floatingDefinitionSource).toMatch(/\bwindowFrameSurfaceComponentType\b/);
     expect(rootDefinitionSource).toMatch(/\bwindowFrameSurfaceComponentType\b/);
     expect(installSource).toMatch(/windowFrameSurfaceComponentDefinition[\s\S]*createFloatingWindowComponentDefinition/);
     expect(installSource).toMatch(/windowFrameSurfaceComponentDefinition[\s\S]*workspaceRootDockFrameComponentDefinition/);
+    expect(framePortSource).not.toMatch(deletedPlacementNames);
+    expect(uiPublicApiSource).not.toMatch(/window-frame-dock-tree|window-dock-surface-model|window-content-host/);
+    expect(appWindowRuntimeIndex).not.toMatch(deletedPlacementNames);
+    expect(appFloatingHostBarrel).not.toMatch(deletedPlacementNames);
+    expect(uiFrameworkPackageSources["packages/ui-framework/src/model/window-dock-surface-model.ts"]).toBeUndefined();
+    expect(uiFrameworkPackageSources["packages/ui-framework/src/model/window-frame-dock-tree.ts"]).toBeUndefined();
+    expect(uiFrameworkPackageSources["packages/ui-framework/src/ports/window-content-host.ts"]).toBeUndefined();
+    expect(uiFrameworkPackageSources["packages/ui-framework/src/services/window-workspace-graph-adapter.ts"])
+      .toBeUndefined();
+    expect(lifecycleApiSource).not.toMatch(/WindowWorkspaceGraphDiagnostic/);
+    expect(controllerSource).not.toMatch(/createWindowWorkspaceGraphDiagnostic|createWorkspaceGraphDiagnostic/);
+    expect(deletedPlacementNameViolations).toEqual([]);
+    expect(deletedPlacementImportViolations).toEqual([]);
 
-    expect(projectPrismPrePhase6UiFrameworkBlockers.map((blocker) => blocker.id))
-      .toContain("window-workspace-multi-truth-debt");
+    expect(projectPrismPrePhase6UiFrameworkBlockers).toEqual([]);
   });
 
   it("keeps root and floating tab chrome on the same shared hit/action model", () => {
@@ -1050,19 +1040,6 @@ describe("architecture boundaries", () => {
     expect(tabInputSource).toMatch(/\brequestActivateFrameTab\b/);
     expect(tabInputSource).toMatch(/\brequestCommitDock\b/);
     expect(tabInputSource).toMatch(/\brequestCloseView\b/);
-  });
-
-  it("keeps dock surface active-tab display truth inside tabset runtime roots", () => {
-    const framePortSource = uiFrameworkPackageSources["packages/ui-framework/src/ports/window-frame-port.ts"] ?? "";
-    const dockSurfaceSource = uiFrameworkPackageSources["packages/ui-framework/src/model/window-dock-surface-model.ts"] ?? "";
-    const surfaceSource = uiFrameworkPackageSources["packages/ui-framework/src/chrome/window-frame-surface-component.ts"] ?? "";
-
-    expect(framePortSource).not.toMatch(
-      /\b(?:getActiveViewActorId|getFocusedViewActorId|getActiveViewActorIds|listTabs|listDockTargetTabsets|hasTab|hasTabset|isViewActiveInFrame|isViewVisibleInFrame)\b/
-    );
-    expect(dockSurfaceSource).not.toMatch(/#activeViewActorId/);
-    expect(dockSurfaceSource).toMatch(/#focusedViewActorId/);
-    expect(surfaceSource).not.toMatch(/target\?\.content\s*\?\?\s*host\.primaryContent/);
   });
 
   it("keeps frame visual layer and actor input priority on the same frame projection", () => {
@@ -1266,56 +1243,8 @@ describe("architecture boundaries", () => {
     expect(factoryRegistrySource).toMatch(/\bidentity:\s*getWindowViewFactoryIdentity\b/);
   });
 
-  it("keeps feature window content components on registered content instead of host rehosting", () => {
-    const contentFiles = [
-      "./debug/components/debug-log-content-component.ts",
-      "./hierarchy/hierarchy-panel-component.ts"
-    ];
-
-    for (const file of contentFiles) {
-      const source = sourceFiles[file] ?? "";
-      expect(source).toMatch(/\bWindowRegisteredContent\b/);
-      expect(source).toMatch(/\bWindowContentRegistrationPort\b/);
-      expect(source).not.toMatch(/\bWindowContentAttachment\b/);
-      expect(source).not.toMatch(/\brehostWindowContent\b/);
-      expect(source).not.toMatch(/\bFloatingWindowHost\b/);
-      expect(source).not.toMatch(/\bFloatingWindowContentAttachment\b/);
-    }
-  });
-
-  it("keeps window frame surface rendering from owning the dock surface model", () => {
-    const surfaceSource =
-      uiFrameworkPackageSources["packages/ui-framework/src/chrome/window-frame-surface-component.ts"] ?? "";
-    const publicApiSource =
-      uiFrameworkPackageSources["packages/ui-framework/src/index.ts"] ?? "";
-
-    expect(surfaceSource).not.toMatch(/\bWindowDockSurfaceModel\b/);
-    expect(surfaceSource).not.toMatch(/\bnew\s+WindowDockSurfaceModel\b/);
-    expect(publicApiSource).not.toMatch(/window-dock-surface-model/);
-  });
-
-  it("keeps workspace graph diagnostics out of production UI framework contracts", () => {
-    const publicApiSource =
-      uiFrameworkPackageSources["packages/ui-framework/src/index.ts"] ?? "";
-    const lifecycleApiSource =
-      uiFrameworkPackageSources["packages/ui-framework/src/services/window-frame-lifecycle.ts"] ?? "";
-    const controllerSource =
-      uiFrameworkPackageSources["packages/ui-framework/src/services/window-frame-lifecycle-controller.ts"] ?? "";
-
-    expect(publicApiSource).not.toMatch(/window-workspace-graph-adapter/);
-    expect(publicApiSource).toMatch(/window-workspace-graph-reconciler/);
-    expect(uiFrameworkPackageSources["packages/ui-framework/src/services/window-workspace-graph-adapter.ts"])
-      .toBeUndefined();
-    expect(lifecycleApiSource).not.toMatch(/WindowWorkspaceGraphDiagnostic/);
-    expect(controllerSource).not.toMatch(/createWindowWorkspaceGraphDiagnostic/);
-    expect(controllerSource).not.toMatch(/createWorkspaceGraphDiagnostic/);
-    expect(projectPrismPrePhase6UiFrameworkBlockers.map((blocker) => blocker.id))
-      .toContain("window-workspace-multi-truth-debt");
-  });
-
   it("keeps future dock layout model pure and DOM-free", () => {
     const pureWindowLayoutFiles = new Set([
-      "packages/ui-framework/src/model/window-frame-dock-tree.ts",
       "./window-runtime/window-workspace-layout.ts",
       "packages/ui-framework/src/model/window-dock-targets.ts",
       "packages/ui-framework/src/model/window-tab-drag-session.ts"
@@ -1330,20 +1259,6 @@ describe("architecture boundaries", () => {
         /\b(?:HTMLElement|HTMLDivElement|Document|Element|getBoundingClientRect|querySelector)\b/.test(source) ||
         /from\s+["'](?:gizmo-core|three)["']/.test(source)
       ))
-      .map(([file]) => file)
-      .sort();
-
-    expect(violations).toEqual([]);
-  });
-
-  it("keeps the window frame dock tree model behind the UI framework public API", () => {
-    const violations = Object.entries(sourceFiles)
-      .filter(([file]) => (
-        file !== "./architecture-boundaries.test.ts" &&
-        !file.endsWith(".test.ts") &&
-        !file.startsWith("./window-runtime/")
-      ))
-      .filter(([, source]) => /from\s+["'][^"']*window-frame-dock-tree["']/.test(source))
       .map(([file]) => file)
       .sort();
 

@@ -27,7 +27,7 @@ import {
   WindowContentRegistry,
   type WindowContentRegistrationPort,
   type WindowRegisteredContent
-} from "../ports/window-content-host";
+} from "../ports/window-content-registry";
 import type { WindowFramePort } from "../ports/window-frame-port";
 import type { WindowFramePortRegistryEntry, WindowFramePortRegistryView } from "../ports/window-frame-port-registry";
 import type {

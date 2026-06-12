@@ -1,62 +1,38 @@
 import { type Actor, type Component, type ComponentType } from "actor-core";
 import type { ActorInputMoveEvent } from "actor-input";
 import {
-  commitWindowContentLayout,
-  createWindowContentAttachment,
-  type WindowContentAttachment,
+  commitWindowRegisteredContentLayout,
   type WindowContentLayoutCommit,
-  type WindowContentLayoutCommitSplit,
   type WindowContentLayoutCommitRect,
-  type WindowContentAttachmentRequest,
-  type WindowContentHost,
+  type WindowContentLayoutCommitSplit,
   type WindowRegisteredContent
-} from "../ports/window-content-host";
-import {
-  type FloatingWindowSplitterHitData
-} from "./window-frame-hit-data";
+} from "../ports/window-content-registry";
 import type {
-  WindowFrameDockTargetTabset,
-  WindowFrameRuntimeDockNode,
-  WindowFrameTab
-} from "../model/window-frame-tab";
-import {
-  activateTabInWindowFrameDockTree,
-  addTabToWindowFrameDockTree,
-  cloneWindowFrameRuntimeDockRoot,
-  createWindowFrameDockTreeTabset,
-  findActiveViewActorIdInWindowFrameDockTree,
-  findWindowFrameDockTreeSplitById,
-  findWindowFrameDockTreeTabsetById,
-  findWindowFrameDockTreeTabsetContaining,
-  listActiveViewActorIdsInWindowFrameDockTree,
-  listWindowFrameDockTreeViewActorIds,
-  mergeWindowFrameTabsByActorId,
-  removeTabFromWindowFrameDockTree,
-  restoreWindowFrameDockTreeFromRuntimeRoot,
-  splitTabInWindowFrameDockTree,
-  type WindowFrameDockTreeNode,
-  type WindowFrameDockTreeSplitDirection,
-  type WindowFrameDockTreeTabsetNode
-} from "../model/window-frame-dock-tree";
+  FloatingWindowSplitterHitData,
+  WindowFrameSurfaceSplitDirection
+} from "./window-frame-hit-data";
+import type { WindowFrameTab } from "../model/window-frame-tab";
 import {
   findWindowFrameTabActionAtPoint,
   findWindowFrameTabAtPoint,
   renderWindowFrameTabsetTabs
 } from "./window-frame-tab-chrome";
-import { rectFromDomRect, type WindowDockRect, type WindowDockSplitPlacement } from "../model/window-dock-targets";
+import { rectFromDomRect, type WindowDockRect } from "../model/window-dock-targets";
 import type { UiPoint } from "../ports/ui-geometry";
+import type { WindowWorkspaceContentId, WindowWorkspaceTabsetId } from "../model/window-workspace-graph";
 import type {
   WindowFrameSurfaceSnapshot,
   WindowFrameSurfaceSnapshotNode,
   WindowFrameSurfaceSnapshotTab,
+  WindowFrameSurfaceSnapshotTabsetNode,
+  WindowWorkspaceGraphContentActiveState,
   WindowWorkspaceGraphContentPlacement,
   WindowWorkspaceGraphReconcilerSurface,
-  WindowWorkspaceSurfaceGeometryProjection,
   WindowWorkspaceSurfaceGeometryIssue,
+  WindowWorkspaceSurfaceGeometryProjection,
   WindowWorkspaceSurfaceGeometrySplitter,
   WindowWorkspaceSurfaceGeometryTabset
 } from "../services/window-workspace-graph-reconciler";
-import type { WindowWorkspaceContentId } from "../model/window-workspace-graph";
 
 export const windowFrameSurfaceComponentType =
   "window-frame-surface-component" as ComponentType<WindowFrameSurfaceComponent>;
@@ -108,7 +84,7 @@ export interface WindowFrameSurfaceHit {
 
 interface WindowFrameSurfaceSplitResizeStart {
   readonly splitId: string;
-  readonly direction: WindowFrameDockTreeSplitDirection;
+  readonly direction: WindowFrameSurfaceSplitDirection;
   readonly ratio: number;
   readonly splitRect: DOMRectReadOnly;
 }
@@ -123,9 +99,11 @@ interface WindowFrameSurfaceTabsetTarget {
   readonly content: HTMLElement;
 }
 
-interface WindowDockSurfaceMutationResult {
-  readonly activeViewActorChanged: boolean;
-  readonly focusedViewActorChanged: boolean;
+interface WindowFrameSurfaceContentState {
+  readonly contentId: WindowWorkspaceContentId;
+  readonly tabsetId: WindowWorkspaceTabsetId | null;
+  readonly active: boolean;
+  readonly interactable: boolean;
 }
 
 export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGraphReconcilerSurface<WindowRegisteredContent> {
@@ -134,19 +112,17 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
   readonly id: string;
   enabled = true;
 
-  readonly #contentAttachments = new Set<WindowContentAttachment>();
-  readonly #contentAttachmentsByViewActorId = new Map<string, WindowContentAttachment>();
-  readonly #contentViewActorIdsByAttachment = new WeakMap<WindowContentAttachment, string>();
-  readonly #contentHostsByViewActorId = new Map<string, WindowContentHost>();
+  readonly #contentByContentId = new Map<WindowWorkspaceContentId, WindowRegisteredContent>();
+  readonly #contentStateByContentId = new Map<WindowWorkspaceContentId, WindowFrameSurfaceContentState>();
+  readonly #viewActorIdByContentId = new Map<WindowWorkspaceContentId, string>();
+  readonly #contentIdByViewActorId = new Map<string, WindowWorkspaceContentId>();
+  readonly #tabsByViewActorId = new Map<string, WindowFrameTab>();
   readonly #tabElementsByViewActorId = new Map<string, HTMLElement>();
   readonly #tabActionElementsByViewActorId = new Map<string, HTMLElement>();
   readonly #tabsetTargetsById = new Map<string, WindowFrameSurfaceTabsetTarget>();
   readonly #splitElementsById = new Map<string, HTMLElement>();
   readonly #splitterElementsBySplitId = new Map<string, HTMLElement>();
-  readonly #viewActorIdByContentId = new Map<string, string>();
-  #tabs: WindowFrameTab[] = [];
-  #focusedViewActorId: string | null = null;
-  #root: WindowFrameDockTreeNode = createWindowFrameDockTreeTabset([], null);
+  #lastSnapshot: WindowFrameSurfaceSnapshot | null = null;
   #host: WindowFrameSurfaceHost | null = null;
   #splitResizeStart: WindowFrameSurfaceSplitResizeStart | null = null;
   #surfaceRevision = 0;
@@ -160,24 +136,10 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     return this.actor.id;
   }
 
-  configure(options: {
-    readonly tabs: readonly WindowFrameTab[];
-    readonly activeViewActorId?: string | null;
-  }): void {
-    this.#tabs = options.tabs.map((tab) => ({ ...tab }));
-    this.#focusedViewActorId = resolveActiveViewActorId(this.#tabs, options.activeViewActorId);
-    this.#root = createWindowFrameDockTreeTabset(
-      this.#tabs.map((tab) => tab.viewActorId),
-      this.#focusedViewActorId
-    );
-    this.render();
-    this.applyActiveContentState();
-  }
-
   attachHost(host: WindowFrameSurfaceHost): void {
     this.#host = host;
     this.render();
-    this.applyActiveContentState();
+    this.applyAllContentState();
   }
 
   detachHost(host: WindowFrameSurfaceHost): void {
@@ -191,70 +153,11 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     this.#splitResizeStart = null;
   }
 
-  listTabs(): readonly WindowFrameTab[] {
-    return this.#tabs.map((tab) => ({ ...tab }));
-  }
-
-  getRuntimeDockRoot(): WindowFrameRuntimeDockNode {
-    return cloneWindowFrameRuntimeDockRoot(this.#root);
-  }
-
-  restoreRuntimeDockRoot(root: WindowFrameRuntimeDockNode, options: {
-    readonly tabs?: readonly WindowFrameTab[];
-    readonly activeViewActorId?: string | null;
-  } = {}): void {
-    const restoredRoot = restoreWindowFrameDockTreeFromRuntimeRoot(root);
-    const viewActorIds = listWindowFrameDockTreeViewActorIds(restoredRoot);
-    const nextTabs = mergeWindowFrameTabsByActorId(this.#tabs, options.tabs ?? [], viewActorIds);
-    if (nextTabs.length !== viewActorIds.length) {
-      const missingViewActorIds = viewActorIds.filter((viewActorId) => (
-        !nextTabs.some((tab) => tab.viewActorId === viewActorId)
-      ));
-      throw new Error(`Cannot restore dock root; missing tab descriptors: ${missingViewActorIds.join(", ")}`);
-    }
-    this.#tabs = nextTabs;
-    this.#root = restoredRoot;
-    const activeViewActorId = options.activeViewActorId ?? findActiveViewActorIdInWindowFrameDockTree(restoredRoot);
-    this.#focusedViewActorId =
-      activeViewActorId && viewActorIds.includes(activeViewActorId)
-        ? activeViewActorId
-        : viewActorIds[0] ?? null;
-    this.render();
-    this.applyActiveContentState();
-  }
-
-  listDockTargetTabsets(): readonly WindowFrameDockTargetTabset[] {
-    const fallback = this.#host?.getDockTargetFallbackBounds?.() ?? null;
-    const root = this.getRuntimeDockRoot();
-    return [...this.#tabsetTargetsById.entries()].map(([targetTabsetId, target]) => {
-      const tabBounds = rectFromDomRect(target.tabbar.getBoundingClientRect());
-      const contentBounds = rectFromDomRect(target.content.getBoundingClientRect());
-      const tabset = findWindowFrameDockTreeTabsetById(root, targetTabsetId);
-      return {
-        targetTabsetId,
-        tabs: tabset?.tabs ?? [],
-        tabBounds: isNonZeroRect(tabBounds) ? tabBounds : fallback ?? tabBounds,
-        contentBounds: isNonZeroRect(contentBounds) ? contentBounds : fallback ?? contentBounds
-      };
-    });
-  }
-
   renderFrameSurface(snapshot: WindowFrameSurfaceSnapshot): void {
-    const tabs = listSnapshotTabs(snapshot.root);
-    this.#tabs = tabs.map((tab) => ({
-      viewActorId: tab.viewActorId,
-      identity: tab.identity,
-      viewKey: tab.identity.viewKey,
-      title: tab.title ?? tab.identity.viewKey
-    }));
-    this.#viewActorIdByContentId.clear();
-    for (const tab of tabs) {
-      this.#viewActorIdByContentId.set(tab.contentId, tab.viewActorId);
-    }
-    this.#root = snapshotNodeToDockTree(snapshot.root);
-    this.#focusedViewActorId = findActiveViewActorIdInWindowFrameDockTree(this.#root);
+    this.#lastSnapshot = snapshot;
+    this.rebuildSnapshotIndexes(snapshot);
     this.render();
-    this.applyActiveContentState();
+    this.applyAllContentState();
   }
 
   measureFrameSurfaceGeometry(snapshot: WindowFrameSurfaceSnapshot): WindowWorkspaceSurfaceGeometryProjection {
@@ -291,193 +194,45 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
   }
 
   placeContent(placement: WindowWorkspaceGraphContentPlacement<WindowRegisteredContent>): void {
-    const viewActorId = this.#viewActorIdByContentId.get(placement.placement.contentId) ?? null;
-    this.appendContentElement(viewActorId, placement.content.element);
-    const interactable = this.isEffectiveVisible() && placement.placement.interactable;
-    placement.content.setInteractable(interactable);
-    placement.content.element.hidden = !interactable;
-  }
-
-  getFocusedViewActorId(): string | null {
-    return this.#focusedViewActorId;
-  }
-
-  getActiveViewActorIds(): readonly string[] {
-    return listActiveViewActorIdsInWindowFrameDockTree(this.#root);
-  }
-
-  isViewActiveInFrame(viewActorId: string): boolean {
-    return this.isViewActorIdActiveInItsTabset(viewActorId);
-  }
-
-  isViewVisibleInFrame(viewActorId: string): boolean {
-    return this.isEffectiveVisible() && this.isViewActiveInFrame(viewActorId);
-  }
-
-  addTab(tab: WindowFrameTab, options: {
-    readonly active?: boolean;
-    readonly targetTabsetId?: string;
-  } = {}): WindowDockSurfaceMutationResult {
-    const previousFocusedViewActorId = this.#focusedViewActorId;
-    this.upsertTab(tab);
-    this.#root = addTabToWindowFrameDockTree(this.#root, tab.viewActorId, {
-      active: options.active,
-      targetTabsetId: options.targetTabsetId
+    this.#contentByContentId.set(placement.placement.contentId, placement.content);
+    this.#contentStateByContentId.set(placement.placement.contentId, {
+      contentId: placement.placement.contentId,
+      tabsetId: placement.placement.tabsetId,
+      active: placement.placement.active,
+      interactable: placement.placement.interactable
     });
-    if (options.active || !this.#focusedViewActorId) {
-      this.#focusedViewActorId = tab.viewActorId;
-    }
-    const focusedViewActorChanged = previousFocusedViewActorId !== this.#focusedViewActorId;
-    this.render();
-    this.applyActiveContentState();
-    return {
-      activeViewActorChanged: focusedViewActorChanged,
-      focusedViewActorChanged
-    };
+    this.appendContentElement(placement.placement.contentId, placement.content.element);
+    this.applyContentState(placement.placement.contentId);
   }
 
-  splitTab(tab: WindowFrameTab, options: {
-    readonly targetTabsetId: string;
-    readonly placement: WindowDockSplitPlacement;
-    readonly active?: boolean;
-  }): WindowDockSurfaceMutationResult {
-    const previousFocusedViewActorId = this.#focusedViewActorId;
-    this.upsertTab(tab);
-    const split = splitTabInWindowFrameDockTree(this.#root, tab.viewActorId, options);
-    if (!split.split || !split.node) {
-      throw new Error(`Target tabset not found: ${options.targetTabsetId}.`);
-    }
-    this.#root = split.node;
-    if (options.active || !this.#focusedViewActorId) {
-      this.#focusedViewActorId = tab.viewActorId;
-    }
-    const focusedViewActorChanged = previousFocusedViewActorId !== this.#focusedViewActorId;
-    this.render();
-    this.applyActiveContentState();
-    return {
-      activeViewActorChanged: focusedViewActorChanged,
-      focusedViewActorChanged
-    };
+  removeContent(contentId: WindowWorkspaceContentId): void {
+    const content = this.#contentByContentId.get(contentId);
+    content?.setInteractable(false);
+    content?.element.remove();
+    this.#contentByContentId.delete(contentId);
+    this.#contentStateByContentId.delete(contentId);
   }
 
-  removeTab(viewActorId: string): boolean {
-    const nextTabs = this.#tabs.filter((tab) => tab.viewActorId !== viewActorId);
-    if (nextTabs.length === this.#tabs.length) return false;
-    this.#tabs = nextTabs;
-    const removed = removeTabFromWindowFrameDockTree(this.#root, viewActorId);
-    this.#root = removed.node ?? createWindowFrameDockTreeTabset(
-      nextTabs.map((tab) => tab.viewActorId),
-      nextTabs[0]?.viewActorId ?? null
-    );
-    if (this.#focusedViewActorId === viewActorId) {
-      this.#focusedViewActorId =
-        findActiveViewActorIdInWindowFrameDockTree(this.#root) ?? this.#tabs[0]?.viewActorId ?? null;
-    }
-    this.#contentAttachmentsByViewActorId.get(viewActorId)?.setInteractable(false);
-    this.render();
-    this.applyActiveContentState();
-    return true;
-  }
-
-  activateTab(viewActorId: string): WindowDockSurfaceMutationResult {
-    if (!this.hasTab(viewActorId)) {
-      return {
-        activeViewActorChanged: false,
-        focusedViewActorChanged: false
-      };
-    }
-    const wasActiveInTabset = this.isViewActorIdActiveInItsTabset(viewActorId);
-    const previousFocusedViewActorId = this.#focusedViewActorId;
-    this.#focusedViewActorId = viewActorId;
-    this.#root = activateTabInWindowFrameDockTree(this.#root, viewActorId);
-    const focusedViewActorChanged = previousFocusedViewActorId !== this.#focusedViewActorId;
-    const result = {
-      activeViewActorChanged: focusedViewActorChanged || !wasActiveInTabset,
-      focusedViewActorChanged
-    };
-    if (!result.activeViewActorChanged) return result;
-    this.render();
-    this.applyActiveContentState();
-    return result;
-  }
-
-  hasTab(viewActorId: string): boolean {
-    return this.#tabs.some((tab) => tab.viewActorId === viewActorId);
-  }
-
-  hasTabset(targetTabsetId: string): boolean {
-    return Boolean(findWindowFrameDockTreeTabsetById(this.#root, targetTabsetId));
-  }
-
-  getContentHost(viewActorId: string): WindowContentHost {
-    const existing = this.#contentHostsByViewActorId.get(viewActorId);
-    if (existing) return existing;
-    const surface = this;
-    const host: WindowContentHost = {
-      id: `${this.#host?.id ?? this.id}:${viewActorId}`,
-      viewActorId,
-      get inputStackPriority() {
-        return surface.#host?.getInputStackPriority();
-      },
-      mountContent: (request) => this.mountContent(withWindowContentViewActorId(request, viewActorId)),
-      isContentInteractable: (element) => (
-        this.isViewActorIdActiveInItsTabset(viewActorId) &&
-        this.isContentInteractable(element)
-      )
-    };
-    this.#contentHostsByViewActorId.set(viewActorId, host);
-    return host;
-  }
-
-  mountContent(
-    requestOrElement: HTMLElement | WindowContentAttachmentRequest,
-    hostOverride?: WindowContentHost
-  ): WindowContentAttachment {
-    const viewActorId = readWindowContentViewActorId(requestOrElement);
-    if (viewActorId) {
-      this.#contentAttachmentsByViewActorId.get(viewActorId)?.dispose();
-    }
-    const attachment = createWindowContentAttachment(
-      hostOverride ?? this.getAttachmentHost(),
-      requestOrElement,
-      (element) => this.appendContentElement(viewActorId, element),
-      (disposedAttachment) => {
-        disposedAttachment.element.remove();
-        this.#contentAttachments.delete(disposedAttachment);
-        if (viewActorId && this.#contentAttachmentsByViewActorId.get(viewActorId) === disposedAttachment) {
-          this.#contentAttachmentsByViewActorId.delete(viewActorId);
-        }
-      }
-    );
-    this.#contentAttachments.add(attachment);
-    if (viewActorId) {
-      this.#contentAttachmentsByViewActorId.set(viewActorId, attachment);
-      this.#contentViewActorIdsByAttachment.set(attachment, viewActorId);
-      this.applyActiveContentState();
-    }
-    return attachment;
-  }
-
-  isContentInteractable(element: HTMLElement): boolean {
-    if (!this.isEffectiveVisible()) return false;
-    for (const attachment of this.#contentAttachments) {
-      if (attachment.element !== element) continue;
-      const viewActorId = this.#contentViewActorIdsByAttachment.get(attachment);
-      if (viewActorId && !this.isViewActorIdActiveInItsTabset(viewActorId)) return false;
-      return attachment.interactable;
-    }
-    return false;
+  setContentActive(state: WindowWorkspaceGraphContentActiveState): void {
+    const previous = this.#contentStateByContentId.get(state.contentId);
+    this.#contentStateByContentId.set(state.contentId, {
+      contentId: state.contentId,
+      tabsetId: previous?.tabsetId ?? this.findTabsetContainingContentId(state.contentId)?.id ?? null,
+      active: state.active,
+      interactable: state.interactable
+    });
+    this.applyContentState(state.contentId);
   }
 
   refreshActiveContentState(): void {
-    this.applyActiveContentState();
+    this.applyAllContentState();
   }
 
   hasInteractableContent(): boolean {
     if (!this.isEffectiveVisible()) return false;
-    if (this.#contentAttachments.size === 0) return true;
-    for (const attachment of this.#contentAttachments) {
-      if (this.isContentInteractable(attachment.element)) return true;
+    if (this.#contentByContentId.size === 0) return true;
+    for (const contentId of this.#contentByContentId.keys()) {
+      if (this.isContentInteractable(contentId)) return true;
     }
     return false;
   }
@@ -492,7 +247,7 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
         hitPriority: 50,
         data: {
           tab,
-          tabsetId: this.findTabsetContaining(tab.viewActorId)?.id
+          tabsetId: this.findTabsetContainingViewActorId(tab.viewActorId)?.id
         }
       };
     }
@@ -532,40 +287,18 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     this.#splitResizeStart = null;
   }
 
-  private createSplitResizeStart(hitData: unknown): WindowFrameSurfaceSplitResizeStart | null {
-    const splitter = readSurfaceSplitterHitData(hitData);
-    const split = splitter ? findWindowFrameDockTreeSplitById(this.#root, splitter.splitId) : null;
-    const splitterElement = splitter ? this.#splitterElementsBySplitId.get(splitter.splitId) : null;
-    const splitElement = splitter
-      ? this.#splitElementsById.get(splitter.splitId) ?? splitterElement?.parentElement ?? null
-      : null;
-    if (!splitter) return null;
-    const splitRect = splitElement?.getBoundingClientRect() ?? this.#host?.primaryContent.getBoundingClientRect();
-    if (!splitRect) return null;
-    const hostContentRect = this.#host?.primaryContent.getBoundingClientRect() ?? splitRect;
-    const measuredSize = splitter.direction === "horizontal" ? splitRect.width : splitRect.height;
-    const fallbackSize = splitter.direction === "horizontal" ? hostContentRect.width : hostContentRect.height;
-    return {
-      splitId: splitter.splitId,
-      direction: splitter.direction,
-      ratio: split?.ratio ?? 0.5,
-      splitRect: measuredSize > 0 || fallbackSize <= 0 ? splitRect : hostContentRect
-    };
-  }
-
   getActiveOrFirstTabBounds(fallback: HTMLElement): DOMRectReadOnly {
-    const focusedViewActorId = this.#focusedViewActorId;
-    const focusedTab = focusedViewActorId
-      ? this.#tabElementsByViewActorId.get(focusedViewActorId)
-      : null;
-    const firstTab = focusedTab ?? this.#tabElementsByViewActorId.values().next().value as HTMLElement | undefined;
+    const activeTab = this.getActiveTabs()
+      .map((tab) => this.#tabElementsByViewActorId.get(tab.viewActorId))
+      .find((element): element is HTMLElement => Boolean(element));
+    const firstTab = activeTab ?? this.#tabElementsByViewActorId.values().next().value as HTMLElement | undefined;
     return (firstTab ?? fallback).getBoundingClientRect();
   }
 
   dispose(): void {
     this.enabled = false;
-    for (const attachment of [...this.#contentAttachments]) {
-      attachment.dispose();
+    for (const contentId of [...this.#contentByContentId.keys()]) {
+      this.removeContent(contentId);
     }
     this.detachCurrentHost();
   }
@@ -573,18 +306,6 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
   private detachCurrentHost(): void {
     const host = this.#host;
     if (host) this.detachHost(host);
-  }
-
-  private getAttachmentHost(): WindowContentHost {
-    const surface = this;
-    return {
-      id: this.#host?.id ?? this.id,
-      get inputStackPriority() {
-        return surface.#host?.getInputStackPriority();
-      },
-      mountContent: (request) => this.mountContent(request),
-      isContentInteractable: (element) => this.isContentInteractable(element)
-    };
   }
 
   private render(): void {
@@ -597,7 +318,12 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     this.#splitterElementsBySplitId.clear();
     removeElementChildren(host.primaryTabbar);
     removeElementChildren(host.primaryContent);
-    const root = this.#root;
+    const snapshot = this.#lastSnapshot;
+    if (!snapshot) {
+      host.afterRender?.();
+      return;
+    }
+    const root = snapshot.root;
     host.primaryTabbar.hidden = Boolean(host.hidePrimaryTabbarWhenSplit && root.kind !== "tabset");
     if (root.kind === "tabset") {
       this.renderTabsetTabs(root, host.primaryTabbar);
@@ -609,10 +335,10 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
       host.primaryContent.append(this.renderSplitNode(root));
     }
     host.afterRender?.();
-    this.placeContentAttachments();
+    this.placeContentElements();
   }
 
-  private renderSplitNode(node: WindowFrameDockTreeNode): HTMLElement {
+  private renderSplitNode(node: WindowFrameSurfaceSnapshotNode): HTMLElement {
     const host = this.requireHost();
     if (node.kind === "tabset") {
       const pane = host.document.createElement("div");
@@ -647,12 +373,15 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     return split;
   }
 
-  private renderTabsetTabs(node: WindowFrameDockTreeTabsetNode, target: HTMLElement): void {
+  private renderTabsetTabs(node: WindowFrameSurfaceSnapshotTabsetNode, target: HTMLElement): void {
     const host = this.requireHost();
     renderWindowFrameTabsetTabs({
       document: host.document,
-      tabs: this.listTabs(),
-      tabset: node,
+      tabs: this.createTabsFromSnapshot(),
+      tabset: {
+        viewActorIds: node.tabs.map((tab) => tab.viewActorId),
+        activeViewActorId: node.tabs.find((tab) => tab.contentId === node.activeContentId)?.viewActorId ?? null
+      },
       target,
       maps: {
         tabsByViewActorId: this.#tabElementsByViewActorId as Map<string, HTMLDivElement>,
@@ -663,29 +392,32 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     });
   }
 
-  private applyActiveContentState(): void {
+  private applyAllContentState(): void {
     this.#surfaceRevision += 1;
-    for (const [viewActorId, attachment] of this.#contentAttachmentsByViewActorId) {
-      const active = this.isEffectiveVisible() && this.isViewActorIdActiveInItsTabset(viewActorId);
-      attachment.setInteractable(active);
-      attachment.element.hidden = !active;
-      commitWindowContentLayout(attachment, this.createLayoutCommit(viewActorId, attachment, active));
-    }
-    for (const attachment of this.#contentAttachments) {
-      if (this.#contentViewActorIdsByAttachment.get(attachment)) continue;
-      const active = this.isEffectiveVisible();
-      commitWindowContentLayout(attachment, this.createLayoutCommit(null, attachment, active));
+    for (const contentId of this.#contentByContentId.keys()) {
+      this.applyContentState(contentId);
     }
   }
 
-  private appendContentElement(viewActorId: string | null, element: HTMLElement): void {
-    const host = this.#host;
-    if (!host) return;
-    if (!viewActorId) {
-      host.primaryContent.append(element);
-      return;
-    }
-    const tabset = this.findTabsetContaining(viewActorId);
+  private applyContentState(contentId: WindowWorkspaceContentId): void {
+    const content = this.#contentByContentId.get(contentId);
+    if (!content) return;
+    const snapshotState = this.findSnapshotStateForContent(contentId);
+    const explicitState = this.#contentStateByContentId.get(contentId);
+    const state = {
+      contentId,
+      tabsetId: explicitState?.tabsetId ?? snapshotState.tabsetId,
+      active: explicitState?.active ?? snapshotState.active,
+      interactable: explicitState?.interactable ?? snapshotState.interactable
+    };
+    const effectiveInteractable = this.isEffectiveVisible() && state.interactable;
+    content.setInteractable(effectiveInteractable);
+    content.element.hidden = !effectiveInteractable;
+    commitWindowRegisteredContentLayout(content, this.createLayoutCommit(state, content, effectiveInteractable));
+  }
+
+  private appendContentElement(contentId: WindowWorkspaceContentId, element: HTMLElement): void {
+    const tabset = this.findTabsetContainingContentId(contentId);
     const target = tabset ? this.#tabsetTargetsById.get(tabset.id) : null;
     if (!target) {
       element.hidden = true;
@@ -693,19 +425,22 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
       return;
     }
     target.content.append(element);
-    element.hidden = !this.isEffectiveVisible() || !this.isViewActorIdActiveInItsTabset(viewActorId);
   }
 
-  private placeContentAttachments(): void {
-    for (const attachment of this.#contentAttachments) {
-      const viewActorId = this.#contentViewActorIdsByAttachment.get(attachment) ?? null;
-      this.appendContentElement(viewActorId, attachment.element);
+  private placeContentElements(): void {
+    for (const [contentId, content] of this.#contentByContentId) {
+      this.appendContentElement(contentId, content.element);
     }
+  }
+
+  private isContentInteractable(contentId: WindowWorkspaceContentId): boolean {
+    const content = this.#contentByContentId.get(contentId);
+    return Boolean(content?.interactable && this.isEffectiveVisible());
   }
 
   private findTabAtPoint(point: UiPoint): WindowFrameTab | null {
     return findWindowFrameTabAtPoint(
-      this.listTabs(),
+      this.createTabsFromSnapshot(),
       this.#tabElementsByViewActorId,
       point
     );
@@ -713,7 +448,7 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
 
   private findTabActionAtPoint(point: UiPoint): ReturnType<typeof findWindowFrameTabActionAtPoint> {
     return findWindowFrameTabActionAtPoint(
-      this.listTabs(),
+      this.createTabsFromSnapshot(),
       this.#tabActionElementsByViewActorId,
       point
     );
@@ -723,7 +458,7 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     const hitSlop = this.#host?.splitterHitSlop ?? 4;
     for (const [splitId, element] of this.#splitterElementsBySplitId) {
       if (!isPointInsideRect(point, expandDomRect(element.getBoundingClientRect(), hitSlop))) continue;
-      const split = findWindowFrameDockTreeSplitById(this.#root, splitId);
+      const split = this.findSplitById(splitId);
       if (!split) continue;
       return {
         splitId,
@@ -733,22 +468,65 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     return null;
   }
 
-  private findTabsetContaining(viewActorId: string): WindowFrameDockTreeTabsetNode | null {
-    return findWindowFrameDockTreeTabsetContaining(this.#root, viewActorId);
+  private findTabsetContainingContentId(contentId: WindowWorkspaceContentId): WindowFrameSurfaceSnapshotTabsetNode | null {
+    const snapshot = this.#lastSnapshot;
+    return snapshot ? findSnapshotTabsetContainingContentId(snapshot.root, contentId) : null;
   }
 
-  private isViewActorIdActiveInItsTabset(viewActorId: string): boolean {
-    const tabset = this.findTabsetContaining(viewActorId);
-    return Boolean(tabset && tabset.activeViewActorId === viewActorId);
+  private findTabsetContainingViewActorId(viewActorId: string): WindowFrameSurfaceSnapshotTabsetNode | null {
+    const contentId = this.#contentIdByViewActorId.get(viewActorId);
+    return contentId ? this.findTabsetContainingContentId(contentId) : null;
   }
 
-  private upsertTab(tab: WindowFrameTab): void {
-    const existingIndex = this.#tabs.findIndex((candidate) => candidate.viewActorId === tab.viewActorId);
-    if (existingIndex >= 0) {
-      this.#tabs[existingIndex] = { ...tab };
-    } else {
-      this.#tabs = [...this.#tabs, { ...tab }];
+  private findSplitById(splitId: string): Extract<WindowFrameSurfaceSnapshotNode, { readonly kind: "split" }> | null {
+    const snapshot = this.#lastSnapshot;
+    return snapshot ? findSnapshotSplitById(snapshot.root, splitId) : null;
+  }
+
+  private createTabsFromSnapshot(): readonly WindowFrameTab[] {
+    return [...this.#tabsByViewActorId.values()];
+  }
+
+  private getActiveTabs(): readonly WindowFrameSurfaceSnapshotTab[] {
+    const snapshot = this.#lastSnapshot;
+    return snapshot ? listSnapshotTabs(snapshot.root).filter((tab) => tab.active) : [];
+  }
+
+  private rebuildSnapshotIndexes(snapshot: WindowFrameSurfaceSnapshot): void {
+    this.#viewActorIdByContentId.clear();
+    this.#contentIdByViewActorId.clear();
+    this.#tabsByViewActorId.clear();
+    for (const tab of listSnapshotTabs(snapshot.root)) {
+      this.#viewActorIdByContentId.set(tab.contentId, tab.viewActorId);
+      this.#contentIdByViewActorId.set(tab.viewActorId, tab.contentId);
+      this.#tabsByViewActorId.set(tab.viewActorId, {
+        viewActorId: tab.viewActorId,
+        identity: tab.identity,
+        viewKey: tab.identity.viewKey,
+        title: tab.title ?? tab.identity.viewKey
+      });
     }
+  }
+
+  private createSplitResizeStart(hitData: unknown): WindowFrameSurfaceSplitResizeStart | null {
+    const splitter = readSurfaceSplitterHitData(hitData);
+    const split = splitter ? this.findSplitById(splitter.splitId) : null;
+    const splitterElement = splitter ? this.#splitterElementsBySplitId.get(splitter.splitId) : null;
+    const splitElement = splitter
+      ? this.#splitElementsById.get(splitter.splitId) ?? splitterElement?.parentElement ?? null
+      : null;
+    if (!splitter) return null;
+    const splitRect = splitElement?.getBoundingClientRect() ?? this.#host?.primaryContent.getBoundingClientRect();
+    if (!splitRect) return null;
+    const hostContentRect = this.#host?.primaryContent.getBoundingClientRect() ?? splitRect;
+    const measuredSize = splitter.direction === "horizontal" ? splitRect.width : splitRect.height;
+    const fallbackSize = splitter.direction === "horizontal" ? hostContentRect.width : hostContentRect.height;
+    return {
+      splitId: splitter.splitId,
+      direction: splitter.direction,
+      ratio: split?.ratio ?? 0.5,
+      splitRect: measuredSize > 0 || fallbackSize <= 0 ? splitRect : hostContentRect
+    };
   }
 
   private requireHost(): WindowFrameSurfaceHost {
@@ -762,22 +540,32 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     return this.enabled && Boolean(this.#host?.getEffectiveVisible());
   }
 
-  private createLayoutCommit(
-    contentId: string | null,
-    attachment: WindowContentAttachment,
-    active: boolean
-  ): WindowContentLayoutCommit {
-    const tabset = contentId ? this.findTabsetContaining(contentId) : null;
-    const target = tabset ? this.#tabsetTargetsById.get(tabset.id) : null;
-    const contentRect = target
-      ? toLayoutCommitRect(target.content.getBoundingClientRect())
-      : toLayoutCommitRect(attachment.element.getBoundingClientRect());
+  private findSnapshotStateForContent(contentId: WindowWorkspaceContentId): WindowFrameSurfaceContentState {
+    const tabset = this.findTabsetContainingContentId(contentId);
+    const active = Boolean(tabset && tabset.activeContentId === contentId);
     return {
-      surfaceId: this.id,
       contentId,
       tabsetId: tabset?.id ?? null,
       active,
-      interactable: attachment.interactable,
+      interactable: active
+    };
+  }
+
+  private createLayoutCommit(
+    state: WindowFrameSurfaceContentState,
+    content: WindowRegisteredContent,
+    interactable: boolean
+  ): WindowContentLayoutCommit {
+    const target = state.tabsetId ? this.#tabsetTargetsById.get(state.tabsetId) : null;
+    const contentRect = target
+      ? toLayoutCommitRect(target.content.getBoundingClientRect())
+      : toLayoutCommitRect(content.element.getBoundingClientRect());
+    return {
+      surfaceId: this.id,
+      contentId: state.contentId,
+      tabsetId: state.tabsetId,
+      active: state.active,
+      interactable,
       contentRect,
       surfaceRevision: this.#surfaceRevision,
       splits: this.listLayoutCommitSplits()
@@ -787,7 +575,7 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
   private listLayoutCommitSplits(): readonly WindowContentLayoutCommitSplit[] {
     const splits: WindowContentLayoutCommitSplit[] = [];
     for (const [splitId, element] of this.#splitterElementsBySplitId) {
-      const split = findWindowFrameDockTreeSplitById(this.#root, splitId);
+      const split = this.findSplitById(splitId);
       if (!split) continue;
       splits.push({
         splitId,
@@ -816,22 +604,24 @@ function listSnapshotTabs(node: WindowFrameSurfaceSnapshotNode): readonly Window
   ];
 }
 
-function snapshotNodeToDockTree(node: WindowFrameSurfaceSnapshotNode): WindowFrameDockTreeNode {
+function findSnapshotTabsetContainingContentId(
+  node: WindowFrameSurfaceSnapshotNode,
+  contentId: WindowWorkspaceContentId
+): WindowFrameSurfaceSnapshotTabsetNode | null {
   if (node.kind === "tabset") {
-    return createWindowFrameDockTreeTabset(
-      node.tabs.map((tab) => tab.viewActorId),
-      node.tabs.find((tab) => tab.contentId === node.activeContentId)?.viewActorId ?? node.tabs[0]?.viewActorId ?? null,
-      node.id
-    );
+    return node.tabs.some((tab) => tab.contentId === contentId) ? node : null;
   }
-  return {
-    kind: "split",
-    id: node.id,
-    direction: node.direction,
-    ratio: node.ratio,
-    first: snapshotNodeToDockTree(node.first),
-    second: snapshotNodeToDockTree(node.second)
-  };
+  return findSnapshotTabsetContainingContentId(node.first, contentId) ??
+    findSnapshotTabsetContainingContentId(node.second, contentId);
+}
+
+function findSnapshotSplitById(
+  node: WindowFrameSurfaceSnapshotNode,
+  splitId: string
+): Extract<WindowFrameSurfaceSnapshotNode, { readonly kind: "split" }> | null {
+  if (node.kind === "tabset") return null;
+  if (node.id === splitId) return node;
+  return findSnapshotSplitById(node.first, splitId) ?? findSnapshotSplitById(node.second, splitId);
 }
 
 function collectSnapshotSurfaceGeometry(options: {
@@ -909,31 +699,6 @@ function expandDomRect(rect: DOMRectReadOnly, amount: number): DOMRectReadOnly {
   };
 }
 
-function withWindowContentViewActorId(
-  requestOrElement: HTMLElement | WindowContentAttachmentRequest,
-  viewActorId: string
-): WindowContentAttachmentRequest {
-  if (isWindowContentAttachmentRequest(requestOrElement)) {
-    if (requestOrElement.viewActorId) {
-      return requestOrElement;
-    }
-    return { ...requestOrElement, viewActorId };
-  }
-  return { element: requestOrElement, viewActorId };
-}
-
-function readWindowContentViewActorId(
-  requestOrElement: HTMLElement | WindowContentAttachmentRequest
-): string | null {
-  return isWindowContentAttachmentRequest(requestOrElement) ? requestOrElement.viewActorId ?? null : null;
-}
-
-function isWindowContentAttachmentRequest(
-  requestOrElement: HTMLElement | WindowContentAttachmentRequest
-): requestOrElement is WindowContentAttachmentRequest {
-  return typeof requestOrElement === "object" && requestOrElement !== null && "element" in requestOrElement;
-}
-
 function readSurfaceSplitterHitData(hitData: unknown): FloatingWindowSplitterHitData | null {
   if (
     typeof hitData !== "object" ||
@@ -961,10 +726,6 @@ function isPointInsideRect(point: UiPoint, rect: DOMRectReadOnly): boolean {
     point.y <= rect.bottom;
 }
 
-function isNonZeroRect(rect: WindowDockRect): boolean {
-  return rect.width > 0 && rect.height > 0;
-}
-
 function removeElementChildren(element: HTMLElement): void {
   const childList = element.children;
   while (childList.length > 0) {
@@ -981,14 +742,4 @@ function clampSplitRatio(ratio: number, size: number, minPaneSize: number): numb
   const min = minPaneSize / size;
   const max = 1 - min;
   return Math.min(max, Math.max(min, ratio));
-}
-
-function resolveActiveViewActorId(
-  tabs: readonly WindowFrameTab[],
-  preferredActiveViewActorId: string | null | undefined
-): string | null {
-  if (preferredActiveViewActorId && tabs.some((tab) => tab.viewActorId === preferredActiveViewActorId)) {
-    return preferredActiveViewActorId;
-  }
-  return tabs[0]?.viewActorId ?? null;
 }

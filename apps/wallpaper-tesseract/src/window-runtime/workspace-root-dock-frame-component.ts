@@ -28,8 +28,8 @@ import type {
   WindowFrameSurfaceComponent,
   WindowFrameSurfaceHost,
   WindowFrameSurfaceSnapshot,
-  WindowFrameTab,
   WindowRegisteredContent,
+  WindowWorkspaceGraphContentActiveState,
   WindowWorkspaceGraphContentPlacement,
   WindowWorkspaceSurfaceGeometryProjection
 } from "ui-framework";
@@ -44,8 +44,6 @@ export interface WorkspaceRootDockFrameComponentOptions {
   readonly id: string;
   readonly parent: HTMLElement;
   readonly frameId?: string;
-  readonly tabs?: readonly WindowFrameTab[];
-  readonly activeViewActorId?: string;
   readonly priority?: number;
   readonly frameIntentSink?: WindowFrameIntentSink;
   readonly tabDragSink?: WindowTabDragSink;
@@ -97,11 +95,6 @@ export class WorkspaceRootDockFrameComponent
     this.#frameIntentSink = options.frameIntentSink;
     this.#tabDragSink = options.tabDragSink;
     this.#surface = services.surface;
-    this.#surface.configure({
-      tabs: options.tabs ?? [],
-      activeViewActorId: options.activeViewActorId
-    });
-
     const documentRef = options.document ?? options.parent.ownerDocument ?? document;
     this.#root = documentRef.createElement("div");
     this.#root.className = "workspace-root-dock-frame";
@@ -189,6 +182,14 @@ export class WorkspaceRootDockFrameComponent
 
   placeContent(placement: WindowWorkspaceGraphContentPlacement<WindowRegisteredContent>): void {
     this.#surface.placeContent(placement);
+  }
+
+  removeContent(contentId: Parameters<WindowFrameSurfaceComponent["removeContent"]>[0]): void {
+    this.#surface.removeContent(contentId);
+  }
+
+  setContentActive(state: WindowWorkspaceGraphContentActiveState): void {
+    this.#surface.setContentActive(state);
   }
 
   getFloatingBounds(): WindowDockRect {

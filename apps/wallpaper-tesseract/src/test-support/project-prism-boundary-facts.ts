@@ -141,23 +141,7 @@ export interface ProjectPrismUiFrameworkExtractionBlocker {
 }
 
 export const projectPrismUiFrameworkExtractionBlockers: readonly ProjectPrismUiFrameworkExtractionBlocker[] = [];
-export const projectPrismPrePhase6UiFrameworkBlockers: readonly ProjectPrismUiFrameworkExtractionBlocker[] = [
-  {
-    id: "window-workspace-multi-truth-debt",
-    files: [
-      "packages/ui-framework/src/chrome/window-frame-surface-component.ts",
-      "packages/ui-framework/src/ports/window-frame-port.ts",
-      "packages/ui-framework/src/ports/window-content-host.ts",
-      "packages/ui-framework/src/services/window-frame-lifecycle-controller.ts",
-      "packages/ui-framework/src/model/window-dock-surface-model.ts",
-      "packages/ui-framework/src/model/window-workspace-layout-persistence.ts"
-    ],
-    blocks: ["Phase 6 editor extraction", "single workspace graph ownership"],
-    requiredPort: "WindowWorkspaceGraph plus WindowWorkspaceRealizationMap projections",
-    blocker: "Window placement is still represented by frame-local dock surface state, content host placement, lifecycle live view tracking, persistence, and DOM parentage.",
-    deletionCondition: "Workspace placement, tabset active state, splitter ids, content placement, layout commits, and persistence are derived from one WindowWorkspaceGraph, with runtime handles stored only in the realization map."
-  }
-];
+export const projectPrismPrePhase6UiFrameworkBlockers: readonly ProjectPrismUiFrameworkExtractionBlocker[] = [];
 
 export interface ProjectPrismAppCompositionBlocker {
   readonly id: string;
@@ -288,9 +272,9 @@ export const projectPrismPackageTargets = [
     id: "ui-framework",
     cleanCandidateZones: ["ui-framework-candidate"],
     debtZones: [],
-    blockedBy: ["window-workspace-multi-truth-debt"],
+    blockedBy: [],
     extractionPhase: "Phase 3B/3C",
-    extractionStatus: "blocked"
+    extractionStatus: "allowed"
   },
   {
     id: "runtime-core-contracts",
@@ -328,9 +312,9 @@ export const projectPrismPackageTargets = [
     id: "editor",
     cleanCandidateZones: ["editor-candidate"],
     debtZones: [],
-    blockedBy: ["window-workspace-multi-truth-debt"],
+    blockedBy: [],
     extractionPhase: "Phase 6",
-    extractionStatus: "blocked"
+    extractionStatus: "allowed"
   },
   {
     id: "wallpaper-app",

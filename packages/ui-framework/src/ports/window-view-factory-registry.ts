@@ -2,7 +2,7 @@ import type { Actor } from "actor-core";
 import type {
   WindowContentRegistrationPort,
   WindowRegisteredContent
-} from "./window-content-host";
+} from "./window-content-registry";
 import {
   createWindowViewIdentity,
   type WindowViewIdentity,

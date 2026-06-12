@@ -72,7 +72,9 @@ export interface WindowWorkspaceGraphCommit {
   readonly previousRevision: number;
   readonly nextRevision: number;
   readonly snapshot: WindowWorkspaceGraphSnapshot;
+  readonly previousPlacements: readonly WindowWorkspaceGraphPlacement[];
   readonly changedPlacements: readonly WindowWorkspaceGraphPlacement[];
+  readonly removedContentIds: readonly WindowWorkspaceContentId[];
   readonly createdFrameIds: readonly WindowWorkspaceFrameId[];
   readonly removedFrameIds: readonly WindowWorkspaceFrameId[];
 }
@@ -235,6 +237,7 @@ export function createWindowWorkspaceGraphCommit(options: {
   const previousPlacements = new Map(
     options.previous.placements.map((placement) => [placement.contentId, placement])
   );
+  const nextPlacements = new Set(options.next.placements.map((placement) => placement.contentId));
   const changedPlacements = options.next.placements.filter((placement) => {
     const previous = previousPlacements.get(placement.contentId);
     return !previous ||
@@ -250,7 +253,11 @@ export function createWindowWorkspaceGraphCommit(options: {
     previousRevision: options.previous.revision,
     nextRevision: options.next.revision,
     snapshot: options.next,
+    previousPlacements: options.previous.placements,
     changedPlacements,
+    removedContentIds: options.previous.placements
+      .map((placement) => placement.contentId)
+      .filter((contentId) => !nextPlacements.has(contentId)),
     createdFrameIds: options.next.frames
       .map((frame) => frame.frameId)
       .filter((frameId) => !previousFrameIds.has(frameId)),

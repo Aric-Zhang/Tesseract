@@ -1,0 +1,344 @@
+{
+  "passed": true,
+  "validationErrors": [],
+  "url": "http://127.0.0.1:5173/?resetWorkspaceLayout=1",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "consoleErrors": [],
+  "graph": {
+    "revision": 1,
+    "frames": [
+      {
+        "frameId": "workspace-root-frame",
+        "kind": "persistent",
+        "presentation": "windowed",
+        "visible": true,
+        "tabsetIds": [
+          "tabset:root"
+        ],
+        "splitIds": [
+          "split:root"
+        ]
+      },
+      {
+        "frameId": "debug-log-window",
+        "kind": "persistent",
+        "presentation": "windowed",
+        "visible": true,
+        "tabsetIds": [
+          "tabset:debug"
+        ],
+        "splitIds": []
+      },
+      {
+        "frameId": "hierarchy-panel",
+        "kind": "persistent",
+        "presentation": "windowed",
+        "visible": true,
+        "tabsetIds": [
+          "tabset:hierarchy"
+        ],
+        "splitIds": []
+      }
+    ],
+    "tabsets": [
+      {
+        "frameId": "workspace-root-frame",
+        "tabsetId": "tabset:root",
+        "contentIds": [
+          "content:instance:scene:default"
+        ],
+        "activeContentId": "content:instance:scene:default"
+      },
+      {
+        "frameId": "debug-log-window",
+        "tabsetId": "tabset:debug",
+        "contentIds": [
+          "content:instance:debug:default"
+        ],
+        "activeContentId": "content:instance:debug:default"
+      },
+      {
+        "frameId": "hierarchy-panel",
+        "tabsetId": "tabset:hierarchy",
+        "contentIds": [
+          "content:instance:hierarchy:default"
+        ],
+        "activeContentId": "content:instance:hierarchy:default"
+      }
+    ],
+    "splits": [
+      {
+        "frameId": "workspace-root-frame",
+        "splitId": "split:root",
+        "direction": "horizontal"
+      }
+    ],
+    "contents": [
+      {
+        "contentId": "content:instance:scene:default",
+        "frameId": "workspace-root-frame",
+        "tabsetId": "tabset:root",
+        "viewActorId": "scene-window:view",
+        "identity": {
+          "typeKey": "scene",
+          "instanceId": "scene:default"
+        },
+        "active": true,
+        "interactable": true
+      },
+      {
+        "contentId": "content:instance:debug:default",
+        "frameId": "debug-log-window",
+        "tabsetId": "tabset:debug",
+        "viewActorId": "debug-log-window:view",
+        "identity": {
+          "typeKey": "debug",
+          "instanceId": "debug:default"
+        },
+        "active": true,
+        "interactable": true
+      },
+      {
+        "contentId": "content:instance:hierarchy:default",
+        "frameId": "hierarchy-panel",
+        "tabsetId": "tabset:hierarchy",
+        "viewActorId": "hierarchy-panel:view",
+        "identity": {
+          "typeKey": "hierarchy",
+          "instanceId": "hierarchy:default"
+        },
+        "active": true,
+        "interactable": true
+      }
+    ]
+  },
+  "dom": {
+    "contents": [
+      {
+        "contentId": "content:instance:scene:default",
+        "parentCount": 1,
+        "parentFrameId": "workspace-root-frame",
+        "parentTabsetId": "tabset:root",
+        "hidden": false,
+        "interactable": true,
+        "rect": {
+          "height": 663.2000122070312,
+          "width": 1280,
+          "x": 0,
+          "y": 56.79999923706055
+        }
+      },
+      {
+        "contentId": "content:instance:debug:default",
+        "parentCount": 1,
+        "parentFrameId": "debug-log-window",
+        "parentTabsetId": "tabset:debug",
+        "hidden": false,
+        "interactable": true,
+        "rect": {
+          "x": 20.8,
+          "y": 493.4,
+          "width": 266.4,
+          "height": 160
+        }
+      },
+      {
+        "contentId": "content:instance:hierarchy:default",
+        "parentCount": 1,
+        "parentFrameId": "hierarchy-panel",
+        "parentTabsetId": "tabset:hierarchy",
+        "hidden": false,
+        "interactable": true,
+        "rect": {
+          "x": 20.8,
+          "y": 41.4,
+          "width": 266.4,
+          "height": 216
+        }
+      }
+    ]
+  },
+  "persistence": {
+    "version": 2,
+    "descriptors": [
+      {
+        "typeKey": "scene",
+        "instanceId": "scene:default"
+      },
+      {
+        "typeKey": "debug",
+        "instanceId": "debug:default"
+      },
+      {
+        "typeKey": "hierarchy",
+        "instanceId": "hierarchy:default"
+      }
+    ],
+    "frameIds": [
+      "workspace-root-frame",
+      "debug-log-window",
+      "hierarchy-panel"
+    ],
+    "runtimeOnlyFrameIds": [],
+    "containsActorIds": false,
+    "containsDomIds": false,
+    "containsRuntimeFrameIds": false,
+    "containsContentDomIds": false
+  },
+  "scenarios": [
+    {
+      "name": "boot-baseline",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-phase-6-entry-boot-baseline.png"
+      ]
+    },
+    {
+      "name": "window-menu-open-focus",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-phase-6-entry-window-menu-open-focus.png"
+      ]
+    },
+    {
+      "name": "root-tab-close-reopen",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-phase-6-entry-root-tab-close-reopen.png"
+      ]
+    },
+    {
+      "name": "dock-mutation-5b-5c",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-phase-6-entry-dock-mutation-5b-5c.png"
+      ]
+    },
+    {
+      "name": "splitter-resize",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-phase-6-entry-splitter-resize.png"
+      ]
+    },
+    {
+      "name": "scene-fullscreen-restore",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-phase-6-entry-scene-fullscreen-restore.png"
+      ]
+    },
+    {
+      "name": "persistence-reload",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-phase-6-entry-persistence-reload.png"
+      ]
+    },
+    {
+      "name": "mobile-viewport",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-phase-6-entry-mobile-viewport.png"
+      ]
+    },
+    {
+      "name": "render-input-sanity",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-phase-6-entry-render-input-sanity.png"
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "name": "root-tab-close",
+      "point": {
+        "x": 142,
+        "y": 42
+      },
+      "expected": "root tab close receives the click and closes only scene content",
+      "expectedTarget": {
+        "actorId": "workspace-root-frame",
+        "partId": "window-tab-action",
+        "graphContentId": "content:instance:scene:default",
+        "domTag": "button",
+        "domClassIncludes": "window-frame-tab__close",
+        "domAriaIncludes": "Close scene",
+        "actionResultContains": {
+          "sceneClosed": true
+        }
+      },
+      "domTop": {
+        "tag": "button",
+        "className": "window-frame-tab__close workspace-root-dock-frame__tab-close",
+        "role": null,
+        "aria": "Close scene",
+        "text": "x"
+      },
+      "domStack": [
+        {
+          "tag": "button",
+          "className": "window-frame-tab__close workspace-root-dock-frame__tab-close",
+          "role": null,
+          "aria": "Close scene",
+          "text": "x"
+        }
+      ],
+      "actorInputHit": {
+        "actorId": "workspace-root-frame",
+        "partId": "window-tab-action",
+        "graphContentId": "content:instance:scene:default"
+      },
+      "actionResult": {
+        "sceneClosed": true
+      },
+      "screenshotPath": "temp/project-prism-phase-6-entry-root-tab-close-reopen.png"
+    },
+    {
+      "name": "splitter-resize",
+      "point": {
+        "x": 640,
+        "y": 360
+      },
+      "expected": "splitter resize hit carries graph split id",
+      "expectedTarget": {
+        "actorId": "workspace-root-frame",
+        "partId": "splitter",
+        "graphSplitId": "split:root",
+        "actionResultContains": {
+          "splitId": "split:root"
+        }
+      },
+      "domTop": {
+        "tag": "div",
+        "className": "workspace-root-dock-frame__splitter",
+        "role": null,
+        "aria": null,
+        "text": ""
+      },
+      "domStack": [
+        {
+          "tag": "div",
+          "className": "workspace-root-dock-frame__splitter",
+          "role": null,
+          "aria": null,
+          "text": ""
+        }
+      ],
+      "actorInputHit": {
+        "actorId": "workspace-root-frame",
+        "partId": "splitter",
+        "graphSplitId": "split:root"
+      },
+      "actionResult": {
+        "splitId": "split:root",
+        "ratioChanged": true
+      },
+      "screenshotPath": "temp/project-prism-phase-6-entry-splitter-resize.png"
+    }
+  ]
+}

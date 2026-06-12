@@ -334,7 +334,7 @@ describe("createSceneViewActor", () => {
     expect(sizes).toEqual([{ width: 640, height: 360 }]);
   });
 
-  it("rehosts the Scene viewport into another window content host and measures the new host", () => {
+  it("moves the Scene viewport through registered frame content placement and measures the new frame", () => {
     const context = createContext();
     const document = new FakeDocument();
     const parent = document.createElement("div");

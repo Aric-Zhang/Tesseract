@@ -47,18 +47,19 @@ Accepted or completed phases:
 - Phase 5 current scope is accepted: `runtime-three` exists, runtime work has a
   scheduler lane, editor/app state is split out of scene-wide state, Phase 4
   runtime-adapter debt is gone, and the Camera3 gizmo view-state bug is closed.
-- Phase 5.5 is in progress. The generic `SceneRuntime` / `RuntimeObject` bus has
+- Phase 5.5 is complete for the pre-Phase 6 window-workspace gate. The generic `SceneRuntime` / `RuntimeObject` bus has
   been deleted from production, explicit app frame orchestration is in place,
   and the old `Tesseract4RuntimeObject` has been replaced by runtime renderable
   staging. The pre-Phase 6 window-workspace truth work has moved the main
   placement mutation path to `WindowWorkspaceGraph` transactions/projections,
-  but final closure is still blocked by exposed legacy surface/API/test paths.
+  and the surface/content-host/dock-tree cleanup slice has deleted the old
+  exposed placement implementation.
 
 Current gate:
 
-- Phase 6 editor package extraction is blocked.
-- Pre-Phase 6 window-workspace truth closure must finish before Phase 6.
-- `ui-framework` and `editor` remain blocked by
+- Phase 6 editor package extraction may begin.
+- The pre-Phase 6 window-workspace truth closure is complete.
+- `ui-framework` and `editor` are no longer blocked by
   `window-workspace-multi-truth-debt`.
 - Current graph progress is real: `WindowFramePort` is now shell-only,
   production placement mutation goes through graph transaction/reconcile paths,
@@ -68,27 +69,25 @@ Current gate:
   deleted legacy Debug/Hierarchy full-window factories, removed root/floating
   shell placement forwarding, closed content host/attachment placement APIs
   from ui-framework and app public barrels, and deleted the production graph
-  diagnostic adapter/source contract.
-- Remaining closure blockers are narrower but still block Phase 6:
-  - `WindowFrameSurfaceComponent` still contains legacy surface-local placement
-    methods/state internally and must become snapshot-only public behavior;
-  - `WindowContentHost` / `WindowContentAttachment` still exist as internal
-    surface implementation details and should be deleted or fully internalized
-    once the surface no longer needs them;
-  - `WindowDockSurfaceModel` and related surface tests remain as old model
-    debt;
-  - final browser smoke must still cover 5B/5C dock mutation, fullscreen
-    restore, persistence, graph/DOM/input parity, and console errors.
-- The active next execution slice is deletion-first. Do not add compatibility
-  wrappers or idle legacy paths: stale tests, full-window feature factories,
-  public content-host placement APIs, surface-owned placement state,
-  root/floating placement forwarding and their tests, diagnostic lifecycle
-  contracts/adapters, and old dock-surface models should be deleted or moved
-  fully into test-support as part of the same cleanup that replaces them.
+  diagnostic adapter/source contract. The surface simplification slice then
+  made `WindowFrameSurfaceComponent` a graph snapshot DOM realization layer,
+  added explicit reconciler stale-content cleanup and active/interactable
+  operations, moved surviving content registration concepts to
+  `window-content-registry.ts`, deleted `window-content-host.ts`,
+  `WindowDockSurfaceModel`, and `window-frame-dock-tree`, removed runtime
+  dock-root source types from `window-frame-tab.ts`, and tightened boundary
+  tests so those old facts cannot return.
+- The final gate added structured smoke evidence for graph snapshots, DOM
+  content parentage, active/interactable parity, actor-input target evidence,
+  persistence descriptors, and required scenario coverage. The reproducible
+  validator is `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-6-entry-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file`.
+- Continue deletion-first. Do not add compatibility wrappers or idle legacy
+  paths during Phase 6; simplify ownership or delete obsolete paths in the
+  subsystem where new issues are found.
 
 Current pre-Phase 6 blocker from boundary facts:
 
-- `window-workspace-multi-truth-debt`
+- None.
 
 ## Current Source Topology
 
@@ -106,8 +105,9 @@ Important app source areas:
 - `apps/wallpaper-tesseract/src/window-runtime`: app-local integration and
   staging code for frames, tabs, dock, split, lifecycle, layout, and view
   identity. Generic contracts have moved or should continue moving toward
-  `packages/ui-framework`. Remaining legacy shell placement methods here must
-  be deleted from public/production reachability before Phase 6.
+  `packages/ui-framework`. Shell placement forwarding has been removed from
+  public/production reachability; keep this layer focused on presentation,
+  input intent, and app composition.
 - `apps/wallpaper-tesseract/src/features/window-workspace`: feature-level
   assembly for workspace policy, persistence, and app integration. It wires the
   graph-derived dock target read path and must not revive frame-local placement
@@ -176,9 +176,9 @@ type/instance view identity:
 - Persistence version 2 stores logical view descriptors by `typeKey` and
   `instanceId`. Version 1 migration support is compatibility debt and must not
   shape new APIs.
-- Remaining window-workspace debt: surface-local placement fields/methods,
-  internal DOM content attachment mechanics, old dock-surface model debt, and
-  final browser smoke evidence.
+- Remaining window-workspace debt: none blocking Phase 6. Future changes must
+  preserve graph/DOM/input/persistence parity through the smoke contract and
+  boundary tests.
 
 ## Runtime Ownership Baseline
 
@@ -225,30 +225,69 @@ docs/project-prism-engine-modularization-outline.md
 This is the restored north-star plan. It was previously kept under `temp/`, but
 now lives in `docs/` so temporary artifact cleanup cannot remove it.
 
-Current next plan:
+Executed pre-Phase 6 surface cleanup record:
 
 ```text
 temp/project-prism-pre-phase-6-surface-simplification-plan.md
 ```
 
-Treat it as the remaining hard preflight before Phase 6. It replaces the older
+Treat it as the executed hard preflight implementation record before Phase 6.
+It replaces the older
 temporary final-closure, window-workspace truth, smoke, and handoff documents
 that previously lived under `temp/`; those stale working traces were removed
 from the working tree on 2026-06-12.
 
-The plan is deliberately deletion-first. The next slice should convert
-`WindowFrameSurfaceComponent` into a graph-snapshot DOM realization layer,
-delete the internal content host/attachment mechanics, delete
-`WindowDockSurfaceModel` and `window-frame-dock-tree`, remove stale runtime
-dock-tree exports, tighten boundary facts, and then run the final browser gate.
-It should not add compatibility facades, fake test ports, or adapters that
-translate graph snapshots back into the old dock-tree model.
+The implementation followed the deletion-first plan: `WindowFrameSurfaceComponent`
+now renders graph snapshots directly, old content host/attachment mechanics and
+old dock-tree/dock-surface models are deleted, runtime dock-root source types
+are gone, app-local barrels no longer re-export them, and tests now assert graph
+snapshot/reconciler surface behavior instead of legacy placement methods.
 
-Phase 6 must not begin unless `window-workspace-multi-truth-debt` is removed
-from the boundary facts, `typecheck:test` for `ui-framework` passes, legacy
-placement APIs and old placement models are deleted from public/production
-reachability, and browser smoke proves graph placement, DOM placement, splitter
-hit targets, actor input hits, persistence, and Scene render measurement agree.
+Completed Phase 6 entry gate plan:
+
+```text
+temp/project-prism-pre-phase-6-final-gate-plan.md
+```
+
+Treat this as the completed final gate record. It strengthened smoke evidence
+validation, added a reproducible evidence-file validator command, collected
+deterministic browser evidence for graph/DOM/input/persistence parity, and
+removed `window-workspace-multi-truth-debt` from boundary facts.
+
+Final gate evidence:
+
+```text
+temp/project-prism-phase-6-entry-smoke-data.json
+temp/project-prism-phase-6-entry-smoke-report.md
+temp/project-prism-phase-6-entry-browser-observations.json
+temp/project-prism-phase-6-entry-splitter-probe.json
+```
+
+Phase 6 may begin because `window-workspace-multi-truth-debt` is removed from
+boundary facts, `typecheck:test` for `ui-framework` passes, legacy placement
+APIs and old placement models are deleted from public/production reachability,
+and browser smoke evidence validates graph placement, DOM placement, splitter
+hit targets, actor input hits, persistence, and Scene render measurement.
+
+Active Phase 6 editor extraction plan:
+
+```text
+temp/project-prism-phase-6-editor-extraction-plan.md
+```
+
+Treat this as the current execution plan for Phase 6. It starts with a
+pre-entry checkpoint/validation closure, then extracts editor-owned state,
+cleans the feature actor creation contract before tool-window moves, extracts
+tool windows, splits Scene runtime render-output ownership before Scene
+presentation extraction, resolves Camera3 motion/rig ownership before Camera3
+gizmo extraction, then moves component definition installers and app
+composition wiring into a new `packages/editor` package. The plan keeps
+deletion-first rules explicit: no app-local compatibility barrels, no duplicate
+state or runtime ownership, no fake facades, and no package extraction step is
+complete until the old app-local owner is deleted or assigned to a later
+non-editor owner with a deletion condition. Final Phase 6 browser evidence must
+be regenerated as `temp/project-prism-phase-6-smoke-data.json`; the existing
+entry smoke data is only a baseline.
 
 Older window/docking/view-identity plans are now Git history, not active files
 in `temp/`. Recover historical context from Git when needed, then compare it
@@ -285,6 +324,14 @@ npm run test -w gizmo-core
 npm run test -w four-rotation
 npm run test -w four-camera
 npm run test -w four-camera-three
+```
+
+Add these after `packages/editor` exists:
+
+```text
+npm run test -w editor
+npm run typecheck -w editor
+npm run build -w editor
 ```
 
 Useful Project Prism targeted checks:
@@ -366,13 +413,11 @@ Scene View actor id, renderer/backend id or equivalent runtime output id,
 canvas/overlay rects, actor-input hit for Camera3 interactions, projection mode
 before/after, and camera state before/after.
 
-For the current pre-Phase 6 window-workspace gate, final browser smoke must also
-record graph frame/tabset/content ids, each `contentId`'s single DOM parent,
-splitter hit regions mapped to graph split ids, active tab/content parity with
-graph projection, persisted layout without actor ids, and console errors.
-Earlier smoke evidence exists for Step 4.25 and Step 5A, but the final gate
-still needs deterministic coverage for 5B/5C dock mutation, fullscreen restore,
-persistence reload, mobile tab close/menu focus, and graph/DOM/input parity.
+For the completed pre-Phase 6 window-workspace gate, final browser smoke records
+graph frame/tabset/content ids, each `contentId`'s single DOM parent, splitter
+hit regions mapped to graph split ids, active tab/content parity with graph
+projection, persisted layout without actor ids, and console errors. The
+evidence-file validator command above is the reproducible gate for that data.
 
 ## Progress Document Maintenance
 

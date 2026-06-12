@@ -17,6 +17,7 @@ import type {
   WindowFrameSurfaceSnapshotTab,
   WindowFrameTabsetNode,
   WindowFrameTab,
+  WindowWorkspaceGraphContentActiveState,
   WindowWorkspaceGraphContentPlacement,
   WindowWorkspaceGraphReconcilerSurface,
   WindowWorkspaceSurfaceGeometryProjection
@@ -178,7 +179,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     ]);
   });
 
-  it("projects live frame state into a workspace graph diagnostic", () => {
+  it("projects live frame state into a workspace graph snapshot", () => {
     const subject = createSubject();
 
     subject.controller.openView("debug", "menu");
@@ -627,7 +628,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(subject.controller.listLiveViews()).toEqual([]);
   });
 
-  it("uses explicit view runtime cleanup for frame close instead of legacy disposer fallback", () => {
+  it("uses explicit view runtime cleanup for frame close", () => {
     const actorSystem = new ActorSystem();
     const registry = new WindowViewFactoryRegistry();
     const calls: string[] = [];
@@ -1336,7 +1337,7 @@ describe("DefaultWindowFrameLifecycleController", () => {
     })).toEqual({ valid: false, reason: "floating bounds are invalid" });
   });
 
-  it("commits a tab merge by rehosting content, moving the view actor, and destroying the empty source frame", () => {
+  it("commits a tab merge through graph placement, moves the view actor, and destroys the empty source frame", () => {
     const subject = createSubject();
     subject.controller.openView("debug", "programmatic");
     subject.controller.openView("hierarchy", "programmatic");
@@ -1643,38 +1644,6 @@ describe("DefaultWindowFrameLifecycleController", () => {
     }
 
     expect(nonInitialFloatingCalls(floatingCalls).filter((call) => call.includes(":persistent"))).toHaveLength(3);
-  });
-
-  it("does not use legacy content host rehost during a graph tab merge", () => {
-    const subject = createSubject();
-    subject.controller.openView("debug", "programmatic");
-    subject.controller.openView("hierarchy", "programmatic");
-    const debugView = subject.controller.getLiveViewByActorId("debug-view-1");
-    const debugContent = debugView?.content as ReturnType<typeof createContent>;
-    debugContent.throwOnAttach = true;
-    subject.cancelCalls.length = 0;
-
-    const result = subject.controller.commitDock({
-      kind: "merge-tabs",
-      operation: "cross-frame-merge",
-      source: {
-        frameId: "debug-frame-1",
-        viewActorId: "debug-view-1",
-        viewKey: "debug"
-      },
-      targetFrameId: "hierarchy-frame",
-      targetTabsetId: "frame-tabset:target",
-      reason: "dock-drop"
-    });
-
-    const targetPort = subject.controller.getLiveViewByActorId("hierarchy-view")?.framePort;
-    expect(result).toEqual({ committed: true, sourceFrameDestroyed: true });
-    expect(subject.cancelCalls).toEqual(["cancel"]);
-    expect(subject.actorSystem.getActor("debug-frame-1")).toBeNull();
-    expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("hierarchy-frame");
-    expect(debugView?.frameActor.id).toBe("hierarchy-frame");
-    expect(asOptionalTestFramePort(targetPort)?.readRenderedViewActorIds()).toEqual(["hierarchy-view", "debug-view-1"]);
-    expect(debugContent.calls).toContain("place:hierarchy-frame");
   });
 
   it("rolls back a tab merge when actor parent mutation throws", () => {
@@ -2335,36 +2304,6 @@ describe("DefaultWindowFrameLifecycleController", () => {
     expect(nonInitialFloatingCalls(floatingFrameCalls)).toEqual(["create:debug-view-1:10:20:300:160:persistent"]);
   });
 
-  it("does not use legacy content host rehost while floating a tab through graph placement", () => {
-    const subject = createSubject({
-      createFloatingFrameFactory: (actorSystem) => createFloatingFrameFactory(actorSystem, [])
-    });
-    subject.controller.openView("debug", "programmatic");
-    const debugView = subject.controller.getLiveViewByActorId("debug-view-1");
-    const debugContent = debugView?.content as ReturnType<typeof createContent>;
-    debugContent.throwOnAttach = true;
-
-    const result = subject.controller.commitDock({
-      kind: "float-tab",
-      operation: "cross-frame-float",
-      source: {
-        frameId: "debug-frame-1",
-        viewActorId: "debug-view-1",
-        viewKey: "debug"
-      },
-      bounds: { left: 10, top: 20, right: 310, bottom: 180, width: 300, height: 160 },
-      reason: "dock-drop"
-    });
-
-    expect(result).toEqual({ committed: true, sourceFrameDestroyed: true });
-    expect(subject.actorSystem.getActor("floating-debug-view-1")).toBeTruthy();
-    expect(subject.actorSystem.getActor("debug-frame-1")).toBeNull();
-    expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("floating-debug-view-1");
-    expect(debugView?.frameActor.id).toBe("floating-debug-view-1");
-    expect(asOptionalTestFramePort(debugView?.framePort)?.readRenderedViewActorIds()).toEqual(["debug-view-1"]);
-    expect(debugContent.calls).toContain("place:floating-debug-view-1");
-  });
-
   it("rolls back floating when actor parent mutation throws", () => {
     const subject = createSubject({
       createFloatingFrameFactory: (actorSystem) => (
@@ -2496,6 +2435,12 @@ function createFramePort(
         content.calls.push(`place:${frameId}`);
         placedContentFrames.push(frameId);
       }
+    },
+    removeContent(contentId) {
+      calls.push(`remove:${contentId}`);
+    },
+    setContentActive(state: WindowWorkspaceGraphContentActiveState) {
+      calls.push(`active:${state.contentId}:${state.active}:${state.interactable}`);
     },
     readRenderedViewActorIds: () => lastSnapshot ? listSurfaceSnapshotTabs(lastSnapshot.root).map((tab) => tab.viewActorId) : [],
     readActiveViewActorId: () => lastSnapshot ? findActiveViewActorIdInSnapshot(lastSnapshot.root) : null,
@@ -2681,28 +2626,23 @@ function createInitialFrameId(viewKey: string, counters: Map<string, number>): s
 
 const testContentsByElement = new WeakMap<HTMLElement, WindowRegisteredContent & {
   readonly calls: string[];
-  throwOnAttach: boolean;
 }>();
 
 type TestRegisteredContent = WindowRegisteredContent & {
   readonly calls: string[];
-  throwOnAttach: boolean;
 };
 
 function createContent(): WindowRegisteredContent & {
   readonly calls: string[];
-  throwOnAttach: boolean;
 } {
   const calls: string[] = [];
   const element = {} as HTMLElement;
   const content: WindowRegisteredContent & {
     readonly calls: string[];
-    throwOnAttach: boolean;
   } = {
     contentId: `content:${Math.random().toString(16).slice(2)}`,
     element,
     calls,
-    throwOnAttach: false,
     get interactable() {
       return true;
     },

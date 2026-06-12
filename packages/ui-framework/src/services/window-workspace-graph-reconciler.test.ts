@@ -415,6 +415,8 @@ class FakeSurface implements WindowWorkspaceGraphReconcilerSurface<WindowRegiste
     readonly content: WindowRegisteredContent;
     readonly placement: Parameters<WindowWorkspaceGraphReconcilerSurface<WindowRegisteredContent>["placeContent"]>[0]["placement"];
   }> = [];
+  readonly removedContentIds: Array<Parameters<WindowWorkspaceGraphReconcilerSurface<WindowRegisteredContent>["removeContent"]>[0]> = [];
+  readonly activeStates: Array<Parameters<WindowWorkspaceGraphReconcilerSurface<WindowRegisteredContent>["setContentActive"]>[0]> = [];
 
   constructor(
     readonly frameId: string,
@@ -465,5 +467,13 @@ class FakeSurface implements WindowWorkspaceGraphReconcilerSurface<WindowRegiste
 
   placeContent(placement: Parameters<WindowWorkspaceGraphReconcilerSurface<WindowRegisteredContent>["placeContent"]>[0]): void {
     this.placements.push(placement);
+  }
+
+  removeContent(contentId: Parameters<WindowWorkspaceGraphReconcilerSurface<WindowRegisteredContent>["removeContent"]>[0]): void {
+    this.removedContentIds.push(contentId);
+  }
+
+  setContentActive(state: Parameters<WindowWorkspaceGraphReconcilerSurface<WindowRegisteredContent>["setContentActive"]>[0]): void {
+    this.activeStates.push(state);
   }
 }

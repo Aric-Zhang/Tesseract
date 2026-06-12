@@ -8,32 +8,46 @@ now lives under `docs/` so cleanup of temporary work artifacts does not remove
 the Project Prism north-star document again. For mutable current status, read
 `docs/current-project-progress.md`.
 
-Current phase model assessment:
+Current mutable status:
 
 ```text
-temp/project-prism-phase-model-current-assessment.md
+docs/current-project-progress.md
 ```
 
-Current Phase 2 implementation plan:
+Executed pre-Phase 6 surface deletion plan:
 
 ```text
-temp/project-prism-phase-2-actor-core-extraction-implementation-plan.md
+temp/project-prism-pre-phase-6-surface-simplification-plan.md
 ```
 
-Phase 2 acceptance report:
+Completed pre-Phase 6 final gate record:
 
 ```text
-temp/project-prism-phase-2-acceptance-report.md
+temp/project-prism-pre-phase-6-final-gate-plan.md
 ```
 
-Current execution status:
+Active Phase 6 detailed execution plan:
 
 ```text
-Phase 0 complete as boundary baseline.
-Phase 1 complete as app-local shared-spine decoupling.
-Phase 2 complete for actor-core and actor-input package extraction.
-Next main line: Phase 3.0 dock surface truth model cleanup before Phase 3 UI
-framework port split and extraction planning.
+temp/project-prism-phase-6-editor-extraction-plan.md
+```
+
+Current execution status, updated 2026-06-12:
+
+```text
+Phases 0 through 5 are accepted at the package-boundary level.
+actor-core, actor-input, ui-framework, runtime-core, and runtime-three now
+exist as workspace packages.
+Phase 5.5 pre-Phase 6 window-workspace cleanup is complete: generic SceneRuntime/RuntimeObject bus
+deletion has landed, app frame orchestration is explicit, Tesseract runtime
+renderable staging exists, Camera3 has runtime-camera staging, and
+WindowWorkspaceGraph is the intended production placement truth.
+The surface internals, content host/attachment mechanics, and old dock-surface
+model have been deleted. The final smoke evidence contract now validates
+graph snapshots, DOM placement, actor-input hits, persistence descriptors, and
+required scenario coverage through a reproducible evidence-file validator.
+`window-workspace-multi-truth-debt` has been removed from boundary facts, so
+Phase 6 editor package extraction may begin.
 ```
 
 ## Codename
@@ -215,7 +229,7 @@ Runtime 不提供：
 - window frame；
 - root/floating frame；
 - tab；
-- dock；
+- graph-backed dock/workspace placement；
 - splitter；
 - menu bar；
 - layout persistence；
@@ -315,7 +329,8 @@ Included:
 - app shell/layout slots；
 - floating/root frame；
 - tab chrome；
-- dock tree；
+- `WindowWorkspaceGraph` placement truth；
+- graph snapshot surface rendering；
 - dock target region；
 - dock preview；
 - frame lifecycle；
@@ -334,7 +349,8 @@ WindowViewTypeRegistration
 WindowFrameLifecycleController
 WindowFramePort
 WindowFramePortRegistry
-DockTree
+WindowWorkspaceGraph
+WindowFrameSurfaceSnapshot
 DockTargetRegion
 AppMenuBar
 WindowMenuModel
@@ -347,7 +363,9 @@ Acceptance:
 - can create windows/tabs/dock/menu in a fixture without 4D/Three scene；
 - all input remains actor/component based；
 - no DOM click mutation shortcuts；
-- root dock frame and floating frame share the same surface logic；
+- root dock frame and floating frame share the same graph snapshot surface
+  realization logic；
+- package API does not expose old dock-tree/runtime-dock-root placement types；
 - menu actions are type/instance actions, not product-specific ids。
 
 ### Package 4: `runtime-core`
@@ -551,7 +569,46 @@ produce a 2D frame source without depending on any editor Scene View.
 
 ## Migration Phases
 
-### Current Phase Model Verdict
+### Current Implementation Verdict, 2026-06-12
+
+The original migration sequence is now historical for Phases 0 through 5. The
+repository already has the core package shape that this outline originally
+planned:
+
+- `actor-core` and `actor-input` are extracted.
+- `ui-framework` is extracted and product-agnostic at the public package
+  boundary.
+- `runtime-core` and `runtime-three` are extracted.
+- The old generic `SceneRuntime` / `RuntimeObject` production bus has been
+  deleted.
+- App frame orchestration is explicit instead of a hidden runtime-object update
+  bus.
+- Tesseract and Camera3 have runtime ownership staging paths.
+- `WindowWorkspaceGraph` is the intended window placement truth.
+
+The next work is therefore not another broad extraction pass or another
+window-placement cleanup. The next work is Phase 6 editor package extraction,
+while keeping the completed window-workspace graph gate green.
+
+Authoritative forward sequence:
+
+```text
+Phase 5.5A: close app-local runtime ownership staging already in progress
+Phase 5.5B: completed - delete remaining window-workspace multi-truth debt
+Phase 5.5C: completed - run final browser graph/DOM/input/persistence parity gate
+Phase 6: extract editor package while preserving the completed graph gate
+Phase 7: thin Wallpaper app composition after editor/runtime/ui installers exist
+Phase 8: validate multi-world and multi-viewport behavior
+```
+
+Phase 6 may begin because `window-workspace-multi-truth-debt` no longer remains
+in boundary facts.
+
+### Historical Phase Model Verdict
+
+The notes below explain why the earlier phase model was changed. They are kept
+as design rationale, but the authoritative forward sequence is the 2026-06-12
+verdict above and `docs/current-project-progress.md`.
 
 The original phase split was directionally correct, but part of it is now
 outdated against the current implementation:
@@ -572,27 +629,28 @@ outdated against the current implementation:
 - Formal package extraction remains blocked by the package-target blockers
   recorded in the Phase 0B report, not by missing Phase 0 evidence.
 
-The revised model below keeps package extraction honest: first freeze facts and
-evidence, then split shared spine contracts, then extract packages.
+The historical model below explains the extraction path that got the repository
+to the current accepted package baseline.
 
 ### Phase Dependency Gates
 
 These gates clarify what can proceed in parallel and what must wait:
 
-- Formal package extraction must wait for the relevant package target blockers
-  to be resolved.
-- App-local refactors that reduce debt may proceed after Phase 0 completion
-  only if they do not create new public package APIs and do not weaken boundary
-  tests.
-- Phase 2 actor package extraction must wait for Phase 1 shared-spine
-  decoupling. Moving files first is explicitly forbidden.
-- Phase 3 UI framework extraction must wait for:
-  - Phase 1 UI state/scheduler ports;
-  - Phase 2 actor-core/actor-input package boundaries;
-  - a green structured browser evidence gate.
-- Phase 4 runtime-core contract work may begin as design and app-local
-  prototype after Phase 0B, but real runtime package extraction must wait until
-  Phase 1 state/scheduler domains are split.
+- Phases 0 through 5 are no longer future extraction gates. They are accepted
+  baselines, with remaining debt tracked as explicit blockers rather than as
+  reasons to redo those phases.
+- App-local refactors may proceed only when they delete old ownership paths or
+  move behavior behind already accepted package boundaries.
+- Pre-Phase 6 work must finish the window-workspace truth closure:
+  `WindowWorkspaceGraph` must be the only placement truth, surface rendering
+  must be snapshot-only, and old content host/attachment and dock-tree models
+  must be deleted rather than wrapped.
+- Phase 6 editor extraction must wait for the pre-Phase 6 browser gate proving
+  graph placement, DOM placement, actor-input hits, fullscreen restore,
+  persistence reload, mobile usability, and console cleanliness.
+- Runtime ownership cleanup may continue before Phase 6 only when it removes
+  app-local runtime buses or Scene View ownership. It must not move runtime
+  resources into editor features.
 - Phase 7 app thinning must wait for package-owned installers from UI,
   runtime, and editor packages.
 
@@ -629,11 +687,9 @@ Acceptance:
 - formal package extraction is either explicitly allowed or explicitly blocked
   per package target.
 
-Reference plan:
-
-```text
-temp/project-prism-phase-0-acceptance-report.md
-```
+Historical Phase 0 reports were temp artifacts. Recover them from Git history
+if detailed evidence is needed; the current accepted status lives in
+`docs/current-project-progress.md`.
 
 ### Phase 1: Shared Spine Decoupling
 
@@ -761,11 +817,9 @@ Goal:
 
 Extract product-agnostic window/tab/dock/menu/layout code into `ui-framework`.
 
-Detailed implementation plan:
-
-```text
-temp/project-prism-phase-3-ui-framework-implementation-plan.md
-```
+Historical Phase 3 implementation notes were temp artifacts. Recover them from
+Git history if needed; the current accepted status and remaining blockers live
+in `docs/current-project-progress.md`.
 
 Why this phase follows actor extraction:
 
@@ -778,7 +832,7 @@ Work:
 - start with `Phase 3.0: Dock Surface Truth Model Cleanup` before any
   UI framework port split:
   - remove frame-level active tab as display truth;
-  - make dock tree tabset active ids the only selected/visible content truth;
+  - make semantic tabset active ids the only selected/visible content truth;
   - prevent known view content from falling back to whole-frame primary content;
   - make root/floating tab click, close, drag, cancel, and dock commit use one
     shared state machine;
@@ -793,9 +847,9 @@ Work:
 - keep `WindowViewIdentity` public API split clean:
   - persistent/menu identity uses `typeKey` and `instanceId`;
   - runtime hosting/input still uses `viewActorId`;
-- extract app shell, floating/root frame, shared tab chrome, dock tree,
-  dock target region, dock preview, splitter, menu model, frame lifecycle,
-  view type registry, and layout persistence;
+- extract app shell, floating/root frame, shared tab chrome, graph-backed
+  workspace placement, dock target region, dock preview, splitter, menu model,
+  frame lifecycle, view type registry, and layout persistence;
 - provide UI test fixtures that create dockable windows without Scene,
   Tesseract, Camera3, Debug content, Hierarchy content, or Inspector content;
 - keep actor-input as the only pointer mutation path.
@@ -819,9 +873,9 @@ Acceptance:
 - `ui-framework` imports no Tesseract, Camera3, Scene renderer, Debug,
   Hierarchy, Inspector, or `sceneParameterPaths`;
 - floating frame and root frame share the same frame surface/tab chrome logic;
-- dock tree tabset active ids are the only display truth for selected tabs and
-  content visibility; frame-level active/focused view may exist only as MRU or
-  focus projection;
+- graph tabset active ids are the only display truth for selected tabs and
+  content visibility; frame-level active/focused view may exist only as graph
+  projection or MRU, not as a second surface-owned truth;
 - known view content never falls back to root/floating whole-frame primary
   content when a split/tabset target is missing;
 - root/floating same-frame tab split/reorder is supported through the same dock
@@ -834,6 +888,8 @@ Acceptance:
   dock/undock browser evidence remains green.
 - package API does not expose app-local actor ids, scene parameter paths, or
   product-specific window keys.
+- package API does not expose `DockTree`, `WindowFrameRuntimeDockNode`, or
+  other old runtime dock-root types.
 
 ### Phase 4: Runtime Core Contracts And Projection Graph
 
@@ -882,19 +938,32 @@ Acceptance:
 
 Goal:
 
-Move actual render ownership out of editor Scene View and into runtime packages,
-while keeping Three/WebGL isolated from renderer-agnostic runtime-core.
+Finish render ownership cleanup now that `runtime-three` exists and the broad
+runtime backend split has landed.
+
+Current status:
+
+- `runtime-three` exists and owns reusable Three/WebGL backend contracts.
+- The generic `SceneRuntime` / `RuntimeObject` app-local bus has been deleted
+  from production.
+- App frame orchestration is explicit.
+- Tesseract no longer uses `Tesseract4RuntimeObject`; it has runtime renderable
+  staging.
+- Camera3 has runtime-camera staging used by the motion controller.
+- Scene View frame-source registration exists, but Scene View still owns enough
+  renderer setup that render ownership is not fully clean.
 
 Work:
 
-- create `runtime-three` backend for Three scene/camera/render target ownership;
-- move Tesseract/4D object update ownership into runtime world actors;
-- move Camera3 model/control ownership into runtime camera actors or runtime
-  backend adapters;
-- produce 2D frame sources consumed by editor Scene View;
-- make Scene View display a selected frame source instead of creating or owning
-  runtime worlds/cameras;
-- make Camera Gizmo mutate camera state through runtime commands.
+- delete any remaining production dependency on generic runtime-object
+  registration or scene-wide update buses;
+- finish Scene View inversion so Scene View hosts runtime frame sources instead
+  of creating default runtime renderer ownership directly;
+- collapse Camera3 editor-facing facades onto the runtime-camera staging owner;
+- keep Tesseract runtime renderable ownership moving toward runtime package
+  placement without reintroducing app-local runtime object interfaces;
+- make Camera Gizmo mutate camera state through runtime commands and actor-input
+  participation only.
 
 Acceptance:
 
@@ -903,7 +972,60 @@ Acceptance:
   resources;
 - Camera3 works without Gizmo;
 - Gizmo is an editor input layer over runtime commands;
-- `runtime-three` may import Three but not editor/UI/app composition.
+- `runtime-three` may import Three but not editor/UI/app composition;
+- architecture-boundary reports no longer list runtime-object bus debt.
+
+### Phase 5.5: Pre-Phase 6 Window Workspace Truth Closure
+
+Goal:
+
+Delete the remaining alternate window placement implementations before editor
+extraction. Phase 6 must start from one UI/window truth model, not from graph
+transactions wrapped around old surface-local placement state.
+
+Executed deletion plan:
+
+```text
+temp/project-prism-pre-phase-6-surface-simplification-plan.md
+```
+
+Completed final gate:
+
+```text
+temp/project-prism-pre-phase-6-final-gate-plan.md
+```
+
+Work:
+
+- completed: collapse `WindowFrameSurfaceComponent` to graph snapshot rendering
+  and graph-keyed DOM realization;
+- completed: delete surface-owned placement fields and methods such as `#tabs`,
+  `#root`, `listTabs`, `getRuntimeDockRoot`, `restoreRuntimeDockRoot`,
+  `listDockTargetTabsets`, `getContentHost`, `mountContent`, and tab mutation
+  methods;
+- completed: delete internal `WindowContentHost` / `WindowContentAttachment`
+  mechanics;
+- completed: delete `WindowDockSurfaceModel` and `window-frame-dock-tree`
+  instead of preserving them as tests or compatibility models;
+- completed: remove runtime dock-tree type exports from app-local barrels;
+- completed: tighten architecture boundary tests so the old placement APIs
+  cannot return;
+- completed: expand `project-prism-smoke-contract` from interaction-hit
+  evidence into graph/DOM/input/persistence evidence;
+- completed: add a reproducible smoke evidence JSON file validator command;
+- completed: run final browser smoke for graph, DOM, actor-input,
+  fullscreen, mobile, persistence, and console parity.
+
+Acceptance:
+
+- `WindowWorkspaceGraph` is the only production placement truth;
+- surfaces render snapshots and report geometry, but do not own placement
+  mutation or active tab truth;
+- public and production barrels expose no host/attachment or dock-tree
+  placement APIs;
+- `window-workspace-multi-truth-debt` has been removed from boundary facts
+  after code reality, expanded smoke evidence contract, reproducible
+  evidence-file validation, and browser smoke supported removal.
 
 ### Phase 6: Editor Package Extraction
 
@@ -912,14 +1034,28 @@ Goal:
 Move concrete editor features into an `editor` package that composes
 `ui-framework`, runtime ports, and actor-input.
 
+Prerequisites:
+
+- Phase 5.5 window-workspace truth closure is complete.
+- `window-workspace-multi-truth-debt` is removed from boundary facts.
+- Final browser smoke proves graph/DOM/input/persistence parity.
+- Scene View render ownership is narrow enough that editor extraction will not
+  become the owner of runtime worlds, cameras, renderers, or frame sources.
+
 Work:
 
-- extract Debug, Inspector, Hierarchy, Scene View, Camera Gizmo, editor menu
-  commands, editor workspace composition, and editor command/query bindings;
-- make editor window registration/defaults editor-owned, not app-owned;
+- extract Debug, Inspector, Hierarchy, Scene View, Camera Gizmo, app/editor
+  menu commands, editor workspace composition, and editor command/query
+  bindings;
+- move feature installers and editor window registration/defaults out of
+  `apps/wallpaper-tesseract` into editor-owned public installers;
 - make Scene View select and display runtime frame sources through
-  `FrameSourceRegistry`;
-- keep editor-specific content out of `ui-framework`.
+  `FrameSourceRegistry` or its accepted runtime-view successor;
+- keep editor-specific content out of `ui-framework`;
+- keep runtime resource creation behind runtime package APIs, not editor
+  feature constructors;
+- delete app-local editor feature re-export barrels that only preserve the old
+  app source layout.
 
 Acceptance:
 
@@ -927,7 +1063,9 @@ Acceptance:
   runtime-three;
 - runtime packages do not import editor;
 - UI framework does not import editor feature content;
-- editor can be installed by app composition through public installer APIs.
+- editor can be installed by app composition through public installer APIs;
+- app composition can install editor defaults without importing concrete Debug,
+  Hierarchy, Inspector, Scene, Camera3, or Tesseract feature internals.
 
 ### Phase 7: Thin Wallpaper App Composition
 
@@ -937,14 +1075,19 @@ Turn the Wallpaper app into bootstrap/composition only.
 
 Work:
 
-- app creates shell/root services;
-- app installs actor/component package definitions through package-owned
+- app creates only the root DOM shell, actor system, component registry, and
+  package-level services needed to start the program;
+- app installs actor/input/UI/runtime/editor definitions through package-owned
   installers;
-- app installs runtime package defaults;
-- app installs editor package defaults;
+- app installs runtime defaults through runtime package APIs;
+- app installs editor defaults through editor package APIs;
 - app connects render loop and Wallpaper Engine lifecycle;
+- delete app-local staging modules once their package owner exists:
+  `app-runtime` registration ports, `window-runtime` compatibility barrels,
+  runtime port aliases, feature-level window defaults, and direct actor factory
+  wiring;
 - app stops wiring concrete Debug/Hierarchy/Inspector/Scene window policies,
-  actor IDs, hierarchy metadata, window defaults, or runtime ownership details.
+  actor ids, hierarchy metadata, window defaults, or runtime ownership details.
 
 Acceptance:
 
@@ -953,6 +1096,8 @@ Acceptance:
   internals directly;
 - app composition does not import concrete actor factories or runtime component
   internals;
+- app-local staging folders are either deleted or reduced to Wallpaper-specific
+  bootstrap code with explicit deletion notes;
 - root validation and browser smoke remain green.
 
 ### Phase 8: Multi-World / Multi-Viewport Validation
@@ -962,6 +1107,12 @@ Goal:
 Prove the architecture supports the original Prism goal: multiple worlds,
 multiple cameras, multiple Scene Views, and independent fullscreen sessions.
 
+Prerequisites:
+
+- Phase 6 editor package extraction is complete.
+- Phase 7 app composition is thin enough that it does not contain hidden
+  singleton world, camera, Scene View, or window policy ownership.
+
 Scenarios:
 
 - two independent 3D worlds;
@@ -970,7 +1121,9 @@ Scenarios:
 - multiple Scene Views, each fullscreen-capable;
 - Camera/Gizmo association is per Scene View;
 - window/tab/dock layout persists across reload;
-- runtime can render without editor installed.
+- runtime can render without editor installed;
+- editor can be installed without a Wallpaper-specific app shell;
+- mobile/narrow viewport keeps the multi-view controls usable.
 
 Acceptance:
 
@@ -978,10 +1131,22 @@ Acceptance:
 - each Scene View has explicit frame source and camera binding;
 - world/camera/projection graph remains inspectable;
 - no global singleton Scene assumptions remain;
+- creating, closing, docking, floating, fullscreening, and restoring one Scene
+  View does not mutate unrelated runtime worlds or cameras;
 - browser smoke covers desktop, mobile, docking loop, fullscreen/restore, and
   Camera3 interactions.
 
-## Architecture Boundary Tests To Add
+## Architecture Boundary Tests To Keep And Add
+
+The main executable boundary is:
+
+```text
+apps/wallpaper-tesseract/src/architecture-boundaries.test.ts
+```
+
+Keep existing boundary facts honest and add rules when a review opinion becomes
+an invariant. The next boundary hardening should focus on deleting old
+placement and ownership paths, not merely hiding them from public barrels.
 
 Recommended executable rules:
 
@@ -1023,6 +1188,9 @@ ui-framework:
   forbid camera3
   forbid three
   forbid editor feature imports
+  forbid WindowContentHost / WindowContentAttachment public or production APIs
+  forbid WindowDockSurfaceModel and window-frame-dock-tree after Phase 5.5
+  forbid surface placement mutation/read APIs after Phase 5.5
 
 editor:
   may depend on runtime/ui-framework/actor-input
@@ -1033,6 +1201,8 @@ app:
   forbid runtime component internals
   forbid editor feature internals
   allow installer/bootstrap API only
+  forbid app-local barrels that re-export deleted placement or runtime-object
+  compatibility APIs
 ```
 
 ## Testing Strategy
@@ -1045,15 +1215,29 @@ npm run typecheck -w wallpaper-tesseract
 npm run build -w wallpaper-tesseract
 ```
 
-When packages are added, also add package-level checks:
+Current package-level checks:
 
 ```text
 npm run test -w actor-core
 npm run test -w actor-input
 npm run test -w ui-framework
+npm run typecheck:test -w ui-framework
 npm run test -w runtime-core
 npm run test -w runtime-three
-npm run test -w editor
+```
+
+Add `npm run test -w editor` only after the editor package exists.
+
+For the current pre-Phase 6 gate, the minimum verification set is:
+
+```text
+npm run typecheck -w ui-framework
+npm run typecheck:test -w ui-framework
+npm run test -w ui-framework
+npm run build -w ui-framework
+npm run typecheck -w wallpaper-tesseract
+npm run test -w wallpaper-tesseract
+npm run build -w wallpaper-tesseract
 ```
 
 Browser smoke remains required for:
@@ -1065,6 +1249,11 @@ Browser smoke remains required for:
 - multi-viewport layout；
 - mobile/narrow viewport usability。
 
+For Phase 5.5 specifically, browser smoke must additionally record graph frame,
+tabset, split, and content ids; each content id's single DOM parent; splitter
+hit regions mapped to graph split ids; active tab/content parity; persistence
+reload without actor ids; and console errors equal 0.
+
 ## Stop Conditions
 
 Stop and revise the plan if:
@@ -1072,10 +1261,16 @@ Stop and revise the plan if:
 - actor-core still needs DOM/Three/gizmo/scene-runtime dependencies；
 - Runtime cannot render without importing Editor；
 - Scene View must own world/camera resources to work；
-- `scene-runtime` state cannot be split into runtime/editor/ui-layout domains；
 - Runtime scheduler still needs UI/editor services；
 - UI framework needs product-specific ids/paths to function；
 - view identity still mixes actor id, tab id, and persistent instance id；
+- `WindowWorkspaceGraph` cannot become the only placement truth without adding
+  compatibility facades；
+- surface cleanup preserves `WindowContentHost`, `WindowContentAttachment`,
+  `WindowDockSurfaceModel`, or `window-frame-dock-tree` as hidden production
+  paths；
+- Phase 6 starts while `window-workspace-multi-truth-debt` remains in boundary
+  facts；
 - projection graph cannot support multiple worlds/cameras without global state；
 - fullscreen Scene View requires global singleton Scene assumptions；
 - app composition grows new feature logic instead of becoming thinner。
@@ -1087,6 +1282,8 @@ Project Prism is successful when:
 - Actor/Component runtime is a reusable, decapable package；
 - actor input is a separate reusable adapter, not part of actor core；
 - window/tab/dock/menu UI is a reusable product-agnostic package；
+- window workspace placement has one graph truth, with surfaces only realizing
+  snapshots and reporting geometry；
 - Runtime core can independently model worlds/cameras/projections and frame sources；
 - Three/WebGL backend is separate from runtime-core；
 - Editor can display and manipulate Runtime through ports without owning Runtime resources；

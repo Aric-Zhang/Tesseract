@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderWindowFrameTabsetTabs } from "./window-frame-tab-chrome";
-import type { WindowFrameDockTreeTabsetNode } from "../model/window-frame-dock-tree";
+import type { WindowFrameTabsetChromeInput } from "./window-frame-tab-chrome";
 import type { WindowFrameTab } from "../model/window-frame-tab";
 
 describe("renderWindowFrameTabsetTabs", () => {
@@ -11,10 +11,8 @@ describe("renderWindowFrameTabsetTabs", () => {
       { viewActorId: "scene-view", viewKey: "scene", title: "Scene" },
       { viewActorId: "debug-view", viewKey: "debug", title: "Debug" }
     ];
-    const tabset: WindowFrameDockTreeTabsetNode = {
-      kind: "tabset",
-      id: "tabset",
-      tabs: ["scene-view", "debug-view"],
+    const tabset: WindowFrameTabsetChromeInput = {
+      viewActorIds: ["scene-view", "debug-view"],
       activeViewActorId: "debug-view"
     };
 

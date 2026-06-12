@@ -61,13 +61,13 @@ describe("Project Prism boundary report", () => {
       blockedBy: []
     });
     expect(targetsById.get("ui-framework")).toMatchObject({
-      status: "blocked",
-      blockedBy: ["window-workspace-multi-truth-debt"]
+      status: "allowed",
+      blockedBy: []
     });
     expect(targetsById.get("editor")).toMatchObject({
-      status: "blocked",
+      status: "allowed",
       cleanCandidateZones: ["editor-candidate"],
-      blockedBy: ["window-workspace-multi-truth-debt"]
+      blockedBy: []
     });
   });
 

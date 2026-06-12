@@ -1,5 +1,4 @@
 import type { UiPoint } from "../ports/ui-geometry";
-import type { WindowFrameDockTreeTabsetNode } from "../model/window-frame-dock-tree";
 import type { WindowFrameTab } from "../model/window-frame-tab";
 import { createWindowTabCloseAction, type WindowTabAction } from "./window-tab-action";
 
@@ -11,10 +10,15 @@ export interface WindowFrameTabChromeMaps {
   readonly actionsByViewActorId: Map<string, HTMLButtonElement>;
 }
 
+export interface WindowFrameTabsetChromeInput {
+  readonly viewActorIds: readonly string[];
+  readonly activeViewActorId: string | null;
+}
+
 export interface RenderWindowFrameTabsetOptions {
   readonly document: Pick<Document, "createElement">;
   readonly tabs: readonly WindowFrameTab[];
-  readonly tabset: WindowFrameDockTreeTabsetNode;
+  readonly tabset: WindowFrameTabsetChromeInput;
   readonly target: HTMLElement;
   readonly maps: WindowFrameTabChromeMaps;
   readonly tabClassName?: string;
@@ -26,7 +30,7 @@ export function renderWindowFrameTabsetTabs(options: RenderWindowFrameTabsetOpti
   const closeClassName = joinClassNames("window-frame-tab__close", options.closeClassName);
   setAttributeIfSupported(options.target, "role", "tablist");
   for (const tab of options.tabs) {
-    if (!options.tabset.tabs.includes(tab.viewActorId)) continue;
+    if (!options.tabset.viewActorIds.includes(tab.viewActorId)) continue;
     const selected = tab.viewActorId === options.tabset.activeViewActorId;
     const element = options.document.createElement("div");
     element.className = joinClassNames(

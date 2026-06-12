@@ -3,7 +3,7 @@ import { ActorSystem } from "actor-core";
 import {
   WindowContentRegistry,
   type WindowRegisteredContent
-} from "./window-content-host";
+} from "./window-content-registry";
 import { getWindowViewFactoryIdentity, WindowViewFactoryRegistry } from "./window-view-factory-registry";
 
 describe("WindowViewFactoryRegistry", () => {

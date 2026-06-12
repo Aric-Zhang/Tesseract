@@ -76,9 +76,6 @@ export type {
 export type {
   WindowFramePort,
   WindowFramePresentation,
-  WindowFrameRuntimeDockNode,
-  WindowFrameRuntimeSplitNode,
-  WindowFrameRuntimeTabsetNode,
   WindowFrameSuppressionReason,
   WindowFrameTab
 } from "./window-frame-port";

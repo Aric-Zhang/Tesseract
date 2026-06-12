@@ -16,7 +16,7 @@ describe("window view identity", () => {
     });
   });
 
-  it("keeps instance id opaque when creating compatibility view keys", () => {
+  it("keeps instance id opaque when deriving a view key", () => {
     const typeKey = windowViewTypeKey("inspector");
     const instanceId = windowViewInstanceId("inspector:1");
 

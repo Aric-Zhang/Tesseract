@@ -1,4 +1,4 @@
-import type { WindowRegisteredContent } from "../ports/window-content-host";
+import type { WindowRegisteredContent } from "../ports/window-content-registry";
 import type {
   WindowWorkspaceContentId,
   WindowWorkspaceGraphCommit,
@@ -114,11 +114,19 @@ export interface WindowWorkspaceGraphContentPlacement<TContent> {
   readonly placement: WindowWorkspaceGraphPlacement;
 }
 
+export interface WindowWorkspaceGraphContentActiveState {
+  readonly contentId: WindowWorkspaceContentId;
+  readonly active: boolean;
+  readonly interactable: boolean;
+}
+
 export interface WindowWorkspaceGraphReconcilerSurface<TContent> {
   readonly frameId: string;
   renderFrameSurface(snapshot: WindowFrameSurfaceSnapshot): void;
   measureFrameSurfaceGeometry(snapshot: WindowFrameSurfaceSnapshot): WindowWorkspaceSurfaceGeometryProjection;
   placeContent(placement: WindowWorkspaceGraphContentPlacement<TContent>): void;
+  removeContent(contentId: WindowWorkspaceContentId): void;
+  setContentActive(state: WindowWorkspaceGraphContentActiveState): void;
 }
 
 export interface ProjectWindowWorkspaceGraphCommitOptions<TContent = WindowRegisteredContent, TFrameSurface = unknown> {
@@ -206,12 +214,27 @@ export function reconcileWindowWorkspaceGraphCommit<TContent, TFrameSurface exte
     }
     renderedFrameIds.add(snapshot.frameId);
   }
+  const nextPlacementsByContentId = new Map(
+    options.commit.snapshot.placements.map((placement) => [placement.contentId, placement])
+  );
+  for (const previousPlacement of options.commit.previousPlacements) {
+    const nextPlacement = nextPlacementsByContentId.get(previousPlacement.contentId);
+    if (nextPlacement?.frameId === previousPlacement.frameId) continue;
+    options.realization.getFrameSurface(previousPlacement.frameId)?.removeContent(previousPlacement.contentId);
+  }
   for (const placement of options.commit.snapshot.placements) {
     if (!renderedFrameIds.has(placement.frameId)) continue;
     const content = options.realization.getContent(placement.contentId);
     if (!content) continue;
     const surface = options.realization.getFrameSurface(placement.frameId);
     surface?.placeContent({ content, placement });
+  }
+  for (const placement of options.commit.snapshot.placements) {
+    options.realization.getFrameSurface(placement.frameId)?.setContentActive({
+      contentId: placement.contentId,
+      active: placement.active,
+      interactable: placement.interactable
+    });
   }
   return {
     ...result,

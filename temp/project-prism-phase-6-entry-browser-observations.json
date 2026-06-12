@@ -1,0 +1,350 @@
+{
+  "date": "2026-06-12T01:41:45.829Z",
+  "url": "http://127.0.0.1:5173/?resetWorkspaceLayout=1",
+  "consoleErrors": [],
+  "observations": [
+    {
+      "name": "boot-baseline",
+      "passed": true,
+      "details": {
+        "canvases": [
+          {
+            "cls": "",
+            "rect": {
+              "x": 0,
+              "y": 57,
+              "width": 1280,
+              "height": 663
+            }
+          },
+          {
+            "cls": "camera3-gizmo__canvas",
+            "rect": {
+              "x": 1126,
+              "y": 79,
+              "width": 132,
+              "height": 132
+            }
+          }
+        ],
+        "rootFrames": 1,
+        "tabs": [
+          "scenex",
+          "debugx",
+          "hierarchyx"
+        ]
+      }
+    },
+    {
+      "name": "window-menu-open-focus",
+      "passed": true,
+      "details": {
+        "floatingFrames": [
+          "debugxx 1990 pointerdown pid=1 type=mouse button=0 buttons=1 xy=1234,23\n 1990 hit gizmo=app-menu-bar:gizmo-event-binding part=menu-button pid=1 type=mouse button=0 buttons=1 xy=1234,23 capture=1\n 1990",
+          "hierarchyxxDebug Log WindowDebug Log Window ViewHierarchy PanelHierarchy Panel ViewApp MenuWorkspace RootScene ViewTesseract4Camera3Inspector WindowInspector 1 ViewInspector WindowInspector 2 View",
+          "inspector:axxInspector 1",
+          "inspector:bxxInspector 2"
+        ],
+        "inspectorMentions": 6
+      }
+    },
+    {
+      "name": "root-tab-close-reopen",
+      "passed": true,
+      "details": {
+        "sceneClosed": true,
+        "closedTabs": [
+          "debugx"
+        ],
+        "reopenedTabs": [
+          "debugx",
+          "scenex"
+        ],
+        "canvasCount": 2
+      }
+    },
+    {
+      "name": "scene-fullscreen-restore",
+      "passed": true,
+      "details": {
+        "fullButtons": [
+          {
+            "aria": "Shrink Scene to window",
+            "title": "Shrink Scene to window",
+            "cls": "scene-window__mode-toggle-button scene-window__mode-toggle-button--windowed",
+            "rect": {
+              "x": 1218,
+              "y": 188,
+              "width": 40,
+              "height": 40
+            }
+          }
+        ],
+        "restoredButtons": [
+          {
+            "aria": "Expand Scene to fullscreen",
+            "title": "Expand Scene to fullscreen",
+            "cls": "scene-window__mode-toggle-button scene-window__mode-toggle-button--fullscreen",
+            "rect": {
+              "x": 1218,
+              "y": 245,
+              "width": 40,
+              "height": 40
+            }
+          }
+        ],
+        "fullCanvas": [
+          {
+            "cls": "",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1280,
+              "height": 720
+            }
+          },
+          {
+            "cls": "camera3-gizmo__canvas",
+            "rect": {
+              "x": 1126,
+              "y": 22,
+              "width": 132,
+              "height": 132
+            }
+          }
+        ],
+        "restoredCanvas": [
+          {
+            "cls": "",
+            "rect": {
+              "x": 0,
+              "y": 57,
+              "width": 1280,
+              "height": 663
+            }
+          },
+          {
+            "cls": "camera3-gizmo__canvas",
+            "rect": {
+              "x": 1126,
+              "y": 79,
+              "width": 132,
+              "height": 132
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "dock-mutation-5b-5c",
+      "passed": true,
+      "details": {
+        "attempted": true,
+        "rootTextAfter": "scenex< Persp",
+        "floatingCountAfter": 2,
+        "tabsAfter": [
+          "scenex",
+          "hierarchyx",
+          "debugx"
+        ]
+      }
+    },
+    {
+      "name": "splitter-resize",
+      "passed": true,
+      "details": {
+        "splitCandidateCount": 0,
+        "splitters": []
+      }
+    },
+    {
+      "name": "persistence-reload",
+      "passed": true,
+      "details": {
+        "tabs": [
+          "scenex",
+          "debugx",
+          "hierarchyx"
+        ],
+        "canvases": [
+          {
+            "cls": "",
+            "rect": {
+              "x": 0,
+              "y": 57,
+              "width": 1280,
+              "height": 663
+            }
+          },
+          {
+            "cls": "camera3-gizmo__canvas",
+            "rect": {
+              "x": 1126,
+              "y": 79,
+              "width": 132,
+              "height": 132
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "mobile-viewport",
+      "passed": true,
+      "details": {
+        "rootFrames": [
+          {
+            "cls": "workspace-root-dock-frame",
+            "text": "scenex< Persp",
+            "rect": {
+              "x": 0,
+              "y": 28,
+              "width": 390,
+              "height": 816
+            }
+          }
+        ],
+        "canvases": [
+          {
+            "cls": "",
+            "rect": {
+              "x": 0,
+              "y": 57,
+              "width": 390,
+              "height": 787
+            }
+          },
+          {
+            "cls": "camera3-gizmo__canvas",
+            "rect": {
+              "x": 236,
+              "y": 79,
+              "width": 132,
+              "height": 132
+            }
+          }
+        ],
+        "firstButtons": [
+          {
+            "text": "Window",
+            "aria": null,
+            "cls": "app-menu-bar__button",
+            "rect": {
+              "x": 310,
+              "y": 10,
+              "width": 68,
+              "height": 26
+            }
+          },
+          {
+            "text": "Scene",
+            "aria": null,
+            "cls": "app-menu-bar__menu-item",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            }
+          },
+          {
+            "text": "Debug Log Window",
+            "aria": null,
+            "cls": "app-menu-bar__menu-item",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            }
+          },
+          {
+            "text": "Hierarchy Panel",
+            "aria": null,
+            "cls": "app-menu-bar__menu-item",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            }
+          },
+          {
+            "text": "Inspector",
+            "aria": null,
+            "cls": "app-menu-bar__menu-item",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            }
+          },
+          {
+            "text": "New Inspector",
+            "aria": null,
+            "cls": "app-menu-bar__menu-item",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0
+            }
+          },
+          {
+            "text": "x",
+            "aria": "Close scene",
+            "cls": "window-frame-tab__close workspace-root-dock-frame__tab-close",
+            "rect": {
+              "x": 134,
+              "y": 34,
+              "width": 16,
+              "height": 16
+            }
+          },
+          {
+            "text": "",
+            "aria": "Expand Scene to fullscreen",
+            "cls": "scene-window__mode-toggle-button scene-window__mode-toggle-button--fullscreen",
+            "rect": {
+              "x": 328,
+              "y": 245,
+              "width": 40,
+              "height": 40
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "render-input-sanity",
+      "passed": true,
+      "details": {
+        "modeBefore": "< Persp",
+        "modeAfter": "|| Iso",
+        "canvases": [
+          {
+            "cls": "",
+            "rect": {
+              "x": 0,
+              "y": 57,
+              "width": 1280,
+              "height": 663
+            }
+          },
+          {
+            "cls": "camera3-gizmo__canvas",
+            "rect": {
+              "x": 1126,
+              "y": 79,
+              "width": 132,
+              "height": 132
+            }
+          }
+        ],
+        "bodyContainsTesseract": true,
+        "bodyContainsCamera3": true
+      }
+    }
+  ]
+}

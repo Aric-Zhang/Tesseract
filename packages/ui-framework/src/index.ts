@@ -7,7 +7,6 @@ export * from "./chrome/window-tab-action";
 export * from "./chrome/window-dock-preview-component";
 export * from "./model/floating-window-state";
 export * from "./model/window-dock-targets";
-export * from "./model/window-frame-dock-tree";
 export * from "./model/window-frame-tab";
 export * from "./model/window-tab-drag-session";
 export * from "./model/window-view-identity";
@@ -20,17 +19,16 @@ export * from "./ports/ui-geometry";
 export * from "./ports/ui-layout-state";
 export * from "./ports/ui-scheduler";
 export * from "./ports/dock-target-region-source";
-export { WindowContentRegistry } from "./ports/window-content-host";
+export { WindowContentRegistry } from "./ports/window-content-registry";
 export type {
   WindowContentLayoutCommit,
   WindowContentLayoutCommitRegistration,
   WindowContentLayoutCommitRect,
   WindowContentLayoutCommitSplit,
-  WindowContentRegistration,
   WindowContentRegistrationPort,
   WindowContentRegistrationRequest,
   WindowRegisteredContent
-} from "./ports/window-content-host";
+} from "./ports/window-content-registry";
 export * from "./ports/window-frame-targetability-source";
 export * from "./ports/window-frame-port";
 export * from "./ports/window-frame-port-registry";
@@ -44,5 +42,3 @@ export * from "./services/window-workspace-layout-persistence-controller";
 export * from "./services/window-workspace-presentation-controller";
 export * from "./services/window-workspace-stack-priority-port";
 export * from "./services/window-workspace-view-catalog";
-
-export const uiFrameworkPackageName = "ui-framework";

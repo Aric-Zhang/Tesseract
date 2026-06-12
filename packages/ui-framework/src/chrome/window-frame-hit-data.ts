@@ -1,11 +1,12 @@
 import type { ActorInputHit } from "actor-input";
-import type { WindowFrameDockTreeSplitDirection } from "../model/window-frame-dock-tree";
 import type { WindowFrameTab } from "../model/window-frame-tab";
 import type { WindowTabDragSource } from "../model/window-tab-drag-session";
 
+export type WindowFrameSurfaceSplitDirection = "horizontal" | "vertical";
+
 export interface FloatingWindowSplitterHitData {
   readonly splitId: string;
-  readonly direction: WindowFrameDockTreeSplitDirection;
+  readonly direction: WindowFrameSurfaceSplitDirection;
 }
 
 export function readWindowTabDragSource(frameId: string, hit: ActorInputHit): WindowTabDragSource | null {

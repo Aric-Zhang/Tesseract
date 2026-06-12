@@ -419,13 +419,6 @@ export function reduceWindowWorkspaceGraphTransaction(options: {
       if (!targetTabset) {
         return noCommit(`cannot split into unknown tabset ${transaction.targetTabsetId}`);
       }
-      const targetFrame = transactionFrames.find((frame) => frame.frameId === transaction.targetFrameId);
-      if (
-        targetFrame &&
-        (hasDockNodeId(targetFrame.root, transaction.newTabsetId) || hasDockNodeId(targetFrame.root, transaction.newSplitId))
-      ) {
-        return noCommit(`cannot split with duplicate dock node id`);
-      }
       const currentPlacement = previous.placements.find((placement) => placement.contentId === transaction.contentId);
       if (
         currentPlacement?.frameId === transaction.targetFrameId &&
@@ -440,23 +433,32 @@ export function reduceWindowWorkspaceGraphTransaction(options: {
         warnings,
         new Set(transaction.preserveEmptyFrameIds ?? [])
       );
-      const frames = removed.map((frame) => frame.frameId === transaction.targetFrameId
+      const framesAfterRemoval = removeEmptyFrames(removed);
+      const targetFrameAfterRemoval = framesAfterRemoval.find((frame) => frame.frameId === transaction.targetFrameId);
+      if (!targetFrameAfterRemoval || !findTabset(framesAfterRemoval, transaction.targetFrameId, transaction.targetTabsetId)) {
+        return noCommit(`cannot split into unknown tabset ${transaction.targetTabsetId}`);
+      }
+      if (
+        hasDockNodeId(targetFrameAfterRemoval.root, transaction.newTabsetId) ||
+        hasDockNodeId(targetFrameAfterRemoval.root, transaction.newSplitId)
+      ) {
+        return noCommit(`cannot split with duplicate dock node id`);
+      }
+      const frames = framesAfterRemoval.map((frame) => frame.frameId === transaction.targetFrameId
         ? {
             ...frame,
-            root: frame.root
-              ? splitTabsetWithContent({
-                  node: frame.root,
-                  targetTabsetId: transaction.targetTabsetId,
-                  contentId: transaction.contentId,
-                  newTabsetId: transaction.newTabsetId,
-                  newSplitId: transaction.newSplitId,
-                  placement: transaction.placement,
-                  active: transaction.active ?? true
-                })
-              : null
+            root: splitTabsetWithContent({
+              node: frame.root,
+              targetTabsetId: transaction.targetTabsetId,
+              contentId: transaction.contentId,
+              newTabsetId: transaction.newTabsetId,
+              newSplitId: transaction.newSplitId,
+              placement: transaction.placement,
+              active: transaction.active ?? true
+            })
           }
         : frame);
-      return finish(removeEmptyFrames(frames));
+      return finish(frames);
     }
     case "float-content": {
       if (!content.has(transaction.contentId) && transaction.content?.contentId !== transaction.contentId) {

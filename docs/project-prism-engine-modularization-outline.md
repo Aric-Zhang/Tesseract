@@ -14,6 +14,12 @@ Current mutable status:
 docs/current-project-progress.md
 ```
 
+Permanent defect and follow-up ledger:
+
+```text
+docs/known-defects-and-todos.md
+```
+
 Executed pre-Phase 6 surface deletion plan:
 
 ```text
@@ -26,18 +32,19 @@ Completed pre-Phase 6 final gate record:
 temp/project-prism-pre-phase-6-final-gate-plan.md
 ```
 
-Active Phase 6 detailed execution plan:
+Completed Phase 6 detailed execution record and active post-Phase-6 dock gate:
 
 ```text
 temp/project-prism-phase-6-editor-extraction-plan.md
 ```
 
-Current execution status, updated 2026-06-12:
+Current execution status, updated 2026-06-13:
 
 ```text
-Phases 0 through 5 are accepted at the package-boundary level.
+Phases 0 through 6 are accepted at the package-boundary level.
 actor-core, actor-input, ui-framework, runtime-core, and runtime-three now
-exist as workspace packages.
+exist as workspace packages, and packages/editor now owns the extracted editor
+presentation/features that moved out of app-local source.
 Phase 5.5 pre-Phase 6 window-workspace cleanup is complete: generic SceneRuntime/RuntimeObject bus
 deletion has landed, app frame orchestration is explicit, Tesseract runtime
 renderable staging exists, Camera3 motion/orbit camera ownership has moved to
@@ -47,8 +54,13 @@ The surface internals, content host/attachment mechanics, and old dock-surface
 model have been deleted. The final smoke evidence contract now validates
 graph snapshots, DOM placement, actor-input hits, persistence descriptors, and
 required scenario coverage through a reproducible evidence-file validator.
-`window-workspace-multi-truth-debt` has been removed from boundary facts, so
-Phase 6 editor package extraction may begin.
+`window-workspace-multi-truth-debt` has been removed from boundary facts.
+Confirmed defects and non-blocking follow-up cleanup now belong in
+docs/known-defects-and-todos.md instead of temporary plans. The current Phase 6
+execution record also contains an active post-Phase-6 dock regression and
+diagnostics gate for the 2026-06-13 Debug/Scene repeated dock investigation;
+complete or explicitly fold that gate into the next runtime-owner slice before
+starting another broad architecture move.
 ```
 
 ## Codename

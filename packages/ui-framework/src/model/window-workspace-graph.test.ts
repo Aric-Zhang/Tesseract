@@ -353,6 +353,75 @@ describe("WindowWorkspaceGraph", () => {
     });
   });
 
+  it("splits into a sibling tabset after the source branch releases derived dock ids", () => {
+    const targetTabsetId = windowWorkspaceTabsetId("tabset:scene:tabset:content:debug");
+    const sourceTabsetId = windowWorkspaceTabsetId("tabset:scene:tabset:content:debug:tabset:content:debug");
+    const sourceSplitId = windowWorkspaceSplitId("tabset:scene:tabset:content:debug:split:content:debug");
+    const snapshot = createWindowWorkspaceGraphSnapshot({
+      revision: 1,
+      contents: [
+        { contentId: sceneContentId, identity: sceneIdentity },
+        { contentId: debugContentId, identity: debugIdentity }
+      ],
+      frames: [{
+        frameId,
+        kind: "persistent",
+        presentation: "windowed",
+        visible: true,
+        stackPriority: 1,
+        root: {
+          kind: "split",
+          id: sourceSplitId,
+          direction: "horizontal",
+          ratio: 0.5,
+          first: {
+            kind: "tabset",
+            id: sourceTabsetId,
+            contentIds: [debugContentId],
+            activeContentId: debugContentId
+          },
+          second: {
+            kind: "tabset",
+            id: targetTabsetId,
+            contentIds: [sceneContentId],
+            activeContentId: sceneContentId
+          }
+        }
+      }]
+    });
+
+    const result = reduceWindowWorkspaceGraphTransaction({
+      snapshot,
+      transaction: {
+        kind: "split-content",
+        contentId: debugContentId,
+        targetFrameId: frameId,
+        targetTabsetId,
+        newTabsetId: sourceTabsetId,
+        newSplitId: sourceSplitId,
+        placement: "bottom"
+      }
+    });
+
+    expect(result.committed).toBe(true);
+    expect(result.nextSnapshot.frames[0]?.root).toMatchObject({
+      kind: "split",
+      id: sourceSplitId,
+      direction: "vertical",
+      first: {
+        kind: "tabset",
+        id: targetTabsetId,
+        contentIds: [sceneContentId]
+      },
+      second: {
+        kind: "tabset",
+        id: sourceTabsetId,
+        contentIds: [debugContentId]
+      }
+    });
+    expect(result.warnings).toContain(`collapsed split ${sourceSplitId} after removing empty first branch`);
+  });
+
   it("fails closed when asked to split a single tab into itself", () => {
     const snapshot = createWindowWorkspaceGraphSnapshot({
       revision: 1,

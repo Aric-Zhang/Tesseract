@@ -14,6 +14,16 @@ docs/current-project-progress.md
 Update that progress document whenever the implementation stage, package
 layout, active plan, or verification matrix changes.
 
+Known defects, confirmed follow-up cleanup, and debugging findings that should
+survive temp cleanup live in:
+
+```text
+docs/known-defects-and-todos.md
+```
+
+Update that defect ledger whenever a confirmed bug is found, fixed, verified,
+or converted into an architecture cleanup item.
+
 Historical plans, reports, smoke artifacts, and temporary logs live under
 `temp/`. Treat old plans as project memory, not automatic instructions.
 

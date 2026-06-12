@@ -1,12 +1,16 @@
 # Project Prism Phase 6 Editor Extraction Execution Plan
 
-Status: completed Phase 6 editor extraction execution record. The pre-entry
-checkpoint is committed, editor state/presentation ownership has moved into
+Status: completed Phase 6 editor extraction execution record with an active
+post-Phase-6 dock regression and diagnostics gate. The pre-entry checkpoint is
+committed, editor state/presentation ownership has moved into
 `packages/editor`, app-local editor compatibility owners were deleted rather
-than wrapped, and the final Phase 6 browser evidence gate validates. The
-remaining hard cleanup belongs to later runtime-owner/app bootstrap slices.
-This record starts from the completed pre-Phase 6 window-workspace final gate
-and keeps the deletion-first Project Prism rules as hard constraints.
+than wrapped, and the final Phase 6 browser evidence gate validates. A
+2026-06-13 Debug/Scene repeated dock investigation found one real graph reducer
+bug that is fixed in the working tree but still needs broader verification and
+commit, plus dock/debug diagnostic debt that made the failure harder to trace.
+Do not start the next large runtime-owner/app-bootstrap slice until the active
+post-Phase-6 gate in this plan is resolved or deliberately moved into that
+slice with the same deletion-first constraints.
 
 Current verified entry facts:
 
@@ -24,6 +28,26 @@ Current verified entry facts:
 - The `editor` package target is marked `allowed` in boundary facts.
 - Baseline checkpoint commit: `04f41ac` (`Complete Project Prism phase 6 entry
   gate`).
+
+Current interruption facts from 2026-06-13:
+
+- Visual browser reproduction: with only `Scene` and `Debug` side by side in
+  the root frame, repeated docking from one sibling into the other could end
+  with pointer capture and drag logs present but no visible dock mutation.
+- Root cause found so far: `split-content` checked `newTabsetId` and
+  `newSplitId` for duplicate dock node ids before removing the source branch
+  and collapsing the old empty sibling. The working tree now removes the source
+  first, then validates id conflicts against the remaining target frame.
+- Verification already run for the local fix:
+  `npm run test -w ui-framework -- window-workspace-graph`,
+  `npm run build -w ui-framework`, and
+  `npm run typecheck -w ui-framework`.
+- Remaining verification blocker: root checks and renewed browser smoke
+  evidence have not yet been run after the local fix.
+- Maintenance blockers exposed by the same session are tracked in
+  `docs/known-defects-and-todos.md`: silent dock commit failures, missing dock
+  semantic trace in Debug Log, misleading gizmo ignore wording, lifecycle-side
+  dock id derivation, and stale package dist during app dev verification.
 
 This plan is intentionally not a compatibility migration. Each slice either
 moves ownership to the new package or deletes the app-local owner. Do not keep
@@ -720,6 +744,125 @@ Final exit gate:
 - Root test/typecheck/build pass.
 - `temp/project-prism-phase-6-smoke-data.json` exists and validates.
 - Browser smoke passes with graph/DOM/input/persistence parity preserved.
+
+## Step 10: Post-Phase-6 Dock Regression And Diagnostics Gate - Active
+
+Purpose: close the real Debug/Scene repeated dock regression found after Phase
+6 extraction, and remove the diagnostic blind spots that made the failure look
+like an input-capture issue instead of a rejected graph transaction.
+
+This is not a compatibility or logging expansion project. The work must keep
+`WindowWorkspaceGraph` as the single placement truth. Any diagnostics added
+here may report lifecycle/graph results, but they must not store placement
+state, derive alternate dock targets, or become a second decision path.
+
+Blocking items before the next large Phase 6+ slice:
+
+1. DCK-005 fixed-pending-verification must become fully verified and committed.
+   - Keep the reducer fix that removes the source content and collapses empty
+     branches before duplicate dock node validation.
+   - Add a lifecycle/controller-level regression test for the actual repeated
+     two-tab split dock path, not only the reducer helper. The test must cover
+     `commitDock` returning a committed result after one sibling releases ids
+     that the other sibling would otherwise reuse.
+   - Run root validation after the local package build:
+
+```text
+npm run test
+npm run typecheck
+npm run build
+```
+
+   - Run browser smoke against rebuilt workspace package output and include the
+     repeated two-tab Debug/Scene dock path. The smoke evidence must prove
+     visual graph/DOM parity, not only pointer capture.
+   - Update either `temp/project-prism-phase-6-smoke-data.json` plus its report,
+     or add a narrow follow-up evidence file if regenerating the full Phase 6
+     smoke would hide the regression detail.
+
+2. DCK-001 and DCK-002 must get one narrow semantic dock trace.
+   - `requestCommitDock(intent)` must no longer discard useful commit failure
+     information silently.
+   - Use exactly one explicit contract exit:
+     - change `WindowFrameIntentSink.requestCommitDock` to return
+       `WindowDockCommitResult`; or
+     - give the lifecycle owner a narrow diagnostic sink that receives the
+       existing `WindowDockCommitResult` and graph/lifecycle reasons.
+   - Prefer the return-value path if it keeps call sites simpler. Use the sink
+     path only if returning the result would make input plumbing own diagnostic
+     policy.
+   - Do not add a new placement owner, event bus, facade, or internal-only log
+     that QA cannot assert.
+   - The trace should cover:
+
+```text
+preview -> dock intent -> lifecycle validation -> graph transaction -> commit result
+```
+
+   - Debug Log may display this trace only as diagnostic output. It must not
+     become a dock target source, graph cache, or lifecycle authority.
+
+3. DCK-004 is a hard Step 10 cleanup item.
+   - Move dock split id allocation into the graph reducer. The existence of
+     public `newTabsetId` / `newSplitId` inputs and lifecycle-side derived id
+     construction is already enough evidence of unnecessary complexity.
+   - Delete `newTabsetId` and `newSplitId` from the public
+     `WindowWorkspaceGraphTransaction` split surface.
+   - Delete lifecycle-side `createDerivedGraphTabsetId` /
+     `createDerivedGraphSplitId` callers rather than wrapping them.
+   - Let graph tests assert uniqueness and repeated split/dock cycles without
+     caller-provided dock node ids.
+   - Delete or rewrite tests and fixtures that only exist to preserve the old
+     caller-provided id transaction API.
+
+4. DCK-003 and DEV-001 are follow-up cleanup/watch items, not blockers by
+   themselves.
+   - If Step 10 touches gizmo debug logging, fix the
+     `buttons-zero-without-capture` wording or behavior in the same pass.
+   - Before browser smoke, always rebuild package output consumed by the app:
+
+```text
+npm run build -w ui-framework
+npm run build -w editor
+npm run dev -w wallpaper-tesseract
+```
+
+     If only `ui-framework` changed, the `editor` build may be skipped, but the
+     smoke report must state which package outputs were rebuilt.
+   - If the stale-dist path remains confusing, replace it with a simpler dev
+     workflow in a later tooling cleanup rather than hiding it in ad hoc notes.
+
+Exit gate:
+
+- DCK-005 is no longer `fixed-pending-verification`; it is either closed or
+  explicitly folded into a broader graph-id cleanup commit.
+- A lifecycle/controller-level `commitDock` regression test covers the repeated
+  two-tab split dock path that reproduced the visual failure.
+- DCK-004 is closed: split dock graph node ids are allocated by the graph model,
+  not lifecycle callers, and the transaction API no longer exposes
+  `newTabsetId` / `newSplitId`.
+- Root validation passes after rebuilding any package output consumed by the
+  app dev server.
+- Browser evidence includes the repeated two-tab `Debug`/`Scene` dock scenario
+  and proves the final visual layout, graph snapshot, and DOM parent parity.
+- A failed dock commit produces a concise semantic reason through a return value
+  or narrow diagnostic sink that tests/smoke evidence can assert.
+- No new package API, app-local facade, fake test port, or alternate placement
+  model was added to carry the diagnostics.
+- `docs/known-defects-and-todos.md` and `docs/current-project-progress.md` are
+  updated with the verified status.
+
+Stop and amend this Step 10 plan if:
+
+- The trace needs Debug Log to own or reconstruct placement state.
+- Fixing id allocation requires preserving both caller-provided ids and
+  reducer-generated ids.
+- The chosen dock diagnostic exit cannot be asserted by tests or smoke
+  evidence.
+- Browser evidence passes only by checking pointer capture logs while the
+  visual layout or DOM parent parity is unverified.
+- The app dev server keeps serving stale package output in a way that makes
+  smoke evidence unreproducible.
 
 ## Stop Conditions
 

@@ -1,10 +1,19 @@
 # Current Project Progress
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 This document is the mutable project-status companion to `AGENTS.md`. Keep
 phase status, package lists, source topology, active plans, and verification
 commands here instead of in `AGENTS.md`.
+
+Known defects and confirmed follow-up cleanup live in:
+
+```text
+docs/known-defects-and-todos.md
+```
+
+Update that ledger when debugging finds a confirmed issue, when a fix lands, or
+when a defect becomes a non-blocking architecture cleanup item.
 
 ## Repository Shape
 
@@ -205,9 +214,12 @@ type/instance view identity:
 - Persistence version 2 stores logical view descriptors by `typeKey` and
   `instanceId`. Version 1 migration support is compatibility debt and must not
   shape new APIs.
-- Remaining window-workspace debt: none blocking Phase 6. Future changes must
-  preserve graph/DOM/input/persistence parity through the smoke contract and
-  boundary tests.
+- Remaining window-workspace debt: none blocking Phase 6. Confirmed dock/debug
+  follow-up items, including silent dock commit failures, Debug Log semantic
+  trace gaps, and dock id derivation cleanup, are tracked in
+  `docs/known-defects-and-todos.md`. Future changes must preserve
+  graph/DOM/input/persistence parity through the smoke contract and boundary
+  tests.
 
 ## Runtime Ownership Baseline
 
@@ -258,6 +270,17 @@ docs/project-prism-engine-modularization-outline.md
 
 This is the restored north-star plan. It was previously kept under `temp/`, but
 now lives in `docs/` so temporary artifact cleanup cannot remove it.
+
+Permanent defect and follow-up ledger:
+
+```text
+docs/known-defects-and-todos.md
+```
+
+Use this for confirmed defects and cleanup items that should survive `temp/`
+cleanup. It currently records the Debug/Scene repeated dock investigation,
+the fixed-pending-verification graph split id collision, and related non-
+blocking dock/debug diagnostics debt.
 
 Executed pre-Phase 6 surface cleanup record:
 
@@ -328,7 +351,21 @@ final Phase 6 browser smoke evidence was regenerated as
 `temp/project-prism-phase-6-smoke-data.json` and validates with the smoke
 evidence-file test. The remaining hard cleanup is runtime-owner work for
 app-local Scene/Camera3 viewport binding, Tesseract, and Phase 7 bootstrap
-thinning. The plan keeps
+thinning.
+
+Active post-Phase-6 gate: after Phase 6 extraction, a visible Debug/Scene
+repeated dock investigation found a real graph reducer bug that is fixed in the
+working tree but still needs lifecycle/controller regression coverage, root
+validation, browser evidence refresh, and commit. It also exposed dock/debug
+diagnostic debt: commit failures can be silent, Debug Log lacks the semantic
+dock trace, and dock split ids are still derived by lifecycle callers. The
+Phase 6 plan now contains `Step 10: Post-Phase-6 Dock Regression And
+Diagnostics Gate`; complete that gate before starting a larger architecture
+move. Step 10 treats lifecycle-side dock id derivation as a hard cleanup item,
+requires a testable dock commit diagnostic exit, and requires rebuilding package
+outputs consumed by the app before browser smoke.
+
+The plan keeps
 deletion-first rules explicit: no app-local compatibility barrels, no duplicate
 state or runtime ownership, no fake facades, and no package extraction step is
 complete until the old app-local owner is deleted or assigned to a later

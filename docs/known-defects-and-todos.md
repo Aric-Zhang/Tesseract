@@ -236,6 +236,17 @@ Verification:
 
 ## Recently Closed Or Historical Notes
 
-No closed entries yet. When an entry is fully fixed, verified, and committed,
-either remove it if it no longer helps future agents or move it here briefly
-with the closing commit and validation summary.
+Closed entries retained above:
+
+- DCK-001: closed by commit `5d528a4`; dock commit result is now returned
+  through `WindowFrameIntentSink.requestCommitDock`.
+- DCK-002: closed by commit `5d528a4`; tab input exposes the assertable
+  `dockCommit` evidence chain without making Debug Log a placement owner.
+- DCK-004: closed by commit `5d528a4`; split dock node id allocation now belongs
+  to `WindowWorkspaceGraph`.
+- DCK-005: closed by commit `5d528a4`; repeated Debug/Scene split dock is
+  covered by reducer, lifecycle/controller, root validation, and browser
+  evidence.
+
+Move entries here only when retaining the full active-entry detail no longer
+helps future agents.

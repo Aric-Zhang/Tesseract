@@ -1,16 +1,14 @@
 # Project Prism Phase 6 Editor Extraction Execution Plan
 
-Status: completed Phase 6 editor extraction execution record with an active
-post-Phase-6 dock regression and diagnostics gate. The pre-entry checkpoint is
-committed, editor state/presentation ownership has moved into
+Status: completed Phase 6 editor extraction execution record with the
+post-Phase-6 dock regression and diagnostics gate closed. The pre-entry
+checkpoint is committed, editor state/presentation ownership has moved into
 `packages/editor`, app-local editor compatibility owners were deleted rather
-than wrapped, and the final Phase 6 browser evidence gate validates. A
-2026-06-13 Debug/Scene repeated dock investigation found one real graph reducer
-bug that is fixed in the working tree but still needs broader verification and
-commit, plus dock/debug diagnostic debt that made the failure harder to trace.
-Do not start the next large runtime-owner/app-bootstrap slice until the active
-post-Phase-6 gate in this plan is resolved or deliberately moved into that
-slice with the same deletion-first constraints.
+than wrapped, the final Phase 6 browser evidence gate validates, and the
+2026-06-13 Debug/Scene repeated dock investigation has been resolved through
+Step 10. The next large runtime-owner/app-bootstrap slice may start from this
+record, with DCK-003 and DEV-001 retained only as watch items in
+`docs/known-defects-and-todos.md`.
 
 Current verified entry facts:
 

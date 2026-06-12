@@ -6,7 +6,7 @@ import {
   assertEditorWorkspaceMode,
   editorStatePaths
 } from "../editor-state";
-import type { UiLayoutCommandSink } from "../../window-runtime";
+import type { UiLayoutCommandSink } from "ui-framework";
 import type { AppStateCommandSink } from "../app-state";
 import type { AppStateParameterStore } from "../app-state-store";
 

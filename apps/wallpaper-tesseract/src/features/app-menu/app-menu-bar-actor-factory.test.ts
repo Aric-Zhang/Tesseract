@@ -4,7 +4,7 @@ import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { gizmoEventBindingComponentType } from "../../gizmo-runtime";
 import { stateObserverBindingComponentType } from "../../state-runtime";
-import { editorStatePath } from "../../editor/editor-state";
+import { editorStatePath } from "editor";
 import type { WindowWorkspaceViewCatalog } from "../../window-runtime";
 import {
   appMenuBarComponentType,

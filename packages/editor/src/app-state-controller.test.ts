@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { uiVec2 } from "../window-runtime";
+import { uiVec2 } from "ui-framework";
 import { AppFrameStateController, type AppStateChangedEvent } from "./app-state-controller";
 import { AppStateParameterStore } from "./app-state-store";
 

@@ -1,5 +1,5 @@
-import type { AppStateCommandSink } from "../editor/app-state";
-import type { AppStateObserver } from "../editor/app-state-controller";
+import type { AppStateCommandSink } from "editor";
+import type { AppStateObserver } from "editor";
 import type { RuntimeFrame } from "runtime-core";
 import type { RuntimeRegistration, UpdateFrame } from "../runtime/ports";
 import { ProductionRuntimeSchedulerService } from "../runtime/runtime-scheduler-service";

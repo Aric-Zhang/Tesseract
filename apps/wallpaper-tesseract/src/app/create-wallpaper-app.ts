@@ -27,14 +27,14 @@ import {
   createToolWindowWorkspaceFloatingFramePolicies,
   installToolWindowFeatures
 } from "../features/tool-windows";
-import { AppFrameStateController, type AppStateObserver } from "../editor/app-state-controller";
-import { AppStateParameterStore } from "../editor/app-state-store";
-import type { AppStateCommandSink } from "../editor/app-state";
-import { editorStatePaths } from "../editor/editor-state";
+import { AppFrameStateController, type AppStateObserver } from "editor";
+import { AppStateParameterStore } from "editor";
+import type { AppStateCommandSink } from "editor";
+import { editorStatePaths } from "editor";
 import {
   createEditorBackedWorkspaceCommandSink,
   registerWorkspaceModeParameters
-} from "../editor/adapters/workspace-mode-editor-state-adapter";
+} from "editor";
 import { UpdateFrameClock } from "../runtime/ports";
 import type { StateObserverRegistry } from "../state-runtime";
 import {

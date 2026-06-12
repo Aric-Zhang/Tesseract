@@ -1,6 +1,6 @@
 import type { ScreenPoint } from "gizmo-core";
 import type { Actor, Component, ComponentType } from "../actor-runtime";
-import { editorStatePaths, type EditorCommandSink } from "../editor/editor-state";
+import { editorStatePaths, type EditorCommandSink } from "editor";
 import type { ActorInputEndEvent, ActorInputHit, ActorInputParticipant } from "../gizmo-runtime";
 import type { StateChangedEvent } from "../runtime/ports";
 import type { StateObserverResponder } from "../state-runtime";

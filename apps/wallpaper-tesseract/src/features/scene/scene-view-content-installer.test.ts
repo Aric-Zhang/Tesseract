@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { AppRuntimeContext } from "../../app-runtime";
 import { installWallpaperComponentDefinitions } from "../../app/install-component-definitions";
-import type { AppStateCommandSink } from "../../editor/app-state";
-import type { AppStateObserver } from "../../editor/app-state-controller";
+import type { AppStateCommandSink } from "editor";
+import type { AppStateObserver } from "editor";
 import type { RuntimeRegistration } from "../../runtime/ports";
 import type { SceneViewportRenderer } from "./components";
 import type { Camera3GizmoViewFactory } from "../../gizmos/camera3/components";

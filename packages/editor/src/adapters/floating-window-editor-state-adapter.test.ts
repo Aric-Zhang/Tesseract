@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { uiLayoutPath, uiVec2, type FloatingWindowParameterPaths, type UiVec2 } from "../../window-runtime";
+import { uiLayoutPath, uiVec2, type FloatingWindowParameterPaths, type UiVec2 } from "ui-framework";
 import { AppFrameStateController } from "../app-state-controller";
 import { AppStateParameterStore } from "../app-state-store";
 import { registerFloatingWindowParameters } from "./floating-window-editor-state-adapter";

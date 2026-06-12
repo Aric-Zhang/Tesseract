@@ -10,7 +10,7 @@ import {
   editorStatePaths,
   type EditorCommandSink,
   type EditorWorkspaceMode
-} from "../../../editor/editor-state";
+} from "editor";
 import type { StateChangedEvent } from "../../../runtime/ports";
 import type { StateObserverResponder } from "../../../state-runtime";
 import type { SceneViewportComponent } from "./scene-viewport-component";

@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../actor-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../state-runtime";
-import type { AppStateChangedEvent, AppStateCommand } from "../editor/app-state";
-import { editorStatePaths } from "../editor/editor-state";
-import { editorWindowLayoutPaths } from "../editor/window-layout-state";
+import type { AppStateChangedEvent, AppStateCommand } from "editor";
+import { editorStatePaths } from "editor";
+import { editorWindowLayoutPaths } from "editor";
 import { createActorInputEndEvent, createTestComponentRegistry } from "../test-support";
 import {
   installWindowComponentDefinitions,

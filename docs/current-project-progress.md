@@ -23,6 +23,9 @@ Current workspace packages:
   and frame sources.
 - `packages/runtime-three`: extracted Three/WebGL runtime backend package for
   runtime-core contracts.
+- `packages/editor`: Phase 6 editor package. It currently owns editor state,
+  editor window-layout defaults, and editor state adapters, and must not import
+  app-local runtime glue.
 - `packages/four-rotation`: 4D rotation math.
 - `packages/four-camera`: 4D camera/projection model.
 - `packages/four-camera-three`: Three.js bridge for the 4D camera stack.
@@ -57,10 +60,13 @@ Accepted or completed phases:
 
 Current gate:
 
-- Phase 6 editor package extraction may begin.
+- Phase 6 editor package extraction is in progress.
 - The pre-Phase 6 window-workspace truth closure is complete.
 - `ui-framework` and `editor` are no longer blocked by
   `window-workspace-multi-truth-debt`.
+- `packages/editor` exists and owns the former app-local editor state/adapters.
+  The app-local `src/editor` directory has been deleted rather than preserved
+  as a compatibility barrel.
 - Current graph progress is real: `WindowFramePort` is now shell-only,
   production placement mutation goes through graph transaction/reconcile paths,
   graph transaction DOM atomicity was hardened, and `persistable` replaced the
@@ -139,9 +145,12 @@ Important app source areas:
   runtime renderable staging. The old `Tesseract4RuntimeObject` is deleted, but
   product runtime ownership still needs package placement and Scene render-host
   inversion before Phase 6.
+- `packages/editor`: extracted editor state, window-layout default paths, and
+  editor state adapters. Keep it on package contracts (`runtime-core` and
+  `ui-framework`) and do not let it import app-local `runtime/ports`,
+  `window-runtime`, `app-runtime`, or feature runtime owners.
 - `apps/wallpaper-tesseract/src/debug`,
   `apps/wallpaper-tesseract/src/hierarchy`,
-  `apps/wallpaper-tesseract/src/editor`, and
   `apps/wallpaper-tesseract/src/gizmos`: editor feature candidates for later
   package extraction after runtime ownership is clean enough.
 - `apps/wallpaper-tesseract/src/test-support`: boundary facts, Prism maps, and
@@ -275,9 +284,10 @@ Active Phase 6 editor extraction plan:
 temp/project-prism-phase-6-editor-extraction-plan.md
 ```
 
-Treat this as the current execution plan for Phase 6. It starts with a
-pre-entry checkpoint/validation closure, then extracts editor-owned state,
-cleans the feature actor creation contract before tool-window moves, extracts
+Treat this as the current execution plan for Phase 6. The pre-entry checkpoint
+is committed, and the first editor-owned state/adapters have moved into
+`packages/editor`. The next hard cleanup is the feature actor creation contract
+before tool-window moves; after that the plan extracts
 tool windows, splits Scene runtime render-output ownership before Scene
 presentation extraction, resolves Camera3 motion/rig ownership before Camera3
 gizmo extraction, then moves component definition installers and app
@@ -318,20 +328,15 @@ npm run test -w actor-core
 npm run test -w actor-input
 npm run test -w ui-framework
 npm run typecheck:test -w ui-framework
+npm run test -w editor
+npm run typecheck -w editor
+npm run build -w editor
 npm run test -w runtime-core
 npm run test -w runtime-three
 npm run test -w gizmo-core
 npm run test -w four-rotation
 npm run test -w four-camera
 npm run test -w four-camera-three
-```
-
-Add these after `packages/editor` exists:
-
-```text
-npm run test -w editor
-npm run typecheck -w editor
-npm run build -w editor
 ```
 
 Useful Project Prism targeted checks:

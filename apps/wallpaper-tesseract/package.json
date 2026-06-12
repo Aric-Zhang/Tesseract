@@ -12,6 +12,7 @@
   "dependencies": {
     "actor-core": "0.1.0",
     "actor-input": "0.1.0",
+    "editor": "0.1.0",
     "four-camera": "0.1.0",
     "four-camera-three": "0.1.0",
     "four-rotation": "0.1.0",

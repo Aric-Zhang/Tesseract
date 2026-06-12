@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { AppFrameStateController } from "../editor/app-state-controller";
-import { AppStateParameterStore } from "../editor/app-state-store";
-import { editorStatePath, editorStatePaths } from "../editor/editor-state";
-import { editorWindowLayoutPaths } from "../editor/window-layout-state";
+import { AppFrameStateController } from "editor";
+import { AppStateParameterStore } from "editor";
+import { editorStatePath, editorStatePaths } from "editor";
+import { editorWindowLayoutPaths } from "editor";
 import { uiVec2 } from "../window-runtime";
 import {
   createDefaultHierarchyPanelState,

@@ -1,5 +1,5 @@
 import type { FeatureActorContext } from "../../runtime/ports";
-import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
+import { editorWindowLayoutPaths } from "editor";
 import type {
   WindowViewFactoryRegistry,
   WindowViewLocationSource

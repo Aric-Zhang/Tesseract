@@ -27,6 +27,7 @@ describe("architecture boundaries", () => {
   const uiFrameworkPackageSources = collectWorkspaceSourceFiles("packages/ui-framework/src");
   const runtimeCorePackageSources = collectWorkspaceSourceFiles("packages/runtime-core/src");
   const runtimeThreePackageSources = collectWorkspaceSourceFiles("packages/runtime-three/src");
+  const editorPackageSources = collectWorkspaceSourceFiles("packages/editor/src");
 
   it("parses static import and export-from edges for boundary checks", () => {
     const imports = parseStaticImports(`
@@ -159,6 +160,7 @@ describe("architecture boundaries", () => {
     const forbiddenAppLayerImports = listModuleEdges(productionPackageSources)
       .filter((edge) => (
         edge.specifier.includes("wallpaper-tesseract") ||
+        edge.specifier === "editor" ||
         edge.specifier.includes("window-runtime") ||
         edge.specifier.includes("features/app-menu") ||
         edge.specifier.includes("features/scene") ||
@@ -200,6 +202,7 @@ describe("architecture boundaries", () => {
         edge.specifier === "gizmo-core" ||
         edge.specifier === "actor-input" ||
         edge.specifier === "ui-framework" ||
+        edge.specifier === "editor" ||
         edge.specifier.includes("wallpaper-tesseract") ||
         edge.specifier.includes("window-runtime") ||
         edge.specifier.includes("features/") ||
@@ -282,6 +285,33 @@ describe("architecture boundaries", () => {
     });
   });
 
+  it("keeps editor package on package contracts instead of app-local runtime glue", () => {
+    const editorPackageEdges = listModuleEdges(editorPackageSources);
+    const forbiddenImports = editorPackageEdges
+      .filter((edge) => (
+        edge.specifier.includes("wallpaper-tesseract") ||
+        edge.specifier.includes("window-runtime") ||
+        edge.specifier.includes("runtime/ports") ||
+        edge.specifier.includes("actor-runtime") ||
+        edge.specifier.includes("app-runtime") ||
+        edge.specifier.startsWith("../apps/") ||
+        edge.specifier.startsWith("../../apps/") ||
+        edge.specifier.startsWith("../../../apps/")
+      ))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+    const zoneMap = createSourceZoneMap(editorPackageSources, projectPrismSourceZones);
+
+    expect(zoneMap.unclassified).toEqual([]);
+    expect(zoneMap.ambiguousCandidateFiles).toEqual([]);
+    expect(forbiddenImports).toEqual([]);
+    expect(evaluateZoneDependencyMatrix(
+      editorPackageSources,
+      projectPrismSourceZones,
+      projectPrismZoneDependencyRules
+    )).toEqual([]);
+  });
+
   it("keeps runtime-three backend package editor-free and UI-free", () => {
     const runtimeThreePackageEdges = listModuleEdges(runtimeThreePackageSources);
     const forbiddenImports = runtimeThreePackageEdges
@@ -289,6 +319,7 @@ describe("architecture boundaries", () => {
         edge.specifier === "gizmo-core" ||
         edge.specifier === "actor-input" ||
         edge.specifier === "ui-framework" ||
+        edge.specifier === "editor" ||
         edge.specifier.includes("wallpaper-tesseract") ||
         edge.specifier.includes("window-runtime") ||
         edge.specifier.includes("features/") ||

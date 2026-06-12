@@ -4,8 +4,8 @@ import type { ComponentDefinition } from "../actor-runtime";
 import { CompositeComponentAttachmentRuntime } from "../app-runtime/composite-component-attachment-runtime";
 import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../state-runtime";
-import type { AppStateChangedEvent } from "../editor/app-state";
-import type { AppStateObserver } from "../editor/app-state-controller";
+import type { AppStateChangedEvent } from "editor";
+import type { AppStateObserver } from "editor";
 import type { RuntimeRegistration } from "../runtime/ports";
 import {
   createRecordingRuntimeRegistration,

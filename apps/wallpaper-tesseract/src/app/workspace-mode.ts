@@ -2,7 +2,7 @@ import {
   assertEditorWorkspaceMode,
   editorStatePaths,
   type EditorWorkspaceMode
-} from "../editor/editor-state";
+} from "editor";
 import type {
   FloatingWindowParameterPaths,
   UiLayoutPath,

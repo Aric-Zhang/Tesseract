@@ -2,7 +2,7 @@ import {
   uiLayoutPath,
   type FloatingWindowParameterPaths,
   type UiVec2
-} from "../window-runtime";
+} from "ui-framework";
 
 export const editorWindowLayoutPaths = {
   debugWindow: createFloatingWindowPaths("debugWindow"),

@@ -3,9 +3,9 @@ import { ActorSystem, ComponentRegistry, type Actor, type RegisteredActor } from
 import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../../state-runtime";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
-import type { AppStateCommand } from "../../editor/app-state";
-import { editorStatePaths } from "../../editor/editor-state";
-import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
+import type { AppStateCommand } from "editor";
+import { editorStatePaths } from "editor";
+import { editorWindowLayoutPaths } from "editor";
 import {
   createSingletonWindowViewIdentity,
   floatingWindowComponentType,

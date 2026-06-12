@@ -1,6 +1,6 @@
-import type { AppStateParameterStore } from "../../editor/app-state-store";
-import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
-import { registerFloatingWindowParameters } from "../../editor/adapters/floating-window-editor-state-adapter";
+import type { AppStateParameterStore } from "editor";
+import { editorWindowLayoutPaths } from "editor";
+import { registerFloatingWindowParameters } from "editor";
 import {
   createDefaultFloatingWindowState,
   type FloatingWindowState,

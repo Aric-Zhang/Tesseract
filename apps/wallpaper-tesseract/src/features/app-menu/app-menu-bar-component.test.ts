@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "../../actor-runtime";
 import { actorInputScopeRoutePriority } from "../../gizmo-runtime";
-import { editorStatePath, type EditorStateChangedEvent } from "../../editor/editor-state";
+import { editorStatePath, type EditorStateChangedEvent } from "editor";
 import { createActorInputEndEvent } from "../../test-support";
 import {
   createWindowViewIdentity,

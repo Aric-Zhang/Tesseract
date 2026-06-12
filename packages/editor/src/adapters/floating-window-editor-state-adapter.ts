@@ -9,7 +9,7 @@ import {
   type FloatingWindowState,
   type UiLayoutPath,
   type UiVec2
-} from "../../window-runtime";
+} from "ui-framework";
 import type { AppStatePath } from "../app-state";
 
 export interface RegisterFloatingWindowParametersOptions {
@@ -60,7 +60,7 @@ export function registerFloatingWindowParameters(
     if (existing) {
       assertSameRegistration(path, existing, record);
     } else if (store.has(toAppStatePath(path))) {
-      throw new Error(`Floating window parameter path is already registered outside window-runtime: ${path}`);
+      throw new Error(`Floating window parameter path is already registered outside editor state: ${path}`);
     }
   }
 

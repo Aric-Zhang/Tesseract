@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GizmoController } from "gizmo-core";
-import type { AppStateCommand } from "../editor/app-state";
-import type { AppStateObserver } from "../editor/app-state-controller";
+import type { AppStateCommand } from "editor";
+import type { AppStateObserver } from "editor";
 import type { RuntimeRegistration, UpdateFrame } from "../runtime/ports";
 import {
   componentType,

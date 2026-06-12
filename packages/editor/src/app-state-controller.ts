@@ -1,24 +1,19 @@
 import type {
-  RuntimeRegistration,
-  StateChange,
-  StateChangedEvent,
-  StateObserver,
-  UpdateFrame
-} from "../runtime/ports";
-import type { AppStateCommand, AppStateCommandSource } from "./app-state";
+  RuntimeFrame,
+  RuntimeRegistration
+} from "runtime-core";
+import type {
+  AppStateChange,
+  AppStateCommand,
+  AppStateObserver
+} from "./app-state";
 import { AppStateParameterStore } from "./app-state-store";
 
 export interface AppFrameStateControllerOptions {
   store: AppStateParameterStore;
 }
 
-export type AppStateChange<TValue = unknown> =
-  StateChange<string, TValue, AppStateCommandSource, AppStateCommand>;
-
-export type AppStateChangedEvent =
-  StateChangedEvent<string, AppStateCommandSource, AppStateCommand>;
-
-export type AppStateObserver = StateObserver<AppStateChangedEvent>;
+export type { AppStateChange, AppStateChangedEvent, AppStateObserver } from "./app-state";
 
 interface QueuedCommand {
   command: AppStateCommand;
@@ -57,7 +52,7 @@ export class AppFrameStateController {
     };
   }
 
-  updateFrame(frame: UpdateFrame): void {
+  updateFrame(frame: RuntimeFrame): void {
     const commands = this.#pendingCommands;
     this.#pendingCommands = [];
     if (commands.length === 0) return;

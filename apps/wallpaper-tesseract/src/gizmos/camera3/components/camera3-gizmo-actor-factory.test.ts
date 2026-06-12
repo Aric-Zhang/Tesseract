@@ -11,8 +11,8 @@ import { AppRuntimeContext } from "../../../app-runtime";
 import type { Camera3CommandSink, Camera3ControlCommand, Camera3ViewState } from "../../../camera3-control";
 import { installGizmoRuntimeComponentDefinitions } from "../../../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../../../state-runtime";
-import type { AppStateCommand } from "../../../editor/app-state";
-import type { AppStateObserver } from "../../../editor/app-state-controller";
+import type { AppStateCommand } from "editor";
+import type { AppStateObserver } from "editor";
 import type { RuntimeRegistration } from "../../../runtime/ports";
 import {
   actorInputScopeRoutePriority,

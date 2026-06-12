@@ -4,7 +4,7 @@ import {
   type GizmoEventBindingComponentDefinitionOptions
 } from "../gizmo-runtime";
 import { installStateRuntimeComponentDefinitions } from "../state-runtime";
-import type { EditorCommandSink } from "../editor/editor-state";
+import type { EditorCommandSink } from "editor";
 import { installDebugLogComponentDefinitions } from "../debug";
 import { installAppMenuComponentDefinitions } from "../features/app-menu";
 import { installCamera3FeatureComponentDefinitions } from "../features/camera3/components";

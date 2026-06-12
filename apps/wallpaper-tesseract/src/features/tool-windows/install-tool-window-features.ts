@@ -12,7 +12,7 @@ import {
   type HierarchyPanelInitialState,
   type HierarchyObjectSource
 } from "../../hierarchy";
-import { editorWindowLayoutPaths } from "../../editor/window-layout-state";
+import { editorWindowLayoutPaths } from "editor";
 import type { FeatureActorContext } from "../../runtime/ports";
 import {
   createWindowWorkspaceContentId,

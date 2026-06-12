@@ -1,8 +1,10 @@
 # Project Prism Phase 6 Editor Extraction Execution Plan
 
-Status: proposed active Phase 6 execution plan. This plan should be updated as
-steps complete. It starts from the completed pre-Phase 6 window-workspace final
-gate and keeps the deletion-first Project Prism rules as hard constraints.
+Status: active Phase 6 execution plan. The pre-entry checkpoint is committed,
+and Step 1/Step 2 have started by extracting editor state into
+`packages/editor`. This plan should be updated as steps complete. It starts
+from the completed pre-Phase 6 window-workspace final gate and keeps the
+deletion-first Project Prism rules as hard constraints.
 
 Current verified entry facts:
 
@@ -15,6 +17,8 @@ Current verified entry facts:
 - Final entry smoke evidence exists under `temp/` and validates
   graph/DOM/input/persistence parity.
 - The `editor` package target is marked `allowed` in boundary facts.
+- Baseline checkpoint commit: `04f41ac` (`Complete Project Prism phase 6 entry
+  gate`).
 
 This plan is intentionally not a compatibility migration. Each slice either
 moves ownership to the new package or deletes the app-local owner. Do not keep
@@ -87,6 +91,10 @@ Stop if:
 Purpose: create the smallest package shell and executable boundary tests before
 moving code.
 
+Status: in progress. `packages/editor` exists with real source; boundary facts
+now classify `packages/editor/src/**` as `editor-candidate`, and architecture
+tests forbid editor package imports from app-local runtime glue.
+
 Work:
 
 - Add `packages/editor` with `package.json`, `tsconfig.json`, and `src/index.ts`.
@@ -125,6 +133,11 @@ Deletion requirement:
 
 Purpose: give feature extraction one editor-owned state contract without
 dragging app composition or runtime ownership into the package.
+
+Status: in progress. Former app-local editor state, window-layout defaults, and
+state adapters have moved into `packages/editor`; app callers import them from
+`editor`, and the old `apps/wallpaper-tesseract/src/editor` directory is
+deleted.
 
 Candidate source:
 

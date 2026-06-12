@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { AppFrameStateController, type AppStateChangedEvent } from "../editor/app-state-controller";
-import { AppStateParameterStore } from "../editor/app-state-store";
-import { editorStatePath, editorStatePaths } from "../editor/editor-state";
-import { editorWindowLayoutPaths } from "../editor/window-layout-state";
+import { AppFrameStateController, type AppStateChangedEvent } from "editor";
+import { AppStateParameterStore } from "editor";
+import { editorStatePath, editorStatePaths } from "editor";
+import { editorWindowLayoutPaths } from "editor";
 import {
   WORKSPACE_MODE_COMMAND_PRIORITY,
   WORKSPACE_MODE_SOURCE,
@@ -11,7 +11,7 @@ import {
   type WorkspaceMode,
   type WorkspaceModeCommand
 } from "./workspace-mode";
-import { registerWorkspaceModeParameters } from "../editor/adapters/workspace-mode-editor-state-adapter";
+import { registerWorkspaceModeParameters } from "editor";
 import {
   createSingletonWindowViewIdentity,
   type WindowFramePresentation,

@@ -1,13 +1,13 @@
-import type { AppStatePath } from "editor";
-import type { AppStateParameterStore } from "editor";
-import { editorStatePaths } from "editor";
-import { editorWindowLayoutPaths } from "editor";
-import { registerFloatingWindowParameters } from "editor";
+import type { AppStatePath } from "../app-state";
+import type { AppStateParameterStore } from "../app-state-store";
+import { editorStatePaths } from "../editor-state";
+import { editorWindowLayoutPaths } from "../window-layout-state";
+import { registerFloatingWindowParameters } from "../adapters/floating-window-editor-state-adapter";
 import {
   createDefaultFloatingWindowState,
   type FloatingWindowState,
   uiVec2
-} from "../window-runtime";
+} from "ui-framework";
 
 export interface HierarchyPanelStateOptions {
   viewportWidth?: number;

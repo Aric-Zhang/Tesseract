@@ -4,25 +4,25 @@ import {
   DEBUG_WINDOW_MIN_WIDTH,
   type DebugLogContentComponent,
   type DebugWindowState
-} from "../../debug";
+} from "../debug";
 import {
   createHierarchyPanelViewActor,
   HIERARCHY_WINDOW_MIN_HEIGHT,
   HIERARCHY_WINDOW_MIN_WIDTH,
   type HierarchyPanelInitialState,
   type HierarchyObjectSource
-} from "../../hierarchy";
-import { editorWindowLayoutPaths } from "editor";
+} from "../hierarchy";
+import { editorWindowLayoutPaths } from "../window-layout-state";
 import type { ActorCreationContext } from "actor-core";
 import {
   createWindowWorkspaceContentId,
   uiVec2,
   type WindowViewFactoryRegistry
-} from "../../window-runtime";
+} from "ui-framework";
 import type {
-  WindowWorkspaceDefaultOpenView,
-  WindowWorkspaceFloatingFramePolicy
-} from "../window-workspace";
+  EditorWindowWorkspaceDefaultOpenView,
+  EditorWindowWorkspaceFloatingFramePolicy
+} from "./editor-window-workspace-policy";
 
 export interface ToolWindowActorIds {
   readonly debugLogViewActorId: string;
@@ -44,7 +44,7 @@ export interface InstallToolWindowFeaturesOptions {
 export function createToolWindowWorkspaceFloatingFramePolicies(options: {
   readonly debugFallbackState: DebugWindowState;
   readonly hierarchyFallbackState: HierarchyPanelInitialState["window"];
-}): ReadonlyArray<readonly [string, WindowWorkspaceFloatingFramePolicy]> {
+}): ReadonlyArray<readonly [string, EditorWindowWorkspaceFloatingFramePolicy]> {
   return [
     ["debug", {
       preferredActorId: "debug-log-window",
@@ -68,7 +68,7 @@ export function createToolWindowWorkspaceFloatingFramePolicies(options: {
   ];
 }
 
-export function createToolWindowDefaultOpenViews(): readonly WindowWorkspaceDefaultOpenView[] {
+export function createToolWindowDefaultOpenViews(): readonly EditorWindowWorkspaceDefaultOpenView[] {
   return [
     { viewKey: "debug" },
     { viewKey: "hierarchy" }

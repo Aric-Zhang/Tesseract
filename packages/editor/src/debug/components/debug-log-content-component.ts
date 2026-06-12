@@ -1,12 +1,12 @@
 import type { GizmoDebugLogEntry } from "gizmo-core";
-import type { Actor, Component, ComponentType } from "../../actor-runtime";
-import type { UpdateFrame } from "../../runtime/ports";
+import type { Actor, Component, ComponentType } from "actor-core";
+import type { UiFrame } from "ui-framework";
 import type {
   WindowContentLayoutCommit,
   WindowContentLayoutCommitRegistration,
   WindowContentRegistrationPort,
   WindowRegisteredContent
-} from "../../window-runtime";
+} from "ui-framework";
 
 export const debugLogContentComponentType =
   "debug-log-content-component" as ComponentType<DebugLogContentComponent>;
@@ -82,7 +82,7 @@ export class DebugLogContentComponent implements Component, WindowRegisteredCont
     this.#logDirty = true;
   }
 
-  updateFrame(_frame: UpdateFrame): void {
+  updateFrame(_frame: UiFrame): void {
     if (!this.#logDirty) return;
     this.#logDirty = false;
     this.content.textContent = this.#lines.length === 0 ? DEFAULT_DEBUG_LOG_MESSAGE : this.#lines.join("\n");

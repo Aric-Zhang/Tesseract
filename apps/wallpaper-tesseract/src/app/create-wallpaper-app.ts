@@ -4,7 +4,7 @@ import {
   createDefaultDebugWindowState,
   registerDebugWindowParameters,
   type DebugLogContentComponent
-} from "../debug";
+} from "editor";
 import {
   createSceneDefaultOpenView,
   createDefaultSceneWindowState,
@@ -16,17 +16,17 @@ import { installAppMenuFeature } from "../features/app-menu";
 import {
   createInspectorWindowWorkspaceFloatingFramePolicies,
   installInspectorFeature
-} from "../features/inspector";
+} from "editor";
 import {
   createActorHierarchyObjectSource,
   createDefaultHierarchyPanelState,
   registerHierarchyPanelParameters
-} from "../hierarchy";
+} from "editor";
 import {
   createToolWindowDefaultOpenViews,
   createToolWindowWorkspaceFloatingFramePolicies,
   installToolWindowFeatures
-} from "../features/tool-windows";
+} from "editor";
 import { AppFrameStateController, type AppStateObserver } from "editor";
 import { AppStateParameterStore } from "editor";
 import type { AppStateCommandSink } from "editor";

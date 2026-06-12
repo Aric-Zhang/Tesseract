@@ -43,3 +43,7 @@ export {
   registerWorkspaceModeParameters
 } from "./adapters/workspace-mode-editor-state-adapter";
 export * from "./state-observer";
+export * from "./debug";
+export * from "./hierarchy";
+export * from "./inspector";
+export * from "./tool-windows";

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { installWallpaperComponentDefinitions } from "./app/install-component-definitions";
-import { installDebugLogComponentDefinitions } from "./debug";
+import { installDebugLogComponentDefinitions } from "editor";
 import {
   debugLogContentComponentType
-} from "./debug/components";
+} from "editor";
 import {
   camera3GizmoComponentType,
   installCamera3ComponentDefinitions
@@ -21,7 +21,7 @@ import {
 import {
   hierarchyPanelComponentType,
   installHierarchyComponentDefinitions
-} from "./hierarchy";
+} from "editor";
 import {
   installEditorStateObserverComponentDefinitions,
   stateObserverBindingComponentType

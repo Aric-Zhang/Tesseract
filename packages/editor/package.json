@@ -2,18 +2,24 @@
   "name": "editor",
   "version": "0.1.0",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "files": [
     "dist/**/*.js",
     "dist/**/*.js.map",
     "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
+    "dist/**/*.d.ts.map",
+    "src/**/*.css"
   ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./debug/debug-log.css": "./src/debug/debug-log.css",
+    "./hierarchy/hierarchy.css": "./src/hierarchy/hierarchy.css",
+    "./inspector/inspector.css": "./src/inspector/inspector.css"
   },
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -23,10 +29,8 @@
   },
   "dependencies": {
     "actor-core": "0.1.0",
+    "actor-input": "0.1.0",
     "runtime-core": "0.1.0",
     "ui-framework": "0.1.0"
-  },
-  "devDependencies": {
-    "actor-input": "0.1.0"
   }
 }

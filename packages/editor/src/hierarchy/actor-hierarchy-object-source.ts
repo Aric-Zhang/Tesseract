@@ -1,4 +1,4 @@
-import type { Actor, ActorSystemView } from "../actor-runtime";
+import type { Actor, ActorSystemView } from "actor-core";
 import type { HierarchyObjectItem, HierarchyObjectSource } from "./hierarchy-object-source";
 
 export interface ActorHierarchyMetadata {

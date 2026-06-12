@@ -161,7 +161,7 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "debug-log-content-component",
-    "./debug/components/debug-log-content-component.ts",
+    "packages/editor/src/debug/components/debug-log-content-component.ts",
     "ui-component-tick",
     "ui-component-scheduler",
     false,
@@ -169,7 +169,7 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "debug-log-content-definition",
-    "./debug/components/debug-log-content-definition.ts",
+    "packages/editor/src/debug/components/debug-log-content-definition.ts",
     "ui-component-tick",
     "ui-component-scheduler",
     false,
@@ -177,7 +177,7 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "hierarchy-panel-component",
-    "./hierarchy/hierarchy-panel-component.ts",
+    "packages/editor/src/hierarchy/hierarchy-panel-component.ts",
     "ui-component-tick",
     "ui-component-scheduler",
     false,
@@ -185,7 +185,7 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "hierarchy-panel-definition",
-    "./hierarchy/hierarchy-panel-definition.ts",
+    "packages/editor/src/hierarchy/hierarchy-panel-definition.ts",
     "ui-component-tick",
     "ui-component-scheduler",
     false,

@@ -1,7 +1,7 @@
-import type { ComponentDefinition } from "../actor-runtime";
-import { noopEditorCommandSink, type EditorCommandSink } from "editor";
-import { gizmoEventBindingComponentType } from "../gizmo-runtime";
-import { stateObserverBindingComponentType } from "editor";
+import type { ComponentDefinition } from "actor-core";
+import { noopEditorCommandSink, type EditorCommandSink } from "../editor-state";
+import { gizmoEventBindingComponentType } from "actor-input";
+import { stateObserverBindingComponentType } from "../state-observer/state-observer-binding-component";
 import { frameUpdateAttachment } from "ui-framework";
 import {
   HierarchyPanelComponent,

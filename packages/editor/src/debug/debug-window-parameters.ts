@@ -1,11 +1,11 @@
-import type { AppStateParameterStore } from "editor";
-import { editorWindowLayoutPaths } from "editor";
-import { registerFloatingWindowParameters } from "editor";
+import type { AppStateParameterStore } from "../app-state-store";
+import { editorWindowLayoutPaths } from "../window-layout-state";
+import { registerFloatingWindowParameters } from "../adapters/floating-window-editor-state-adapter";
 import {
   createDefaultFloatingWindowState,
   type FloatingWindowState,
   uiVec2
-} from "../window-runtime";
+} from "ui-framework";
 
 export interface DebugWindowState extends FloatingWindowState {}
 

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   collectWorkspaceSourceFiles,
@@ -28,6 +29,10 @@ describe("architecture boundaries", () => {
   const runtimeCorePackageSources = collectWorkspaceSourceFiles("packages/runtime-core/src");
   const runtimeThreePackageSources = collectWorkspaceSourceFiles("packages/runtime-three/src");
   const editorPackageSources = collectWorkspaceSourceFiles("packages/editor/src");
+
+  const readWorkspaceSourceFile = (relativePath: string): string => (
+    readFileSync(new URL(`../../../${relativePath.replace(/^\.\//, "")}`, import.meta.url), "utf8")
+  );
 
   it("parses static import and export-from edges for boundary checks", () => {
     const imports = parseStaticImports(`
@@ -155,7 +160,7 @@ describe("architecture boundaries", () => {
     const packageSources = collectWorkspaceSourceFiles("packages");
     const productionPackageSources = Object.fromEntries(
       Object.entries(packageSources)
-        .filter(([file]) => file.includes("/src/"))
+        .filter(([file]) => file.includes("/src/") && !file.startsWith("packages/editor/"))
     );
     const forbiddenAppLayerImports = listModuleEdges(productionPackageSources)
       .filter((edge) => (
@@ -593,9 +598,14 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps Debug and Hierarchy full-window legacy surfaces deleted", () => {
+    const combinedSources = {
+      ...sourceFiles,
+      ...editorPackageSources
+    };
+    const debugIndexSource = editorPackageSources["packages/editor/src/debug/index.ts"] ?? "";
     const oldFullWindowFactories =
       /\b(?:createDebugLogWindowActor|DebugLogWindowActorOptions|createHierarchyPanelActor|HierarchyPanelActorOptions)\b/;
-    const fullWindowFactoryViolations = Object.entries(sourceFiles)
+    const fullWindowFactoryViolations = Object.entries(combinedSources)
       .filter(([file]) => (
         file !== "./architecture-boundaries.test.ts" &&
         !file.endsWith(".test.ts")
@@ -607,24 +617,24 @@ describe("architecture boundaries", () => {
     expect(findForbiddenSourceMatches(
       /\bGizmoDebugPanel\b|gizmo-debug-panel|(?:from\s+["'](?:\.\/|\.\.\/)debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()|(?:debug\/legacy)/
     )).toEqual([]);
-    expect(sourceFiles["./debug/components/debug-log-window-actor-factory.ts"] ?? "").not.toMatch(
+    expect(editorPackageSources["packages/editor/src/debug/components/debug-log-window-actor-factory.ts"] ?? "").not.toMatch(
       /(?:from\s+["']\.\.\/debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()/
     );
-    expect(sourceFiles["./debug/components/debug-log-content-component.ts"] ?? "").not.toMatch(
+    expect(editorPackageSources["packages/editor/src/debug/components/debug-log-content-component.ts"] ?? "").not.toMatch(
       /(?:from\s+["']\.\.\/debug-log-window["'])|(?:new\s+DebugLogWindow\s*\()/
     );
-    expect(sourceFiles["./debug/index.ts"] ?? "").not.toMatch(/\bcreateDebugLogWindow\b/);
-    expect(sourceFiles["./debug/index.ts"] ?? "").not.toMatch(/\bGizmoDebugPanel\b/);
-    expect(sourceFiles["./debug/index.ts"] ?? "").toMatch(/\bcreateDebugLogViewActor\b/);
-    expect(sourceFiles["./debug/components/index.ts"] ?? "").not.toMatch(/\bcreateDebugLogWindowActor\b/);
-    expect(sourceFiles["./hierarchy/index.ts"] ?? "").not.toMatch(/\bcreateHierarchyPanelActor\b/);
-    expect(sourceFiles["./debug/index.ts"] ?? "").toMatch(/\bcreateDefaultDebugWindowState\b/);
-    expect(sourceFiles["./debug/index.ts"] ?? "").toMatch(/\bregisterDebugWindowParameters\b/);
+    expect(debugIndexSource).not.toMatch(/\bcreateDebugLogWindow\b/);
+    expect(debugIndexSource).not.toMatch(/\bGizmoDebugPanel\b/);
+    expect(debugIndexSource).toMatch(/\bcreateDebugLogViewActor\b/);
+    expect(editorPackageSources["packages/editor/src/debug/components/index.ts"] ?? "").not.toMatch(/\bcreateDebugLogWindowActor\b/);
+    expect(editorPackageSources["packages/editor/src/hierarchy/index.ts"] ?? "").not.toMatch(/\bcreateHierarchyPanelActor\b/);
+    expect(debugIndexSource).toMatch(/\bcreateDefaultDebugWindowState\b/);
+    expect(debugIndexSource).toMatch(/\bregisterDebugWindowParameters\b/);
     expect(fullWindowFactoryViolations).toEqual([]);
   });
 
   it("keeps hierarchy pointer selection on the gizmo path instead of DOM click mutation", () => {
-    const source = sourceFiles["./hierarchy/hierarchy-panel-component.ts"] ?? "";
+    const source = editorPackageSources["packages/editor/src/hierarchy/hierarchy-panel-component.ts"] ?? "";
 
     expect(source).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
     expect(source).not.toMatch(/\.onclick\s*=/);
@@ -635,9 +645,13 @@ describe("architecture boundaries", () => {
 
   it("keeps production hierarchy rows actor-backed instead of static app lists", () => {
     const allowedFiles = new Set([
-      "./hierarchy/hierarchy-object-source.ts"
+      "packages/editor/src/hierarchy/hierarchy-object-source.ts"
     ]);
-    const staticSourceCallViolations = Object.entries(sourceFiles)
+    const combinedSources = {
+      ...sourceFiles,
+      ...editorPackageSources
+    };
+    const staticSourceCallViolations = Object.entries(combinedSources)
       .filter(([file]) => (
         file !== "./architecture-boundaries.test.ts" &&
         !file.endsWith(".test.ts") &&
@@ -668,8 +682,12 @@ describe("architecture boundaries", () => {
       ))
       .map(([file]) => file)
       .sort();
-    const windowAndHierarchyOnGizmoViolations = Object.entries(sourceFiles)
-      .filter(([file]) => file.startsWith("./window-runtime/") || file.startsWith("./hierarchy/"))
+    const combinedSources = {
+      ...sourceFiles,
+      ...editorPackageSources
+    };
+    const windowAndHierarchyOnGizmoViolations = Object.entries(combinedSources)
+      .filter(([file]) => file.startsWith("./window-runtime/") || file.startsWith("packages/editor/src/hierarchy/"))
       .filter(([, source]) => /\bonGizmo(?:Start|Move|End|Cancel|Click|DoubleClick)\b/.test(source))
       .map(([file]) => file)
       .sort();
@@ -843,7 +861,7 @@ describe("architecture boundaries", () => {
   it("keeps concrete window frame policy in feature modules instead of app composition", () => {
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
     const sceneInstallerSource = sourceFiles["./features/scene/install-scene-view-feature.ts"] ?? "";
-    const toolInstallerSource = sourceFiles["./features/tool-windows/install-tool-window-features.ts"] ?? "";
+    const toolInstallerSource = editorPackageSources["packages/editor/src/tool-windows/install-tool-window-features.ts"] ?? "";
 
     expect(appSource).toMatch(/\bcreateSceneWindowWorkspaceFloatingFramePolicy\b/);
     expect(appSource).toMatch(/\bcreateToolWindowWorkspaceFloatingFramePolicies\b/);
@@ -913,8 +931,8 @@ describe("architecture boundaries", () => {
   it("keeps feature styles colocated and imported from the app style manifest", () => {
     const appRootStyles = readSourceFile("./style.css");
     const floatingWindowStyles = readSourceFile("./window-runtime/floating-window.css");
-    const debugLogStyles = readSourceFile("./debug/debug-log.css");
-    const hierarchyStyles = readSourceFile("./hierarchy/hierarchy.css");
+    const debugLogStyles = readWorkspaceSourceFile("packages/editor/src/debug/debug-log.css");
+    const hierarchyStyles = readWorkspaceSourceFile("packages/editor/src/hierarchy/hierarchy.css");
     const camera3GizmoStyles = readSourceFile("./gizmos/camera3/camera3-gizmo.css");
     const sceneWindowStyles = readSourceFile("./features/scene/scene-window.css");
     const appMenuStyles = readSourceFile("./features/app-menu/app-menu.css");
@@ -935,8 +953,8 @@ describe("architecture boundaries", () => {
     expect(appStyleManifestSource).toMatch(/["']\.\.\/features\/app-menu\/app-menu\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/window-runtime\/floating-window\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/features\/scene\/scene-window\.css["']/);
-    expect(appStyleManifestSource).toMatch(/["']\.\.\/debug\/debug-log\.css["']/);
-    expect(appStyleManifestSource).toMatch(/["']\.\.\/hierarchy\/hierarchy\.css["']/);
+    expect(appStyleManifestSource).toMatch(/["']editor\/debug\/debug-log\.css["']/);
+    expect(appStyleManifestSource).toMatch(/["']editor\/hierarchy\/hierarchy\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/gizmos\/camera3\/camera3-gizmo\.css["']/);
   });
 
@@ -1561,23 +1579,24 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps feature actor factories on the actor-core creation context", () => {
-    const factoryFiles = [
-      "./debug/components/debug-log-window-actor-factory.ts",
-      "./features/inspector/inspector-view-actor-factory.ts",
-      "./features/scene/scene-window-actor-factory.ts",
-      "./hierarchy/hierarchy-panel-actor-factory.ts",
-      "./gizmos/camera3/components/camera3-gizmo-actor-factory.ts",
-      "./tesseract4/components/tesseract4-actor-factory.ts"
-    ];
-    const violations = factoryFiles
-      .filter((file) => /\b(?:AppRuntimeContext|FeatureActorContext|runtime\/ports)\b/.test(sourceFiles[file] ?? ""))
+    const factorySources = new Map([
+      ["packages/editor/src/debug/components/debug-log-window-actor-factory.ts", editorPackageSources["packages/editor/src/debug/components/debug-log-window-actor-factory.ts"] ?? ""],
+      ["packages/editor/src/inspector/inspector-view-actor-factory.ts", editorPackageSources["packages/editor/src/inspector/inspector-view-actor-factory.ts"] ?? ""],
+      ["./features/scene/scene-window-actor-factory.ts", sourceFiles["./features/scene/scene-window-actor-factory.ts"] ?? ""],
+      ["packages/editor/src/hierarchy/hierarchy-panel-actor-factory.ts", editorPackageSources["packages/editor/src/hierarchy/hierarchy-panel-actor-factory.ts"] ?? ""],
+      ["./gizmos/camera3/components/camera3-gizmo-actor-factory.ts", sourceFiles["./gizmos/camera3/components/camera3-gizmo-actor-factory.ts"] ?? ""],
+      ["./tesseract4/components/tesseract4-actor-factory.ts", sourceFiles["./tesseract4/components/tesseract4-actor-factory.ts"] ?? ""]
+    ]);
+    const violations = [...factorySources]
+      .filter(([, source]) => /\b(?:AppRuntimeContext|FeatureActorContext|runtime\/ports)\b/.test(source))
+      .map(([file]) => file)
       .sort();
     const runtimePortSource = sourceFiles["./runtime/ports/index.ts"] ?? "";
 
     expect(violations).toEqual([]);
     expect(runtimePortSource).not.toMatch(/FeatureActorContext|ActorCreationContext/);
-    for (const file of factoryFiles) {
-      expect(sourceFiles[file] ?? "").toMatch(/\bActorCreationContext\b/);
+    for (const source of factorySources.values()) {
+      expect(source).toMatch(/\bActorCreationContext\b/);
     }
   });
 

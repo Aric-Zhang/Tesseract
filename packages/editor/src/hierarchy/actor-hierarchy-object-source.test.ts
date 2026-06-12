@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "../actor-runtime";
+import { ActorSystem } from "actor-core";
 import { createActorHierarchyObjectSource } from "./actor-hierarchy-object-source";
 
 describe("ActorHierarchyObjectSource", () => {

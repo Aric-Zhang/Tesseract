@@ -1,4 +1,4 @@
-import { installComponentDefinition, type ComponentRegistry } from "../actor-runtime";
+import { installComponentDefinition, type ComponentRegistry } from "actor-core";
 import {
   createHierarchyPanelComponentDefinition,
   hierarchyPanelComponentDefinition,

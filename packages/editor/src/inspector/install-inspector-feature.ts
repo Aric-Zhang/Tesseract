@@ -6,10 +6,10 @@ import {
   windowViewKey,
   windowViewTypeKey,
   type WindowViewFactoryRegistry
-} from "../../window-runtime";
+} from "ui-framework";
 import type {
-  WindowWorkspaceFloatingFramePolicy
-} from "../window-workspace";
+  EditorWindowWorkspaceFloatingFramePolicy
+} from "../tool-windows/editor-window-workspace-policy";
 import { createInspectorViewActor } from "./inspector-view-actor-factory";
 
 export const INSPECTOR_VIEW_TYPE = windowViewTypeKey("inspector");
@@ -39,7 +39,7 @@ export interface InstallInspectorFeatureOptions {
 }
 
 export function createInspectorWindowWorkspaceFloatingFramePolicies(): ReadonlyArray<
-  readonly [string, WindowWorkspaceFloatingFramePolicy]
+  readonly [string, EditorWindowWorkspaceFloatingFramePolicy]
 > {
   return INSPECTOR_INSTANCE_DEFINITIONS.map((definition) => [
     definition.viewKey,

@@ -1,10 +1,10 @@
-import type { Actor, Component, ComponentType } from "../../actor-runtime";
+import type { Actor, Component, ComponentType } from "actor-core";
 import type {
   WindowContentLayoutCommit,
   WindowContentLayoutCommitRegistration,
   WindowContentRegistrationPort,
   WindowRegisteredContent
-} from "../../window-runtime";
+} from "ui-framework";
 
 export const inspectorContentComponentType =
   "inspector-content-component" as ComponentType<InspectorContentComponent>;

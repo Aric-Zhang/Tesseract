@@ -1,15 +1,15 @@
 import type { ScreenPoint } from "gizmo-core";
-import type { Actor, Component, ComponentType } from "../actor-runtime";
-import { editorStatePaths, type EditorCommandSink } from "editor";
-import type { ActorInputEndEvent, ActorInputHit, ActorInputParticipant } from "../gizmo-runtime";
-import type { StateChangedEvent } from "../runtime/ports";
-import type { StateObserverResponder } from "editor";
+import type { Actor, Component, ComponentType } from "actor-core";
+import { editorStatePaths, type EditorCommandSink } from "../editor-state";
+import type { ActorInputEndEvent, ActorInputHit, ActorInputParticipant } from "actor-input";
+import type { AppStateChangedEvent } from "../app-state";
+import type { StateObserverResponder } from "../state-observer/state-observer-responder";
 import type {
   WindowContentLayoutCommit,
   WindowContentLayoutCommitRegistration,
   WindowContentRegistrationPort,
   WindowRegisteredContent
-} from "../window-runtime";
+} from "ui-framework";
 import type { HierarchyObjectItem, HierarchyObjectSource } from "./hierarchy-object-source";
 
 export const hierarchyPanelComponentType =
@@ -115,7 +115,7 @@ export class HierarchyPanelComponent
     this.renderIfItemsChanged();
   }
 
-  onStateChanged(event: StateChangedEvent): void {
+  onStateChanged(event: AppStateChangedEvent): void {
     let changed = false;
     for (const change of event.changes) {
       if (change.path !== editorStatePaths.selection.activeObject) continue;

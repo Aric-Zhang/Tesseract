@@ -33,10 +33,6 @@ export const projectPrismSourceZones = [
   ]),
   definePathZone("editor-candidate", "Concrete editor features and editor presentation components.", [
     /^packages\/editor\/src\//,
-    /^\.\/debug\//,
-    /^\.\/hierarchy\//,
-    /^\.\/features\/inspector\//,
-    /^\.\/features\/tool-windows\//,
     /^\.\/features\/scene\//,
     /^\.\/features\/camera3\/components\//,
     /^\.\/gizmos\//

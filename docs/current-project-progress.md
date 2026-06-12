@@ -130,10 +130,11 @@ Important app source areas:
   and type/instance based window command model.
 - `apps/wallpaper-tesseract/src/features/scene`: Scene feature installation,
   renderable Scene view staging, and current Scene view ownership debt.
-- `apps/wallpaper-tesseract/src/features/inspector`: multi-instance Inspector
-  pilot and view identity reference implementation.
-- `apps/wallpaper-tesseract/src/features/tool-windows`: Debug and Hierarchy
-  feature assembly.
+- `packages/editor/src/inspector`: multi-instance Inspector pilot and view
+  identity reference implementation.
+- `packages/editor/src/debug`, `packages/editor/src/hierarchy`, and
+  `packages/editor/src/tool-windows`: Debug and Hierarchy presentation,
+  component definitions, default window state, and tool-window installer.
 - `apps/wallpaper-tesseract/src/features/camera3`: Camera3 feature components.
 - `apps/wallpaper-tesseract/src/camera3-control`: Camera3 motion controller and
   editor/gizmo command facade over app-local runtime camera ownership staging.
@@ -147,20 +148,18 @@ Important app source areas:
 - `apps/wallpaper-tesseract/src/update-runtime`: update/runtime attachment
   bridges. Split runtime work from UI/editor component ticks instead of moving
   all update work into runtime.
-- `apps/wallpaper-tesseract/src/state-runtime`: older state attachment/runtime
-  support.
 - `apps/wallpaper-tesseract/src/tesseract4`: Tesseract actor/component and
   runtime renderable staging. The old `Tesseract4RuntimeObject` is deleted, but
   product runtime ownership still needs package placement and Scene render-host
   inversion before Phase 6.
-- `packages/editor`: extracted editor state, window-layout default paths, and
-  editor state adapters. Keep it on package contracts (`runtime-core` and
-  `ui-framework`) and do not let it import app-local `runtime/ports`,
-  `window-runtime`, `app-runtime`, or feature runtime owners.
-- `apps/wallpaper-tesseract/src/debug`,
-  `apps/wallpaper-tesseract/src/hierarchy`,
-  `apps/wallpaper-tesseract/src/gizmos`: editor feature candidates for later
-  package extraction after runtime ownership is clean enough.
+- `packages/editor`: extracted editor state, window-layout default paths,
+  editor state adapters, Debug, Hierarchy, Inspector, and tool-window
+  installer ownership. Keep it on package contracts (`actor-core`,
+  `actor-input`, `runtime-core`, and `ui-framework`) and do not let it import
+  app-local `runtime/ports`, `window-runtime`, `app-runtime`, or feature
+  runtime owners.
+- `apps/wallpaper-tesseract/src/gizmos`: editor feature candidate for later
+  package extraction after Camera3/runtime ownership is clean enough.
 - `apps/wallpaper-tesseract/src/test-support`: boundary facts, Prism maps, and
   generated-report support. Keep these honest; do not remove blockers without
   code reality changing.
@@ -297,8 +296,9 @@ is committed, the first editor-owned state/adapters have moved into
 `packages/editor`, and the feature actor creation contract has moved out of
 app-local runtime ports. The Step 3 preflight binding cleanup is also complete:
 state observer binding is editor-owned and UI frame update attachment is
-ui-framework-owned. The next hard cleanup extracts tool windows, then splits
-Scene runtime render-output ownership before Scene
+ui-framework-owned. Debug, Hierarchy, Inspector, and the tool-window installer
+have moved into `packages/editor`; their old app-local directories are
+deleted. The next hard cleanup splits Scene runtime render-output ownership before Scene
 presentation extraction, resolves Camera3 motion/rig ownership before Camera3
 gizmo extraction, then moves component definition installers and app
 composition wiring into a new `packages/editor` package. The plan keeps

@@ -258,6 +258,13 @@ Expected grep result:
 
 ## Step 3: Extract Debug, Hierarchy, Inspector, And Tool Window Installers
 
+Status: complete. Debug, Hierarchy, Inspector, and the shared tool-window
+installer now live under `packages/editor/src`; the old app-local directories
+were deleted instead of kept as compatibility barrels. App composition imports
+the public editor package, and the moved editor package sources do not import
+app-local `runtime/ports`, `window-runtime`, `app-runtime`, `test-support`, or
+deleted `FeatureActorContext`.
+
 Purpose: move editor tool windows as a single ownership cluster so app
 composition stops importing concrete feature internals.
 
@@ -286,7 +293,9 @@ Exit gate:
 
 - App composition no longer imports `debug`, `hierarchy`,
   `features/inspector`, or `features/tool-windows` concrete modules.
-- Debug, Hierarchy, Inspector tests run from the editor package.
+- Debug, Hierarchy, Inspector tests run from the editor package. Stale
+  app-runtime/test-support-heavy fixture tests were deleted instead of
+  recreated with fake facades.
 - `features/tool-windows` app directory is deleted unless it still contains
   Wallpaper-specific bootstrap. If it remains, write its deletion condition.
 - No editor package import from app-local `runtime/ports` or deleted

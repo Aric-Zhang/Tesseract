@@ -311,9 +311,11 @@ have moved into `packages/editor`; their old app-local directories are
 deleted. Scene presentation now lives in `packages/editor` and consumes a
 structural render target instead of owning runtime render output or
 `THREE.Camera` rendering. App-local `features/scene` is now runtime wiring
-only. The next hard cleanup resolves Camera3 motion/rig ownership before Camera3
-gizmo extraction, then moves component definition installers and app
-composition wiring into a new `packages/editor` package. The plan keeps
+only. Camera3 runtime camera state is the single truth, Camera3 gizmo
+presentation has moved into `packages/editor`, and app composition now installs
+editor component definitions through the unified editor package installer. The
+remaining hard cleanup is runtime-owner work for app-local Scene/Camera3
+staging and Tesseract, plus Phase 7 bootstrap thinning. The plan keeps
 deletion-first rules explicit: no app-local compatibility barrels, no duplicate
 state or runtime ownership, no fake facades, and no package extraction step is
 complete until the old app-local owner is deleted or assigned to a later

@@ -554,16 +554,34 @@ npm run test -w wallpaper-tesseract -- architecture-boundaries
 npm run typecheck -w wallpaper-tesseract
 ```
 
-## Step 7: Replace App Composition Wiring With Editor Public Installers
+## Step 7: Replace App Composition Wiring With Editor Public Installers - Complete For Editor Paths
 
 Purpose: make the app compose editor defaults without knowing concrete editor
 feature internals.
 
-Work:
+Completed work:
 
-- Replace direct app imports of Debug, Hierarchy, Inspector, Scene, Camera3,
-  and Tesseract editor presentation internals with editor package installer
-  calls.
+- Replaced direct app imports of Debug, Hierarchy, Inspector, Scene presentation,
+  Camera3 gizmo presentation, and tool-window component installers with editor
+  package public APIs.
+- App component definition composition now calls the unified
+  `installEditorComponentDefinitions` package installer.
+- App-local Debug, Hierarchy, Inspector, Tool Window, and Camera3 gizmo source
+  directories are gone.
+
+Remaining Phase 7 / runtime-owner work:
+
+- `create-wallpaper-app.ts` still wires product bootstrap policy: app state
+  store, window workspace, hierarchy metadata, Debug log sink, Scene runtime
+  staging, and Wallpaper lifecycle.
+- `features/scene` and `features/camera3` remain app-local runtime staging, not
+  editor presentation. Do not delete them under the old app-local editor-source
+  cleanup rule.
+
+Deferred work:
+
+- Replace direct app imports of Tesseract runtime/editor internals only after
+  Tesseract runtime ownership moves behind a package/public runtime installer.
 - Keep Wallpaper-specific bootstrap in app only:
   - root DOM shell;
   - actor system and component registry construction;
@@ -595,24 +613,25 @@ npm run typecheck
 npm run build
 ```
 
-## Step 8: Delete App-Local Editor Source And Tighten Boundaries
+## Step 8: Delete App-Local Editor Source And Tighten Boundaries - Mostly Complete
 
 Purpose: make extraction irreversible by removing the old source layout.
 
-Work:
+Completed deletion:
 
-- Delete moved app-local directories:
-  - `apps/wallpaper-tesseract/src/debug`
-  - `apps/wallpaper-tesseract/src/hierarchy`
-  - `apps/wallpaper-tesseract/src/features/inspector`
-  - `apps/wallpaper-tesseract/src/features/tool-windows`
-  - moved parts of `features/scene`, `features/camera3`, and `gizmos`
-- Delete tests that only assert old app-local import paths.
-- Move surviving tests to `packages/editor` and collapse redundant boundary
-  assertions into package-level invariants.
-- Add forbidden import checks so app-local concrete editor paths cannot return.
-- Update docs/current progress and this plan with the final moved/deleted
-  source list.
+- `apps/wallpaper-tesseract/src/debug`
+- `apps/wallpaper-tesseract/src/hierarchy`
+- `apps/wallpaper-tesseract/src/features/inspector`
+- `apps/wallpaper-tesseract/src/features/tool-windows`
+- `apps/wallpaper-tesseract/src/gizmos`
+
+Current boundary:
+
+- `features/scene` and `features/camera3` survive only as app-local runtime
+  staging and should move under runtime ownership cleanup, not editor
+  presentation cleanup.
+- Tests that asserted old app-local editor import paths were either moved to
+  `packages/editor` or collapsed into package/app boundary invariants.
 
 Exit gate:
 

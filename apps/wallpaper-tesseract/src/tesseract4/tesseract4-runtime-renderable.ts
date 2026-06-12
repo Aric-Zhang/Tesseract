@@ -1,7 +1,6 @@
 import type { RuntimeFrame, RuntimeWorldDescriptor } from "runtime-core";
-import { RuntimeThreeLineRenderable } from "runtime-three";
+import { RuntimeThreeLineRenderable, type RuntimeThreeSceneRenderOutput } from "runtime-three";
 import { Tesseract4RuntimeWorld, type Tesseract4RuntimeWorldOptions } from "../runtime/tesseract4-runtime-world";
-import type { RuntimeSceneRenderOutput } from "../runtime/scene-render-output";
 import type { RuntimeRegistration } from "../runtime/ports";
 
 export interface Tesseract4RuntimeRenderableOptions extends Tesseract4RuntimeWorldOptions {}
@@ -29,7 +28,7 @@ export class Tesseract4RuntimeRenderable {
     this.#renderable.update(this.world.updateRuntimeFrame(frame));
   }
 
-  attachToOutput(output: RuntimeSceneRenderOutput): RuntimeRegistration {
+  attachToOutput(output: RuntimeThreeSceneRenderOutput): RuntimeRegistration {
     return output.attachObject(this.#renderable.object);
   }
 

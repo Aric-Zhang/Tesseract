@@ -5,7 +5,7 @@ import type { GizmoController } from "gizmo-core";
 import type { AppStateCommand } from "editor";
 import type { AppStateObserver } from "editor";
 import type { RuntimeRegistration } from "../../runtime/ports";
-import { createRuntimeSceneRenderOutput, type RuntimeSceneRenderOutput } from "../../runtime/scene-render-output";
+import { createRuntimeThreeSceneRenderOutput, type RuntimeThreeSceneRenderOutput } from "runtime-three";
 import type { Tesseract4RuntimeRenderable } from "../tesseract4-runtime-renderable";
 import { installTesseract4ComponentDefinitions } from "./install-component-definitions";
 import { createTesseract4Actor } from "./tesseract4-actor-factory";
@@ -61,7 +61,7 @@ function createFakeRenderableFactory(calls: string[]) {
     updateRuntimeFrame() {
       calls.push("tesseract-update");
     },
-    attachToOutput(output: RuntimeSceneRenderOutput) {
+    attachToOutput(output: RuntimeThreeSceneRenderOutput) {
       const registration = output.attachObject(object);
       return {
         dispose() {
@@ -159,7 +159,7 @@ describe("createTesseract4Actor", () => {
 
 function createInspectableOutput() {
   const renderer = createFakeRenderer();
-  const output = createRuntimeSceneRenderOutput({
+  const output = createRuntimeThreeSceneRenderOutput({
     createRenderer: () => renderer
   });
   return {

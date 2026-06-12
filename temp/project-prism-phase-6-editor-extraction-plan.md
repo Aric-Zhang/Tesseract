@@ -340,11 +340,13 @@ Known caution:
 ### Step 4A: Runtime Render Output Owner Cleanup
 
 Status: complete. `scene-window-actor-factory.ts` now receives a structural
-Scene viewport render target instead of creating or typing
-`RuntimeSceneRenderOutput`; `scene-viewport-component.ts` only hosts and sizes
-that target. `renderable-scene-view.ts` performs graph-visible rendering
-through the runtime render output, and `editor-scene-view-host.ts` no longer
-exposes `renderWithCamera`.
+Scene viewport render target instead of creating runtime render output;
+`scene-viewport-component.ts` only hosts and sizes that target.
+`RuntimeThreeSceneRenderOutput` lives in `packages/runtime-three`, the old
+app-local `runtime/scene-render-output.ts` owner is deleted,
+`renderable-scene-view.ts` performs graph-visible rendering through the
+runtime-three render output, and `editor-scene-view-host.ts` no longer exposes
+`renderWithCamera`.
 
 Purpose: make Scene View a consumer of runtime frame-source/render-output
 contracts before moving editor presentation.
@@ -358,7 +360,7 @@ Work:
     creation, world/camera/renderer ownership.
 - Move runtime ownership files only to their runtime owner, or delete them if
   an accepted runtime package contract already replaces them.
-- Move or replace `RuntimeSceneRenderOutput` creation with a runtime-owned
+- Move or replace Scene render output creation with a runtime-owned
   frame-source/render-output contract.
 - Remove direct `THREE.Camera` rendering from Scene View editor presentation.
   If a Three camera is still required, it must be supplied by a runtime-owned

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import { createRuntimeSceneRenderOutput } from "../runtime/scene-render-output";
+import { createRuntimeThreeSceneRenderOutput } from "runtime-three";
 import { Tesseract4RuntimeRenderable } from "./tesseract4-runtime-renderable";
 
 describe("Tesseract4RuntimeRenderable", () => {
@@ -20,7 +20,7 @@ describe("Tesseract4RuntimeRenderable", () => {
   it("updates the runtime-three renderable from runtime frame data", () => {
     const tesseract = new Tesseract4RuntimeRenderable();
     const renderCalls: THREE.Scene[] = [];
-    const output = createRuntimeSceneRenderOutput({
+    const output = createRuntimeThreeSceneRenderOutput({
       createRenderer: () => ({
         domElement: {} as HTMLElement,
         setClearColor() {},

@@ -7,7 +7,7 @@ import {
 } from "runtime-core";
 import type { Camera3MotionComponent } from "../camera3/components";
 import type { EditorSceneViewHost } from "editor";
-import type { RuntimeSceneRenderOutput } from "../../runtime/scene-render-output";
+import type { RuntimeThreeSceneRenderOutput } from "runtime-three";
 
 export interface RenderableSceneView {
   readonly viewActorId: string;
@@ -71,7 +71,7 @@ export class SceneViewFrameSourceRegistry implements RenderableSceneViewRegistry
 export interface CreateRenderableSceneViewOptions {
   readonly host: EditorSceneViewHost;
   readonly camera3Motion: Camera3MotionComponent;
-  readonly renderOutput: RuntimeSceneRenderOutput;
+  readonly renderOutput: RuntimeThreeSceneRenderOutput;
 }
 
 export function createRenderableSceneView(options: CreateRenderableSceneViewOptions): RenderableSceneView {

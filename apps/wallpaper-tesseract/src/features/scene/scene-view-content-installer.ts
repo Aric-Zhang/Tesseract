@@ -1,9 +1,9 @@
 import type { Actor } from "../../actor-runtime";
 import {
-  createRuntimeSceneRenderOutput,
-  type RuntimeSceneRendererFactory,
-  type RuntimeSceneRenderOutput
-} from "../../runtime/scene-render-output";
+  createRuntimeThreeSceneRenderOutput,
+  type RuntimeThreeSceneRendererFactory,
+  type RuntimeThreeSceneRenderOutput
+} from "runtime-three";
 import {
   camera3MotionComponentType,
   sceneCamera3ViewportBindingComponentType,
@@ -38,7 +38,7 @@ export interface InstallSceneViewContentOptions {
   readonly mount: HTMLElement;
   readonly parentFrameActor: Actor;
   readonly actorIds: SceneViewContentActorIds;
-  readonly createRenderer?: RuntimeSceneRendererFactory;
+  readonly createRenderer?: RuntimeThreeSceneRendererFactory;
   readonly createResizeObserver?: SceneViewportResizeObserverFactory;
   readonly createCamera3GizmoView?: Camera3GizmoViewFactory;
   readonly devicePixelRatio?: () => number;
@@ -49,7 +49,7 @@ export interface InstallSceneViewContentOptions {
 export interface InstalledSceneViewContent {
   readonly sceneView: RegisteredSceneViewActor;
   readonly camera3Motion: Camera3MotionComponent;
-  readonly renderOutput: RuntimeSceneRenderOutput;
+  readonly renderOutput: RuntimeThreeSceneRenderOutput;
   disposeActorTree(): void;
 }
 
@@ -58,7 +58,7 @@ export function installSceneViewContent(options: InstallSceneViewContentOptions)
   let sceneView: RegisteredSceneViewActor | null = null;
 
   try {
-    const renderOutput = createRuntimeSceneRenderOutput({
+    const renderOutput = createRuntimeThreeSceneRenderOutput({
       id: `${actorIds.sceneWindowActorId}:view:render-output`,
       createRenderer: options.createRenderer
     });

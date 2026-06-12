@@ -25,6 +25,15 @@ export type {
 export {
   RuntimeThreeSceneBackend
 } from "./runtime-three-scene-backend";
+export {
+  RuntimeThreeSceneRenderOutput,
+  createRuntimeThreeSceneRenderOutput
+} from "./runtime-three-scene-render-output";
+export type {
+  RuntimeThreeSceneRenderer,
+  RuntimeThreeSceneRendererFactory,
+  RuntimeThreeSceneRenderOutputOptions
+} from "./runtime-three-scene-render-output";
 export type {
   RuntimeThreeRenderable
 } from "./runtime-three-renderable";

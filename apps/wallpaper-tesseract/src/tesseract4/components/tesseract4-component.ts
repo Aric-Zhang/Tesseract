@@ -1,6 +1,6 @@
 import type { RuntimeFrame, RuntimeWork } from "runtime-core";
+import type { RuntimeThreeSceneRenderOutput } from "runtime-three";
 import type { Actor, Component, ComponentType } from "../../actor-runtime";
-import type { RuntimeSceneRenderOutput } from "../../runtime/scene-render-output";
 import type { RuntimeRegistration } from "../../runtime/ports";
 import {
   Tesseract4RuntimeRenderable,
@@ -35,7 +35,7 @@ export class Tesseract4Component implements Component, RuntimeWork {
     this.runtimeRenderable.updateRuntimeFrame(frame);
   }
 
-  attachToOutput(output: RuntimeSceneRenderOutput): RuntimeRegistration {
+  attachToOutput(output: RuntimeThreeSceneRenderOutput): RuntimeRegistration {
     const registration = this.runtimeRenderable.attachToOutput(output);
     this.#sceneAttachments.push(registration);
     return {

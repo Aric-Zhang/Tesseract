@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { createRuntimeThreeWebGLRenderer } from "runtime-three";
 import type { RuntimeRegistration } from "runtime-core";
+import { createRuntimeThreeWebGLRenderer } from "./runtime-three-webgl-renderer";
 
-export interface RuntimeSceneRenderer {
+export interface RuntimeThreeSceneRenderer {
   readonly domElement: HTMLElement;
   setClearColor(color: number, alpha: number): void;
   setPixelRatio(pixelRatio: number): void;
@@ -11,20 +11,20 @@ export interface RuntimeSceneRenderer {
   dispose(): void;
 }
 
-export type RuntimeSceneRendererFactory = () => RuntimeSceneRenderer;
+export type RuntimeThreeSceneRendererFactory = () => RuntimeThreeSceneRenderer;
 
-export interface RuntimeSceneRenderOutputOptions {
+export interface RuntimeThreeSceneRenderOutputOptions {
   readonly id?: string;
-  readonly createRenderer?: RuntimeSceneRendererFactory;
+  readonly createRenderer?: RuntimeThreeSceneRendererFactory;
 }
 
-export class RuntimeSceneRenderOutput {
+export class RuntimeThreeSceneRenderOutput {
   readonly id: string;
   readonly #scene = new THREE.Scene();
-  readonly #renderer: RuntimeSceneRenderer;
+  readonly #renderer: RuntimeThreeSceneRenderer;
   #disposed = false;
 
-  constructor(options: RuntimeSceneRenderOutputOptions = {}) {
+  constructor(options: RuntimeThreeSceneRenderOutputOptions = {}) {
     this.id = options.id ?? "scene-render-output";
     this.#renderer = (options.createRenderer ?? createDefaultRenderer)();
     this.#renderer.setClearColor(0x07090d, 1);
@@ -64,12 +64,12 @@ export class RuntimeSceneRenderOutput {
   }
 }
 
-export function createRuntimeSceneRenderOutput(
-  options: RuntimeSceneRenderOutputOptions = {}
-): RuntimeSceneRenderOutput {
-  return new RuntimeSceneRenderOutput(options);
+export function createRuntimeThreeSceneRenderOutput(
+  options: RuntimeThreeSceneRenderOutputOptions = {}
+): RuntimeThreeSceneRenderOutput {
+  return new RuntimeThreeSceneRenderOutput(options);
 }
 
-function createDefaultRenderer(): RuntimeSceneRenderer {
+function createDefaultRenderer(): RuntimeThreeSceneRenderer {
   return createRuntimeThreeWebGLRenderer({ antialias: true, alpha: false });
 }

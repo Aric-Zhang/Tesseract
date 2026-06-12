@@ -717,10 +717,16 @@ describe("architecture boundaries", () => {
     const sceneViewInstallerSource = sourceFiles["./features/scene/scene-view-content-installer.ts"] ?? "";
     const renderableSceneViewSource = sourceFiles["./features/scene/renderable-scene-view.ts"] ?? "";
     const editorSceneViewHostSource = editorPackageSources["packages/editor/src/scene/editor-scene-view-host.ts"] ?? "";
+    const runtimeThreeRenderOutputSource =
+      runtimeThreePackageSources["packages/runtime-three/src/runtime-three-scene-render-output.ts"] ?? "";
 
     expect(appSource).not.toMatch(/\bnew\s+THREE\.WebGLRenderer\b/);
     expect(appSource).not.toMatch(/replaceChildren\s*\(\s*renderer\.domElement\s*\)/);
     expect(appSource).not.toMatch(/\bnew\s+SceneViewRuntime\b/);
+    expect(sourceFiles["./runtime/scene-render-output.ts"]).toBeUndefined();
+    expect(runtimeThreeRenderOutputSource).toMatch(/\bRuntimeThreeSceneRenderOutput\b/);
+    expect(runtimeThreeRenderOutputSource).toMatch(/\bcreateRuntimeThreeSceneRenderOutput\b/);
+    expect(runtimeThreeRenderOutputSource).not.toMatch(/\b(?:RuntimeSceneRenderOutput|createRuntimeSceneRenderOutput)\b/);
     expect(appSource).toMatch(/\binstallSceneViewFeature\b/);
     expect(appSource).not.toMatch(/\binstallSceneViewContent\b/);
     expect(appSource).not.toMatch(/\bcreateRenderableSceneView\b/);

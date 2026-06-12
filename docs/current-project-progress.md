@@ -156,7 +156,8 @@ Important app source areas:
 - `apps/wallpaper-tesseract/src/gizmo-runtime`: component-side binding between
   actors and `gizmo-core`.
 - `apps/wallpaper-tesseract/src/runtime`: app-local production runtime staging,
-  including runtime scheduler service.
+  including runtime scheduler service and Tesseract runtime world staging. The
+  old app-local Scene render output owner has moved to `runtime-three`.
 - `apps/wallpaper-tesseract/src/runtime/ports`: transitional app-local runtime
   ports and compatibility contracts.
 - `apps/wallpaper-tesseract/src/update-runtime`: update/runtime attachment
@@ -218,8 +219,8 @@ Accepted runtime pieces:
 - `runtime-core` contains runtime ids, frame/update contracts, scheduler,
   commands, queries, worlds, cameras, projection graph, and frame source
   contracts.
-- `runtime-three` contains Three camera, scene, renderer, frame source, WebGL
-  renderer, and line renderable backends.
+- `runtime-three` contains Three camera, scene, renderer, scene render output,
+  frame source, WebGL renderer, and line renderable backends.
 - App-local runtime scheduling uses `ProductionRuntimeSchedulerService` over
   `runtime-core` scheduler concepts.
 - Camera3 gizmo rendering now reads runtime-derived view state instead of the

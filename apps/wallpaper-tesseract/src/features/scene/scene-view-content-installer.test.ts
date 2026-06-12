@@ -4,7 +4,7 @@ import { installWallpaperComponentDefinitions } from "../../app/install-componen
 import type { AppStateCommandSink } from "editor";
 import type { AppStateObserver } from "editor";
 import type { RuntimeRegistration } from "../../runtime/ports";
-import type { RuntimeSceneRenderer } from "../../runtime/scene-render-output";
+import type { RuntimeThreeSceneRenderer } from "runtime-three";
 import type { Camera3GizmoViewFactory } from "editor";
 import type { GizmoControllerRegistry } from "../../gizmo-runtime";
 import type { StateObserverRegistry } from "editor";
@@ -108,7 +108,7 @@ function findChildByClass(element: FakeElement, className: string): FakeElement 
   return child;
 }
 
-function createFakeRenderer(document: FakeDocument, calls: string[]): RuntimeSceneRenderer {
+function createFakeRenderer(document: FakeDocument, calls: string[]): RuntimeThreeSceneRenderer {
   return {
     domElement: document.createElement("canvas") as unknown as HTMLElement,
     setClearColor(color, alpha): void {

@@ -32,8 +32,8 @@ describe("Project Prism frame update lane map", () => {
       runtimeEligibleEntries.map(() => "runtime-work")
     );
     expect(projectPrismRuntimeWorkLane.map((entry) => entry.sourceFile)).toEqual(expect.arrayContaining([
-      "./runtime/camera3/camera3-motion-component.ts",
-      "./runtime/tesseract4/tesseract4-component.ts"
+      "packages/wallpaper-runtime/src/camera3/camera3-motion-component.ts",
+      "packages/wallpaper-runtime/src/tesseract4/tesseract4-component.ts"
     ]));
   });
 

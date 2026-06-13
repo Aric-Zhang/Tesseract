@@ -27,7 +27,7 @@ import { WORKSPACE_ROOT_FRAME_ID } from "../../window-runtime";
 import {
   RuntimeSceneViewRuntimeRegistry,
   type RuntimeSceneViewRuntime
-} from "../../runtime/runtime-scene-view-runtime";
+} from "wallpaper-runtime";
 import {
   sceneCamera3ViewportBindingComponentType
 } from "./components";

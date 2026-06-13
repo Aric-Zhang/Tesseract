@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Actor, Component, ComponentDefinition } from "../actor-runtime";
-import { ActorSystem, ComponentRegistry, componentType } from "../actor-runtime";
+import type { Actor, Component, ComponentDefinition } from "actor-core";
+import { ActorSystem, ComponentRegistry, componentType } from "actor-core";
 import { ProductionRuntimeSchedulerService } from "./runtime-scheduler-service";
 import {
   RuntimeWorkAttachmentRuntime,

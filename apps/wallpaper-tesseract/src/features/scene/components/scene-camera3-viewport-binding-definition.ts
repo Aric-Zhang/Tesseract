@@ -4,7 +4,7 @@ import {
 } from "editor";
 import {
   camera3MotionComponentType
-} from "../../../runtime/camera3/camera3-motion-component";
+} from "wallpaper-runtime";
 import {
   getCamera3GizmoComponent,
   SceneCamera3ViewportBindingComponent,

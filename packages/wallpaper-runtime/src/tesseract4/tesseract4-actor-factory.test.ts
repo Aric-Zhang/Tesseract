@@ -8,10 +8,14 @@ import {
   type ActorCreationScope
 } from "actor-core";
 import type { RuntimeFrame } from "runtime-core";
-import type { Tesseract4RuntimeRenderable } from "../tesseract4-runtime-renderable";
-import type { RuntimeSceneObjectHost } from "../runtime-scene-session";
-import { ProductionRuntimeSchedulerService } from "../runtime-scheduler-service";
-import { RuntimeWorkAttachmentRuntime } from "../runtime-work-attachment-runtime";
+import type {
+  RuntimeSceneObjectHost,
+  Tesseract4RuntimeRenderable
+} from "./tesseract4-runtime-renderable";
+import {
+  ProductionRuntimeSchedulerService,
+  RuntimeWorkAttachmentRuntime
+} from "wallpaper-runtime";
 import { installTesseract4ComponentDefinitions } from "./install-component-definitions";
 import { createTesseract4Actor } from "./tesseract4-actor-factory";
 import { tesseract4ComponentType } from "./tesseract4-component";

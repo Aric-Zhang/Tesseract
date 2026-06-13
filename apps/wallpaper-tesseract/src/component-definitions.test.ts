@@ -14,12 +14,12 @@ import {
   stateObserverBindingComponentType
 } from "editor";
 import {
-  tesseract4ComponentType,
-  installTesseract4ComponentDefinitions
-} from "./runtime/tesseract4";
-import {
   camera3MotionComponentType,
-  installSceneCamera3ComponentDefinitions,
+  installWallpaperRuntimeComponentDefinitions,
+  tesseract4ComponentType
+} from "wallpaper-runtime";
+import {
+  installSceneComponentDefinitions,
   sceneCamera3ViewportBindingComponentType
 } from "./features/scene/components";
 import {
@@ -67,16 +67,16 @@ describe("component definition installers", () => {
   it("installs tesseract4 component definitions explicitly", () => {
     const registry = createRegistry();
 
-    installTesseract4ComponentDefinitions(registry);
+    installWallpaperRuntimeComponentDefinitions(registry);
 
     expect(registry.getDefinition(tesseract4ComponentType).type).toBe(tesseract4ComponentType);
   });
 
-  it("installs scene and tesseract definitions through their owner installers", () => {
+  it("installs runtime and scene definitions through separate owner paths", () => {
     const registry = createRegistry();
 
-    installSceneCamera3ComponentDefinitions(registry);
-    installTesseract4ComponentDefinitions(registry);
+    installWallpaperRuntimeComponentDefinitions(registry);
+    installSceneComponentDefinitions(registry);
 
     expect(registry.getDefinition(camera3MotionComponentType).type).toBe(camera3MotionComponentType);
     expect(registry.getDefinition(sceneCamera3ViewportBindingComponentType).type).toBe(

@@ -1,7 +1,11 @@
+import type * as THREE from "three";
 import type { RuntimeFrame, RuntimeRegistration, RuntimeWorldDescriptor } from "runtime-core";
 import { RuntimeThreeLineRenderable } from "runtime-three";
 import { Tesseract4RuntimeWorld, type Tesseract4RuntimeWorldOptions } from "./tesseract4-runtime-world";
-import type { RuntimeSceneObjectHost } from "./runtime-scene-session";
+
+export interface RuntimeSceneObjectHost {
+  attachObject(object: THREE.Object3D): RuntimeRegistration;
+}
 
 export interface Tesseract4RuntimeRenderableOptions extends Tesseract4RuntimeWorldOptions {}
 

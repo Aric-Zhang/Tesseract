@@ -27,6 +27,9 @@ export const projectPrismSourceZones = [
   definePathZone("runtime-production-candidate", "App-local production runtime ownership staging that may depend on runtime packages but not editor/UI/app composition.", [
     /^\.\/runtime\/(?!ports\/)/
   ]),
+  definePathZone("wallpaper-runtime-candidate", "Package-owned Wallpaper runtime production implementation with no editor, UI/window, feature, app-composition, or DOM ownership.", [
+    /^packages\/wallpaper-runtime\/src\//
+  ]),
   definePathZone("editor-candidate", "Concrete editor features and editor presentation components.", [
     /^packages\/editor\/src\//,
     /^\.\/features\/scene\/(?:index|install-scene-view-feature)\.ts$/,
@@ -55,6 +58,7 @@ export interface ProjectPrismPackageTarget {
     | "runtime-production-ownership"
     | "runtime-three-backend"
     | "runtime-render-production-ownership"
+    | "wallpaper-runtime"
     | "editor"
     | "wallpaper-app";
   readonly cleanCandidateZones: readonly string[];
@@ -75,8 +79,7 @@ export interface ProjectPrismRuntimeExtractionBlocker {
   readonly deletionCondition: string;
 }
 
-export const projectPrismRuntimeExtractionBlockers: readonly ProjectPrismRuntimeExtractionBlocker[] = [
-];
+export const projectPrismRuntimeExtractionBlockers: readonly ProjectPrismRuntimeExtractionBlocker[] = [];
 
 export interface ProjectPrismUiFrameworkExtractionBlocker {
   readonly id: string;
@@ -152,6 +155,15 @@ export const projectPrismZoneDependencyRules = [
     ]
   },
   {
+    sourceZone: "wallpaper-runtime-candidate",
+    forbiddenTargetZones: [
+      "actor-input-candidate",
+      "ui-framework-candidate",
+      "editor-candidate",
+      "app-composition"
+    ]
+  },
+  {
     sourceZone: "editor-candidate",
     forbiddenTargetZones: [
       "app-composition"
@@ -194,10 +206,10 @@ export const projectPrismPackageTargets = [
   },
   {
     id: "runtime-production-ownership",
-    cleanCandidateZones: ["runtime-production-candidate"],
+    cleanCandidateZones: ["wallpaper-runtime-candidate"],
     debtZones: [],
     blockedBy: [],
-    extractionPhase: "Phase 5.5",
+    extractionPhase: "Phase 10",
     extractionStatus: "allowed"
   },
   {
@@ -210,10 +222,18 @@ export const projectPrismPackageTargets = [
   },
   {
     id: "runtime-render-production-ownership",
-    cleanCandidateZones: ["runtime-production-candidate", "runtime-three-candidate"],
+    cleanCandidateZones: ["wallpaper-runtime-candidate", "runtime-three-candidate"],
     debtZones: [],
     blockedBy: [],
-    extractionPhase: "Phase 5.5",
+    extractionPhase: "Phase 10",
+    extractionStatus: "allowed"
+  },
+  {
+    id: "wallpaper-runtime",
+    cleanCandidateZones: ["wallpaper-runtime-candidate"],
+    debtZones: [],
+    blockedBy: [],
+    extractionPhase: "Phase 10",
     extractionStatus: "allowed"
   },
   {

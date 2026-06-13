@@ -48,7 +48,7 @@ describe("Project Prism boundary report", () => {
     });
     expect(targetsById.get("runtime-production-ownership")).toMatchObject({
       status: "allowed",
-      cleanCandidateZones: ["runtime-production-candidate"],
+      cleanCandidateZones: ["wallpaper-runtime-candidate"],
       blockedBy: []
     });
     expect(targetsById.get("runtime-three-backend")).toMatchObject({
@@ -58,6 +58,12 @@ describe("Project Prism boundary report", () => {
     });
     expect(targetsById.get("runtime-render-production-ownership")).toMatchObject({
       status: "allowed",
+      blockedBy: []
+    });
+    expect(targetsById.get("wallpaper-runtime")).toMatchObject({
+      status: "allowed",
+      cleanCandidateZones: ["wallpaper-runtime-candidate"],
+      debtZones: [],
       blockedBy: []
     });
     expect(targetsById.get("ui-framework")).toMatchObject({

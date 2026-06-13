@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { createRuntimeSceneSession } from "./runtime-scene-session";
+import {
+  createRuntimeThreeSceneRenderOutput,
+  type RuntimeThreeSceneRenderer
+} from "runtime-three";
 import { Tesseract4RuntimeRenderable } from "./tesseract4-runtime-renderable";
 
 describe("Tesseract4RuntimeRenderable", () => {
   it("attaches through the runtime Scene object host", () => {
     const calls: string[] = [];
     const tesseract = new Tesseract4RuntimeRenderable();
-    const session = createRuntimeSceneSession({
+    const renderOutput = createRuntimeThreeSceneRenderOutput({
       createRenderer: () => ({
-        domElement: {} as HTMLElement,
+        domElement: {} as RuntimeThreeSceneRenderer["domElement"],
         setClearColor() {},
         setPixelRatio() {},
         setSize() {},
@@ -19,10 +22,10 @@ describe("Tesseract4RuntimeRenderable", () => {
       })
     });
 
-    const registration = tesseract.attachToScene(session);
-    session.render({} as never);
+    const registration = tesseract.attachToScene(renderOutput);
+    renderOutput.render({} as never);
     registration.dispose();
-    session.render({} as never);
+    renderOutput.render({} as never);
 
     expect(calls).toEqual(["render:1", "render:0"]);
   });

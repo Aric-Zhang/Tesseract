@@ -51,16 +51,18 @@ import {
   installSceneRunModeCommand,
   installSceneRunModeState
 } from "../features/scene-run-mode-command";
-import { installSceneCamera3ComponentDefinitions } from "../features/scene/components";
-import { installTesseract4ComponentDefinitions } from "../runtime/tesseract4";
+import { installSceneComponentDefinitions } from "../features/scene/components";
 import { createWallpaperAppShell } from "./app-shell";
 import { ImmediateUpdateScheduler } from "./immediate-update-scheduler";
 import { RenderLoop } from "./render-loop";
 import { AppFrameOrchestrator } from "./app-frame-orchestrator";
 import { UiFrameScheduler } from "./ui-frame-scheduler";
-import { ProductionRuntimeSchedulerService } from "../runtime/runtime-scheduler-service";
-import { RuntimeWorkAttachmentRuntime } from "../runtime/runtime-work-attachment-runtime";
-import { RuntimeSceneViewRuntimeRegistry } from "../runtime/runtime-scene-view-runtime";
+import {
+  ProductionRuntimeSchedulerService,
+  RuntimeSceneViewRuntimeRegistry,
+  RuntimeWorkAttachmentRuntime,
+  installWallpaperRuntimeComponentDefinitions
+} from "wallpaper-runtime";
 
 export interface WallpaperApp {
   dispose(): void;
@@ -150,8 +152,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   installEditorComponentDefinitions(componentRegistry, {
     commandSink: createEditorBackedWorkspaceCommandSink(frameStateBridge)
   });
-  installSceneCamera3ComponentDefinitions(componentRegistry);
-  installTesseract4ComponentDefinitions(componentRegistry);
+  installWallpaperRuntimeComponentDefinitions(componentRegistry);
+  installSceneComponentDefinitions(componentRegistry);
 
   const layoutStorage = createBrowserWindowWorkspaceFrameLayoutStorage(window, {
     resetKeys: shouldResetWindowWorkspaceLayout(window)

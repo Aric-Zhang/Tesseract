@@ -8,7 +8,7 @@ import type {
   RuntimeRegistration,
   RuntimeWork
 } from "runtime-core";
-import type { Actor, Component, ComponentType } from "../../actor-runtime";
+import type { Actor, Component, ComponentType } from "actor-core";
 import {
   RuntimeThreeCameraMotionController,
   type RuntimeThreeCameraMotionObserver,

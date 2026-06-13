@@ -1,10 +1,10 @@
 import type { RuntimeFrame, RuntimeRegistration, RuntimeWork } from "runtime-core";
-import type { Actor, Component, ComponentType } from "../../actor-runtime";
-import type { RuntimeSceneObjectHost } from "../runtime-scene-session";
+import type { Actor, Component, ComponentType } from "actor-core";
 import {
   Tesseract4RuntimeRenderable,
+  type RuntimeSceneObjectHost,
   type Tesseract4RuntimeRenderableOptions
-} from "../tesseract4-runtime-renderable";
+} from "./tesseract4-runtime-renderable";
 
 export const tesseract4ComponentType =
   "tesseract4-component" as ComponentType<Tesseract4Component>;

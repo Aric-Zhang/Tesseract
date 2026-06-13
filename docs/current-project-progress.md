@@ -1,6 +1,6 @@
 # Current Project Progress
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 This document is the mutable project-status companion to `AGENTS.md`. Keep
 phase status, package lists, source topology, active plans, and verification
@@ -32,6 +32,11 @@ Current workspace packages:
   and frame sources.
 - `packages/runtime-three`: extracted Three/WebGL runtime backend package for
   runtime-core contracts.
+- `packages/wallpaper-runtime`: Phase 10 production Wallpaper runtime package.
+  It owns runtime scheduler/work attachment, Camera3 motion runtime,
+  Tesseract4 runtime actor/renderable ownership, runtime Scene content,
+  frame-source registration, and runtime Scene view registry. It must not
+  import editor/UI/window/app composition or DOM/window ownership.
 - `packages/editor`: Phase 6 editor package. It currently owns editor state,
   editor window-layout defaults, and editor state adapters, and must not import
   app-local runtime glue.
@@ -152,6 +157,22 @@ Current gate:
 - Phase 9 final validation passed:
   `npm run test`, `npm run typecheck`, and `npm run build`. The build keeps the
   existing Vite chunk size warning.
+- Phase 10 runtime production ownership is complete:
+  `docs/project-prism-phase-10-runtime-production-ownership-plan.md`.
+- Phase 10 created `packages/wallpaper-runtime` as a real production runtime
+  owner, moved runtime scheduler/work attachment, Camera3 motion, Tesseract4
+  runtime actor/renderable ownership, runtime Scene content/frame-source/view
+  registry ownership into it, deleted `apps/wallpaper-tesseract/src/runtime`,
+  and removed the thin `RuntimeSceneSession` wrapper instead of preserving a
+  compatibility layer.
+- Scene feature component definition installation now owns only Scene
+  presentation binding. Runtime Camera3/Tesseract component definitions are
+  installed through `installWallpaperRuntimeComponentDefinitions` from
+  `wallpaper-runtime`.
+- Fresh Phase 10 smoke evidence lives at
+  `temp/project-prism-phase-10-smoke-data.json` and validates with
+  `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-10-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file`.
+  The report is `temp/project-prism-phase-10-smoke-report.md`.
 - The pre-Phase 6 window-workspace truth closure is complete.
 - `ui-framework` and `editor` are no longer blocked by
   `window-workspace-multi-truth-debt`.
@@ -162,11 +183,11 @@ Current gate:
   `runtime/ports`. Actor factories now depend on `actor-core`'s
   `ActorCreationContext`, so feature actor creation no longer pulls editor
   extraction back through app runtime glue.
-- The old app-local `state-runtime` and `update-runtime` directories have been
-  deleted. Editor state observer binding now lives in `packages/editor`, UI
-  component frame update attachment lives in `packages/ui-framework`, and
-  runtime-work attachment lives in app-local runtime staging while runtime
-  package ownership is still converging.
+- The old app-local `state-runtime`, `update-runtime`, and production
+  `src/runtime` directories have been deleted. Editor state observer binding
+  now lives in `packages/editor`, UI component frame update attachment lives in
+  `packages/ui-framework`, and runtime-work attachment lives in
+  `packages/wallpaper-runtime`.
 - Current graph progress is real: `WindowFramePort` is now shell-only,
   production placement mutation goes through graph transaction/reconcile paths,
   graph transaction DOM atomicity was hardened, and `persistable` replaced the
@@ -254,11 +275,11 @@ Important app source areas:
   are deleted.
 - `apps/wallpaper-tesseract/src/gizmo-runtime`: component-side binding between
   actors and `gizmo-core`.
-- `apps/wallpaper-tesseract/src/runtime`: app-local production runtime staging,
-  including runtime scheduler service, runtime-work attachment, runtime Scene
-  session/content, Camera3 motion component ownership, and Tesseract runtime
-  actor/renderable staging. It must stay editor/UI/app-composition independent
-  while runtime package ownership continues converging.
+- `packages/wallpaper-runtime/src`: production Wallpaper runtime owner. It owns
+  runtime scheduler service, runtime-work attachment, runtime Scene
+  content/frame-source/view registry, Camera3 motion component ownership, and
+  Tesseract runtime actor/renderable ownership. It is a real implementation
+  package and must not become an app-local compatibility barrel.
 - `packages/editor`: extracted editor state, window-layout default paths,
   editor state adapters, Debug, Hierarchy, Inspector, and tool-window
   installer ownership. Keep it on package contracts (`actor-core`,
@@ -306,8 +327,7 @@ type/instance view identity:
 
 ## Runtime Ownership Baseline
 
-Runtime package extraction has started, but production runtime ownership is not
-complete.
+Runtime production ownership is package-owned after Phase 10.
 
 Accepted runtime pieces:
 
@@ -316,12 +336,12 @@ Accepted runtime pieces:
   contracts.
 - `runtime-three` contains Three camera, scene, renderer, scene render output,
   frame source, WebGL renderer, and line renderable backends.
-- App-local runtime scheduling uses `ProductionRuntimeSchedulerService` over
-  `runtime-core` scheduler concepts.
-- App-local runtime staging now owns the product runtime Scene session/content,
-  Camera3 motion component, Tesseract actor binding, Tesseract runtime
-  renderable, and runtime-work attachment without depending on editor
-  presentation or app composition.
+- `wallpaper-runtime` contains product runtime implementation over
+  `actor-core`, `runtime-core`, `runtime-three`, `four-camera`, and
+  `four-rotation`: scheduler/work attachment, runtime Scene content,
+  frame-source registration, runtime Scene view registry, Camera3 motion
+  component definitions, Tesseract4 actor binding, and Tesseract runtime
+  renderable.
 - Camera3 gizmo rendering now reads runtime-derived view state instead of the
   older projection controller camera state.
 
@@ -331,22 +351,20 @@ Remaining runtime ownership debt:
   bus. App frame orchestration now explicitly runs runtime work, UI component
   ticks, UI scheduled services, editor state flush, and render frame sources.
 - `Tesseract4RuntimeObject` and the old app-local `tesseract4` directory have
-  been deleted. Tesseract now uses app-local runtime staging under
-  `src/runtime`, while package placement remains future runtime-owner work.
+  been deleted. Tesseract runtime ownership now lives in
+  `packages/wallpaper-runtime/src/tesseract4`.
 - `SceneViewportComponent` now hosts a structural render target and owns DOM
   placement/measurement only; it no longer renders with `THREE.Camera` or
   imports the full runtime render output.
-- `SceneViewFrameSourceRegistry` renders through the runtime render output
+- `RuntimeSceneViewRuntimeRegistry` renders through the runtime render output
   after current graph/view visibility checks. The old mixed Scene content
-  installer has been deleted; remaining Scene debt is package placement for the
-  app-local runtime Scene session/content and renderable registry wiring.
+  installer and app-local runtime Scene staging have been deleted.
 - Camera3 runtime camera state is now the single camera truth. The old
   `Camera3Rig` / `Camera3ProjectionModeController` model and rig component were
   deleted instead of moved into editor presentation. Camera3 gizmo presentation,
   hit testing, actor-input component, styles, and tests now live under
-  `packages/editor/src/camera3`. Camera3 motion runtime staging now lives under
-  app-local runtime ownership; remaining debt is package placement, not
-  app-local editor/runtime mixing.
+  `packages/editor/src/camera3`. Camera3 motion runtime ownership now lives
+  under `packages/wallpaper-runtime`.
 
 ## Active Plans And Reports
 
@@ -515,20 +533,19 @@ implemented, Step 7A closed DCK-007 through
 `docs/project-prism-phase-9-dck-007-blocker-resolution-plan.md`, and fresh Phase
 9 smoke evidence validates from `temp/project-prism-phase-9-smoke-data.json`.
 
-Proposed Phase 10 runtime production ownership plan:
+Completed Phase 10 runtime production ownership plan:
 
 ```text
 docs/project-prism-phase-10-runtime-production-ownership-plan.md
 ```
 
-Treat this as the next execution plan after Phase 9. It targets the remaining
-runtime package-placement debt by moving or deleting app-local
-`apps/wallpaper-tesseract/src/runtime` staging without creating compatibility
-barrels, while keeping `runtime-core` renderer-agnostic, `runtime-three`
-backend-only, editor presentation-only, and app composition thin. The amended
-plan requires a formal `packages/wallpaper-runtime` boundary zone, minimal
-dependencies based on actual imports, and a component-definition owner split so
-Scene components no longer install or re-export runtime Camera3 definitions.
+Treat this as the completed Phase 10 execution record. It moved the remaining
+app-local production runtime staging into `packages/wallpaper-runtime`, deleted
+`apps/wallpaper-tesseract/src/runtime`, removed the thin `RuntimeSceneSession`
+wrapper, kept `runtime-core` renderer-agnostic and `runtime-three`
+backend-only, split Scene presentation component definitions from runtime
+Camera3/Tesseract definitions, and validated fresh Phase 10 browser smoke from
+`temp/project-prism-phase-10-smoke-data.json`.
 
 Older window/docking/view-identity plans are now Git history, not active files
 in `temp/`. Recover historical context from Git when needed, then compare it

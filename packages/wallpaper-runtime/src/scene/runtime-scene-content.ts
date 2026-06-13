@@ -1,8 +1,10 @@
 import type { Actor, ActorCreationContext } from "actor-core";
 import type { RuntimeThreeSceneRenderOutput } from "runtime-three";
-import { camera3MotionComponentType, type Camera3MotionComponent } from "./camera3/camera3-motion-component";
-import { createRuntimeSceneSession, type RuntimeSceneSession } from "./runtime-scene-session";
-import { createTesseract4Actor } from "./tesseract4";
+import {
+  camera3MotionComponentType,
+  type Camera3MotionComponent
+} from "../camera3/camera3-motion-component";
+import { createTesseract4Actor } from "../tesseract4/tesseract4-actor-factory";
 
 export const RUNTIME_SCENE_TESSERACT_LABEL = "Tesseract4";
 
@@ -12,18 +14,16 @@ export function createRuntimeSceneTesseract4ActorId(parentActorId: string): stri
 
 export interface RuntimeSceneContent {
   readonly camera3Motion: Camera3MotionComponent;
-  readonly runtimeScene: RuntimeSceneSession;
   readonly renderOutput: RuntimeThreeSceneRenderOutput;
 }
 
 export interface CreateRuntimeSceneContentOptions {
   readonly context: ActorCreationContext;
   readonly parentActor: Actor;
-  readonly runtimeScene?: RuntimeSceneSession;
+  readonly renderOutput: RuntimeThreeSceneRenderOutput;
 }
 
 export function createRuntimeSceneContent(options: CreateRuntimeSceneContentOptions): RuntimeSceneContent {
-  const runtimeScene = options.runtimeScene ?? createRuntimeSceneSession({ id: "runtime-scene" });
   try {
     const camera3Motion = options.context.componentRegistry.addComponent(
       options.parentActor,
@@ -35,14 +35,13 @@ export function createRuntimeSceneContent(options: CreateRuntimeSceneContentOpti
       actorName: RUNTIME_SCENE_TESSERACT_LABEL,
       parentActor: options.parentActor
     });
-    tesseract4.component.attachToScene(runtimeScene);
+    tesseract4.component.attachToScene(options.renderOutput);
     return {
       camera3Motion,
-      runtimeScene,
-      renderOutput: runtimeScene.renderOutput
+      renderOutput: options.renderOutput
     };
   } catch (error) {
-    runtimeScene.dispose();
+    options.renderOutput.dispose();
     throw error;
   }
 }

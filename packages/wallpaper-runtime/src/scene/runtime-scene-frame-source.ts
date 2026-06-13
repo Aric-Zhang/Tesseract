@@ -6,9 +6,9 @@ import {
   type RuntimeRegistration
 } from "runtime-core";
 import type { RuntimeThreeSceneRenderOutput } from "runtime-three";
-import type { Camera3MotionComponent } from "./camera3/camera3-motion-component";
+import type { Camera3MotionComponent } from "../camera3/camera3-motion-component";
 
-export interface RuntimeSceneViewPresentationPort {
+export interface RuntimeSceneViewVisibilityPort {
   readonly viewActorId: string;
   measureNow(): void;
   isVisibleInCurrentLocation(): boolean;
@@ -74,7 +74,7 @@ export class SceneViewFrameSourceRegistry implements RenderableSceneViewRegistry
 }
 
 export interface CreateRenderableSceneViewOptions {
-  readonly presentation: RuntimeSceneViewPresentationPort;
+  readonly presentation: RuntimeSceneViewVisibilityPort;
   readonly camera3Motion: Camera3MotionComponent;
   readonly renderOutput: RuntimeThreeSceneRenderOutput;
 }

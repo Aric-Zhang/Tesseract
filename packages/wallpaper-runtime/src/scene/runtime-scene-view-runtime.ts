@@ -1,7 +1,10 @@
 import type { Actor, ActorCreationContext } from "actor-core";
-import type { RuntimeThreeSceneRenderOutput } from "runtime-three";
 import type { RuntimeThreeSceneRendererFactory } from "runtime-three";
-import type { Camera3MotionComponent } from "./camera3/camera3-motion-component";
+import {
+  createRuntimeThreeSceneRenderOutput,
+  type RuntimeThreeSceneRenderOutput
+} from "runtime-three";
+import type { Camera3MotionComponent } from "../camera3/camera3-motion-component";
 import {
   createRuntimeSceneContent,
   type RuntimeSceneContent
@@ -9,9 +12,8 @@ import {
 import {
   createRenderableSceneView,
   SceneViewFrameSourceRegistry,
-  type RuntimeSceneViewPresentationPort
+  type RuntimeSceneViewVisibilityPort
 } from "./runtime-scene-frame-source";
-import { createRuntimeSceneSession, type RuntimeSceneSession } from "./runtime-scene-session";
 
 export interface CreateRuntimeSceneViewRuntimeOptions {
   readonly id: string;
@@ -21,18 +23,18 @@ export interface CreateRuntimeSceneViewRuntimeOptions {
 export interface AttachRuntimeSceneViewOptions {
   readonly context: ActorCreationContext;
   readonly sceneActor: Actor;
-  readonly presentation: RuntimeSceneViewPresentationPort;
+  readonly presentation: RuntimeSceneViewVisibilityPort;
 }
 
 export class RuntimeSceneViewRuntime {
-  readonly #runtimeScene: RuntimeSceneSession;
+  readonly #renderOutput: RuntimeThreeSceneRenderOutput;
   readonly #frameSources: SceneViewFrameSourceRegistry;
   #content: RuntimeSceneContent | null = null;
   #frameSourceRegistration: { dispose(): void } | null = null;
   #disposed = false;
 
   constructor(options: CreateRuntimeSceneViewRuntimeOptions, frameSources: SceneViewFrameSourceRegistry) {
-    this.#runtimeScene = createRuntimeSceneSession({
+    this.#renderOutput = createRuntimeThreeSceneRenderOutput({
       id: options.id,
       createRenderer: options.createRenderer
     });
@@ -40,11 +42,11 @@ export class RuntimeSceneViewRuntime {
   }
 
   get renderTarget(): RuntimeThreeSceneRenderOutput {
-    return this.#runtimeScene.renderTarget;
+    return this.#renderOutput;
   }
 
   get renderOutput(): RuntimeThreeSceneRenderOutput {
-    return this.#content?.renderOutput ?? this.#runtimeScene.renderOutput;
+    return this.#content?.renderOutput ?? this.#renderOutput;
   }
 
   get camera3Motion(): Camera3MotionComponent {
@@ -62,7 +64,7 @@ export class RuntimeSceneViewRuntime {
     this.#content = createRuntimeSceneContent({
       context: options.context,
       parentActor: options.sceneActor,
-      runtimeScene: this.#runtimeScene
+      renderOutput: this.#renderOutput
     });
     const renderable = createRenderableSceneView({
       presentation: options.presentation,
@@ -79,7 +81,7 @@ export class RuntimeSceneViewRuntime {
     try {
       this.#frameSourceRegistration?.dispose();
     } finally {
-      this.#runtimeScene.dispose();
+      this.#renderOutput.dispose();
     }
   }
 }

@@ -55,7 +55,7 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "runtime-work-attachment-runtime",
-    "./runtime/runtime-work-attachment-runtime.ts",
+    "packages/wallpaper-runtime/src/runtime-work-attachment-runtime.ts",
     "scheduler-dispatcher",
     "runtime-scheduler",
     false,
@@ -79,7 +79,7 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "camera3-motion-component",
-    "./runtime/camera3/camera3-motion-component.ts",
+    "packages/wallpaper-runtime/src/camera3/camera3-motion-component.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
@@ -87,7 +87,7 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "camera3-motion-definition",
-    "./runtime/camera3/camera3-motion-definition.ts",
+    "packages/wallpaper-runtime/src/camera3/camera3-motion-definition.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
@@ -95,7 +95,7 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "tesseract4-runtime-renderable",
-    "./runtime/tesseract4-runtime-renderable.ts",
+    "packages/wallpaper-runtime/src/tesseract4/tesseract4-runtime-renderable.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
@@ -103,7 +103,7 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "tesseract4-component",
-    "./runtime/tesseract4/tesseract4-component.ts",
+    "packages/wallpaper-runtime/src/tesseract4/tesseract4-component.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
@@ -111,7 +111,7 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "tesseract4-definition",
-    "./runtime/tesseract4/tesseract4-definition.ts",
+    "packages/wallpaper-runtime/src/tesseract4/tesseract4-definition.ts",
     "runtime-work",
     "runtime-scheduler",
     true,

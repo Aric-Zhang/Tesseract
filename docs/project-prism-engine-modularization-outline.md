@@ -38,7 +38,7 @@ Completed Phase 6 detailed execution record and completed post-Phase-6 dock gate
 temp/project-prism-phase-6-editor-extraction-plan.md
 ```
 
-Current execution status, updated 2026-06-13:
+Current execution status, updated 2026-06-14:
 
 ```text
 Phases 0 through 6 are accepted at the package-boundary level.
@@ -77,6 +77,14 @@ the old workspace mode public controller surface. DCK-007 is closed through
 `docs/project-prism-phase-9-dck-007-blocker-resolution-plan.md`; root tab drags
 now continue after the pointer leaves the tab hit, and fresh Phase 9 smoke
 evidence validates from `temp/project-prism-phase-9-smoke-data.json`.
+Phase 10 runtime production ownership is complete:
+`docs/project-prism-phase-10-runtime-production-ownership-plan.md`. It created
+`packages/wallpaper-runtime` as the production Wallpaper runtime owner, moved
+runtime scheduler/work attachment, Camera3 motion, Tesseract4 runtime
+actor/renderable ownership, runtime Scene content/frame-source/view registry
+ownership into it, deleted `apps/wallpaper-tesseract/src/runtime`, and
+validated fresh Phase 10 smoke evidence from
+`temp/project-prism-phase-10-smoke-data.json`.
 ```
 
 ## Codename
@@ -112,7 +120,8 @@ Project Prism 必须避免“拆了包，但旧耦合换个目录继续存在”
 
 ```text
 actor-core <- actor-input <- ui-framework <- editor <- wallpaper-app
-actor-core <- runtime-core <- runtime-three <- editor <- wallpaper-app
+actor-core <- runtime-core <- runtime-three <- wallpaper-runtime <- wallpaper-app
+actor-core <- runtime-core <- editor <- wallpaper-app
 packages/four-* <- runtime-core/runtime-three
 gizmo-core <- actor-input
 ```

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import { ActorSystem, installComponentDefinition } from "../../actor-runtime";
-import { createTestComponentRegistry } from "../../test-support";
-import { ProductionRuntimeSchedulerService } from "../runtime-scheduler-service";
-import { RuntimeWorkAttachmentRuntime } from "../runtime-work-attachment-runtime";
+import { ActorSystem, ComponentRegistry, installComponentDefinition } from "actor-core";
+import {
+  ProductionRuntimeSchedulerService,
+  RuntimeWorkAttachmentRuntime
+} from "wallpaper-runtime";
 import {
   Camera3MotionComponent,
   camera3MotionComponentType
@@ -17,7 +18,7 @@ function createSubject() {
   const actorSystem = new ActorSystem();
   const scheduler = new ProductionRuntimeSchedulerService();
   const updateRuntime = new RuntimeWorkAttachmentRuntime({ actorSystem, scheduler });
-  const { registry } = createTestComponentRegistry({
+  const registry = new ComponentRegistry({
     actorSystem,
     attachmentRuntime: updateRuntime
   });

@@ -3,16 +3,16 @@ import {
   ActorSystem,
   ComponentRegistry,
   CompositeComponentAttachmentRuntime,
-  createActorCreationScope,
-  installComponentDefinition
+  createActorCreationScope
 } from "actor-core";
 import type { RuntimeThreeSceneRenderer } from "runtime-three";
-import { RuntimeWorkAttachmentRuntime } from "./runtime-work-attachment-runtime";
-import { ProductionRuntimeSchedulerService } from "./runtime-scheduler-service";
-import { camera3MotionComponentDefinition } from "./camera3/camera3-motion-definition";
+import {
+  installWallpaperRuntimeComponentDefinitions,
+  ProductionRuntimeSchedulerService,
+  RuntimeWorkAttachmentRuntime
+} from "../index";
 import { createRuntimeSceneTesseract4ActorId } from "./runtime-scene-content";
 import { RuntimeSceneViewRuntimeRegistry } from "./runtime-scene-view-runtime";
-import { installTesseract4ComponentDefinitions } from "./tesseract4";
 
 describe("RuntimeSceneViewRuntimeRegistry", () => {
   it("removes stale frame sources when a scene view runtime is disposed", () => {
@@ -69,8 +69,7 @@ function createContext() {
       new RuntimeWorkAttachmentRuntime({ actorSystem, scheduler: runtimeScheduler })
     ])
   });
-  installComponentDefinition(componentRegistry, camera3MotionComponentDefinition);
-  installTesseract4ComponentDefinitions(componentRegistry);
+  installWallpaperRuntimeComponentDefinitions(componentRegistry);
   return {
     actorSystem,
     context: createActorCreationScope({ actorSystem, componentRegistry })
@@ -91,7 +90,7 @@ function createPresentation(viewActorId: string, calls: string[]) {
 
 function createRenderer(calls: string[], id: string): RuntimeThreeSceneRenderer {
   return {
-    domElement: {} as HTMLElement,
+    domElement: {} as RuntimeThreeSceneRenderer["domElement"],
     setClearColor() {},
     setPixelRatio() {},
     setSize() {},

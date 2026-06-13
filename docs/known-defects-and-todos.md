@@ -384,6 +384,9 @@ Closed entries retained above:
 - DCK-006: closed by the Phase 8 dock blocker fix; floating tab-drag state is
   now session-owned through `FloatingWindowComponent` and
   `handleWindowFrameTabInputEnd`, with fresh Phase 8 smoke evidence.
+- DCK-007: closed by the Phase 9 root dock owner fix; root tab-drag state now
+  continues after the pointer leaves the tab hit, with fresh Phase 9 and Phase
+  10 smoke evidence covering bidirectional Debug/Scene dock.
 
 Move entries here only when retaining the full active-entry detail no longer
 helps future agents.

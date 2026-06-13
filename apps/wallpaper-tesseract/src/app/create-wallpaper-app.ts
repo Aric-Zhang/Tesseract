@@ -1,49 +1,30 @@
 import { GizmoEventSystem } from "gizmo-core";
-import { AppRuntimeContext } from "../app-runtime";
 import {
-  createDefaultDebugWindowState,
-  registerDebugWindowParameters,
-  type DebugLogContentComponent
+  ActorSystem,
+  ComponentRegistry,
+  CompositeComponentAttachmentRuntime,
+  createActorCreationScope,
+  type Component
+} from "actor-core";
+import {
+  AppFrameStateController,
+  StateObserverAttachmentRuntime,
+  type AppStateObserver
 } from "editor";
-import {
-  createDefaultSceneWindowState,
-  registerSceneWindowParameters
-} from "editor";
-import {
-  createSceneDefaultOpenView,
-  createSceneWindowWorkspaceFloatingFramePolicy,
-  installSceneViewFeature
-} from "../features/scene";
-import { installAppMenuFeature } from "../features/app-menu";
-import {
-  createInspectorWindowWorkspaceFloatingFramePolicies,
-  installInspectorFeature
-} from "editor";
-import {
-  createActorHierarchyObjectSource,
-  createDefaultHierarchyPanelState,
-  registerHierarchyPanelParameters
-} from "editor";
-import {
-  createToolWindowDefaultOpenViews,
-  createToolWindowWorkspaceFloatingFramePolicies,
-  installToolWindowFeatures
-} from "editor";
-import { AppFrameStateController, type AppStateObserver } from "editor";
 import { AppStateParameterStore } from "editor";
 import type { AppStateCommandSink } from "editor";
 import { editorStatePaths } from "editor";
 import {
-  createEditorBackedWorkspaceCommandSink,
-  registerWorkspaceModeParameters
+  createEditorBackedWorkspaceCommandSink
 } from "editor";
-import { UpdateFrameClock } from "../runtime/ports";
+import { RuntimeFrameClock } from "runtime-core";
+import { ActiveInputCancellationRuntime, GizmoControllerAttachmentRuntime } from "../gizmo-runtime";
+import { FrameUpdateAttachmentRuntime } from "ui-framework";
 import type { StateObserverRegistry } from "editor";
 import {
   createWindowFocusServiceProxy,
   type UiLayoutCommandSink,
-  WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY,
-  WORKSPACE_ROOT_FRAME_ID
+  WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY
 } from "../window-runtime";
 import {
   createBrowserWindowWorkspaceFrameLayoutStorage,
@@ -51,27 +32,18 @@ import {
   type InstalledWindowWorkspaceFeature
 } from "../features/window-workspace";
 import {
-  APP_MENU_BAR_ACTOR_ID,
-  APP_MENU_BAR_ACTOR_NAME,
-  CAMERA3_GIZMO_ACTOR_ID,
-  CAMERA3_GIZMO_ACTOR_NAME,
-  DEBUG_LOG_WINDOW_ACTOR_ID,
-  DEBUG_LOG_WINDOW_ACTOR_NAME,
-  HIERARCHY_PANEL_ACTOR_ID,
-  HIERARCHY_PANEL_ACTOR_NAME,
-  SCENE_WINDOW_ACTOR_ID,
-  SCENE_WINDOW_ACTOR_NAME,
-  TESSERACT4_ACTOR_ID,
-  TESSERACT4_ACTOR_NAME
-} from "./app-actor-ids";
-import { installWallpaperComponentDefinitions } from "./install-component-definitions";
+  createWallpaperDebugLogSink,
+  installWallpaperProductStateDefaults,
+  installWallpaperProductFeatures,
+} from "../features/install-wallpaper-product-features";
+import { installWallpaperComponentDefinitions } from "../features/install-wallpaper-component-definitions";
 import { createWallpaperAppShell } from "./app-shell";
 import { ImmediateUpdateScheduler } from "./immediate-update-scheduler";
 import { RenderLoop } from "./render-loop";
-import { WorkspaceModeController } from "./workspace-mode";
 import { AppFrameOrchestrator } from "./app-frame-orchestrator";
-import { toRuntimeFrame } from "./adapters/runtime-frame-adapter";
 import { UiFrameScheduler } from "./ui-frame-scheduler";
+import { ProductionRuntimeSchedulerService } from "../runtime/runtime-scheduler-service";
+import { RuntimeWorkAttachmentRuntime } from "../runtime/runtime-work-attachment-runtime";
 
 export interface WallpaperApp {
   dispose(): void;
@@ -81,16 +53,10 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const appShell = createWallpaperAppShell(mount);
   const floatingFrameParent = appShell.floatingOverlaySlot;
 
-  const frameClock = new UpdateFrameClock();
+  const frameClock = new RuntimeFrameClock();
   const uiFrameScheduler = new UiFrameScheduler();
   const appStateStore = new AppStateParameterStore();
-  const sceneWindowState = createDefaultSceneWindowState();
-  const debugWindowState = createDefaultDebugWindowState();
-  const hierarchyPanelState = createDefaultHierarchyPanelState();
-  registerSceneWindowParameters(appStateStore, sceneWindowState);
-  registerDebugWindowParameters(appStateStore, debugWindowState);
-  registerHierarchyPanelParameters(appStateStore, hierarchyPanelState);
-  registerWorkspaceModeParameters(appStateStore);
+  const productWindowPolicy = installWallpaperProductStateDefaults(appStateStore);
 
   let isUpdatingFrame = false;
   const immediateUpdates = new ImmediateUpdateScheduler({
@@ -112,19 +78,36 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     }
   };
 
-  let debugLogWindow: { readonly component: DebugLogContentComponent } | null = null;
+  const debugLogSink = createWallpaperDebugLogSink();
   const windowFocus = createWindowFocusServiceProxy();
   const gizmoEventSystem = new GizmoEventSystem({
     debug: true,
     debugConsole: true,
-    onDebugLog: (entry) => debugLogWindow?.component.append(entry)
+    onDebugLog: (entry) => debugLogSink.append(entry)
   });
-  const runtimeContext = new AppRuntimeContext({
-    frameStateController: frameStateBridge,
-    gizmoEventSystem
+  const actorSystem = new ActorSystem();
+  const runtimeScheduler = new ProductionRuntimeSchedulerService();
+  const frameUpdateRuntime = new FrameUpdateAttachmentRuntime({ actorSystem });
+  const activeInputCancellationRuntime = new ActiveInputCancellationRuntime();
+  const componentRegistry = new ComponentRegistry({
+    actorSystem,
+    attachmentRuntime: new CompositeComponentAttachmentRuntime([
+      new RuntimeWorkAttachmentRuntime({
+        actorSystem,
+        scheduler: runtimeScheduler
+      }),
+      frameUpdateRuntime,
+      new GizmoControllerAttachmentRuntime({ registry: gizmoEventSystem }),
+      new StateObserverAttachmentRuntime({
+        registry: frameStateBridge,
+        getObserver: assertAppStateObserverBinding
+      }),
+      activeInputCancellationRuntime
+    ])
   });
+  const actorCreationScope = createActorCreationScope({ actorSystem, componentRegistry });
 
-  installWallpaperComponentDefinitions(runtimeContext.componentRegistry, {
+  installWallpaperComponentDefinitions(componentRegistry, {
     gizmoEventBinding: {
       actorInputStackPriority: windowFocus,
       requestPointerFocus: (actor) => windowFocus.focusActorWindow(actor, "pointer-down")
@@ -133,114 +116,47 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     uiLayoutCommandSink: createEditorBackedUiLayoutCommandSink(frameStateBridge)
   });
 
-  const hierarchyObjectSource = createActorHierarchyObjectSource({
-    actorSystem: runtimeContext.actorSystem,
-    metadataByActorId: {
-      [SCENE_WINDOW_ACTOR_ID]: { label: SCENE_WINDOW_ACTOR_NAME, order: 0 },
-      [TESSERACT4_ACTOR_ID]: { label: TESSERACT4_ACTOR_NAME, order: 10 },
-      [CAMERA3_GIZMO_ACTOR_ID]: { label: CAMERA3_GIZMO_ACTOR_NAME, order: 20 },
-      [DEBUG_LOG_WINDOW_ACTOR_ID]: { label: DEBUG_LOG_WINDOW_ACTOR_NAME, order: 1000 },
-      [HIERARCHY_PANEL_ACTOR_ID]: { label: HIERARCHY_PANEL_ACTOR_NAME, order: 1010 },
-      [APP_MENU_BAR_ACTOR_ID]: { label: APP_MENU_BAR_ACTOR_NAME, order: 1020 },
-      [WORKSPACE_ROOT_FRAME_ID]: { label: "Workspace Root", order: 1030 }
-    }
-  });
   const layoutStorage = createBrowserWindowWorkspaceFrameLayoutStorage(window, {
     resetKeys: shouldResetWindowWorkspaceLayout(window)
       ? [WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY]
       : []
   });
   const windowWorkspace = installWindowWorkspaceFeature({
-    context: runtimeContext,
+    context: actorCreationScope,
     layoutState: appStateStore,
     floatingFrameParent,
     rootFrameParent: appShell.rootDockSlot,
     windowFocus,
-    cancelActiveInput: () => runtimeContext.cancelActiveActorInput(),
-    floatingFramePolicies: new Map([
-      createSceneWindowWorkspaceFloatingFramePolicy(sceneWindowState),
-      ...createInspectorWindowWorkspaceFloatingFramePolicies(),
-      ...createToolWindowWorkspaceFloatingFramePolicies({
-        debugFallbackState: debugWindowState,
-        hierarchyFallbackState: hierarchyPanelState.window
-      })
-    ]),
-    defaultOpenViews: [
-      createSceneDefaultOpenView(),
-      ...createToolWindowDefaultOpenViews()
-    ],
+    cancelActiveInput: () => activeInputCancellationRuntime.cancelActiveActorInput(),
+    floatingFramePolicies: productWindowPolicy.floatingFramePolicies,
+    defaultOpenViews: productWindowPolicy.defaultOpenViews,
     layoutStorage,
     registerUiScheduledService: (service) => uiFrameScheduler.register(service)
   });
-  const sceneFeature = installSceneViewFeature({
-    context: runtimeContext,
+  const productFeatures = installWallpaperProductFeatures({
+    context: actorCreationScope,
     mount: floatingFrameParent,
-    actorIds: {
-      sceneWindowActorId: SCENE_WINDOW_ACTOR_ID,
-      sceneWindowActorName: SCENE_WINDOW_ACTOR_NAME,
-      camera3GizmoActorId: CAMERA3_GIZMO_ACTOR_ID,
-      camera3GizmoActorName: CAMERA3_GIZMO_ACTOR_NAME,
-      tesseract4ActorId: TESSERACT4_ACTOR_ID,
-      tesseract4ActorName: TESSERACT4_ACTOR_NAME
-    },
+    menuParent: appShell.menuSlot,
+    stateStore: appStateStore,
+    stateBridge: frameStateBridge,
     viewFactories: windowWorkspace.viewFactories,
-    locations: windowWorkspace.lifecycle
-  });
-  installInspectorFeature({
-    context: runtimeContext,
-    viewFactories: windowWorkspace.viewFactories
-  });
-  installToolWindowFeatures({
-    context: runtimeContext,
-    viewFactories: windowWorkspace.viewFactories,
-    hierarchyObjectSource,
-    debugLogLabel: DEBUG_LOG_WINDOW_ACTOR_NAME,
-    hierarchyLabel: HIERARCHY_PANEL_ACTOR_NAME,
-    actorIds: {
-      debugLogViewActorId: `${DEBUG_LOG_WINDOW_ACTOR_ID}:view`,
-      debugLogViewActorName: `${DEBUG_LOG_WINDOW_ACTOR_NAME} View`,
-      hierarchyPanelViewActorId: `${HIERARCHY_PANEL_ACTOR_ID}:view`,
-      hierarchyPanelViewActorName: `${HIERARCHY_PANEL_ACTOR_NAME} View`
-    },
-    onDebugLogContentChanged(component) {
-      debugLogWindow = component ? { component } : null;
-    }
+    lifecycle: windowWorkspace.lifecycle,
+    windowCatalog: windowWorkspace.catalog,
+    windowFrameIntents: windowWorkspace.frameIntents,
+    workspacePresentation: windowWorkspace.presentationController,
+    debugLogSink
   });
   if (!windowWorkspace.restorePersistedLayout()) {
     windowWorkspace.openDefaultViews();
   }
-  installAppMenuFeature({
-    context: runtimeContext,
-    actorId: APP_MENU_BAR_ACTOR_ID,
-    actorName: APP_MENU_BAR_ACTOR_NAME,
-    parent: appShell.menuSlot,
-    windowCatalog: windowWorkspace.catalog,
-    windowFrameIntents: windowWorkspace.frameIntents,
-    workspaceModePath: editorStatePaths.workspace.mode
-  });
-  const workspaceModeController = new WorkspaceModeController({
-    commandSink: createEditorBackedWorkspaceCommandSink(frameStateBridge),
-    getValue: (path) => appStateStore.get(path),
-    sceneView: {
-      viewKey: "scene",
-      locations: windowWorkspace.lifecycle,
-      commands: windowWorkspace.lifecycle,
-      presentation: windowWorkspace.lifecycle,
-      open: () => windowWorkspace.lifecycle.openView("scene", "programmatic")
-    },
-    workspacePresentation: windowWorkspace.presentationController,
-    toolWindows: [],
-    onScenePresentationChanged: () => sceneFeature.renderableSceneViews.current?.measureNow()
-  });
-  const unregisterWorkspaceModeObserver = frameStateBridge.subscribe(workspaceModeController);
 
   const renderLoop = new RenderLoop({ update });
   const frameOrchestrator = new AppFrameOrchestrator({
     updateRuntimeWork(frame) {
-      runtimeContext.updateRuntimeFrame(toRuntimeFrame(frame));
+      runtimeScheduler.updateRuntimeFrame(frame);
     },
     tickUiComponents(frame) {
-      runtimeContext.updateComponentFrame(frame);
+      frameUpdateRuntime.updateFrame(frame);
     },
     tickUiServices(frame) {
       uiFrameScheduler.updateFrame(frame);
@@ -249,12 +165,12 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       frameStateController.updateFrame(frame);
     },
     renderFrameSources() {
-      sceneFeature.renderableSceneViews.current?.render();
+      productFeatures.renderFrameSources();
     }
   });
 
   function measureSceneViewport(): void {
-    sceneFeature.renderableSceneViews.current?.measureNow();
+    productFeatures.measureSceneViewport();
   }
 
   function update(timeMs: number): void {
@@ -289,13 +205,17 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     document.removeEventListener("keydown", handleKeyDown);
     renderLoop.dispose();
     immediateUpdates.dispose();
-    unregisterWorkspaceModeObserver.dispose();
-    workspaceModeController.dispose();
+    productFeatures.dispose();
     closeLiveWindowFrames(windowWorkspace.lifecycle);
     windowWorkspace.dispose();
     uiFrameScheduler.dispose();
     windowFocus.dispose();
-    runtimeContext.dispose();
+    actorCreationScope.dispose();
+    actorSystem.dispose();
+    runtimeScheduler.dispose();
+    frameUpdateRuntime.dispose();
+    gizmoEventSystem.dispose();
+    frameStateBridge.dispose();
     appShell.dispose();
   }
 
@@ -332,4 +252,14 @@ function closeLiveWindowFrames(controller: InstalledWindowWorkspaceFeature["life
   for (const frameId of frameIds) {
     controller.closeFrame(frameId, "programmatic");
   }
+}
+
+function assertAppStateObserverBinding(component: Component): AppStateObserver {
+  const candidate = component as Partial<AppStateObserver>;
+  if (typeof candidate.onStateChanged !== "function") {
+    throw new Error(
+      `Component ${component.type} declares state-observer attachment but does not implement StateObserver.`
+    );
+  }
+  return candidate as AppStateObserver;
 }

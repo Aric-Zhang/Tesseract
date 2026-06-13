@@ -6,8 +6,7 @@ import type {
   ActorInputHit,
   ActorInputParticipant
 } from "../../gizmo-runtime";
-import type { StateObserverResponder } from "editor";
-import type { StateChangedEvent } from "../../runtime/ports";
+import type { EditorStateChangedEvent, StateObserverResponder } from "editor";
 import type {
   WindowFrameIntentSink,
   WindowWorkspaceViewCatalog,
@@ -125,7 +124,7 @@ export class AppMenuBarComponent
     this.renderIfChanged();
   }
 
-  onStateChanged(event: StateChangedEvent<string>): void {
+  onStateChanged(event: EditorStateChangedEvent): void {
     const modeChange = event.changes.find((change) => change.path === this.#workspaceModePath);
     if (!modeChange) return;
     this.#mode = modeChange.nextValue as AppMenuWorkspaceMode;

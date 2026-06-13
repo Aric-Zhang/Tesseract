@@ -8,6 +8,7 @@ export {
 export {
   componentAttachmentKind
 } from "./component-attachment-runtime";
+export { CompositeComponentAttachmentRuntime } from "./composite-component-attachment-runtime";
 export type {
   Component,
   ActorSystemView,
@@ -35,3 +36,5 @@ export { ComponentTransaction } from "./component-transaction";
 export type { RollbackErrorHandler } from "./component-transaction";
 export { createRegisteredActor } from "./registered-actor";
 export type { CreateRegisteredActorOptions, RegisteredActor } from "./registered-actor";
+export { createActorCreationScope } from "./actor-creation-scope";
+export type { ActorCreationScope, ActorCreationScopeOptions } from "./actor-creation-scope";

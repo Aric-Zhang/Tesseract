@@ -62,6 +62,13 @@ diagnostics gate for the 2026-06-13 Debug/Scene repeated dock investigation.
 That gate moved split dock id allocation into `WindowWorkspaceGraph`, made dock
 commit results assertable, and verified the repeated Debug/Scene dock path with
 root validation and browser evidence.
+Phase 7 implementation and closure are complete. Its execution slice deleted
+runtime port aliases, `app-runtime`, old app-local Scene/Camera3/Tesseract
+mixed owners, and app-local app policy files under `src/app`. The completed
+closure record is `temp/project-prism-phase-7-closure-plan.md`. The active
+Phase 8 plan is `docs/project-prism-phase-8-runtime-scene-composition-plan.md`;
+it takes the smaller explicit app-composition and runtime-placement debts as
+entry scope without adding compatibility facades.
 ```
 
 ## Codename
@@ -601,9 +608,10 @@ planned:
   has moved into runtime-three.
 - `WindowWorkspaceGraph` is the intended window placement truth.
 
-The next work is therefore not another broad extraction pass or another
-window-placement cleanup. The next work is Phase 6 editor package extraction,
-while keeping the completed window-workspace graph gate green.
+The next work is therefore not another broad extraction pass, another editor
+extraction pass, or another window-placement cleanup. The next work is Phase 7
+runtime-owner convergence and app-bootstrap thinning, while keeping the
+completed window-workspace graph and Phase 6 editor package gates green.
 
 Authoritative forward sequence:
 
@@ -611,13 +619,14 @@ Authoritative forward sequence:
 Phase 5.5A: close app-local runtime ownership staging already in progress
 Phase 5.5B: completed - delete remaining window-workspace multi-truth debt
 Phase 5.5C: completed - run final browser graph/DOM/input/persistence parity gate
-Phase 6: extract editor package while preserving the completed graph gate
-Phase 7: thin Wallpaper app composition after editor/runtime/ui installers exist
-Phase 8: validate multi-world and multi-viewport behavior
+Phase 6: completed - extract editor package while preserving the completed graph gate
+Phase 7: completed - thin Wallpaper app composition after runtime/editor/ui ownership is clean
+Phase 8: active - split runtime Scene composition and product feature policy
 ```
 
-Phase 6 may begin because `window-workspace-multi-truth-debt` no longer remains
-in boundary facts.
+Phase 7 is complete. Phase 8 may proceed because app-local runtime ports,
+`app-runtime`, old mixed Scene/Tesseract/Camera3 staging, and old app bootstrap
+policy files were deleted or moved to narrower owners.
 
 ### Historical Phase Model Verdict
 
@@ -1089,6 +1098,27 @@ Goal:
 
 Turn the Wallpaper app into bootstrap/composition only.
 
+Execution record and closure record:
+
+```text
+docs/project-prism-phase-7-runtime-owner-app-bootstrap-plan.md
+temp/project-prism-phase-7-closure-plan.md
+```
+
+Current adjustment:
+
+Phase 7 started by deleting remaining app-local runtime owners and transitional
+ports. It should not redo editor extraction: Debug, Hierarchy, Inspector, Scene
+presentation, Camera3 gizmo presentation, editor state, and tool-window
+installation are already in `packages/editor`. It should not redo window
+placement cleanup: `WindowWorkspaceGraph` is the production placement truth.
+The first execution slice resolved `runtime/ports`, deleted `app-runtime`,
+established an app-local runtime Scene owner, moved Tesseract runtime renderable
+ownership and Camera3 runtime staging under runtime ownership, and moved
+concrete product feature policy out of `src/app`. Remaining
+product-feature/component/workspace/gizmo installation debt is now Phase 8
+entry scope rather than hidden Phase 7 acceptance debt.
+
 Work:
 
 - app creates only the root DOM shell, actor system, component registry, and
@@ -1098,6 +1128,15 @@ Work:
 - app installs runtime defaults through runtime package APIs;
 - app installs editor defaults through editor package APIs;
 - app connects render loop and Wallpaper Engine lifecycle;
+- keep app-local runtime port aliases deleted instead of preserving them as a
+  convenience barrel;
+- keep `app-runtime` deleted as a mixed mega-context instead of renaming it;
+- keep Tesseract runtime renderable ownership and Camera3 runtime motion
+  ownership under runtime owners before shrinking app composition further;
+- keep the mixed Scene content installer deleted; use the runtime Scene owner
+  plus editor presentation ports;
+- move workspace-mode and app menu policy out of app composition or delete them
+  if existing package controllers can express the behavior directly;
 - delete app-local staging modules once their package owner exists:
   `app-runtime` registration ports, `window-runtime` compatibility barrels,
   runtime port aliases, feature-level window defaults, and direct actor factory

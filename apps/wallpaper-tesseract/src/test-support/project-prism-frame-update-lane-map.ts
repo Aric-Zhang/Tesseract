@@ -3,15 +3,13 @@ export type ProjectPrismFrameUpdateLane =
   | "ui-component-tick"
   | "editor-state-flush"
   | "scheduler-dispatcher"
-  | "shared-contract"
   | "barrel-export";
 
 export type ProjectPrismFrameUpdateTargetOwner =
   | "runtime-scheduler"
   | "ui-component-scheduler"
   | "editor-state-flush-scheduler"
-  | "app-composition-delete-after-split"
-  | "shared-contract";
+  | "app-composition-delete-after-split";
 
 export interface ProjectPrismFrameUpdateLaneEntry {
   readonly id: string;
@@ -24,36 +22,12 @@ export interface ProjectPrismFrameUpdateLaneEntry {
 
 export const projectPrismFrameUpdateLaneMap = [
   entry(
-    "runtime-update-frame-contract",
-    "./runtime/ports/update-frame.ts",
-    "shared-contract",
-    "shared-contract",
-    false,
-    "UpdateFrame remains the shared app-local frame tick contract until package ownership is finalized."
-  ),
-  entry(
-    "runtime-ports-barrel",
-    "./runtime/ports/index.ts",
-    "barrel-export",
-    "shared-contract",
-    false,
-    "Barrel exports only explicit frame/update contracts, not generic runtime object buses."
-  ),
-  entry(
     "app-render-loop-dispatch",
     "./app/create-wallpaper-app.ts",
     "scheduler-dispatcher",
     "app-composition-delete-after-split",
     false,
     "App render loop calls explicit runtime, UI tick, and editor state flush schedulers instead of sceneRuntime.updateFrame."
-  ),
-  entry(
-    "app-runtime-context-dispatch-registration",
-    "./app-runtime/app-runtime-context.ts",
-    "scheduler-dispatcher",
-    "app-composition-delete-after-split",
-    false,
-    "App runtime context no longer exposes a generic RuntimeObject registration bus."
   ),
   entry(
     "app-frame-orchestrator",
@@ -81,19 +55,11 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "runtime-work-attachment-runtime",
-    "./update-runtime/runtime-work-attachment-runtime.ts",
+    "./runtime/runtime-work-attachment-runtime.ts",
     "scheduler-dispatcher",
     "runtime-scheduler",
     false,
-    "RuntimeWorkAttachmentRuntime remains a binding bridge from actor/component lifecycle to RuntimeScheduler and is not itself runtime work."
-  ),
-  entry(
-    "frame-update-runtime-barrel",
-    "./update-runtime/index.ts",
-    "barrel-export",
-    "runtime-scheduler",
-    false,
-    "update-runtime barrel exports only runtime-work attachment debt until that bridge migrates."
+    "RuntimeWorkAttachmentRuntime is the runtime-owned binding bridge from actor/component lifecycle to RuntimeScheduler and is not itself runtime work."
   ),
   entry(
     "app-frame-state-controller",
@@ -113,51 +79,43 @@ export const projectPrismFrameUpdateLaneMap = [
   ),
   entry(
     "camera3-motion-component",
-    "./features/camera3/components/camera3-motion-component.ts",
+    "./runtime/camera3/camera3-motion-component.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
-    "Camera3 actor component binds editor commands to runtime camera state without owning scheduler dispatch."
+    "Camera3 runtime component binds editor commands to runtime camera state without owning scheduler dispatch."
   ),
   entry(
     "camera3-motion-definition",
-    "./features/camera3/components/camera3-motion-definition.ts",
+    "./runtime/camera3/camera3-motion-definition.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
-    "Camera3 motion definition no longer uses frame-update attachment after camera runtime work migrates."
+    "Camera3 motion definition installs runtime-work attachment from the runtime owner."
   ),
   entry(
     "tesseract4-runtime-renderable",
-    "./tesseract4/tesseract4-runtime-renderable.ts",
+    "./runtime/tesseract4-runtime-renderable.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
-    "Tesseract4 runtime renderable moves toward runtime ownership and no longer implements app-local RuntimeObject."
+    "Tesseract4 runtime renderable is owned by the runtime scene domain and no longer implements app-local RuntimeObject."
   ),
   entry(
     "tesseract4-component",
-    "./tesseract4/components/tesseract4-component.ts",
+    "./runtime/tesseract4/tesseract4-component.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
-    "Tesseract4 component binds actor/editor lifecycle to runtime world ownership without owning scheduler dispatch."
+    "Tesseract4 component binds actor lifecycle to runtime world ownership without owning scheduler dispatch."
   ),
   entry(
     "tesseract4-definition",
-    "./tesseract4/components/tesseract4-definition.ts",
+    "./runtime/tesseract4/tesseract4-definition.ts",
     "runtime-work",
     "runtime-scheduler",
     true,
-    "Tesseract4 definition no longer uses frame-update attachment after world runtime work migrates."
-  ),
-  entry(
-    "tesseract4-barrel",
-    "./tesseract4/index.ts",
-    "barrel-export",
-    "runtime-scheduler",
-    false,
-    "Tesseract4 barrel exports product runtime contracts from their final runtime owner."
+    "Tesseract4 definition installs runtime-work attachment from the runtime owner."
   ),
   entry(
     "debug-log-content-component",

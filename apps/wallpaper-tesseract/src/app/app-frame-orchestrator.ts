@@ -1,19 +1,20 @@
-import type { UpdateFrame } from "../runtime/ports";
+import type { RuntimeFrame } from "runtime-core";
+import type { UiFrame } from "ui-framework";
 
 export interface AppFrameOrchestratorOptions {
-  readonly updateRuntimeWork: (frame: UpdateFrame) => void;
-  readonly tickUiComponents: (frame: UpdateFrame) => void;
-  readonly tickUiServices: (frame: UpdateFrame) => void;
-  readonly flushEditorState: (frame: UpdateFrame) => void;
-  readonly renderFrameSources: (frame: UpdateFrame) => void;
+  readonly updateRuntimeWork: (frame: RuntimeFrame) => void;
+  readonly tickUiComponents: (frame: UiFrame) => void;
+  readonly tickUiServices: (frame: UiFrame) => void;
+  readonly flushEditorState: (frame: RuntimeFrame) => void;
+  readonly renderFrameSources: (frame: RuntimeFrame) => void;
 }
 
 export class AppFrameOrchestrator {
-  readonly #updateRuntimeWork: (frame: UpdateFrame) => void;
-  readonly #tickUiComponents: (frame: UpdateFrame) => void;
-  readonly #tickUiServices: (frame: UpdateFrame) => void;
-  readonly #flushEditorState: (frame: UpdateFrame) => void;
-  readonly #renderFrameSources: (frame: UpdateFrame) => void;
+  readonly #updateRuntimeWork: (frame: RuntimeFrame) => void;
+  readonly #tickUiComponents: (frame: UiFrame) => void;
+  readonly #tickUiServices: (frame: UiFrame) => void;
+  readonly #flushEditorState: (frame: RuntimeFrame) => void;
+  readonly #renderFrameSources: (frame: RuntimeFrame) => void;
 
   constructor(options: AppFrameOrchestratorOptions) {
     this.#updateRuntimeWork = options.updateRuntimeWork;
@@ -23,7 +24,7 @@ export class AppFrameOrchestrator {
     this.#renderFrameSources = options.renderFrameSources;
   }
 
-  updateFrame(frame: UpdateFrame): void {
+  updateFrame(frame: RuntimeFrame): void {
     this.#updateRuntimeWork(frame);
     this.#tickUiComponents(frame);
     this.#tickUiServices(frame);
@@ -31,4 +32,3 @@ export class AppFrameOrchestrator {
     this.#renderFrameSources(frame);
   }
 }
-

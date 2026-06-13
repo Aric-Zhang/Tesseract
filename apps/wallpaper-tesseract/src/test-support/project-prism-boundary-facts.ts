@@ -9,8 +9,7 @@ export const projectPrismSourceZones = [
     /^\.\/actor-runtime\//
   ]),
   definePathZone("actor-binding-debt", "App-local attachment/runtime placement that still blocks actor-input and state/runtime extraction.", [
-    /^\.\/gizmo-runtime\/install-component-definitions\.ts$/,
-    /^\.\/update-runtime\//
+    /^\.\/gizmo-runtime\/install-component-definitions\.ts$/
   ], { debt: true }),
   definePathZone("actor-input-candidate", "Actor input and gizmo-core adapter candidates.", [
     /^\.\/gizmo-runtime\/index\.ts$/
@@ -33,27 +32,20 @@ export const projectPrismSourceZones = [
   ]),
   definePathZone("editor-candidate", "Concrete editor features and editor presentation components.", [
     /^packages\/editor\/src\//,
-    /^\.\/features\/camera3\/components\//
+    /^\.\/features\/scene\/components\//
   ]),
   definePathZone("app-composition", "Wallpaper app bootstrap and composition layer.", [
     /^\.\/app\/(?!app-shell\.ts$)[^/]+\.ts$/,
     /^\.\/demo\.ts$/
   ]),
   definePathZone("app-composition-debt", "Wallpaper app composition still knows concrete editor/runtime policy details.", [
-    /^\.\/app\/adapters\//,
-    /^\.\/app\/create-wallpaper-app\.ts$/,
-    /^\.\/app\/install-component-definitions\.ts$/,
-    /^\.\/app\/workspace-mode\.ts$/
-  ], { debt: true }),
-  definePathZone("app-runtime-debt", "Transitional app runtime context and registration ports.", [
-    /^\.\/app-runtime\//,
-    /^\.\/runtime\/ports\//
+    /^\.\/features\/install-wallpaper-component-definitions\.ts$/,
+    /^\.\/features\/workspace-mode\.ts$/,
+    /^\.\/features\/install-wallpaper-product-features\.ts$/,
+    /^\.\/gizmo-runtime\/install-component-definitions\.ts$/
   ], { debt: true }),
   definePathZone("runtime-ownership-debt", "Runtime-like world/camera/object code still owned by editor/app folders.", [
-    /^\.\/app\/create-wallpaper-app\.ts$/,
-    /^\.\/features\/camera3\/components\/(?:camera3-motion-component|scene-camera3-viewport-binding-component)\.ts$/,
-    /^\.\/features\/scene\/(?:index|install-scene-view-feature|scene-view-content-installer|renderable-scene-view)\.ts$/,
-    /^\.\/tesseract4\//
+    /^\.\/features\/scene\/(?:index|install-scene-view-feature|renderable-scene-view)\.ts$/
   ], { debt: true })
 ] as const satisfies readonly SourceZoneDefinition[];
 
@@ -96,12 +88,6 @@ export const projectPrismDebtBlockers = [
     deletionCondition: "App composition imports public runtime/editor/UI installers and bootstrap ports only."
   },
   {
-    zoneId: "app-runtime-debt",
-    blocks: ["app runtime deletion", "package-owned port extraction"],
-    blocker: "AppRuntimeContext and runtime/ports are transitional glue that still define feature actor and registry contracts.",
-    deletionCondition: "Reusable ports move to the package that owns the contract; wallpaper app becomes thin composition."
-  },
-  {
     zoneId: "runtime-ownership-debt",
     blocks: ["runtime-core extraction", "runtime-three extraction"],
     blocker: "Tesseract, Camera3, Scene render host, and Three/WebGL ownership are still partly app/editor feature owned.",
@@ -118,7 +104,19 @@ export interface ProjectPrismRuntimeExtractionBlocker {
   readonly deletionCondition: string;
 }
 
-export const projectPrismRuntimeExtractionBlockers: readonly ProjectPrismRuntimeExtractionBlocker[] = [];
+export const projectPrismRuntimeExtractionBlockers: readonly ProjectPrismRuntimeExtractionBlocker[] = [
+  {
+    id: "scene-runtime-composition-feature-installer",
+    files: [
+      "./features/scene/install-scene-view-feature.ts",
+      "./features/scene/renderable-scene-view.ts"
+    ],
+    blocks: ["runtime scene package placement", "multi-scene runtime composition"],
+    requiredPort: "A runtime-owned Scene session/content installer consumed through narrow editor presentation ports.",
+    blocker: "Scene feature installation still assembles editor Scene actor creation, runtime Scene session/content, Camera3 gizmo creation, and renderable frame-source bridging in one feature-level composition point.",
+    deletionCondition: "Scene runtime session/content and renderable frame-source registration are owned by runtime packages or a narrower runtime owner; Scene feature code only connects editor presentation ports."
+  }
+];
 
 export interface ProjectPrismUiFrameworkExtractionBlocker {
   readonly id: string;
@@ -144,16 +142,16 @@ export const projectPrismAppCompositionBlockers = [
   {
     id: "wallpaper-app-concrete-feature-policy",
     files: [
-      "./app/create-wallpaper-app.ts"
+      "./features/install-wallpaper-product-features.ts"
     ],
-    blocks: ["app bootstrap thinning", "formal package extraction"],
-    blocker: "App composition still wires Scene/Debug/Hierarchy/Inspector state, actor ids, default views, floating policies, hierarchy metadata, and debug log sink policy.",
-    deletionCondition: "App composition imports runtime/editor/UI installers and connects only bootstrap ports, stores, shell, and render loop."
+    blocks: ["product feature policy split", "formal package extraction"],
+    blocker: "Wallpaper product feature composition still centralizes Scene/Debug/Hierarchy/Inspector actor ids, hierarchy metadata, default views, floating policies, app menu wiring, and workspace mode installation.",
+    deletionCondition: "Product feature policy is split into owner-owned installers or deleted when existing runtime/editor/UI owners can express the behavior directly."
   },
   {
     id: "central-component-definition-installer",
     files: [
-      "./app/install-component-definitions.ts"
+      "./features/install-wallpaper-component-definitions.ts"
     ],
     blocks: ["app bootstrap thinning", "editor/runtime package extraction"],
     blocker: "App-local component definition installation still wires product feature adapters and editor/runtime integration components.",
@@ -162,11 +160,20 @@ export const projectPrismAppCompositionBlockers = [
   {
     id: "workspace-mode-app-controller",
     files: [
-      "./app/workspace-mode.ts"
+      "./features/workspace-mode.ts"
     ],
     blocks: ["ui-framework extraction", "editor-state split"],
     blocker: "Workspace mode presentation controller lives in app composition and coordinates editor/window presentation state.",
     deletionCondition: "Workspace mode becomes editor/UI state coordination behind explicit ports."
+  },
+  {
+    id: "gizmo-runtime-definition-installer",
+    files: [
+      "./gizmo-runtime/install-component-definitions.ts"
+    ],
+    blocks: ["actor-input package cleanup", "product component definition split"],
+    blocker: "Actor/gizmo binding definition installation remains app-local instead of being owned by actor-input or a narrow product binding owner.",
+    deletionCondition: "Gizmo runtime binding definitions are installed through a package-owned or feature-owned installer without a central app-local definition aggregator."
   }
 ] as const satisfies readonly ProjectPrismAppCompositionBlocker[];
 
@@ -178,8 +185,7 @@ export const projectPrismZoneDependencyRules = [
       "ui-framework-candidate",
       "editor-candidate",
       "runtime-ownership-debt",
-      "app-composition",
-      "app-runtime-debt"
+      "app-composition"
     ]
   },
   {
@@ -206,8 +212,7 @@ export const projectPrismZoneDependencyRules = [
       "ui-framework-candidate",
       "editor-candidate",
       "runtime-ownership-debt",
-      "app-composition",
-      "app-runtime-debt"
+      "app-composition"
     ]
   },
   {
@@ -215,8 +220,7 @@ export const projectPrismZoneDependencyRules = [
     forbiddenTargetZones: [
       "ui-framework-candidate",
       "editor-candidate",
-      "app-composition",
-      "app-runtime-debt"
+      "app-composition"
     ]
   },
   {
@@ -227,7 +231,6 @@ export const projectPrismZoneDependencyRules = [
       "editor-candidate",
       "app-composition",
       "app-composition-debt",
-      "app-runtime-debt",
       "actor-binding-debt",
       "runtime-ownership-debt"
     ]
@@ -308,9 +311,9 @@ export const projectPrismPackageTargets = [
   {
     id: "wallpaper-app",
     cleanCandidateZones: ["app-composition"],
-    debtZones: ["app-composition-debt", "app-runtime-debt"],
-    blockedBy: ["app-composition-debt", "app-runtime-debt"],
-    extractionPhase: "Phase 7",
+    debtZones: ["app-composition-debt"],
+    blockedBy: ["app-composition-debt"],
+    extractionPhase: "Phase 8",
     extractionStatus: "blocked"
   }
 ] as const satisfies readonly ProjectPrismPackageTarget[];

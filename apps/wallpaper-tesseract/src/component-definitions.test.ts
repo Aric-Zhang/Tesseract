@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { installWallpaperComponentDefinitions } from "./app/install-component-definitions";
+import { installWallpaperComponentDefinitions } from "./features/install-wallpaper-component-definitions";
 import {
   debugLogContentComponentType,
   hierarchyPanelComponentType,
@@ -17,7 +17,7 @@ import {
 import {
   tesseract4ComponentType,
   installTesseract4ComponentDefinitions
-} from "./tesseract4/components";
+} from "./runtime/tesseract4";
 import {
   floatingWindowComponentType,
   installWindowComponentDefinitions

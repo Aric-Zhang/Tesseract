@@ -1,4 +1,4 @@
-import type { RuntimeRegistration } from "../runtime/ports";
+import type { RuntimeRegistration } from "runtime-core";
 
 export interface RecordingRuntimeRegistrationOptions {
   readonly disposeCall?: string;

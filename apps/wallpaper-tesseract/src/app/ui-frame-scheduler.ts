@@ -1,4 +1,4 @@
-import type { UpdateFrame } from "../runtime/ports";
+import type { RuntimeFrame } from "runtime-core";
 import type { UiFrame, UiScheduledService, UiSchedulerRegistration } from "../window-runtime";
 
 interface UiFrameEntry {
@@ -29,7 +29,7 @@ export class UiFrameScheduler {
     };
   }
 
-  updateFrame(frame: UpdateFrame): void {
+  updateFrame(frame: RuntimeFrame): void {
     const uiFrame = toUiFrame(frame);
     for (const entry of [...this.#entries]) {
       const service = entry.service;
@@ -62,7 +62,7 @@ function compareUiFrameEntries(a: UiFrameEntry, b: UiFrameEntry): number {
   return a.order - b.order;
 }
 
-function toUiFrame(frame: UpdateFrame): UiFrame {
+function toUiFrame(frame: RuntimeFrame): UiFrame {
   return {
     timeMs: frame.timeMs,
     deltaMs: frame.deltaMs,

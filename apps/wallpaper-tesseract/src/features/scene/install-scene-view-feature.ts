@@ -1,10 +1,15 @@
 import type { ActorCreationContext } from "actor-core";
 import {
+  createCamera3GizmoActor,
   createEditorSceneViewHost,
+  createSceneViewActor,
   editorWindowLayoutPaths,
   SCENE_WINDOW_MIN_HEIGHT,
   SCENE_WINDOW_MIN_WIDTH,
-  SCENE_WINDOW_PRIORITY_DEVELOP
+  SCENE_WINDOW_PRIORITY_DEVELOP,
+  type Camera3GizmoViewFactory,
+  type RegisteredSceneViewActor,
+  type SceneViewportResizeObserverFactory
 } from "editor";
 import type {
   WindowViewFactoryRegistry,
@@ -21,15 +26,31 @@ import {
   SceneViewFrameSourceRegistry
 } from "./renderable-scene-view";
 import {
-  installSceneViewContent,
-  type SceneViewContentActorIds
-} from "./scene-view-content-installer";
+  createRuntimeSceneSession
+} from "../../runtime/runtime-scene-session";
+import {
+  createRuntimeSceneContent,
+  type RuntimeSceneContentActorIds
+} from "../../runtime/runtime-scene-content";
+import {
+  sceneCamera3ViewportBindingComponentType
+} from "./components";
+
+export interface SceneViewContentActorIds extends RuntimeSceneContentActorIds {
+  readonly sceneWindowActorName: string;
+  readonly camera3GizmoActorId: string;
+  readonly camera3GizmoActorName: string;
+}
+
 export interface InstallSceneViewFeatureOptions {
   readonly context: ActorCreationContext;
   readonly mount: HTMLElement;
   readonly actorIds: SceneViewContentActorIds;
   readonly viewFactories: WindowViewFactoryRegistry;
   readonly locations: WindowViewLocationSource;
+  readonly createResizeObserver?: SceneViewportResizeObserverFactory;
+  readonly createCamera3GizmoView?: Camera3GizmoViewFactory;
+  readonly devicePixelRatio?: () => number;
 }
 
 export interface InstalledSceneViewFeature {
@@ -63,34 +84,72 @@ export function installSceneViewFeature(options: InstallSceneViewFeatureOptions)
     label: options.actorIds.sceneWindowActorName,
     order: 0,
     createViewRuntime: (createOptions) => {
-      const content = installSceneViewContent({
-        context: options.context,
-        mount: options.mount,
-        parentFrameActor: createOptions.parentFrameActor,
-        actorIds: options.actorIds,
-        contentId: createWindowWorkspaceContentId(createOptions.identity),
-        contentRegistration: createOptions.contentRegistration
+      let sceneView: RegisteredSceneViewActor | null = null;
+      const runtimeScene = createRuntimeSceneSession({
+        id: `${options.actorIds.sceneWindowActorId}:view:render-output`
       });
-      const host = createEditorSceneViewHost({
-        actorSystem: options.context.actorSystem,
-        locations: options.locations,
-        sceneView: content.sceneView
-      });
-      const renderable = createRenderableSceneView({
-        host,
-        camera3Motion: content.camera3Motion,
-        renderOutput: content.renderOutput
-      });
-      const renderableRegistration = renderableSceneViews.register(renderable);
-      return {
-        viewActor: content.sceneView.viewport.actor,
-        content: content.sceneView.viewport,
-        title: options.actorIds.sceneWindowActorName,
-        disposeViewRuntime: () => {
-          renderableRegistration.dispose();
-          content.sceneView.disposeRuntimeTracking?.();
+      try {
+        sceneView = createSceneViewActor(options.context, {
+          actorId: `${options.actorIds.sceneWindowActorId}:view`,
+          actorName: `${options.actorIds.sceneWindowActorName} View`,
+          parentActor: createOptions.parentFrameActor,
+          document: options.mount.ownerDocument ?? undefined,
+          renderTarget: runtimeScene.renderTarget,
+          createResizeObserver: options.createResizeObserver,
+          devicePixelRatio: options.devicePixelRatio,
+          contentId: createWindowWorkspaceContentId(createOptions.identity),
+          contentRegistration: createOptions.contentRegistration
+        });
+        const runtimeContent = createRuntimeSceneContent({
+          context: options.context,
+          actorIds: options.actorIds,
+          sceneActor: sceneView.viewport.actor,
+          runtimeScene
+        });
+        const camera3Gizmo = createCamera3GizmoActor(options.context, {
+          actorId: options.actorIds.camera3GizmoActorId,
+          actorName: options.actorIds.camera3GizmoActorName,
+          initialViewState: runtimeContent.camera3Motion.readViewState(),
+          commandSink: runtimeContent.camera3Motion,
+          parent: sceneView.viewport.overlayElement,
+          parentActor: sceneView.viewport.actor
+        }, options.createCamera3GizmoView);
+        options.context.componentRegistry.addComponent(sceneView.viewport.actor, sceneCamera3ViewportBindingComponentType, {
+          camera3GizmoActorId: camera3Gizmo.actor.id
+        });
+        const host = createEditorSceneViewHost({
+          actorSystem: options.context.actorSystem,
+          locations: options.locations,
+          sceneView
+        });
+        const renderable = createRenderableSceneView({
+          host,
+          camera3Motion: runtimeContent.camera3Motion,
+          renderOutput: runtimeContent.renderOutput
+        });
+        const renderableRegistration = renderableSceneViews.register(renderable);
+        const installedSceneView = sceneView;
+        return {
+          viewActor: installedSceneView.viewport.actor,
+          content: installedSceneView.viewport,
+          title: options.actorIds.sceneWindowActorName,
+          disposeViewRuntime: () => {
+            try {
+              renderableRegistration.dispose();
+              installedSceneView.disposeRuntimeTracking?.();
+            } finally {
+              runtimeScene.dispose();
+            }
+          }
+        };
+      } catch (error) {
+        try {
+          sceneView?.dispose();
+        } finally {
+          runtimeScene.dispose();
         }
-      };
+        throw error;
+      }
     }
   });
   return { renderableSceneViews };

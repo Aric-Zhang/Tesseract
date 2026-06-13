@@ -5,7 +5,7 @@ import {
   type RuntimeFrameSource,
   type RuntimeRegistration
 } from "runtime-core";
-import type { Camera3MotionComponent } from "../camera3/components";
+import type { Camera3MotionComponent } from "../../runtime/camera3/camera3-motion-component";
 import type { EditorSceneViewHost } from "editor";
 import type { RuntimeThreeSceneRenderOutput } from "runtime-three";
 

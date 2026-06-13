@@ -1,6 +1,20 @@
 # Project Prism Phase 9 App Composition Closure Plan
 
-Status: proposed next-phase execution plan, drafted 2026-06-13.
+Status: complete. Code cleanup Steps 0-6 are implemented, and Step 7A closed
+`DCK-007` with fresh Phase 9 browser smoke evidence.
+
+DCK-007 blocker resolution record:
+
+```text
+docs/project-prism-phase-9-dck-007-blocker-resolution-plan.md
+```
+
+Fresh smoke evidence:
+
+```text
+temp/project-prism-phase-9-smoke-data.json
+temp/project-prism-phase-9-smoke-report.md
+```
 
 Purpose: close the two narrowed post-Phase-8 debts by deleting the remaining
 product installer shell and collapsing redundant app-composition facts into
@@ -37,39 +51,39 @@ Phase 8 / 8.5 batch is committed.
 
 ## Current Implementation Audit
 
-Production residuals that still need cleanup:
+Production residuals targeted by this plan:
 
 - `apps/wallpaper-tesseract/src/features/install-wallpaper-product-features.ts`
-  still exports and owns:
+  originally exported and owned:
   - `WallpaperProductWindowPolicy`
   - `WallpaperDebugLogSink`
   - `createWallpaperDebugLogSink`
   - `installWallpaperProductStateDefaults`
   - `installWallpaperProductFeatures`
   - `InstalledWallpaperProductFeatures`
-- The same file still centralizes:
+- The same file originally centralized:
   - owner policy contribution composition;
   - hierarchy source creation through `createActorHierarchyObjectSource`;
   - Scene/Tool/AppMenu hierarchy metadata merge;
   - Scene, Inspector, Tool Window, App Menu, and workspace-mode install order.
-- `features/app-menu/app-menu-model.ts` is only a local re-export of
+- `features/app-menu/app-menu-model.ts` was only a local re-export of
   `ui-framework`; app-menu code should import the package model directly and
   this compatibility barrel should be deleted.
-- Product-level hierarchy metadata helpers still exist as public production
-  exports even though the actor tree and actor names already carry most of the
+- Product-level hierarchy metadata helpers existed as public production
+  exports even though the actor tree and actor names already carried most of the
   same truth:
   - `createSceneActorHierarchyMetadata`
   - `createToolWindowActorHierarchyMetadata`
   - `createAppMenuActorHierarchyMetadata`
-- Tool-window installation still exposes customization knobs that preserve a
+- Tool-window installation exposed customization knobs that preserved a
   product-level identity override shape:
   - `ToolWindowActorIds`
   - `InstallToolWindowFeaturesOptions.actorIds`
   - `debugLogLabel`
   - `hierarchyLabel`
-- `installWorkspaceModeController` returns the concrete
-  `WorkspaceModeController` object even though the app only needs disposal.
-  That keeps an internal command controller as a product-facing fact.
+- `installWorkspaceModeController` returned the concrete
+  `WorkspaceModeController` object even though the app only needed disposal.
+  Phase 9 collapses it into a narrow Scene run-mode command installer.
 
 Already-deleted old implementations that must stay deleted:
 
@@ -144,7 +158,7 @@ Run before implementation:
 ```text
 git status --short
 $env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-post-remaining-debt-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file
-npm run test -w wallpaper-tesseract -- runtime-scene-view-runtime runtime-scene-session runtime-work-attachment-runtime camera3-components tesseract4 component-definitions workspace-mode render-loop architecture-boundaries project-prism-boundary-report project-prism-frame-update-lane-map
+npm run test -w wallpaper-tesseract -- runtime-scene-view-runtime runtime-scene-session runtime-work-attachment-runtime camera3-components tesseract4 component-definitions scene-run-mode-command render-loop architecture-boundaries project-prism-boundary-report project-prism-frame-update-lane-map
 npm run typecheck -w wallpaper-tesseract
 npm run test
 npm run typecheck
@@ -338,7 +352,7 @@ Allowed app composition imports after this step:
 Validation:
 
 ```text
-npm run test -w wallpaper-tesseract -- component-definitions workspace-mode architecture-boundaries project-prism-boundary-report
+npm run test -w wallpaper-tesseract -- component-definitions scene-run-mode-command architecture-boundaries project-prism-boundary-report
 npm run typecheck -w wallpaper-tesseract
 ```
 
@@ -425,7 +439,7 @@ Expected result:
 Validation:
 
 ```text
-npm run test -w wallpaper-tesseract -- workspace-mode app-menu-bar-component architecture-boundaries project-prism-boundary-report
+npm run test -w wallpaper-tesseract -- scene-run-mode-command app-menu-bar-component architecture-boundaries project-prism-boundary-report
 npm run typecheck -w wallpaper-tesseract
 ```
 
@@ -482,11 +496,80 @@ Validation:
 npm run test -w wallpaper-tesseract -- architecture-boundaries project-prism-boundary-report project-prism-frame-update-lane-map
 ```
 
-## Step 7: Fresh Browser Evidence
+## Step 7A: DCK-007 Dock Blocker Gate
+
+Purpose: resolve the fresh-browser dock blocker before generating pass-state
+Phase 9 smoke evidence.
+
+Execute:
+
+```text
+docs/project-prism-phase-9-dck-007-blocker-resolution-plan.md
+```
+
+Decision:
+
+- Do not roll back completed Phase 9 cleanup.
+- Keep `wallpaper-app` allowed in boundary facts because the app-composition
+  blocker is closed.
+- Keep Phase 9 itself blocked until DCK-007 is fixed and the fresh browser
+  smoke evidence file validates.
+
+Expected owner-level fix path:
+
+- first prove the semantic chain for failing `Scene -> Debug`:
+  `beginTabDrag`, drag source, source tabset, move hits after leaving the tab,
+  continued `moveTabDrag`, `endTabDrag` preview, intent, lifecycle commit
+  result, graph mutation, and DOM realization;
+- align `WorkspaceRootDockFrameComponent` root tab-drag session continuity with
+  `FloatingWindowComponent` if, as current evidence suggests, root moves stop
+  calling `moveTabDrag` after the pointer leaves the tab hit;
+- inspect `resolveWindowDockPreview`, lifecycle/controller, graph, or surface
+  realization only if evidence shows preview/commit/DOM fails after root drag
+  continuity is fixed.
+
+Required tests before returning to Step 7B:
+
+```text
+npm run test -w wallpaper-tesseract -- workspace-root-dock-frame-component floating-window-component window-frame-tab-input architecture-boundaries
+npm run test -w ui-framework -- window-dock-targets window-tab-drag-session
+```
+
+`window-dock-targets` and `window-tab-drag-session` are always required because
+the root-frame fix relies on those product-agnostic contracts. Add
+`npm run test -w ui-framework -- window-frame-lifecycle-controller` if DCK-007
+evidence reaches lifecycle/graph or the fix changes commit semantics.
+
+Exit:
+
+- owner-level tests prove `Scene -> Debug` root tab drag continues after the
+  pointer leaves the tab hit and submits the expected dock intent. The test
+  must simulate a tab start hit followed by non-tab move/end hits;
+- no compatibility dock path, app-level DOM rehosting, product facade, or
+  diagnostic-as-owner path is introduced;
+- DCK-007 status in `docs/known-defects-and-todos.md` is updated to
+  `fixed-pending-verification` only after code plus owner tests pass, and to
+  `closed` only after fresh browser smoke, evidence validation, and final gate
+  pass.
+
+## Step 7B: Fresh Browser Evidence
 
 Purpose: prove that deleting the product shell did not change real UI behavior.
 
-Create:
+Current pre-fix result:
+
+- blocked by `DCK-007`.
+- Partial fresh evidence is recorded in
+  `temp/project-prism-phase-9-smoke-blocker-report.md` and
+  `temp/project-prism-phase-9-smoke-blocker-data.json`.
+- Passing subpaths before the blocker: boot baseline, menu hover target,
+  3x Scene close/reopen with Hierarchy exact-once, and floating
+  `Debug -> Scene` dock.
+- Failing subpath: `Scene -> Debug` reverse dock did not visually or
+  structurally mutate the root layout when targeting the Debug pane left area,
+  Debug pane bottom area, or Debug tab strip.
+
+Create only after Step 7A succeeds:
 
 ```text
 temp/project-prism-phase-9-smoke-data.json
@@ -500,6 +583,10 @@ Required scenarios:
 - Scene close/reopen, repeated at least 3 times;
 - hierarchy exact-once after Scene close/reopen;
 - Debug -> Scene dock and Scene -> Debug dock visual success;
+- preview element evidence for each dock mutation:
+  `data-dock-kind`, `data-target-frame-id`, and `data-target-tabset-id`;
+- graph revision before/after and DOM pane/tabset delta for each dock
+  mutation;
 - splitter resize;
 - Scene fullscreen/restore through workspace mode;
 - hierarchy exact-once after fullscreen/restore;
@@ -514,7 +601,8 @@ Validator command:
 $env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-9-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file
 ```
 
-Do not reuse Phase 8 or post-remaining-debt evidence as Phase 9 evidence.
+Do not reuse Phase 8, post-remaining-debt evidence, or the DCK-007 blocker data
+as Phase 9 pass evidence.
 
 ## Final Gate
 
@@ -525,7 +613,7 @@ $env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-9-smoke-data.json"; 
 npm run test -w editor
 npm run typecheck -w editor
 npm run build -w editor
-npm run test -w wallpaper-tesseract -- component-definitions workspace-mode render-loop architecture-boundaries project-prism-boundary-report project-prism-frame-update-lane-map
+npm run test -w wallpaper-tesseract -- component-definitions scene-run-mode-command render-loop architecture-boundaries project-prism-boundary-report project-prism-frame-update-lane-map
 npm run typecheck -w wallpaper-tesseract
 npm run test
 npm run typecheck
@@ -576,5 +664,6 @@ Phase 9 closes when:
   and no concrete controller object is exposed as a product service;
 - `project-prism-boundary-facts.ts` no longer blocks `wallpaper-app` on
   app-composition debt;
+- DCK-007 is fixed through the blocker plan;
 - fresh Phase 9 browser evidence validates;
 - root `test`, `typecheck`, and `build` pass.

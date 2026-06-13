@@ -90,10 +90,7 @@ describe("architecture boundaries", () => {
 
     expect(zoneMap.unclassified).toEqual([]);
     expect(zoneMap.ambiguousCandidateFiles).toEqual([]);
-    expect(zoneMap.debtEntries.map((entry) => entry.file)).toEqual(expect.arrayContaining([
-      "./features/install-wallpaper-product-features.ts",
-      "./features/workspace-mode.ts"
-    ]));
+    expect(zoneMap.debtEntries).toEqual([]);
   });
 
   it("keeps Project Prism debt zones paired with blocker and deletion facts", () => {
@@ -399,18 +396,11 @@ describe("architecture boundaries", () => {
     expect(windowRuntimeIndex).not.toMatch(/\bregisterFloatingWindowParameters\b/);
   });
 
-  it("keeps app composition extraction blockers explicit until public installers own concrete policy", () => {
+  it("keeps app composition extraction blockers closed once owner installers own concrete policy", () => {
     const zoneMap = createSourceZoneMap(sourceFiles, projectPrismSourceZones);
-    const zonesByFile = new Map(zoneMap.entries.map((entry) => [entry.file, entry.zones.map((zone) => zone.id)]));
     const missingFiles = projectPrismAppCompositionBlockers
       .flatMap((blocker) => blocker.files)
       .filter((file) => sourceFiles[file] === undefined)
-      .sort();
-    const unclassifiedBlockerFiles = projectPrismAppCompositionBlockers
-      .flatMap((blocker) => blocker.files)
-      .filter((file) => !(zonesByFile.get(file) ?? []).some((zoneId) => (
-        zoneId === "app-composition-debt"
-      )))
       .sort();
     const incompleteBlockers = projectPrismAppCompositionBlockers
       .filter((blocker) => (
@@ -421,8 +411,10 @@ describe("architecture boundaries", () => {
       .sort();
 
     expect(missingFiles).toEqual([]);
-    expect(unclassifiedBlockerFiles).toEqual([]);
     expect(incompleteBlockers).toEqual([]);
+    expect(projectPrismAppCompositionBlockers).toEqual([]);
+    expect(projectPrismDebtBlockers).toEqual([]);
+    expect(zoneMap.debtEntries).toEqual([]);
   });
 
   it("keeps Project Prism legacy locks paired with replacement contracts", () => {
@@ -475,7 +467,7 @@ describe("architecture boundaries", () => {
   it("keeps Project Prism app composition debt from reaching back into concrete internals", () => {
     const appCompositionFiles = new Set([
       "./app/create-wallpaper-app.ts",
-      "./features/workspace-mode.ts",
+      "./features/scene-run-mode-command.ts",
       "./demo.ts"
     ]);
     const forbiddenResolvedTargets = [
@@ -645,14 +637,37 @@ describe("architecture boundaries", () => {
 
     expect(staticSourceCallViolations).toEqual([]);
     expect(appSource).not.toMatch(/\bcreateActorHierarchyObjectSource\b/);
-    expect(productFeatureSource).toMatch(/\bcreateActorHierarchyObjectSource\b/);
-    expect(productFeatureSource).toMatch(/\bcreateSceneActorHierarchyMetadata\b/);
+    expect(productFeatureSource).not.toMatch(/\bcreateActorHierarchyObjectSource\b/);
+    expect(productFeatureSource).not.toMatch(/\bcreateSceneActorHierarchyMetadata\b/);
+    expect(productFeatureSource).not.toMatch(/\bcreateToolWindowActorHierarchyMetadata\b/);
+    expect(productFeatureSource).not.toMatch(/\bcreateAppMenuActorHierarchyMetadata\b/);
+    expect(productFeatureSource).not.toMatch(/\bmetadataByActorId\b/);
     expect(productFeatureSource).not.toMatch(/\bSCENE_WINDOW_ACTOR_ID\b/);
     expect(productFeatureSource).not.toMatch(/\bTESSERACT4_ACTOR_ID\b/);
     expect(productFeatureSource).not.toMatch(/\bCAMERA3_GIZMO_ACTOR_ID\b/);
     expect(productFeatureSource).not.toMatch(/\bDEBUG_LOG_WINDOW_ACTOR_ID\b/);
     expect(productFeatureSource).not.toMatch(/\bHIERARCHY_PANEL_ACTOR_ID\b/);
     expect(productFeatureSource).not.toMatch(/\bAPP_MENU_BAR_ACTOR_ID\b/);
+  });
+
+  it("keeps hierarchy source ownership inside tool-window features without product override hooks", () => {
+    const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
+    const toolWindowInstallerSource =
+      editorPackageSources["packages/editor/src/tool-windows/install-tool-window-features.ts"] ?? "";
+    const toolWindowIndexSource =
+      editorPackageSources["packages/editor/src/tool-windows/index.ts"] ?? "";
+
+    expect(sourceFiles["./features/install-wallpaper-product-features.ts"]).toBeUndefined();
+    expect(appSource).not.toMatch(/\bhierarchyObjectSource\b/);
+    expect(appSource).not.toMatch(/\bcreateActorHierarchyObjectSource\b/);
+    expect(toolWindowInstallerSource).toMatch(/\bcreateActorHierarchyObjectSource\s*\(/);
+    expect(toolWindowInstallerSource).not.toMatch(/\bToolWindowActorIds\b/);
+    expect(toolWindowInstallerSource).not.toMatch(/\bactorIds\??\s*:/);
+    expect(toolWindowInstallerSource).not.toMatch(/\bdebugLogLabel\b/);
+    expect(toolWindowInstallerSource).not.toMatch(/\bhierarchyLabel\b/);
+    expect(toolWindowInstallerSource).not.toMatch(/\bhierarchyObjectSource\??\s*:/);
+    expect(toolWindowIndexSource).not.toMatch(/\bToolWindowActorIds\b/);
+    expect(toolWindowIndexSource).not.toMatch(/\bcreateToolWindowActorHierarchyMetadata\b/);
   });
 
   it("removes the legacy GizmoResponder adapter from production code", () => {
@@ -716,8 +731,9 @@ describe("architecture boundaries", () => {
     expect(runtimeThreeRenderOutputSource).toMatch(/\bRuntimeThreeSceneRenderOutput\b/);
     expect(runtimeThreeRenderOutputSource).toMatch(/\bcreateRuntimeThreeSceneRenderOutput\b/);
     expect(runtimeThreeRenderOutputSource).not.toMatch(/\b(?:RuntimeSceneRenderOutput|createRuntimeSceneRenderOutput)\b/);
-    expect(appSource).toMatch(/\binstallWallpaperProductFeatures\b/);
-    expect(appSource).not.toMatch(/\binstallSceneViewFeature\b/);
+    expect(sourceFiles["./features/install-wallpaper-product-features.ts"]).toBeUndefined();
+    expect(appSource).not.toMatch(/\binstallWallpaperProductFeatures\b/);
+    expect(appSource).toMatch(/\binstallSceneViewFeature\b/);
     expect(appSource).not.toMatch(/\binstallSceneViewContent\b/);
     expect(appSource).not.toMatch(/\bcreateRenderableSceneView\b/);
     expect(appSource).not.toMatch(/\bCurrentRenderableSceneViewRegistry\b/);
@@ -894,7 +910,6 @@ describe("architecture boundaries", () => {
 
   it("keeps concrete window frame policy in feature modules instead of app composition", () => {
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
-    const productFeatureSource = sourceFiles["./features/install-wallpaper-product-features.ts"] ?? "";
     const sceneInstallerSource = sourceFiles["./features/scene/install-scene-view-feature.ts"] ?? "";
     const toolInstallerSource = editorPackageSources["packages/editor/src/tool-windows/install-tool-window-features.ts"] ?? "";
 
@@ -902,12 +917,9 @@ describe("architecture boundaries", () => {
     expect(appSource).not.toMatch(/\bcreateToolWindowWorkspaceFloatingFramePolicies\b/);
     expect(appSource).not.toMatch(/\bcreateSceneDefaultOpenView\b/);
     expect(appSource).not.toMatch(/\bcreateToolWindowDefaultOpenViews\b/);
-    expect(productFeatureSource).not.toMatch(/\bcreateSceneWindowWorkspaceFloatingFramePolicy\b/);
-    expect(productFeatureSource).not.toMatch(/\bcreateToolWindowWorkspaceFloatingFramePolicies\b/);
-    expect(productFeatureSource).not.toMatch(/\bcreateSceneDefaultOpenView\b/);
-    expect(productFeatureSource).not.toMatch(/\bcreateToolWindowDefaultOpenViews\b/);
-    expect(productFeatureSource).toMatch(/\binstallSceneWorkspacePolicy\b/);
-    expect(productFeatureSource).toMatch(/\binstallToolWindowWorkspacePolicy\b/);
+    expect(sourceFiles["./features/install-wallpaper-product-features.ts"]).toBeUndefined();
+    expect(appSource).toMatch(/\binstallSceneWorkspacePolicy\b/);
+    expect(appSource).toMatch(/\binstallToolWindowWorkspacePolicy\b/);
     expect(appSource).not.toMatch(/\bSCENE_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
     expect(appSource).not.toMatch(/\bDEBUG_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
     expect(appSource).not.toMatch(/\bHIERARCHY_WINDOW_MIN_(?:WIDTH|HEIGHT)\b/);
@@ -928,17 +940,20 @@ describe("architecture boundaries", () => {
 
   it("keeps run-mode fullscreen on the workspace presentation session path", () => {
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
-    const productFeatureSource = sourceFiles["./features/install-wallpaper-product-features.ts"] ?? "";
-    const workspaceModeSource = sourceFiles["./features/workspace-mode.ts"] ?? "";
+    const sceneRunModeSource = sourceFiles["./features/scene-run-mode-command.ts"] ?? "";
 
     expect(appSource).not.toMatch(/\bnew\s+WindowWorkspacePresentationController\b/);
-    expect(productFeatureSource).not.toMatch(/\bnew\s+WorkspaceModeController\b/);
-    expect(productFeatureSource).toMatch(/\binstallWorkspaceModeController\b/);
-    expect(productFeatureSource).not.toMatch(/sceneParameterPaths\.(?:debugWindow|hierarchyWindow)/);
-    expect(workspaceModeSource).toMatch(/\bnew\s+WorkspaceModeController\b/);
-    expect(workspaceModeSource).toMatch(/\bworkspacePresentation:\s*options\.workspacePresentation\b/);
-    expect(workspaceModeSource).toMatch(/\benterRunFullscreenForView\b/);
-    expect(workspaceModeSource).toMatch(/\bexitRunFullscreen\b/);
+    const deletedSceneRunModeModule = `./features/${"workspace"}-${"mode"}.ts`;
+    expect(sourceFiles[deletedSceneRunModeModule]).toBeUndefined();
+    expect(sourceFiles["./features/install-wallpaper-product-features.ts"]).toBeUndefined();
+    expect(appSource).not.toMatch(/\bWorkspaceModeController\b/);
+    expect(appSource).toMatch(/\binstallSceneRunModeCommand\b/);
+    expect(sceneRunModeSource).not.toMatch(/\bexport\s+class\s+SceneRunModeCommand\b/);
+    expect(sceneRunModeSource).not.toMatch(/\bWorkspaceModeController\b/);
+    expect(sceneRunModeSource).toMatch(/\bworkspacePresentation:\s*options\.workspacePresentation\b/);
+    expect(sceneRunModeSource).toMatch(/\benterRunFullscreenForView\b/);
+    expect(sceneRunModeSource).toMatch(/\bexitRunFullscreen\b/);
+    expect(sceneRunModeSource).not.toMatch(/\bvisiblePath\b|\brestoreVisiblePath\b/);
   });
 
   it("keeps actor-local input route scores out of gizmo-core hit priority", () => {
@@ -1005,10 +1020,9 @@ describe("architecture boundaries", () => {
     const componentSource = sourceFiles["./features/app-menu/app-menu-bar-component.ts"] ?? "";
     const definitionSource = sourceFiles["./features/app-menu/app-menu-bar-definition.ts"] ?? "";
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
-    const productFeatureSource = sourceFiles["./features/install-wallpaper-product-features.ts"] ?? "";
 
-    expect(appSource).not.toMatch(/\binstallAppMenuFeature\b/);
-    expect(productFeatureSource).toMatch(/\binstallAppMenuFeature\b/);
+    expect(sourceFiles["./features/install-wallpaper-product-features.ts"]).toBeUndefined();
+    expect(appSource).toMatch(/\binstallAppMenuFeature\b/);
     expect(appSource).not.toMatch(/\bcreateAppMenuBarActor\b/);
     expect(componentSource).toMatch(/\bhitTestInput\b/);
     expect(componentSource).toMatch(/\bonInputEnd\b/);
@@ -1188,9 +1202,11 @@ describe("architecture boundaries", () => {
     expect(appMenuModelSource).toMatch(/\bviewKey\b/);
     expect(appMenuModelSource).toMatch(/\bWindowWorkspaceViewEntry\b/);
     expect(appMenuModelSource).not.toMatch(/\bdata\s*\?:\s*unknown\b/);
+    expect(sourceFiles["./features/app-menu/app-menu-model.ts"]).toBeUndefined();
     expect(appMenuComponentSource).toMatch(/\bActorInputParticipant\b/);
     expect(appMenuComponentSource).toMatch(/\bStateObserverResponder\b/);
-    expect(appMenuComponentSource).toMatch(/from\s+["']\.\/app-menu-model["']/);
+    expect(appMenuComponentSource).not.toMatch(/from\s+["']\.\/app-menu-model["']/);
+    expect(appMenuComponentSource).toMatch(/from\s+["']ui-framework["']/);
     expect(windowRuntimeViolations).toEqual([]);
   });
 
@@ -1226,7 +1242,6 @@ describe("architecture boundaries", () => {
     const factoryRegistrySource =
       uiFrameworkPackageSources["packages/ui-framework/src/ports/window-view-factory-registry.ts"] ?? "";
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
-    const productFeatureSource = sourceFiles["./features/install-wallpaper-product-features.ts"] ?? "";
 
     expect(factoryRegistrySource).not.toMatch(/\bWindowViewFactoryResult\b/);
     expect(factoryRegistrySource).not.toMatch(/\bcreate\s*\(\s*options:\s*WindowViewFactoryCreateOptions/);
@@ -1236,8 +1251,8 @@ describe("architecture boundaries", () => {
     expect(appSource).not.toMatch(/\bcreateDebugLogViewActor\b/);
     expect(appSource).not.toMatch(/\bcreateHierarchyPanelActor\b/);
     expect(appSource).not.toMatch(/\bcreateHierarchyPanelViewActor\b/);
-    expect(appSource).not.toMatch(/\binstallToolWindowFeatures\b/);
-    expect(productFeatureSource).toMatch(/\binstallToolWindowFeatures\b/);
+    expect(appSource).toMatch(/\binstallToolWindowFeatures\b/);
+    expect(sourceFiles["./features/install-wallpaper-product-features.ts"]).toBeUndefined();
   });
 
   it("keeps window runtime independent from feature implementations", () => {

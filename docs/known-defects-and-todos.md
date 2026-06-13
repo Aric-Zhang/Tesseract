@@ -295,6 +295,79 @@ Verification completed:
 - `npm run test -w ui-framework -- window-tab-drag-session window-dock-targets dock-target-region-source window-dock-preview-component`
 - Root `npm run test`, `npm run typecheck`, and `npm run build`.
 
+### DCK-007: Scene root tab cannot visually dock into Debug during Phase 9 smoke
+
+Status: `closed`
+
+Area: `apps/wallpaper-tesseract/src/window-runtime`,
+`packages/ui-framework/src/chrome`, `packages/ui-framework/src/model`,
+`packages/ui-framework/src/services`
+
+Evidence:
+
+- Phase 9 fresh browser smoke used
+  `http://127.0.0.1:5174/?resetWorkspaceLayout=1` after rebuilding the editor
+  package and starting the app dev server.
+- The prerequisite paths passed:
+  - Window menu hover targeted `Debug Log Window`.
+  - Scene close/reopen was repeated 3 times and Hierarchy showed `Scene View`,
+    `Tesseract4`, and `Camera3` exactly once.
+  - Floating `Debug` docked into the root `Scene` right split; floating Debug
+    shell count became `0`.
+- The original reverse path failed visually and structurally:
+  - dragging `Scene` tab into the `Debug` pane left/internal region did not
+    change the DOM layout;
+  - dragging `Scene` tab into the `Debug` pane bottom region did not change the
+    DOM layout;
+  - dragging `Scene` tab onto the `Debug` tab strip did not merge or split the
+    layout.
+- Evidence files:
+  - `temp/project-prism-phase-9-smoke-blocker-report.md`
+  - `temp/project-prism-phase-9-smoke-blocker-data.json`
+  - `temp/project-prism-phase-9-debug-docked-into-scene.png`
+  - `temp/project-prism-phase-9-scene-docked-into-debug.png`
+  - `temp/project-prism-phase-9-scene-docked-into-debug-bottom.png`
+  - `temp/project-prism-phase-9-scene-merge-into-debug-attempt.png`
+
+Impact:
+
+- Phase 9 cannot close because its fresh smoke matrix requires bidirectional
+  Debug/Scene dock visual success.
+- The first reverse retest after the code fix exposed a stale smoke setup issue:
+  the Hierarchy floating window was covering the Scene root tab, so the drag did
+  not start from the intended tab. After closing that overlay, the root Scene tab
+  was accessible and the fixed root drag session completed the reverse dock.
+
+Next action:
+
+- Closed by the nearest owner fix:
+  `WorkspaceRootDockFrameComponent` now keeps an active root tab drag session
+  moving after the pointer leaves the tab hit, matching `FloatingWindowComponent`.
+  No product installer, app-menu, workspace-mode, graph reducer, or compatibility
+  dock path was restored.
+
+Verification:
+
+- Add or update owner-level regression coverage for the failing same-frame
+  Scene-to-Debug path.
+- Code fix and owner tests have passed:
+  - `WorkspaceRootDockFrameComponent` now keeps an active root tab drag session
+    moving after the pointer leaves the tab hit.
+  - `WorkspaceRootDockFrameComponent.onInputCancel` now cancels an active tab
+    drag even when the cancel hit is non-tab content.
+  - `workspace-root-dock-frame-component.test.ts` covers tab start hit plus
+    non-tab move/end and non-tab cancel.
+  - `npm run test -w wallpaper-tesseract -- workspace-root-dock-frame-component floating-window-component window-frame-tab-input`
+  - `npm run test -w wallpaper-tesseract -- architecture-boundaries`
+  - `npm run test -w ui-framework -- window-dock-targets window-tab-drag-session`
+- Fresh Phase 9 browser smoke generated:
+  - `temp/project-prism-phase-9-smoke-data.json`
+  - `temp/project-prism-phase-9-smoke-report.md`
+- The smoke evidence validator passed:
+  - `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-9-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-contract project-prism-smoke-evidence-file`
+- DCK-007 blocker data remains historical failure evidence and must not be used
+  as pass-state smoke evidence.
+
 ## Recently Closed Or Historical Notes
 
 Closed entries retained above:

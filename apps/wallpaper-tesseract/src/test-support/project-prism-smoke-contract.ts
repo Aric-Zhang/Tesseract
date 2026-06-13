@@ -140,11 +140,30 @@ export interface ProjectPrismMenuHoverEvidence {
   readonly screenshotPath: string;
 }
 
+export interface ProjectPrismDockPreviewElementEvidence {
+  readonly dockKind: string;
+  readonly targetFrameId: string;
+  readonly targetTabsetId: string;
+}
+
+export interface ProjectPrismDockDomDeltaEvidence {
+  readonly beforePaneCount: number;
+  readonly afterPaneCount: number;
+  readonly beforeTabsetCount: number;
+  readonly afterTabsetCount: number;
+  readonly beforeSplitterCount: number;
+  readonly afterSplitterCount: number;
+  readonly beforeLayoutSignature?: string;
+  readonly afterLayoutSignature?: string;
+}
+
 export interface ProjectPrismDockMutationEvidence {
   readonly beforeGraphRevision: number;
   readonly afterGraphRevision: number;
   readonly source: ProjectPrismGraphViewIdentityEvidence;
   readonly target: ProjectPrismGraphViewIdentityEvidence;
+  readonly previewElement: ProjectPrismDockPreviewElementEvidence;
+  readonly domDelta: ProjectPrismDockDomDeltaEvidence;
   readonly afterDomContents: readonly ProjectPrismDomContentEvidence[];
   readonly screenshotPath: string;
 }
@@ -283,6 +302,34 @@ function validateDockMutationEvidence(
   }
   if (!dockMutation.target.typeKey || !dockMutation.target.instanceId) {
     errors.push("dockMutation target identity typeKey and instanceId are required");
+  }
+  if (!dockMutation.previewElement) {
+    errors.push("dockMutation previewElement evidence is required");
+  } else {
+    if (!dockMutation.previewElement.dockKind) {
+      errors.push("dockMutation previewElement dockKind is required");
+    }
+    if (!dockMutation.previewElement.targetFrameId) {
+      errors.push("dockMutation previewElement targetFrameId is required");
+    }
+    if (!dockMutation.previewElement.targetTabsetId) {
+      errors.push("dockMutation previewElement targetTabsetId is required");
+    }
+  }
+  if (!dockMutation.domDelta) {
+    errors.push("dockMutation domDelta evidence is required");
+  } else {
+    const countChanged =
+      dockMutation.domDelta.beforePaneCount !== dockMutation.domDelta.afterPaneCount ||
+      dockMutation.domDelta.beforeTabsetCount !== dockMutation.domDelta.afterTabsetCount ||
+      dockMutation.domDelta.beforeSplitterCount !== dockMutation.domDelta.afterSplitterCount;
+    const layoutChanged =
+      Boolean(dockMutation.domDelta.beforeLayoutSignature) &&
+      Boolean(dockMutation.domDelta.afterLayoutSignature) &&
+      dockMutation.domDelta.beforeLayoutSignature !== dockMutation.domDelta.afterLayoutSignature;
+    if (!countChanged && !layoutChanged) {
+      errors.push("dockMutation domDelta must show a pane, tabset, splitter, or layout signature change");
+    }
   }
   if (dockMutation.afterDomContents.length === 0) {
     errors.push("dockMutation afterDomContents are required");

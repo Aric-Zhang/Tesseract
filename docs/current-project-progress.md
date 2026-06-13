@@ -93,7 +93,8 @@ Current gate:
   `gizmo-runtime/install-component-definitions.ts` installers, moved
   actor-input component definition installation into `packages/actor-input`,
   moved renderable Scene frame-source ownership into runtime staging, and
-  narrowed `workspace-mode.ts` to product run-fullscreen command orchestration.
+  narrowed the old workspace mode module to product run-fullscreen command
+  orchestration.
 - `DCK-006` is closed. The root cause was floating-frame tab-drag state loss:
   `FloatingWindowComponent` did not retain that a pointer session started on a
   tab after the pointer left the tab hit, so real browser drags could move the
@@ -115,11 +116,11 @@ Current gate:
 - Phase 8 remaining cleanup continued by moving Scene and Debug/Hierarchy
   default state registration and floating/default view policy construction into
   their owner modules (`features/scene` and `packages/editor/src/tool-windows`).
-  The product installer now composes owner policy contributions instead of
-  creating those concrete fallback states itself.
-- Workspace mode construction/subscription now lives in `features/workspace-mode.ts`.
-  Product installation invokes the workspace-mode owner instead of directly
-  constructing `WorkspaceModeController`.
+  Phase 9 then deleted the remaining product installer shell instead of
+  preserving it as a thinner facade.
+- Phase 8.5 narrowed workspace mode to product run-fullscreen orchestration.
+  Phase 9 replaced that module with `features/scene-run-mode-command.ts`, which
+  returns only a disposable installer handle.
 - Runtime Scene child actor ids now derive from the Scene View actor identity
   (`scene-window:view:tesseract-4`, `scene-window:view:camera-3`) instead of
   living as product installer constants.
@@ -127,16 +128,30 @@ Current gate:
   `temp/project-prism-post-remaining-debt-smoke-data.json` and validates with
   `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-post-remaining-debt-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file`.
   The report is `temp/project-prism-post-remaining-debt-smoke-report.md`.
-- Remaining boundary debt is narrowed to app-composition/product command policy:
-  `wallpaper-app-concrete-feature-policy` and
-  `scene-run-mode-product-command`.
-  The old `scene-runtime-composition-feature-installer` blocker is closed.
-- The proposed next execution plan is
-  `docs/project-prism-phase-9-app-composition-closure-plan.md`. It targets the
-  remaining app-composition/product command debt by deleting the product
-  installer shell, deleting app-menu/model compatibility leftovers, moving
-  hierarchy source ownership to the Tool Window/Hierarchy owner, and flipping
-  boundary facts once the old owner is gone.
+- Phase 9 app-composition closure is complete:
+  `docs/project-prism-phase-9-app-composition-closure-plan.md`.
+- Phase 9 has deleted the remaining product installer shell
+  (`features/install-wallpaper-product-features.ts`), deleted the local
+  app-menu model barrel, moved actor-backed Hierarchy source ownership into the
+  Tool Window owner, removed product hierarchy metadata aggregation, removed
+  Tool Window actor-id/label override hooks, and replaced the old workspace
+  mode module with the narrow `features/scene-run-mode-command.ts` installer.
+- Boundary facts now allow `wallpaper-app`; the former app-composition,
+  Scene run-mode, and Scene runtime composition blockers are closed. DCK-007 was
+  fixed in the root dock frame owner: active root tab drags now continue after
+  the pointer leaves the tab hit and cancel from non-tab hits. Fresh Phase 9
+  smoke evidence lives at `temp/project-prism-phase-9-smoke-data.json` and
+  validates with
+  `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-9-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-contract project-prism-smoke-evidence-file`.
+  The mobile viewport portion was rerun fresh at 390x844 on the rebuilt
+  Phase 9 dev server and records measurable Scene, Tesseract canvas host,
+  Window menu, and Camera3 gizmo rects.
+  The historical DCK-007 failure evidence remains at
+  `temp/project-prism-phase-9-smoke-blocker-report.md` and
+  `temp/project-prism-phase-9-smoke-blocker-data.json`.
+- Phase 9 final validation passed:
+  `npm run test`, `npm run typecheck`, and `npm run build`. The build keeps the
+  existing Vite chunk size warning.
 - The pre-Phase 6 window-workspace truth closure is complete.
 - `ui-framework` and `editor` are no longer blocked by
   `window-workspace-multi-truth-debt`.
@@ -207,19 +222,16 @@ Important app source areas:
   reads.
 - `apps/wallpaper-tesseract/src/features/app-menu`: app menu actor/component
   and type/instance based window command model.
-- `apps/wallpaper-tesseract/src/features/install-wallpaper-product-features.ts`:
-  current Wallpaper product feature installer. It still centralizes some
-  product composition after `create-wallpaper-app.ts` was thinned, including
-  hierarchy source assembly, app menu wiring, feature installation ordering,
-  and owner policy contribution composition. Scene, Tesseract, Camera3
-  internal actor ids, and Scene/Debug/Hierarchy default state construction have
-  moved to their feature/runtime/editor owners; continue reducing this
-  installer by moving remaining facts to their real owners rather than turning
-  it into a long-lived service locator.
-- `apps/wallpaper-tesseract/src/features/workspace-mode.ts`: app-local
-  Scene run-mode product command policy. It owns workspace-mode state
+- `apps/wallpaper-tesseract/src/features/scene-run-mode-command.ts`:
+  app-local Scene run-mode command installer. It owns workspace-mode state
   registration/subscription and editor mode -> Scene run-fullscreen
-  orchestration, and must not regain direct window visible-path mutation state.
+  orchestration through narrow ports, returns only a disposable, and must not
+  regain direct window visible-path mutation state.
+- `apps/wallpaper-tesseract/src/features/install-wallpaper-product-features.ts`
+  has been deleted. `create-wallpaper-app.ts` now calls public owner installers
+  directly and should stay limited to top-level dependency passing and install
+  order, not feature actor ids, hierarchy metadata tables, default state
+  construction, runtime Scene resources, or app-menu model internals.
 - `apps/wallpaper-tesseract/src/features/scene`: Scene feature installation,
   and Scene/Camera presentation binding. The old mixed Scene content installer
   and feature-local renderable Scene view file have been deleted; runtime
@@ -468,8 +480,8 @@ temp/project-prism-phase-7-closure-plan.md
 ```
 
 This closure record marked Phase 7 documents completed, reclassified remaining
-`app-composition-debt` and runtime-placement debt as next-phase entry scope,
-and records the Git checkpoint requirements for the accepted Phase 7 work.
+app-composition and runtime-placement debt as next-phase entry scope, and
+records the Git checkpoint requirements for the accepted Phase 7 work.
 
 Completed Phase 8 runtime Scene composition and product policy split plan:
 
@@ -489,21 +501,19 @@ docs/project-prism-phase-8-5-remaining-debt-closure-plan.md
 Treat this as the completed closure record before entering any larger
 post-Phase-8 phase. It incorporates reviewer decisions: Scene View actor stays
 the visible actor-tree parent anchor, runtime owns runtime content ids/subtree,
-Camera3 gizmo remains editor presentation, and `workspace-mode.ts` remains a
-narrow product command module rather than a placement or runtime-resource owner.
+Camera3 gizmo remains editor presentation, and Scene run-mode behavior remains
+a narrow product command rather than a placement or runtime-resource owner.
 
-Proposed Phase 9 app-composition closure plan:
+Completed Phase 9 app-composition closure plan:
 
 ```text
 docs/project-prism-phase-9-app-composition-closure-plan.md
 ```
 
-Treat this as the next execution plan once the accepted Phase 8 / 8.5 work is
-checkpointed. It is deletion-first: remove
-`features/install-wallpaper-product-features.ts`, delete the app-menu local
-model barrel, remove product hierarchy metadata aggregation and unused
-tool-window override hooks, and either collapse or reclassify the Scene run-mode
-command so `wallpaper-app` can leave `app-composition-debt`.
+Treat this as the completed execution record. Code cleanup Steps 0-6 are
+implemented, Step 7A closed DCK-007 through
+`docs/project-prism-phase-9-dck-007-blocker-resolution-plan.md`, and fresh Phase
+9 smoke evidence validates from `temp/project-prism-phase-9-smoke-data.json`.
 
 Older window/docking/view-identity plans are now Git history, not active files
 in `temp/`. Recover historical context from Git when needed, then compare it
@@ -568,7 +578,7 @@ Useful runtime ownership checks during Phase 7:
 
 ```text
 npm run test -w actor-core
-npm run test -w wallpaper-tesseract -- runtime-scene-session runtime-work-attachment-runtime camera3-components tesseract4 install-scene-view-feature component-definitions workspace-mode architecture-boundaries project-prism-boundary-report project-prism-state-domain-map project-prism-frame-update-lane-map
+npm run test -w wallpaper-tesseract -- runtime-scene-session runtime-work-attachment-runtime camera3-components tesseract4 install-scene-view-feature component-definitions scene-run-mode-command architecture-boundaries project-prism-boundary-report project-prism-state-domain-map project-prism-frame-update-lane-map
 npm run test -w runtime-core
 npm run test -w runtime-three
 npm run typecheck -w wallpaper-tesseract

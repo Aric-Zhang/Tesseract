@@ -18,7 +18,7 @@ import {
   type AppMenuItemViewModel,
   type AppMenuLeadingAccessory,
   type AppMenuWindowAction
-} from "./app-menu-model";
+} from "ui-framework";
 
 export const appMenuBarComponentType =
   "app-menu-bar-component" as ComponentType<AppMenuBarComponent>;

@@ -9,8 +9,13 @@ import {
 import { installActorInputComponentDefinitions } from "actor-input";
 import {
   AppFrameStateController,
+  installInspectorFeature,
+  installInspectorWorkspacePolicy,
+  installToolWindowFeatures,
+  installToolWindowWorkspacePolicy,
   StateObserverAttachmentRuntime,
-  type AppStateObserver
+  type AppStateObserver,
+  type DebugLogContentComponent
 } from "editor";
 import { AppStateParameterStore } from "editor";
 import type { AppStateCommandSink } from "editor";
@@ -35,11 +40,17 @@ import {
   type InstalledWindowWorkspaceFeature
 } from "../features/window-workspace";
 import {
-  createWallpaperDebugLogSink,
-  installWallpaperProductStateDefaults,
-  installWallpaperProductFeatures,
-} from "../features/install-wallpaper-product-features";
-import { installAppMenuComponentDefinitions } from "../features/app-menu";
+  installAppMenuComponentDefinitions,
+  installAppMenuFeature
+} from "../features/app-menu";
+import {
+  installSceneViewFeature,
+  installSceneWorkspacePolicy
+} from "../features/scene";
+import {
+  installSceneRunModeCommand,
+  installSceneRunModeState
+} from "../features/scene-run-mode-command";
 import { installSceneCamera3ComponentDefinitions } from "../features/scene/components";
 import { installTesseract4ComponentDefinitions } from "../runtime/tesseract4";
 import { createWallpaperAppShell } from "./app-shell";
@@ -62,7 +73,19 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const frameClock = new RuntimeFrameClock();
   const uiFrameScheduler = new UiFrameScheduler();
   const appStateStore = new AppStateParameterStore();
-  const productWindowPolicy = installWallpaperProductStateDefaults(appStateStore);
+  const scenePolicy = installSceneWorkspacePolicy(appStateStore);
+  const inspectorPolicy = installInspectorWorkspacePolicy();
+  const toolWindowPolicy = installToolWindowWorkspacePolicy(appStateStore);
+  installSceneRunModeState(appStateStore);
+  const floatingFramePolicies = new Map([
+    scenePolicy.floatingFramePolicy,
+    ...inspectorPolicy.floatingFramePolicies,
+    ...toolWindowPolicy.floatingFramePolicies
+  ]);
+  const defaultOpenViews = [
+    scenePolicy.defaultOpenView,
+    ...toolWindowPolicy.defaultOpenViews
+  ];
 
   let isUpdatingFrame = false;
   const immediateUpdates = new ImmediateUpdateScheduler({
@@ -84,12 +107,12 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     }
   };
 
-  const debugLogSink = createWallpaperDebugLogSink();
+  let debugLogTarget: DebugLogContentComponent | null = null;
   const windowFocus = createWindowFocusServiceProxy();
   const gizmoEventSystem = new GizmoEventSystem({
     debug: true,
     debugConsole: true,
-    onDebugLog: (entry) => debugLogSink.append(entry)
+    onDebugLog: (entry) => debugLogTarget?.append(entry)
   });
   const actorSystem = new ActorSystem();
   const runtimeScheduler = new ProductionRuntimeSchedulerService();
@@ -142,24 +165,47 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     rootFrameParent: appShell.rootDockSlot,
     windowFocus,
     cancelActiveInput: () => activeInputCancellationRuntime.cancelActiveActorInput(),
-    floatingFramePolicies: productWindowPolicy.floatingFramePolicies,
-    defaultOpenViews: productWindowPolicy.defaultOpenViews,
+    floatingFramePolicies,
+    defaultOpenViews,
     layoutStorage,
     registerUiScheduledService: (service) => uiFrameScheduler.register(service)
   });
-  const productFeatures = installWallpaperProductFeatures({
+  installSceneViewFeature({
     context: actorCreationScope,
     mount: floatingFrameParent,
-    menuParent: appShell.menuSlot,
-    stateStore: appStateStore,
-    stateBridge: frameStateBridge,
+    runtimeSceneViews,
     viewFactories: windowWorkspace.viewFactories,
-    lifecycle: windowWorkspace.lifecycle,
+    locations: windowWorkspace.lifecycle
+  });
+  installInspectorFeature({
+    context: actorCreationScope,
+    viewFactories: windowWorkspace.viewFactories
+  });
+  installToolWindowFeatures({
+    context: actorCreationScope,
+    viewFactories: windowWorkspace.viewFactories,
+    onDebugLogContentChanged: (component) => {
+      debugLogTarget = component;
+    }
+  });
+  installAppMenuFeature({
+    context: actorCreationScope,
+    parent: appShell.menuSlot,
     windowCatalog: windowWorkspace.catalog,
     windowFrameIntents: windowWorkspace.frameIntents,
+    workspaceModePath: editorStatePaths.workspace.mode
+  });
+  const sceneRunMode = installSceneRunModeCommand({
+    stateStore: appStateStore,
+    stateBridge: frameStateBridge,
+    sceneView: {
+      viewKey: "scene",
+      locations: windowWorkspace.lifecycle,
+      commands: windowWorkspace.lifecycle,
+      open: () => windowWorkspace.lifecycle.openView("scene", "programmatic")
+    },
     workspacePresentation: windowWorkspace.presentationController,
-    debugLogSink,
-    runtimeSceneViews
+    onScenePresentationChanged: () => runtimeSceneViews.measureCurrentView()
   });
   if (!windowWorkspace.restorePersistedLayout()) {
     windowWorkspace.openDefaultViews();
@@ -220,7 +266,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     document.removeEventListener("keydown", handleKeyDown);
     renderLoop.dispose();
     immediateUpdates.dispose();
-    productFeatures.dispose();
+    sceneRunMode.dispose();
     closeLiveWindowFrames(windowWorkspace.lifecycle);
     windowWorkspace.dispose();
     uiFrameScheduler.dispose();

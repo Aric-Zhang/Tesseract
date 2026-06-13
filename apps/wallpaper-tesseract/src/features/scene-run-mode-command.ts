@@ -5,86 +5,83 @@ import {
   type AppStateParameterStore,
   type EditorWorkspaceMode
 } from "editor";
-import type {
-  WindowViewLocation,
-  WindowViewLocationSource,
-  WindowViewOwnerCommandPort,
-  WindowViewKey
-} from "../window-runtime";
 import type { AppStateChangedEvent } from "editor";
 import type { StateObserverRegistry } from "editor";
+import type {
+  WindowViewKey,
+  WindowViewLocation,
+  WindowViewLocationSource,
+  WindowViewOwnerCommandPort
+} from "../window-runtime";
 
-type WorkspaceMode = EditorWorkspaceMode;
+type SceneRunMode = EditorWorkspaceMode;
+type SceneRunModePath = string;
+type SceneRunModeChangedEvent = AppStateChangedEvent;
 
-type WorkspaceModePath = string;
-type WorkspaceModeStateChangedEvent = AppStateChangedEvent;
-
-export interface WorkspaceModeControllerOptions {
-  getValue<TValue>(path: WorkspaceModePath): TValue;
-  sceneView: WorkspaceSceneViewPort;
-  workspacePresentation: WorkspacePresentationPort;
+interface SceneRunModeCommandOptions {
+  getValue<TValue>(path: SceneRunModePath): TValue;
+  sceneView: SceneRunModeSceneViewPort;
+  workspacePresentation: SceneRunModePresentationPort;
   onScenePresentationChanged?: () => void;
 }
 
-export interface WorkspaceSceneViewPort {
+export interface SceneRunModeSceneViewPort {
   readonly viewKey: WindowViewKey;
   readonly locations: WindowViewLocationSource;
   readonly commands: WindowViewOwnerCommandPort;
   open(reason: "menu" | "programmatic"): void;
 }
 
-export interface WorkspacePresentationPort {
+export interface SceneRunModePresentationPort {
   enterRunFullscreenForView(viewActorId: string, reason: "programmatic"): void;
   exitRunFullscreen(reason: "programmatic"): void;
 }
 
-export interface InstallWorkspaceModeControllerOptions {
+export interface InstallSceneRunModeCommandOptions {
   readonly stateStore: AppStateParameterStore;
   readonly stateBridge: StateObserverRegistry<AppStateObserver>;
-  readonly sceneView: WorkspaceSceneViewPort;
-  readonly workspacePresentation: WorkspacePresentationPort;
+  readonly sceneView: SceneRunModeSceneViewPort;
+  readonly workspacePresentation: SceneRunModePresentationPort;
   readonly onScenePresentationChanged?: () => void;
 }
 
-export interface InstalledWorkspaceModeController {
-  readonly workspaceModeController: WorkspaceModeController;
+export interface InstalledSceneRunModeCommand {
   dispose(): void;
 }
 
-export function installWorkspaceModeState(store: AppStateParameterStore): void {
+export function installSceneRunModeState(store: AppStateParameterStore): void {
   registerWorkspaceModeParameters(store);
 }
 
-export function installWorkspaceModeController(
-  options: InstallWorkspaceModeControllerOptions
-): InstalledWorkspaceModeController {
-  const workspaceModeController = new WorkspaceModeController({
+export function installSceneRunModeCommand(
+  options: InstallSceneRunModeCommandOptions
+): InstalledSceneRunModeCommand {
+  const command = new SceneRunModeCommand({
     getValue: (path) => options.stateStore.get(path),
     sceneView: options.sceneView,
     workspacePresentation: options.workspacePresentation,
     onScenePresentationChanged: options.onScenePresentationChanged
   });
-  const workspaceModeRegistration = options.stateBridge.subscribe(workspaceModeController);
+  const registration = options.stateBridge.subscribe(command);
 
   return {
-    workspaceModeController,
     dispose() {
-      workspaceModeRegistration.dispose();
-      workspaceModeController.dispose();
+      registration.dispose();
+      command.dispose();
     }
   };
 }
 
-export class WorkspaceModeController {
-  readonly id = "workspace-mode-controller";
+class SceneRunModeCommand implements AppStateObserver {
+  readonly id = "scene-run-mode-command";
   enabled = true;
 
-  readonly #sceneView: WorkspaceSceneViewPort;
-  readonly #workspacePresentation: WorkspacePresentationPort;
+  readonly #sceneView: SceneRunModeSceneViewPort;
+  readonly #workspacePresentation: SceneRunModePresentationPort;
   readonly #onScenePresentationChanged?: () => void;
-  #mode: WorkspaceMode;
+  #mode: SceneRunMode;
 
-  constructor(options: WorkspaceModeControllerOptions) {
+  constructor(options: SceneRunModeCommandOptions) {
     this.#sceneView = options.sceneView;
     this.#workspacePresentation = options.workspacePresentation;
     this.#onScenePresentationChanged = options.onScenePresentationChanged;
@@ -92,10 +89,10 @@ export class WorkspaceModeController {
     this.applyPresentation(this.#mode);
   }
 
-  onStateChanged(event: WorkspaceModeStateChangedEvent): void {
+  onStateChanged(event: SceneRunModeChangedEvent): void {
     const modeChange = event.changes.find((change) => change.path === editorStatePaths.workspace.mode);
     if (modeChange) {
-      this.applyMode(modeChange.nextValue as WorkspaceMode);
+      this.applyMode(modeChange.nextValue as SceneRunMode);
     }
   }
 
@@ -103,7 +100,7 @@ export class WorkspaceModeController {
     this.enabled = false;
   }
 
-  private applyMode(nextMode: WorkspaceMode): void {
+  private applyMode(nextMode: SceneRunMode): void {
     if (nextMode === this.#mode) return;
     if (nextMode === "run") {
       this.enterRunMode();
@@ -124,7 +121,7 @@ export class WorkspaceModeController {
     this.exitSceneFullscreen();
   }
 
-  private applyPresentation(mode: WorkspaceMode): void {
+  private applyPresentation(mode: SceneRunMode): void {
     const sceneLocation = mode === "run" ? this.ensureSceneLocation() : this.getSceneLocation();
     if (sceneLocation) {
       if (mode === "run") {

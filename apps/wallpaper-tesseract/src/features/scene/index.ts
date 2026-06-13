@@ -1,5 +1,4 @@
 export {
-  createSceneActorHierarchyMetadata,
   installSceneWorkspacePolicy,
   installSceneViewFeature
 } from "./install-scene-view-feature";

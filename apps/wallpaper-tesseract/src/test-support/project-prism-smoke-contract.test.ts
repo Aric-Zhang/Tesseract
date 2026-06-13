@@ -216,6 +216,68 @@ describe("Project Prism smoke evidence contract", () => {
     );
   });
 
+  it("rejects dock mutation proof without preview element target data", () => {
+    const evidence = {
+      ...createValidEvidence(),
+      dockMutation: {
+        ...createValidEvidence().dockMutation,
+        previewElement: {
+          dockKind: "",
+          targetFrameId: "",
+          targetTabsetId: ""
+        }
+      }
+    };
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toEqual(expect.arrayContaining([
+      "dockMutation previewElement dockKind is required",
+      "dockMutation previewElement targetFrameId is required",
+      "dockMutation previewElement targetTabsetId is required"
+    ]));
+  });
+
+  it("rejects dock mutation proof without a DOM pane/tabset/splitter or layout delta", () => {
+    const evidence = {
+      ...createValidEvidence(),
+      dockMutation: {
+        ...createValidEvidence().dockMutation,
+        domDelta: {
+          beforePaneCount: 2,
+          afterPaneCount: 2,
+          beforeTabsetCount: 2,
+          afterTabsetCount: 2,
+          beforeSplitterCount: 1,
+          afterSplitterCount: 1
+        }
+      }
+    };
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toContain(
+      "dockMutation domDelta must show a pane, tabset, splitter, or layout signature change"
+    );
+  });
+
+  it("accepts dock mutation proof when pane counts stay stable but layout signature changes", () => {
+    const evidence = {
+      ...createValidEvidence(),
+      dockMutation: {
+        ...createValidEvidence().dockMutation,
+        domDelta: {
+          beforePaneCount: 2,
+          afterPaneCount: 2,
+          beforeTabsetCount: 2,
+          afterTabsetCount: 2,
+          beforeSplitterCount: 1,
+          afterSplitterCount: 1,
+          beforeLayoutSignature: "scene|debug",
+          afterLayoutSignature: "debug|scene"
+        }
+      }
+    };
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toEqual([]);
+  });
+
   it("rejects mobile viewport proof with unmeasurable key UI rects", () => {
     const evidence = {
       ...createValidEvidence(),
@@ -430,6 +492,19 @@ function createValidEvidence(
       afterGraphRevision: 43,
       source: { typeKey: "debug", instanceId: "debug:default" },
       target: { typeKey: "scene", instanceId: "scene:default" },
+      previewElement: {
+        dockKind: "split",
+        targetFrameId: "workspace-root-frame",
+        targetTabsetId: "tabset:root"
+      },
+      domDelta: {
+        beforePaneCount: 1,
+        afterPaneCount: 2,
+        beforeTabsetCount: 1,
+        afterTabsetCount: 2,
+        beforeSplitterCount: 0,
+        afterSplitterCount: 1
+      },
       afterDomContents: [{
         contentId: "content:debug",
         parentCount: 1,

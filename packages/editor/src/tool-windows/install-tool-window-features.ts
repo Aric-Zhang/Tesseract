@@ -9,13 +9,12 @@ import {
 } from "../debug";
 import {
   createDefaultHierarchyPanelState,
+  createActorHierarchyObjectSource,
   createHierarchyPanelViewActor,
   HIERARCHY_WINDOW_MIN_HEIGHT,
   HIERARCHY_WINDOW_MIN_WIDTH,
   registerHierarchyPanelParameters,
-  type ActorHierarchyMetadata,
-  type HierarchyPanelInitialState,
-  type HierarchyObjectSource
+  type HierarchyPanelInitialState
 } from "../hierarchy";
 import type { AppStateParameterStore } from "../app-state-store";
 import { editorWindowLayoutPaths } from "../window-layout-state";
@@ -30,39 +29,19 @@ import type {
   EditorWindowWorkspaceFloatingFramePolicy
 } from "./editor-window-workspace-policy";
 
-export interface ToolWindowActorIds {
-  readonly debugLogViewActorId: string;
-  readonly debugLogViewActorName: string;
-  readonly hierarchyPanelViewActorId: string;
-  readonly hierarchyPanelViewActorName: string;
-}
+const DEBUG_LOG_WINDOW_ACTOR_ID = "debug-log-window";
+const DEBUG_LOG_WINDOW_ACTOR_NAME = "Debug Log Window";
+const HIERARCHY_PANEL_ACTOR_ID = "hierarchy-panel";
+const HIERARCHY_PANEL_ACTOR_NAME = "Hierarchy Panel";
 
-export const DEBUG_LOG_WINDOW_ACTOR_ID = "debug-log-window";
-export const DEBUG_LOG_WINDOW_ACTOR_NAME = "Debug Log Window";
-export const HIERARCHY_PANEL_ACTOR_ID = "hierarchy-panel";
-export const HIERARCHY_PANEL_ACTOR_NAME = "Hierarchy Panel";
-
-const DEFAULT_TOOL_WINDOW_ACTOR_IDS: ToolWindowActorIds = {
-  debugLogViewActorId: `${DEBUG_LOG_WINDOW_ACTOR_ID}:view`,
-  debugLogViewActorName: `${DEBUG_LOG_WINDOW_ACTOR_NAME} View`,
-  hierarchyPanelViewActorId: `${HIERARCHY_PANEL_ACTOR_ID}:view`,
-  hierarchyPanelViewActorName: `${HIERARCHY_PANEL_ACTOR_NAME} View`
-};
-
-export function createToolWindowActorHierarchyMetadata(): Record<string, ActorHierarchyMetadata> {
-  return {
-    [DEBUG_LOG_WINDOW_ACTOR_ID]: { label: DEBUG_LOG_WINDOW_ACTOR_NAME, order: 1000 },
-    [HIERARCHY_PANEL_ACTOR_ID]: { label: HIERARCHY_PANEL_ACTOR_NAME, order: 1010 }
-  };
-}
+const DEBUG_LOG_VIEW_ACTOR_ID = `${DEBUG_LOG_WINDOW_ACTOR_ID}:view`;
+const DEBUG_LOG_VIEW_ACTOR_NAME = `${DEBUG_LOG_WINDOW_ACTOR_NAME} View`;
+const HIERARCHY_PANEL_VIEW_ACTOR_ID = `${HIERARCHY_PANEL_ACTOR_ID}:view`;
+const HIERARCHY_PANEL_VIEW_ACTOR_NAME = `${HIERARCHY_PANEL_ACTOR_NAME} View`;
 
 export interface InstallToolWindowFeaturesOptions {
   readonly context: ActorCreationContext;
   readonly viewFactories: WindowViewFactoryRegistry;
-  readonly actorIds?: ToolWindowActorIds;
-  readonly debugLogLabel?: string;
-  readonly hierarchyLabel?: string;
-  readonly hierarchyObjectSource: HierarchyObjectSource;
   readonly onDebugLogContentChanged?: (component: DebugLogContentComponent | null) => void;
 }
 
@@ -123,15 +102,17 @@ export function installToolWindowWorkspacePolicy(
 }
 
 export function installToolWindowFeatures(options: InstallToolWindowFeaturesOptions): void {
-  const actorIds = options.actorIds ?? DEFAULT_TOOL_WINDOW_ACTOR_IDS;
+  const hierarchyObjectSource = createActorHierarchyObjectSource({
+    actorSystem: options.context.actorSystem
+  });
   options.viewFactories.register({
     viewKey: "debug",
-    label: options.debugLogLabel ?? DEBUG_LOG_WINDOW_ACTOR_NAME,
+    label: DEBUG_LOG_WINDOW_ACTOR_NAME,
     order: 1000,
     createViewRuntime: (createOptions) => {
       const handle = createDebugLogViewActor(options.context, {
-        actorId: actorIds.debugLogViewActorId,
-        actorName: actorIds.debugLogViewActorName,
+        actorId: DEBUG_LOG_VIEW_ACTOR_ID,
+        actorName: DEBUG_LOG_VIEW_ACTOR_NAME,
         parentActor: createOptions.parentFrameActor,
         contentId: createWindowWorkspaceContentId(createOptions.identity),
         contentRegistration: createOptions.contentRegistration
@@ -150,14 +131,14 @@ export function installToolWindowFeatures(options: InstallToolWindowFeaturesOpti
   });
   options.viewFactories.register({
     viewKey: "hierarchy",
-    label: options.hierarchyLabel ?? HIERARCHY_PANEL_ACTOR_NAME,
+    label: HIERARCHY_PANEL_ACTOR_NAME,
     order: 1010,
     createViewRuntime: (createOptions) => {
       const handle = createHierarchyPanelViewActor(options.context, {
-        actorId: actorIds.hierarchyPanelViewActorId,
-        actorName: actorIds.hierarchyPanelViewActorName,
+        actorId: HIERARCHY_PANEL_VIEW_ACTOR_ID,
+        actorName: HIERARCHY_PANEL_VIEW_ACTOR_NAME,
         parentActor: createOptions.parentFrameActor,
-        objectSource: options.hierarchyObjectSource,
+        objectSource: hierarchyObjectSource,
         contentId: createWindowWorkspaceContentId(createOptions.identity),
         contentRegistration: createOptions.contentRegistration
       });

@@ -67,9 +67,16 @@ runtime port aliases, `app-runtime`, old app-local Scene/Camera3/Tesseract
 mixed owners, and app-local app policy files under `src/app`. The completed
 closure record is `temp/project-prism-phase-7-closure-plan.md`.
 Phase 8 and the Phase 8.5 remaining-debt closure are complete. `DCK-006` is
-closed with fresh browser smoke evidence, runtime Scene composition debt is
-closed, and remaining work has moved to the next app-composition cleanup plan:
-`docs/project-prism-phase-9-app-composition-closure-plan.md`.
+closed with fresh browser smoke evidence, and runtime Scene composition debt is
+closed.
+Phase 9 app-composition closure is complete:
+`docs/project-prism-phase-9-app-composition-closure-plan.md`. Its code cleanup
+deleted the remaining product installer shell, app-menu local model barrel,
+product hierarchy metadata aggregation, Tool Window override hooks, and
+the old workspace mode public controller surface. DCK-007 is closed through
+`docs/project-prism-phase-9-dck-007-blocker-resolution-plan.md`; root tab drags
+now continue after the pointer leaves the tab hit, and fresh Phase 9 smoke
+evidence validates from `temp/project-prism-phase-9-smoke-data.json`.
 ```
 
 ## Codename
@@ -623,10 +630,10 @@ Phase 5.5C: completed - run final browser graph/DOM/input/persistence parity gat
 Phase 6: completed - extract editor package while preserving the completed graph gate
 Phase 7: completed - thin Wallpaper app composition after runtime/editor/ui ownership is clean
 Phase 8: completed - split runtime Scene composition and product feature policy
-Phase 9: proposed - close app-composition/product command debt
+Phase 9: complete - app-composition/product command debt closed
 ```
 
-Phase 8 is complete. Phase 9 may proceed after a checkpoint commit because
+Phase 8 is complete. Phase 9 started after a checkpoint commit because
 app-local runtime ports, `app-runtime`, old mixed Scene/Tesseract/Camera3
 staging, and old app bootstrap policy files were deleted or moved to narrower
 owners.
@@ -1186,13 +1193,15 @@ Completed work:
 - strengthen the smoke evidence contract so fresh menu hover, Debug/Scene dock,
   mobile viewport, and Camera3 interaction evidence are required.
 
-Remaining narrowed debt:
+Phase 8.5 / Phase 9 closure:
 
-- `install-wallpaper-product-features.ts` still composes owner policy
-  contributions, hierarchy source metadata, app menu wiring, feature
-  installation ordering, and workspace-mode installation.
-- `features/workspace-mode.ts` remains app-local because Scene run mode is still
-  product behavior rather than generic UI framework policy.
+- Phase 8.5 removed product-owned Scene/Tesseract/Camera3 internal ids and
+  runtime render/measure hooks.
+- Phase 9 deletes the remaining product installer shell instead of preserving a
+  thinner facade.
+- Phase 9 replaces the old workspace mode module with the narrow
+  `features/scene-run-mode-command.ts` installer, which returns only a
+  disposable and does not expose a product-facing controller.
 
 ### Phase 9: App Composition Closure
 
@@ -1201,24 +1210,33 @@ Goal:
 Delete the remaining product installer shell and close the narrowed
 app-composition/product command debt without adding a replacement facade.
 
-The proposed plan is:
+The completed execution record is:
 
 ```text
 docs/project-prism-phase-9-app-composition-closure-plan.md
 ```
 
-Primary cleanup targets:
+Primary cleanup targets and current cleanup state:
 
-- delete `features/install-wallpaper-product-features.ts` instead of renaming
+- deleted `features/install-wallpaper-product-features.ts` instead of renaming
   it;
-- remove the app-menu local model compatibility barrel;
-- move hierarchy source ownership into the Tool Window/Hierarchy owner and
-  delete product-level hierarchy metadata aggregation;
-- delete unused tool-window actor id / label override hooks;
-- collapse `workspace-mode.ts` into a narrow Scene run command or remove it if
-  the behavior proves redundant;
-- flip boundary facts so `wallpaper-app` is no longer blocked once app
-  composition imports public owner installers and bootstrap ports only.
+- removed the app-menu local model compatibility barrel;
+- moved hierarchy source ownership into the Tool Window/Hierarchy owner and
+  deleted product-level hierarchy metadata aggregation;
+- deleted unused tool-window actor id / label override hooks;
+- replaced the old workspace mode module with the narrow
+  `scene-run-mode-command.ts`
+  installer;
+- flipped boundary facts so `wallpaper-app` is no longer blocked by
+  app-composition debt.
+
+Phase 9 closure evidence:
+
+- DCK-007 is fixed through the root dock frame owner;
+- fresh browser smoke evidence lives at
+  `temp/project-prism-phase-9-smoke-data.json`;
+- the final validation matrix is recorded in
+  `docs/current-project-progress.md`.
 
 Post-Phase-8 validation goal:
 

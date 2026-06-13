@@ -34,12 +34,9 @@ export const projectPrismSourceZones = [
   ]),
   definePathZone("app-composition", "Wallpaper app bootstrap and composition layer.", [
     /^\.\/app\/(?!app-shell\.ts$)[^/]+\.ts$/,
+    /^\.\/features\/scene-run-mode-command\.ts$/,
     /^\.\/demo\.ts$/
-  ]),
-  definePathZone("app-composition-debt", "Wallpaper app composition still coordinates product feature policy that has not moved behind owner installers.", [
-    /^\.\/features\/workspace-mode\.ts$/,
-    /^\.\/features\/install-wallpaper-product-features\.ts$/
-  ], { debt: true }),
+  ])
 ] as const satisfies readonly SourceZoneDefinition[];
 
 export interface ProjectPrismDebtBlocker {
@@ -67,14 +64,7 @@ export interface ProjectPrismPackageTarget {
   readonly extractionStatus: "allowed" | "blocked" | "deferred";
 }
 
-export const projectPrismDebtBlockers = [
-  {
-    zoneId: "app-composition-debt",
-    blocks: ["app bootstrap thinning", "package extraction handoff"],
-    blocker: "App composition still wires product feature ordering, hierarchy source composition, app menu wiring, and Scene run-mode command behavior.",
-    deletionCondition: "App composition imports public runtime/editor/UI installers and bootstrap ports only."
-  }
-] as const satisfies readonly ProjectPrismDebtBlocker[];
+export const projectPrismDebtBlockers: readonly ProjectPrismDebtBlocker[] = [];
 
 export interface ProjectPrismRuntimeExtractionBlocker {
   readonly id: string;
@@ -108,26 +98,7 @@ export interface ProjectPrismAppCompositionBlocker {
   readonly deletionCondition: string;
 }
 
-export const projectPrismAppCompositionBlockers = [
-  {
-    id: "wallpaper-app-concrete-feature-policy",
-    files: [
-      "./features/install-wallpaper-product-features.ts"
-    ],
-    blocks: ["product feature policy split", "formal package extraction"],
-    blocker: "Wallpaper product feature composition still assembles owner policy contributions, hierarchy source metadata, app menu wiring, and product feature ordering.",
-    deletionCondition: "Product feature policy is split into owner-owned installers or deleted when existing runtime/editor/UI owners can express the behavior directly."
-  },
-  {
-    id: "scene-run-mode-product-command",
-    files: [
-      "./features/workspace-mode.ts"
-    ],
-    blocks: ["ui-framework extraction", "editor-state split"],
-    blocker: "Scene run-mode command module remains app-local because it coordinates product Scene semantics with window presentation ports.",
-    deletionCondition: "Scene run-mode is either deleted as redundant behavior or expressed behind editor/UI owner ports without product-specific placement truth."
-  }
-] as const satisfies readonly ProjectPrismAppCompositionBlocker[];
+export const projectPrismAppCompositionBlockers: readonly ProjectPrismAppCompositionBlocker[] = [];
 
 export const projectPrismZoneDependencyRules = [
   {
@@ -177,8 +148,7 @@ export const projectPrismZoneDependencyRules = [
       "actor-input-candidate",
       "ui-framework-candidate",
       "editor-candidate",
-      "app-composition",
-      "app-composition-debt"
+      "app-composition"
     ]
   },
   {
@@ -257,9 +227,9 @@ export const projectPrismPackageTargets = [
   {
     id: "wallpaper-app",
     cleanCandidateZones: ["app-composition"],
-    debtZones: ["app-composition-debt"],
-    blockedBy: ["app-composition-debt"],
-    extractionPhase: "Phase 8",
-    extractionStatus: "blocked"
+    debtZones: [],
+    blockedBy: [],
+    extractionPhase: "Phase 9",
+    extractionStatus: "allowed"
   }
 ] as const satisfies readonly ProjectPrismPackageTarget[];

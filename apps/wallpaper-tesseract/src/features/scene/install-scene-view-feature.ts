@@ -10,7 +10,6 @@ import {
   SCENE_WINDOW_MIN_WIDTH,
   SCENE_WINDOW_PRIORITY_DEVELOP,
   type Camera3GizmoViewFactory,
-  type ActorHierarchyMetadata,
   type RegisteredSceneViewActor,
   type SceneViewportResizeObserverFactory
 } from "editor";
@@ -30,15 +29,11 @@ import {
   type RuntimeSceneViewRuntime
 } from "../../runtime/runtime-scene-view-runtime";
 import {
-  RUNTIME_SCENE_TESSERACT_LABEL,
-  createRuntimeSceneTesseract4ActorId
-} from "../../runtime/runtime-scene-content";
-import {
   sceneCamera3ViewportBindingComponentType
 } from "./components";
 
-export const SCENE_VIEW_WINDOW_ACTOR_ID = "scene-window";
-export const SCENE_VIEW_WINDOW_ACTOR_NAME = "Scene";
+const SCENE_VIEW_WINDOW_ACTOR_ID = "scene-window";
+const SCENE_VIEW_WINDOW_ACTOR_NAME = "Scene";
 const SCENE_VIEW_ACTOR_ID = `${SCENE_VIEW_WINDOW_ACTOR_ID}:view`;
 const SCENE_VIEW_ACTOR_NAME = `${SCENE_VIEW_WINDOW_ACTOR_NAME} View`;
 const SCENE_VIEW_CAMERA_ACTOR_ID = `${SCENE_VIEW_ACTOR_ID}:camera-3`;
@@ -53,17 +48,6 @@ export interface InstallSceneViewFeatureOptions {
   readonly createResizeObserver?: SceneViewportResizeObserverFactory;
   readonly createCamera3GizmoView?: Camera3GizmoViewFactory;
   readonly devicePixelRatio?: () => number;
-}
-
-export function createSceneActorHierarchyMetadata(): Record<string, ActorHierarchyMetadata> {
-  return {
-    [SCENE_VIEW_WINDOW_ACTOR_ID]: { label: SCENE_VIEW_WINDOW_ACTOR_NAME, order: 0 },
-    [createRuntimeSceneTesseract4ActorId(SCENE_VIEW_ACTOR_ID)]: {
-      label: RUNTIME_SCENE_TESSERACT_LABEL,
-      order: 10
-    },
-    [SCENE_VIEW_CAMERA_ACTOR_ID]: { label: SCENE_VIEW_CAMERA_ACTOR_NAME, order: 20 }
-  };
 }
 
 function createSceneWindowWorkspaceFloatingFramePolicy(

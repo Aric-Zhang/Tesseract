@@ -1,18 +1,52 @@
 import { describe, expect, it } from "vitest";
-import { AppFrameStateController, AppStateParameterStore, editorStatePath, editorStatePaths } from "editor";
-import { registerWorkspaceModeParameters, type EditorWorkspaceMode } from "editor";
+import {
+  AppFrameStateController,
+  AppStateParameterStore,
+  editorStatePath,
+  editorStatePaths,
+  type AppStateObserver
+} from "editor";
+import { type EditorWorkspaceMode } from "editor";
 import { createSingletonWindowViewIdentity, type WindowViewLocation } from "../window-runtime";
 import {
-  WorkspaceModeController,
-  type WorkspacePresentationPort,
-  type WorkspaceSceneViewPort
-} from "./workspace-mode";
+  installSceneRunModeCommand,
+  installSceneRunModeState,
+  type SceneRunModePresentationPort,
+  type SceneRunModeSceneViewPort
+} from "./scene-run-mode-command";
 import type { AppStateChangedEvent } from "editor";
+import type { StateObserverRegistry } from "editor";
 
 function createChangedEvent(changes: AppStateChangedEvent["changes"]): AppStateChangedEvent {
   return {
     frame: { timeMs: 100, deltaMs: 16, frameIndex: 1 },
     changes
+  };
+}
+
+function createStateBridge(): {
+  readonly observers: AppStateObserver[];
+  readonly disposals: string[];
+  readonly bridge: StateObserverRegistry<AppStateObserver>;
+} {
+  const observers: AppStateObserver[] = [];
+  const disposals: string[] = [];
+  return {
+    observers,
+    disposals,
+    bridge: {
+      subscribe(observer) {
+        observers.push(observer);
+        return {
+          dispose() {
+            disposals.push("observer");
+          }
+        };
+      },
+      dispose() {
+        disposals.push("registry");
+      }
+    }
   };
 }
 
@@ -38,7 +72,7 @@ function createSceneViewPort(options: {
         presentation: "windowed",
         activationSequence: 0
       };
-  const sceneView: WorkspaceSceneViewPort = {
+  const sceneView: SceneRunModeSceneViewPort = {
     viewKey: "scene",
     locations: {
       getLocationByViewKey: (viewKey) => viewKey === "scene" ? location() : null,
@@ -67,7 +101,7 @@ function createSceneViewPort(options: {
 
 function createWorkspacePresentation(): {
   readonly calls: string[];
-  readonly port: WorkspacePresentationPort;
+  readonly port: SceneRunModePresentationPort;
 } {
   const calls: string[] = [];
   return {
@@ -83,12 +117,12 @@ function createWorkspacePresentation(): {
   };
 }
 
-describe("workspace mode parameters", () => {
+describe("scene run mode state", () => {
   it("registers workspace.mode with a develop default", () => {
     const store = new AppStateParameterStore();
 
-    registerWorkspaceModeParameters(store);
-    registerWorkspaceModeParameters(store);
+    installSceneRunModeState(store);
+    installSceneRunModeState(store);
 
     expect(editorStatePaths.workspace.mode).toBe(editorStatePath<EditorWorkspaceMode>("workspace.mode"));
     expect(store.get(editorStatePaths.workspace.mode)).toBe("develop");
@@ -96,7 +130,7 @@ describe("workspace mode parameters", () => {
 
   it("rejects invalid workspace modes", () => {
     const store = new AppStateParameterStore();
-    registerWorkspaceModeParameters(store);
+    installSceneRunModeState(store);
     const controller = new AppFrameStateController({ store });
 
     expect(() => controller.submit({
@@ -116,20 +150,21 @@ describe("workspace mode parameters", () => {
       merge: "last-write-wins"
     });
 
-    expect(() => registerWorkspaceModeParameters(store)).toThrow(/outside workspace mode/);
+    expect(() => installSceneRunModeState(store)).toThrow(/outside workspace mode/);
   });
 });
 
-describe("WorkspaceModeController", () => {
+describe("installSceneRunModeCommand", () => {
   it("delegates run and develop mode to the workspace presentation port", () => {
-    const values = new Map<string, unknown>([
-      [editorStatePaths.workspace.mode, "develop"]
-    ]);
+    const store = new AppStateParameterStore();
+    installSceneRunModeState(store);
+    const stateBridge = createStateBridge();
     const { sceneView, activations } = createSceneViewPort();
     const workspacePresentation = createWorkspacePresentation();
     const presentationMeasurements: string[] = [];
-    const controller = new WorkspaceModeController({
-      getValue: (path) => values.get(path) as never,
+    installSceneRunModeCommand({
+      stateStore: store,
+      stateBridge: stateBridge.bridge,
       sceneView,
       workspacePresentation: workspacePresentation.port,
       onScenePresentationChanged: () => presentationMeasurements.push("measure")
@@ -137,8 +172,7 @@ describe("WorkspaceModeController", () => {
     workspacePresentation.calls.length = 0;
     presentationMeasurements.length = 0;
 
-    values.set(editorStatePaths.workspace.mode, "run");
-    controller.onStateChanged(createChangedEvent([{
+    stateBridge.observers[0]?.onStateChanged(createChangedEvent([{
       path: editorStatePaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
@@ -150,8 +184,7 @@ describe("WorkspaceModeController", () => {
     expect(workspacePresentation.calls).toEqual(["enter:scene-view:programmatic"]);
     expect(presentationMeasurements).toEqual(["measure"]);
 
-    values.set(editorStatePaths.workspace.mode, "develop");
-    controller.onStateChanged(createChangedEvent([{
+    stateBridge.observers[0]?.onStateChanged(createChangedEvent([{
       path: editorStatePaths.workspace.mode,
       previousValue: "run",
       nextValue: "develop",
@@ -167,9 +200,9 @@ describe("WorkspaceModeController", () => {
   });
 
   it("opens the Scene view before entering run mode when it is not live", () => {
-    const values = new Map<string, unknown>([
-      [editorStatePaths.workspace.mode, "develop"]
-    ]);
+    const store = new AppStateParameterStore();
+    installSceneRunModeState(store);
+    const stateBridge = createStateBridge();
     let live = false;
     const scene = createSceneViewPort({ live });
     const workspacePresentation = createWorkspacePresentation();
@@ -181,14 +214,14 @@ describe("WorkspaceModeController", () => {
       if (viewKey !== "scene" || !live) return null;
       return createSceneViewPort().sceneView.locations.getLocationByViewKey(viewKey);
     };
-    const controller = new WorkspaceModeController({
-      getValue: (path) => values.get(path) as never,
+    installSceneRunModeCommand({
+      stateStore: store,
+      stateBridge: stateBridge.bridge,
       sceneView: scene.sceneView,
       workspacePresentation: workspacePresentation.port
     });
 
-    values.set(editorStatePaths.workspace.mode, "run");
-    controller.onStateChanged(createChangedEvent([{
+    stateBridge.observers[0]?.onStateChanged(createChangedEvent([{
       path: editorStatePaths.workspace.mode,
       previousValue: "develop",
       nextValue: "run",
@@ -201,19 +234,19 @@ describe("WorkspaceModeController", () => {
   });
 
   it("ignores repeated mode notifications after the mode has already been applied", () => {
-    const values = new Map<string, unknown>([
-      [editorStatePaths.workspace.mode, "develop"]
-    ]);
+    const store = new AppStateParameterStore();
+    installSceneRunModeState(store);
+    const stateBridge = createStateBridge();
     const { sceneView } = createSceneViewPort();
     const workspacePresentation = createWorkspacePresentation();
-    const controller = new WorkspaceModeController({
-      getValue: (path) => values.get(path) as never,
+    installSceneRunModeCommand({
+      stateStore: store,
+      stateBridge: stateBridge.bridge,
       sceneView,
       workspacePresentation: workspacePresentation.port
     });
     workspacePresentation.calls.length = 0;
 
-    values.set(editorStatePaths.workspace.mode, "run");
     const runChange = {
       path: editorStatePaths.workspace.mode,
       previousValue: "develop",
@@ -221,9 +254,28 @@ describe("WorkspaceModeController", () => {
       sources: [{ id: "shortcut", kind: "keyboard" }],
       commands: []
     } as const;
-    controller.onStateChanged(createChangedEvent([runChange]));
-    controller.onStateChanged(createChangedEvent([runChange]));
+    stateBridge.observers[0]?.onStateChanged(createChangedEvent([runChange]));
+    stateBridge.observers[0]?.onStateChanged(createChangedEvent([runChange]));
 
     expect(workspacePresentation.calls).toEqual(["enter:scene-view:programmatic"]);
+  });
+
+  it("disposes the subscribed command without exposing the controller", () => {
+    const store = new AppStateParameterStore();
+    installSceneRunModeState(store);
+    const stateBridge = createStateBridge();
+    const { sceneView } = createSceneViewPort();
+    const workspacePresentation = createWorkspacePresentation();
+
+    const installed = installSceneRunModeCommand({
+      stateStore: store,
+      stateBridge: stateBridge.bridge,
+      sceneView,
+      workspacePresentation: workspacePresentation.port
+    });
+
+    expect(Object.keys(installed)).toEqual(["dispose"]);
+    installed.dispose();
+    expect(stateBridge.disposals).toEqual(["observer"]);
   });
 });

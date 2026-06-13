@@ -1,14 +1,8 @@
 import type { UiActorContext, WindowFrameIntentSink, WindowWorkspaceViewCatalog } from "../../window-runtime";
 import { createAppMenuBarActor } from "./app-menu-bar-actor-factory";
 
-export const APP_MENU_BAR_ACTOR_ID = "app-menu-bar";
-export const APP_MENU_BAR_ACTOR_NAME = "App Menu";
-
-export function createAppMenuActorHierarchyMetadata(): Record<string, { readonly label: string; readonly order: number }> {
-  return {
-    [APP_MENU_BAR_ACTOR_ID]: { label: APP_MENU_BAR_ACTOR_NAME, order: 1020 }
-  };
-}
+const APP_MENU_BAR_ACTOR_ID = "app-menu-bar";
+const APP_MENU_BAR_ACTOR_NAME = "App Menu";
 
 export interface InstallAppMenuFeatureOptions {
   readonly context: UiActorContext;

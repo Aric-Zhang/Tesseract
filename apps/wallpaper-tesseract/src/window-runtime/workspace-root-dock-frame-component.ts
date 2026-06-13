@@ -246,6 +246,10 @@ export class WorkspaceRootDockFrameComponent
   }
 
   onInputMove(event: ActorInputMoveEvent): void {
+    if (this.#draggingTab) {
+      this.#tabDragSink?.moveTabDrag(event.point);
+      return;
+    }
     if (event.hit.partId === "root-splitter") {
       const resize = this.#surface.updateSplitRatioFromDrag(event);
       if (resize) {
@@ -257,9 +261,6 @@ export class WorkspaceRootDockFrameComponent
         );
       }
       return;
-    }
-    if (event.hit.partId === WINDOW_FRAME_TAB_PART_ID && this.#draggingTab) {
-      this.#tabDragSink?.moveTabDrag(event.point);
     }
   }
 
@@ -278,7 +279,7 @@ export class WorkspaceRootDockFrameComponent
 
   onInputCancel(_event: ActorInputCancelEvent): void {
     this.#surface.endSplitResize();
-    if (_event.hit.partId === WINDOW_FRAME_TAB_PART_ID) {
+    if (this.#draggingTab) {
       this.#tabDragSink?.cancelTabDrag();
     }
     this.#draggingTab = false;

@@ -515,6 +515,21 @@ implemented, Step 7A closed DCK-007 through
 `docs/project-prism-phase-9-dck-007-blocker-resolution-plan.md`, and fresh Phase
 9 smoke evidence validates from `temp/project-prism-phase-9-smoke-data.json`.
 
+Proposed Phase 10 runtime production ownership plan:
+
+```text
+docs/project-prism-phase-10-runtime-production-ownership-plan.md
+```
+
+Treat this as the next execution plan after Phase 9. It targets the remaining
+runtime package-placement debt by moving or deleting app-local
+`apps/wallpaper-tesseract/src/runtime` staging without creating compatibility
+barrels, while keeping `runtime-core` renderer-agnostic, `runtime-three`
+backend-only, editor presentation-only, and app composition thin. The amended
+plan requires a formal `packages/wallpaper-runtime` boundary zone, minimal
+dependencies based on actual imports, and a component-definition owner split so
+Scene components no longer install or re-export runtime Camera3 definitions.
+
 Older window/docking/view-identity plans are now Git history, not active files
 in `temp/`. Recover historical context from Git when needed, then compare it
 against current implementation and boundary facts before acting on it.

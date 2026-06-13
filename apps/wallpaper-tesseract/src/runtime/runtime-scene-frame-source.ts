@@ -5,9 +5,14 @@ import {
   type RuntimeFrameSource,
   type RuntimeRegistration
 } from "runtime-core";
-import type { Camera3MotionComponent } from "../../runtime/camera3/camera3-motion-component";
-import type { EditorSceneViewHost } from "editor";
 import type { RuntimeThreeSceneRenderOutput } from "runtime-three";
+import type { Camera3MotionComponent } from "./camera3/camera3-motion-component";
+
+export interface RuntimeSceneViewPresentationPort {
+  readonly viewActorId: string;
+  measureNow(): void;
+  isVisibleInCurrentLocation(): boolean;
+}
 
 export interface RenderableSceneView {
   readonly viewActorId: string;
@@ -69,22 +74,22 @@ export class SceneViewFrameSourceRegistry implements RenderableSceneViewRegistry
 }
 
 export interface CreateRenderableSceneViewOptions {
-  readonly host: EditorSceneViewHost;
+  readonly presentation: RuntimeSceneViewPresentationPort;
   readonly camera3Motion: Camera3MotionComponent;
   readonly renderOutput: RuntimeThreeSceneRenderOutput;
 }
 
 export function createRenderableSceneView(options: CreateRenderableSceneViewOptions): RenderableSceneView {
   return {
-    viewActorId: options.host.viewActorId,
+    viewActorId: options.presentation.viewActorId,
     measureNow() {
-      options.host.measureNow();
+      options.presentation.measureNow();
     },
     isRenderable() {
-      return options.host.isVisibleInCurrentLocation();
+      return options.presentation.isVisibleInCurrentLocation();
     },
     render() {
-      if (!options.host.isVisibleInCurrentLocation()) return;
+      if (!options.presentation.isVisibleInCurrentLocation()) return;
       options.renderOutput.render(options.camera3Motion.getRuntimeThreeCameraForRender());
     }
   };

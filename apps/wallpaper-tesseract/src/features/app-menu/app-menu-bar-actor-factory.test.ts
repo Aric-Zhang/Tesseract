@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { gizmoEventBindingComponentType, installActorInputComponentDefinitions } from "actor-input";
 import { ActorSystem, ComponentRegistry, type RegisteredActor } from "../../actor-runtime";
-import { installGizmoRuntimeComponentDefinitions } from "../../gizmo-runtime";
 import { installEditorStateObserverComponentDefinitions } from "editor";
-import { gizmoEventBindingComponentType } from "../../gizmo-runtime";
 import { stateObserverBindingComponentType } from "editor";
 import { editorStatePath } from "editor";
 import type { WindowWorkspaceViewCatalog } from "../../window-runtime";
@@ -95,7 +94,7 @@ class FakeElement {
 function createContext() {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
-  installGizmoRuntimeComponentDefinitions(componentRegistry);
+  installActorInputComponentDefinitions(componentRegistry);
   installEditorStateObserverComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
   return {

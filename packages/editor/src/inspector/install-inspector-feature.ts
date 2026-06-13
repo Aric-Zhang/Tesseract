@@ -38,7 +38,7 @@ export interface InstallInspectorFeatureOptions {
   readonly viewFactories: WindowViewFactoryRegistry;
 }
 
-export function createInspectorWindowWorkspaceFloatingFramePolicies(): ReadonlyArray<
+function createInspectorWindowWorkspaceFloatingFramePolicies(): ReadonlyArray<
   readonly [string, EditorWindowWorkspaceFloatingFramePolicy]
 > {
   return INSPECTOR_INSTANCE_DEFINITIONS.map((definition) => [
@@ -57,6 +57,16 @@ export function createInspectorWindowWorkspaceFloatingFramePolicies(): ReadonlyA
       menuOrder: 1050
     }
   ]);
+}
+
+export interface InstalledInspectorWorkspacePolicy {
+  readonly floatingFramePolicies: ReadonlyArray<readonly [string, EditorWindowWorkspaceFloatingFramePolicy]>;
+}
+
+export function installInspectorWorkspacePolicy(): InstalledInspectorWorkspacePolicy {
+  return {
+    floatingFramePolicies: createInspectorWindowWorkspaceFloatingFramePolicies()
+  };
 }
 
 export function installInspectorFeature(options: InstallInspectorFeatureOptions): void {

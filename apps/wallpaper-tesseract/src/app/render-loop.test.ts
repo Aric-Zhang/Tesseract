@@ -26,6 +26,39 @@ describe("RenderLoop", () => {
     expect(env.calls).toEqual(["setTimeout:16"]);
   });
 
+  it("uses the same monotonic clock for hidden timeout ticks", () => {
+    let timeoutCallback: () => void = () => {
+      throw new Error("timeout callback was not registered");
+    };
+    const updates: number[] = [];
+    const env: RenderLoopEnvironment = {
+      document: {
+        hidden: true
+      },
+      now: () => 1234,
+      window: {
+        requestAnimationFrame() {
+          throw new Error("requestAnimationFrame should not be used while hidden");
+        },
+        cancelAnimationFrame() {},
+        setTimeout(callback: () => void) {
+          timeoutCallback = callback;
+          return 1;
+        },
+        clearTimeout() {}
+      } as unknown as RenderLoopEnvironment["window"]
+    };
+    const loop = new RenderLoop({
+      update: (timeMs) => updates.push(timeMs),
+      environment: env
+    });
+
+    loop.start();
+    timeoutCallback();
+
+    expect(updates).toEqual([1234]);
+  });
+
   it("does not schedule multiple frame requests when already running", () => {
     const env = createEnvironment({ hidden: false });
     const loop = new RenderLoop({
@@ -79,6 +112,7 @@ function createEnvironment(options: { hidden: boolean }): RenderLoopEnvironment 
     document: {
       hidden: options.hidden
     },
+    now: () => 100,
     window: {
       requestAnimationFrame() {
         calls.push("requestAnimationFrame");

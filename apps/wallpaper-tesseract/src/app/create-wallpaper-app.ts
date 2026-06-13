@@ -6,6 +6,7 @@ import {
   createActorCreationScope,
   type Component
 } from "actor-core";
+import { installActorInputComponentDefinitions } from "actor-input";
 import {
   AppFrameStateController,
   StateObserverAttachmentRuntime,
@@ -15,7 +16,8 @@ import { AppStateParameterStore } from "editor";
 import type { AppStateCommandSink } from "editor";
 import { editorStatePaths } from "editor";
 import {
-  createEditorBackedWorkspaceCommandSink
+  createEditorBackedWorkspaceCommandSink,
+  installEditorComponentDefinitions
 } from "editor";
 import { RuntimeFrameClock } from "runtime-core";
 import { ActiveInputCancellationRuntime, GizmoControllerAttachmentRuntime } from "../gizmo-runtime";
@@ -23,6 +25,7 @@ import { FrameUpdateAttachmentRuntime } from "ui-framework";
 import type { StateObserverRegistry } from "editor";
 import {
   createWindowFocusServiceProxy,
+  installWindowComponentDefinitions,
   type UiLayoutCommandSink,
   WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY
 } from "../window-runtime";
@@ -36,7 +39,9 @@ import {
   installWallpaperProductStateDefaults,
   installWallpaperProductFeatures,
 } from "../features/install-wallpaper-product-features";
-import { installWallpaperComponentDefinitions } from "../features/install-wallpaper-component-definitions";
+import { installAppMenuComponentDefinitions } from "../features/app-menu";
+import { installSceneCamera3ComponentDefinitions } from "../features/scene/components";
+import { installTesseract4ComponentDefinitions } from "../runtime/tesseract4";
 import { createWallpaperAppShell } from "./app-shell";
 import { ImmediateUpdateScheduler } from "./immediate-update-scheduler";
 import { RenderLoop } from "./render-loop";
@@ -44,6 +49,7 @@ import { AppFrameOrchestrator } from "./app-frame-orchestrator";
 import { UiFrameScheduler } from "./ui-frame-scheduler";
 import { ProductionRuntimeSchedulerService } from "../runtime/runtime-scheduler-service";
 import { RuntimeWorkAttachmentRuntime } from "../runtime/runtime-work-attachment-runtime";
+import { RuntimeSceneViewRuntimeRegistry } from "../runtime/runtime-scene-view-runtime";
 
 export interface WallpaperApp {
   dispose(): void;
@@ -87,6 +93,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   });
   const actorSystem = new ActorSystem();
   const runtimeScheduler = new ProductionRuntimeSchedulerService();
+  const runtimeSceneViews = new RuntimeSceneViewRuntimeRegistry();
   const frameUpdateRuntime = new FrameUpdateAttachmentRuntime({ actorSystem });
   const activeInputCancellationRuntime = new ActiveInputCancellationRuntime();
   const componentRegistry = new ComponentRegistry({
@@ -107,14 +114,21 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   });
   const actorCreationScope = createActorCreationScope({ actorSystem, componentRegistry });
 
-  installWallpaperComponentDefinitions(componentRegistry, {
+  installActorInputComponentDefinitions(componentRegistry, {
     gizmoEventBinding: {
       actorInputStackPriority: windowFocus,
       requestPointerFocus: (actor) => windowFocus.focusActorWindow(actor, "pointer-down")
-    },
-    editorCommandSink: createEditorBackedWorkspaceCommandSink(frameStateBridge),
-    uiLayoutCommandSink: createEditorBackedUiLayoutCommandSink(frameStateBridge)
+    }
   });
+  installWindowComponentDefinitions(componentRegistry, {
+    commandSink: createEditorBackedUiLayoutCommandSink(frameStateBridge)
+  });
+  installAppMenuComponentDefinitions(componentRegistry);
+  installEditorComponentDefinitions(componentRegistry, {
+    commandSink: createEditorBackedWorkspaceCommandSink(frameStateBridge)
+  });
+  installSceneCamera3ComponentDefinitions(componentRegistry);
+  installTesseract4ComponentDefinitions(componentRegistry);
 
   const layoutStorage = createBrowserWindowWorkspaceFrameLayoutStorage(window, {
     resetKeys: shouldResetWindowWorkspaceLayout(window)
@@ -144,7 +158,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     windowCatalog: windowWorkspace.catalog,
     windowFrameIntents: windowWorkspace.frameIntents,
     workspacePresentation: windowWorkspace.presentationController,
-    debugLogSink
+    debugLogSink,
+    runtimeSceneViews
   });
   if (!windowWorkspace.restorePersistedLayout()) {
     windowWorkspace.openDefaultViews();
@@ -165,12 +180,12 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
       frameStateController.updateFrame(frame);
     },
     renderFrameSources() {
-      productFeatures.renderFrameSources();
+      runtimeSceneViews.renderCurrentFrameSource();
     }
   });
 
   function measureSceneViewport(): void {
-    productFeatures.measureSceneViewport();
+    runtimeSceneViews.measureCurrentView();
   }
 
   function update(timeMs: number): void {

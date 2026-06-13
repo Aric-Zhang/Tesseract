@@ -1,5 +1,6 @@
 export interface RenderLoopEnvironment {
   readonly document: Pick<Document, "hidden">;
+  readonly now: () => number;
   readonly window: Pick<
     Window,
     "requestAnimationFrame" | "cancelAnimationFrame" | "setTimeout" | "clearTimeout"
@@ -62,7 +63,7 @@ export class RenderLoop {
     }
     return {
       kind: "timeout",
-      id: host.setTimeout(() => callback(Date.now()), 16)
+      id: host.setTimeout(() => callback(this.environment.now()), 16)
     };
   }
 
@@ -79,6 +80,7 @@ export class RenderLoop {
 function getDefaultEnvironment(): RenderLoopEnvironment {
   return {
     document,
+    now: () => performance.now(),
     window
   };
 }

@@ -65,10 +65,11 @@ root validation and browser evidence.
 Phase 7 implementation and closure are complete. Its execution slice deleted
 runtime port aliases, `app-runtime`, old app-local Scene/Camera3/Tesseract
 mixed owners, and app-local app policy files under `src/app`. The completed
-closure record is `temp/project-prism-phase-7-closure-plan.md`. The active
-Phase 8 plan is `docs/project-prism-phase-8-runtime-scene-composition-plan.md`;
-it takes the smaller explicit app-composition and runtime-placement debts as
-entry scope without adding compatibility facades.
+closure record is `temp/project-prism-phase-7-closure-plan.md`.
+Phase 8 and the Phase 8.5 remaining-debt closure are complete. `DCK-006` is
+closed with fresh browser smoke evidence, runtime Scene composition debt is
+closed, and remaining work has moved to the next app-composition cleanup plan:
+`docs/project-prism-phase-9-app-composition-closure-plan.md`.
 ```
 
 ## Codename
@@ -621,12 +622,14 @@ Phase 5.5B: completed - delete remaining window-workspace multi-truth debt
 Phase 5.5C: completed - run final browser graph/DOM/input/persistence parity gate
 Phase 6: completed - extract editor package while preserving the completed graph gate
 Phase 7: completed - thin Wallpaper app composition after runtime/editor/ui ownership is clean
-Phase 8: active - split runtime Scene composition and product feature policy
+Phase 8: completed - split runtime Scene composition and product feature policy
+Phase 9: proposed - close app-composition/product command debt
 ```
 
-Phase 7 is complete. Phase 8 may proceed because app-local runtime ports,
-`app-runtime`, old mixed Scene/Tesseract/Camera3 staging, and old app bootstrap
-policy files were deleted or moved to narrower owners.
+Phase 8 is complete. Phase 9 may proceed after a checkpoint commit because
+app-local runtime ports, `app-runtime`, old mixed Scene/Tesseract/Camera3
+staging, and old app bootstrap policy files were deleted or moved to narrower
+owners.
 
 ### Historical Phase Model Verdict
 
@@ -1155,41 +1158,73 @@ Acceptance:
   bootstrap code with explicit deletion notes;
 - root validation and browser smoke remain green.
 
-### Phase 8: Multi-World / Multi-Viewport Validation
+### Phase 8: Runtime Scene Composition And Product Policy Split
 
 Goal:
 
-Prove the architecture supports the original Prism goal: multiple worlds,
-multiple cameras, multiple Scene Views, and independent fullscreen sessions.
+Delete the smaller post-Phase-7 app-composition and runtime-placement debts
+without replacing them with new facades. The completed plan is:
 
-Prerequisites:
+```text
+docs/project-prism-phase-8-runtime-scene-composition-plan.md
+```
 
-- Phase 6 editor package extraction is complete.
-- Phase 7 app composition is thin enough that it does not contain hidden
-  singleton world, camera, Scene View, or window policy ownership.
+Completed work:
 
-Scenarios:
+- split product feature policy out of
+  `features/install-wallpaper-product-features.ts` by moving
+  Scene/Tesseract/Camera3 internal actor ids, runtime render/measure hooks,
+  Scene and Debug/Hierarchy default state registration, and concrete
+  floating/default view policy construction to their real feature/runtime/editor
+  owners;
+- split component definition installation by owner instead of preserving a
+  central app-local all-feature installer;
+- define the runtime Scene session contract before deleting feature-level
+  cross-domain assembly;
+- keep workspace-mode as a narrowed Scene run-mode product command module
+  unless a simpler product-agnostic UI/editor owner exists;
+- strengthen the smoke evidence contract so fresh menu hover, Debug/Scene dock,
+  mobile viewport, and Camera3 interaction evidence are required.
 
-- two independent 3D worlds;
-- one 4D world projected into multiple 3D views;
-- four-viewport layout similar to DCC software;
-- multiple Scene Views, each fullscreen-capable;
-- Camera/Gizmo association is per Scene View;
-- window/tab/dock layout persists across reload;
-- runtime can render without editor installed;
-- editor can be installed without a Wallpaper-specific app shell;
-- mobile/narrow viewport keeps the multi-view controls usable.
+Remaining narrowed debt:
 
-Acceptance:
+- `install-wallpaper-product-features.ts` still composes owner policy
+  contributions, hierarchy source metadata, app menu wiring, feature
+  installation ordering, and workspace-mode installation.
+- `features/workspace-mode.ts` remains app-local because Scene run mode is still
+  product behavior rather than generic UI framework policy.
 
-- fullscreen one Scene View does not hide or corrupt unrelated Scene Views;
-- each Scene View has explicit frame source and camera binding;
-- world/camera/projection graph remains inspectable;
-- no global singleton Scene assumptions remain;
-- creating, closing, docking, floating, fullscreening, and restoring one Scene
-  View does not mutate unrelated runtime worlds or cameras;
-- browser smoke covers desktop, mobile, docking loop, fullscreen/restore, and
-  Camera3 interactions.
+### Phase 9: App Composition Closure
+
+Goal:
+
+Delete the remaining product installer shell and close the narrowed
+app-composition/product command debt without adding a replacement facade.
+
+The proposed plan is:
+
+```text
+docs/project-prism-phase-9-app-composition-closure-plan.md
+```
+
+Primary cleanup targets:
+
+- delete `features/install-wallpaper-product-features.ts` instead of renaming
+  it;
+- remove the app-menu local model compatibility barrel;
+- move hierarchy source ownership into the Tool Window/Hierarchy owner and
+  delete product-level hierarchy metadata aggregation;
+- delete unused tool-window actor id / label override hooks;
+- collapse `workspace-mode.ts` into a narrow Scene run command or remove it if
+  the behavior proves redundant;
+- flip boundary facts so `wallpaper-app` is no longer blocked once app
+  composition imports public owner installers and bootstrap ports only.
+
+Post-Phase-8 validation goal:
+
+The old "multi-world / multi-viewport validation" idea remains important, but
+it is not the current Phase 8 implementation scope. It should run only after
+product policy and Scene runtime composition are no longer mixed owners.
 
 ## Architecture Boundary Tests To Keep And Add
 

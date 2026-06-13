@@ -176,6 +176,7 @@ export class FloatingWindowComponent
   readonly #surface: WindowFrameSurfaceComponent;
   readonly #surfaceHost: WindowFrameSurfaceHost;
   #dragStartState: FloatingWindowState | null = null;
+  #draggingTab = false;
   #presentation: FloatingWindowPresentation;
   readonly #presentationSuppressionReasons = new Set<WindowFrameSuppressionReason>();
   #effectivePriority: number;
@@ -364,6 +365,7 @@ export class FloatingWindowComponent
     if (this.#presentation === presentation) return;
     this.#presentation = presentation;
     this.#dragStartState = null;
+    this.#draggingTab = false;
     this.applyLayout();
   }
 
@@ -376,6 +378,7 @@ export class FloatingWindowComponent
       this.#presentationSuppressionReasons.delete(reason);
     }
     this.#dragStartState = null;
+    this.#draggingTab = false;
     this.applyLayout();
     this.#surface.refreshActiveContentState();
   }
@@ -459,10 +462,12 @@ export class FloatingWindowComponent
 
   onInputStart(_event: ActorInputStartEvent): void {
     this.#dragStartState = cloneFloatingWindowState(this.state);
+    this.#draggingTab = false;
     this.#surface.endSplitResize();
     if (_event.hit.partId === WINDOW_FRAME_TAB_PART_ID) {
       const source = readWindowTabDragSource(this.#frameId, _event.hit);
       if (source) {
+        this.#draggingTab = true;
         this.#tabDragSink?.beginTabDrag(source, _event.point);
       }
     } else if (_event.hit.partId === "splitter") {
@@ -472,6 +477,10 @@ export class FloatingWindowComponent
 
   onInputMove(event: ActorInputMoveEvent): void {
     if (!event.isDragging) return;
+    if (this.#draggingTab) {
+      this.#tabDragSink?.moveTabDrag(event.point);
+      return;
+    }
     const dragStartState = this.#dragStartState ?? this.state;
     const partId = event.hit.partId as FloatingWindowPartId;
     if (partId === "titlebar-empty") {
@@ -504,13 +513,14 @@ export class FloatingWindowComponent
     this.#dragStartState = null;
     this.#surface.endSplitResize();
     if (event.hit.partId === WINDOW_FRAME_TAB_ACTION_PART_ID) {
-      handleWindowFrameTabInputEnd({
+      const tabResult = handleWindowFrameTabInputEnd({
         event,
         frameId: this.#frameId,
         frameIntentSink: this.#frameIntentSink,
         tabDragSink: this.#tabDragSink,
-        draggingTab: true
+        draggingTab: this.#draggingTab
       });
+      this.#draggingTab = tabResult.draggingTab;
       return;
     }
     const tabResult = handleWindowFrameTabInputEnd({
@@ -518,8 +528,9 @@ export class FloatingWindowComponent
       frameId: this.#frameId,
       frameIntentSink: this.#frameIntentSink,
       tabDragSink: this.#tabDragSink,
-      draggingTab: event.hit.partId === WINDOW_FRAME_TAB_PART_ID
+      draggingTab: this.#draggingTab
     });
+    this.#draggingTab = tabResult.draggingTab;
     if (tabResult.handled) return;
     if (event.hit.partId === "close" && event.wasClick) {
       if (this.#frameIntentSink) {
@@ -533,9 +544,10 @@ export class FloatingWindowComponent
   onInputCancel(_event: ActorInputCancelEvent): void {
     this.#dragStartState = null;
     this.#surface.endSplitResize();
-    if (_event.hit.partId === WINDOW_FRAME_TAB_PART_ID) {
+    if (this.#draggingTab) {
       this.#tabDragSink?.cancelTabDrag();
     }
+    this.#draggingTab = false;
   }
 
   dispose(): void {

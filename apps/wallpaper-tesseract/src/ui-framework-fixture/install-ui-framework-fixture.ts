@@ -1,4 +1,5 @@
 import { GizmoEventSystem } from "gizmo-core";
+import { installActorInputComponentDefinitions } from "actor-input";
 import {
   ActorSystem,
   ComponentRegistry,
@@ -12,8 +13,7 @@ import {
 import { installAppMenuFeature, installAppMenuComponentDefinitions } from "../features/app-menu";
 import {
   ActiveInputCancellationRuntime,
-  GizmoControllerAttachmentRuntime,
-  installGizmoRuntimeComponentDefinitions
+  GizmoControllerAttachmentRuntime
 } from "../gizmo-runtime";
 import { installEditorStateObserverComponentDefinitions } from "editor";
 import {
@@ -140,7 +140,7 @@ export function installUiFrameworkFixture(
     actorSystem,
     attachmentRuntime: actorInputRuntime?.attachmentRuntime
   });
-  installGizmoRuntimeComponentDefinitions(componentRegistry, {
+  installActorInputComponentDefinitions(componentRegistry, {
     gizmoEventBinding: {
       actorInputStackPriority: windowFocus
     }

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { WINDOW_FRAME_TAB_PART_ID } from "ui-framework";
 import { createActorInputEndEvent, createActorInputHit } from "../test-support";
 import { handleWindowFrameTabInputEnd } from "./window-frame-tab-input";
 import type { WindowDockCommitIntent, WindowFrameIntentSink } from "./window-frame-lifecycle";
@@ -39,15 +38,8 @@ describe("handleWindowFrameTabInputEnd", () => {
     };
 
     const result = handleWindowFrameTabInputEnd({
-      event: createActorInputEndEvent(createActorInputHit("tab", {
-        partId: WINDOW_FRAME_TAB_PART_ID,
-        data: {
-          tabsetId: "debug-tabset",
-          tab: {
-            viewActorId: "debug-view",
-            viewKey: "debug"
-          }
-        }
+      event: createActorInputEndEvent(createActorInputHit("titlebar", {
+        partId: "titlebar-empty"
       }), {
         wasClick: false
       }),

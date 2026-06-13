@@ -15,6 +15,8 @@ export {
   gizmoEventBindingComponentDefinition
 } from "./gizmo-event-binding-definition";
 export type { GizmoEventBindingComponentDefinitionOptions } from "./gizmo-event-binding-definition";
+export { installActorInputComponentDefinitions } from "./install-component-definitions";
+export type { InstallActorInputComponentDefinitionsOptions } from "./install-component-definitions";
 export type {
   GizmoControllerRegistry,
   GizmoControllerRegistration

@@ -32,6 +32,30 @@ export function handleWindowFrameTabInputEnd(
   options: WindowFrameTabInputEndOptions
 ): WindowFrameTabInputEndResult {
   const { event, frameId, frameIntentSink, tabDragSink } = options;
+  if (options.draggingTab && !event.wasClick) {
+    const result = tabDragSink?.endTabDrag() ?? null;
+    const intent = result ? createDockCommitIntent(result) : null;
+    const unavailableCommitResult: WindowDockCommitResult = {
+      committed: false,
+      reason: "dock commit sink unavailable"
+    };
+    const commitResult = intent
+      ? frameIntentSink?.requestCommitDock?.(intent) ?? unavailableCommitResult
+      : null;
+    if (result && intent && commitResult) {
+      return {
+        handled: true,
+        draggingTab: false,
+        dockCommit: {
+          preview: result.preview,
+          intent,
+          result: commitResult
+        }
+      };
+    }
+    return { handled: true, draggingTab: false };
+  }
+
   if (event.hit.partId === WINDOW_FRAME_TAB_ACTION_PART_ID) {
     if (event.wasClick && frameIntentSink?.requestCloseView && isWindowTabAction(event.hit.data)) {
       frameIntentSink.requestCloseView(event.hit.data.viewActorId, "tab-action", {
@@ -66,26 +90,6 @@ export function handleWindowFrameTabInputEnd(
     return { handled: true, draggingTab: false };
   }
 
-  const result = tabDragSink?.endTabDrag() ?? null;
-  const intent = result ? createDockCommitIntent(result) : null;
-  const unavailableCommitResult: WindowDockCommitResult = {
-    committed: false,
-    reason: "dock commit sink unavailable"
-  };
-  const commitResult = intent
-    ? frameIntentSink?.requestCommitDock?.(intent) ?? unavailableCommitResult
-    : null;
-  if (result && intent && commitResult) {
-    return {
-      handled: true,
-      draggingTab: false,
-      dockCommit: {
-        preview: result.preview,
-        intent,
-        result: commitResult
-      }
-    };
-  }
   return { handled: true, draggingTab: false };
 }
 

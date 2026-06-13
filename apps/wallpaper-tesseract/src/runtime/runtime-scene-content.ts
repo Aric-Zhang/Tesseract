@@ -4,10 +4,10 @@ import { camera3MotionComponentType, type Camera3MotionComponent } from "./camer
 import { createRuntimeSceneSession, type RuntimeSceneSession } from "./runtime-scene-session";
 import { createTesseract4Actor } from "./tesseract4";
 
-export interface RuntimeSceneContentActorIds {
-  readonly sceneWindowActorId: string;
-  readonly tesseract4ActorId: string;
-  readonly tesseract4ActorName: string;
+export const RUNTIME_SCENE_TESSERACT_LABEL = "Tesseract4";
+
+export function createRuntimeSceneTesseract4ActorId(parentActorId: string): string {
+  return `${parentActorId}:tesseract-4`;
 }
 
 export interface RuntimeSceneContent {
@@ -18,25 +18,22 @@ export interface RuntimeSceneContent {
 
 export interface CreateRuntimeSceneContentOptions {
   readonly context: ActorCreationContext;
-  readonly actorIds: RuntimeSceneContentActorIds;
-  readonly sceneActor: Actor;
+  readonly parentActor: Actor;
   readonly runtimeScene?: RuntimeSceneSession;
 }
 
 export function createRuntimeSceneContent(options: CreateRuntimeSceneContentOptions): RuntimeSceneContent {
-  const runtimeScene = options.runtimeScene ?? createRuntimeSceneSession({
-    id: `${options.actorIds.sceneWindowActorId}:view:render-output`
-  });
+  const runtimeScene = options.runtimeScene ?? createRuntimeSceneSession({ id: "runtime-scene" });
   try {
     const camera3Motion = options.context.componentRegistry.addComponent(
-      options.sceneActor,
+      options.parentActor,
       camera3MotionComponentType,
       { distance: 6 }
     );
     const tesseract4 = createTesseract4Actor(options.context, {
-      actorId: options.actorIds.tesseract4ActorId,
-      actorName: options.actorIds.tesseract4ActorName,
-      parentActor: options.sceneActor
+      actorId: createRuntimeSceneTesseract4ActorId(options.parentActor.id),
+      actorName: RUNTIME_SCENE_TESSERACT_LABEL,
+      parentActor: options.parentActor
     });
     tesseract4.component.attachToScene(runtimeScene);
     return {

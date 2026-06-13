@@ -20,8 +20,7 @@ describe("actor-input package boundaries", () => {
         specifier.includes("scene-runtime") ||
         specifier.includes("state-runtime") ||
         specifier.includes("window-runtime") ||
-        specifier.includes("runtime/ports") ||
-        specifier.includes("component-definitions")
+        specifier.includes("runtime/ports")
       ))
       .map(({ file, specifier }) => `${file}: ${specifier}`);
     const forbiddenDomSymbols = productionFiles

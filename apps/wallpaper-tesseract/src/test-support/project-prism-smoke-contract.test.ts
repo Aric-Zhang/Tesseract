@@ -158,6 +158,93 @@ describe("Project Prism smoke evidence contract", () => {
     expect(validateProjectPrismSmokeEvidence(evidence)).toContain("scenario dock-mutation-5b-5c: missing");
   });
 
+  it("rejects evidence without fresh menu hover proof", () => {
+    const evidence = createValidEvidence();
+    delete (evidence as MutableSmokeEvidence).menuHover;
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toContain("menuHover evidence is required");
+  });
+
+  it("rejects evidence without fresh dock mutation proof", () => {
+    const evidence = createValidEvidence();
+    delete (evidence as MutableSmokeEvidence).dockMutation;
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toContain("dockMutation evidence is required");
+  });
+
+  it("rejects evidence without fresh mobile viewport proof", () => {
+    const evidence = createValidEvidence();
+    delete (evidence as MutableSmokeEvidence).mobileViewport;
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toContain("mobileViewport evidence is required");
+  });
+
+  it("rejects evidence without fresh Camera3 action proof", () => {
+    const evidence = createValidEvidence();
+    delete (evidence as MutableSmokeEvidence).camera3Action;
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toContain("camera3Action evidence is required");
+  });
+
+  it("rejects menu hover proof when the highlighted row does not follow the hovered row", () => {
+    const evidence = {
+      ...createValidEvidence(),
+      menuHover: {
+        ...createValidEvidence().menuHover,
+        hoveredLabel: "Scene",
+        highlightedLabel: "Debug Log Window"
+      }
+    };
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toContain(
+      "menuHover highlightedLabel expected Scene, got Debug Log Window"
+    );
+  });
+
+  it("rejects dock mutation proof when the graph revision does not advance", () => {
+    const evidence = {
+      ...createValidEvidence(),
+      dockMutation: {
+        ...createValidEvidence().dockMutation,
+        beforeGraphRevision: 42,
+        afterGraphRevision: 42
+      }
+    };
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toContain(
+      "dockMutation afterGraphRevision must be greater than beforeGraphRevision"
+    );
+  });
+
+  it("rejects mobile viewport proof with unmeasurable key UI rects", () => {
+    const evidence = {
+      ...createValidEvidence(),
+      mobileViewport: {
+        ...createValidEvidence().mobileViewport,
+        camera3GizmoRect: { x: 0, y: 0, width: 0, height: 0 }
+      }
+    };
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toContain(
+      "mobileViewport camera3GizmoRect must be measurable"
+    );
+  });
+
+  it("rejects Camera3 action proof when view state does not change", () => {
+    const evidence = {
+      ...createValidEvidence(),
+      camera3Action: {
+        ...createValidEvidence().camera3Action,
+        beforeViewStateHash: "same",
+        afterViewStateHash: "same"
+      }
+    };
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toContain(
+      "camera3Action view-state hash must change"
+    );
+  });
+
   it("rejects splitter interaction evidence without the expected graph split id", () => {
     const evidence = createValidEvidence({
       interaction: {
@@ -179,6 +266,10 @@ describe("Project Prism smoke evidence contract", () => {
     );
   });
 });
+
+type MutableSmokeEvidence = {
+  -readonly [Key in keyof ProjectPrismSmokeEvidence]?: ProjectPrismSmokeEvidence[Key];
+};
 
 function createValidEvidence(
   overrides: {
@@ -327,6 +418,43 @@ function createValidEvidence(
       },
       screenshotPath: "temp/root-tab-close.png",
       ...overrides.interaction
-    }]
+    }],
+    menuHover: {
+      pointer: { x: 1190, y: 54 },
+      hoveredLabel: "Scene",
+      highlightedLabel: "Scene",
+      screenshotPath: "temp/menu-hover-scene.png"
+    },
+    dockMutation: {
+      beforeGraphRevision: 42,
+      afterGraphRevision: 43,
+      source: { typeKey: "debug", instanceId: "debug:default" },
+      target: { typeKey: "scene", instanceId: "scene:default" },
+      afterDomContents: [{
+        contentId: "content:debug",
+        parentCount: 1,
+        parentFrameId: "workspace-root-frame",
+        parentTabsetId: "tabset:root",
+        hidden: false,
+        interactable: true,
+        rect: { x: 0, y: 24, width: 320, height: 480 }
+      }],
+      screenshotPath: "temp/dock-debug-into-scene.png"
+    },
+    mobileViewport: {
+      viewport: { width: 390, height: 844 },
+      sceneRect: { x: 0, y: 32, width: 390, height: 520 },
+      tesseractRect: { x: 96, y: 180, width: 180, height: 180 },
+      windowMenuRect: { x: 338, y: 10, width: 48, height: 25 },
+      camera3GizmoRect: { x: 300, y: 96, width: 72, height: 72 },
+      screenshotPath: "temp/mobile-viewport.png"
+    },
+    camera3Action: {
+      actionName: "camera3-orbit",
+      beforeViewStateHash: "camera-before",
+      afterViewStateHash: "camera-after",
+      actionResult: { routed: true },
+      screenshotPath: "temp/camera3-action.png"
+    }
   };
 }

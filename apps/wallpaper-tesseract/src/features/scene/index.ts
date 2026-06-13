@@ -1,21 +1,9 @@
 export {
-  createRenderableSceneView,
-  SceneViewFrameSourceRegistry
-} from "./renderable-scene-view";
-export type {
-  CreateRenderableSceneViewOptions,
-  RenderableSceneView,
-  RenderableSceneViewRegistry,
-  RenderableSceneViewSource,
-  SceneViewFrameSourcePayload
-} from "./renderable-scene-view";
-export {
-  createSceneDefaultOpenView,
-  createSceneWindowWorkspaceFloatingFramePolicy,
+  createSceneActorHierarchyMetadata,
+  installSceneWorkspacePolicy,
   installSceneViewFeature
 } from "./install-scene-view-feature";
+export type { InstalledSceneWorkspacePolicy } from "./install-scene-view-feature";
 export type {
-  InstalledSceneViewFeature,
-  InstallSceneViewFeatureOptions,
-  SceneViewContentActorIds
+  InstallSceneViewFeatureOptions
 } from "./install-scene-view-feature";

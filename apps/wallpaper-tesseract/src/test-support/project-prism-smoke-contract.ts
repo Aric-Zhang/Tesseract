@@ -133,6 +133,42 @@ export interface ProjectPrismScenarioEvidence {
   readonly notes?: string;
 }
 
+export interface ProjectPrismMenuHoverEvidence {
+  readonly pointer: ProjectPrismSmokePoint;
+  readonly hoveredLabel: string;
+  readonly highlightedLabel: string;
+  readonly screenshotPath: string;
+}
+
+export interface ProjectPrismDockMutationEvidence {
+  readonly beforeGraphRevision: number;
+  readonly afterGraphRevision: number;
+  readonly source: ProjectPrismGraphViewIdentityEvidence;
+  readonly target: ProjectPrismGraphViewIdentityEvidence;
+  readonly afterDomContents: readonly ProjectPrismDomContentEvidence[];
+  readonly screenshotPath: string;
+}
+
+export interface ProjectPrismMobileViewportEvidence {
+  readonly viewport: {
+    readonly width: number;
+    readonly height: number;
+  };
+  readonly sceneRect: ProjectPrismSmokeRect;
+  readonly tesseractRect: ProjectPrismSmokeRect;
+  readonly windowMenuRect: ProjectPrismSmokeRect;
+  readonly camera3GizmoRect: ProjectPrismSmokeRect;
+  readonly screenshotPath: string;
+}
+
+export interface ProjectPrismCamera3ActionEvidence {
+  readonly actionName: string;
+  readonly beforeViewStateHash: string;
+  readonly afterViewStateHash: string;
+  readonly actionResult: Record<string, unknown>;
+  readonly screenshotPath: string;
+}
+
 export interface ProjectPrismSmokeEvidence {
   readonly passed: boolean;
   readonly validationErrors: readonly string[];
@@ -147,6 +183,10 @@ export interface ProjectPrismSmokeEvidence {
   readonly persistence: ProjectPrismPersistenceEvidence;
   readonly scenarios: readonly ProjectPrismScenarioEvidence[];
   readonly interactions: readonly ProjectPrismInteractionEvidence[];
+  readonly menuHover: ProjectPrismMenuHoverEvidence;
+  readonly dockMutation: ProjectPrismDockMutationEvidence;
+  readonly mobileViewport: ProjectPrismMobileViewportEvidence;
+  readonly camera3Action: ProjectPrismCamera3ActionEvidence;
 }
 
 const requiredScenarioNames = [
@@ -182,6 +222,10 @@ export function validateProjectPrismSmokeEvidence(evidence: ProjectPrismSmokeEvi
   validateDomEvidence(evidence.graph, evidence.dom, errors);
   validatePersistenceEvidence(evidence.persistence, errors);
   validateScenarios(evidence.scenarios, errors);
+  validateMenuHoverEvidence(evidence.menuHover, errors);
+  validateDockMutationEvidence(evidence.dockMutation, errors);
+  validateMobileViewportEvidence(evidence.mobileViewport, errors);
+  validateCamera3ActionEvidence(evidence.camera3Action, errors);
   if (evidence.interactions.length === 0) {
     errors.push("at least one interaction is required");
   }
@@ -189,6 +233,126 @@ export function validateProjectPrismSmokeEvidence(evidence: ProjectPrismSmokeEvi
     validateInteraction(interaction, errors);
   }
   return errors.sort();
+}
+
+function validateMenuHoverEvidence(
+  menuHover: ProjectPrismMenuHoverEvidence | undefined,
+  errors: string[]
+): void {
+  if (!menuHover) {
+    errors.push("menuHover evidence is required");
+    return;
+  }
+  if (!Number.isFinite(menuHover.pointer.x) || !Number.isFinite(menuHover.pointer.y)) {
+    errors.push("menuHover pointer must contain finite x/y coordinates");
+  }
+  if (!menuHover.hoveredLabel) {
+    errors.push("menuHover hoveredLabel is required");
+  }
+  if (!menuHover.highlightedLabel) {
+    errors.push("menuHover highlightedLabel is required");
+  }
+  if (
+    menuHover.hoveredLabel &&
+    menuHover.highlightedLabel &&
+    menuHover.hoveredLabel !== menuHover.highlightedLabel
+  ) {
+    errors.push(`menuHover highlightedLabel expected ${menuHover.hoveredLabel}, got ${menuHover.highlightedLabel}`);
+  }
+  if (!menuHover.screenshotPath) {
+    errors.push("menuHover screenshotPath is required");
+  }
+}
+
+function validateDockMutationEvidence(
+  dockMutation: ProjectPrismDockMutationEvidence | undefined,
+  errors: string[]
+): void {
+  if (!dockMutation) {
+    errors.push("dockMutation evidence is required");
+    return;
+  }
+  if (dockMutation.beforeGraphRevision <= 0 || dockMutation.afterGraphRevision <= 0) {
+    errors.push("dockMutation graph revisions must be positive");
+  }
+  if (dockMutation.afterGraphRevision <= dockMutation.beforeGraphRevision) {
+    errors.push("dockMutation afterGraphRevision must be greater than beforeGraphRevision");
+  }
+  if (!dockMutation.source.typeKey || !dockMutation.source.instanceId) {
+    errors.push("dockMutation source identity typeKey and instanceId are required");
+  }
+  if (!dockMutation.target.typeKey || !dockMutation.target.instanceId) {
+    errors.push("dockMutation target identity typeKey and instanceId are required");
+  }
+  if (dockMutation.afterDomContents.length === 0) {
+    errors.push("dockMutation afterDomContents are required");
+  }
+  for (const content of dockMutation.afterDomContents) {
+    if (content.parentCount !== 1) {
+      errors.push(`dockMutation content ${content.contentId}: parentCount expected 1, got ${content.parentCount}`);
+    }
+    if (!content.parentFrameId || !content.parentTabsetId) {
+      errors.push(`dockMutation content ${content.contentId}: parentFrameId and parentTabsetId are required`);
+    }
+  }
+  if (!dockMutation.screenshotPath) {
+    errors.push("dockMutation screenshotPath is required");
+  }
+}
+
+function validateMobileViewportEvidence(
+  mobileViewport: ProjectPrismMobileViewportEvidence | undefined,
+  errors: string[]
+): void {
+  if (!mobileViewport) {
+    errors.push("mobileViewport evidence is required");
+    return;
+  }
+  if (mobileViewport.viewport.width <= 0 || mobileViewport.viewport.height <= 0) {
+    errors.push("mobileViewport viewport width and height must be positive");
+  }
+  for (const [name, rect] of [
+    ["sceneRect", mobileViewport.sceneRect],
+    ["tesseractRect", mobileViewport.tesseractRect],
+    ["windowMenuRect", mobileViewport.windowMenuRect],
+    ["camera3GizmoRect", mobileViewport.camera3GizmoRect]
+  ] as const) {
+    if (rect.width <= 0 || rect.height <= 0) {
+      errors.push(`mobileViewport ${name} must be measurable`);
+    }
+  }
+  if (!mobileViewport.screenshotPath) {
+    errors.push("mobileViewport screenshotPath is required");
+  }
+}
+
+function validateCamera3ActionEvidence(
+  camera3Action: ProjectPrismCamera3ActionEvidence | undefined,
+  errors: string[]
+): void {
+  if (!camera3Action) {
+    errors.push("camera3Action evidence is required");
+    return;
+  }
+  if (!camera3Action.actionName) {
+    errors.push("camera3Action actionName is required");
+  }
+  if (!camera3Action.beforeViewStateHash || !camera3Action.afterViewStateHash) {
+    errors.push("camera3Action beforeViewStateHash and afterViewStateHash are required");
+  }
+  if (
+    camera3Action.beforeViewStateHash &&
+    camera3Action.afterViewStateHash &&
+    camera3Action.beforeViewStateHash === camera3Action.afterViewStateHash
+  ) {
+    errors.push("camera3Action view-state hash must change");
+  }
+  if (Object.keys(camera3Action.actionResult).length === 0) {
+    errors.push("camera3Action actionResult is required");
+  }
+  if (!camera3Action.screenshotPath) {
+    errors.push("camera3Action screenshotPath is required");
+  }
 }
 
 function validateGraphEvidence(graph: ProjectPrismGraphSnapshotEvidence, errors: string[]): void {

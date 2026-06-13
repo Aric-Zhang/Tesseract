@@ -1,17 +1,20 @@
-import { installComponentDefinition, type ComponentRegistry } from "../actor-runtime";
+import {
+  installComponentDefinition,
+  type ComponentRegistry
+} from "actor-core";
 import {
   createGizmoEventBindingComponentDefinition,
   gizmoEventBindingComponentDefinition,
   type GizmoEventBindingComponentDefinitionOptions
-} from "actor-input";
+} from "./gizmo-event-binding-definition";
 
-export interface InstallGizmoRuntimeComponentDefinitionsOptions {
+export interface InstallActorInputComponentDefinitionsOptions {
   readonly gizmoEventBinding?: GizmoEventBindingComponentDefinitionOptions;
 }
 
-export function installGizmoRuntimeComponentDefinitions(
+export function installActorInputComponentDefinitions(
   componentRegistry: ComponentRegistry,
-  options: InstallGizmoRuntimeComponentDefinitionsOptions = {}
+  options: InstallActorInputComponentDefinitionsOptions = {}
 ): void {
   installComponentDefinition(
     componentRegistry,

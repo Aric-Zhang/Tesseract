@@ -1,9 +1,12 @@
 export {
   INSPECTOR_VIEW_TYPE,
-  createInspectorWindowWorkspaceFloatingFramePolicies,
+  installInspectorWorkspacePolicy,
   installInspectorFeature
 } from "./install-inspector-feature";
-export type { InstallInspectorFeatureOptions } from "./install-inspector-feature";
+export type {
+  InstalledInspectorWorkspacePolicy,
+  InstallInspectorFeatureOptions
+} from "./install-inspector-feature";
 export {
   InspectorContentComponent,
   inspectorContentComponentType

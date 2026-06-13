@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { installActorInputComponentDefinitions } from "actor-input";
 import { ActorSystem, type Actor } from "../actor-runtime";
-import { installGizmoRuntimeComponentDefinitions } from "../gizmo-runtime";
 import { installEditorStateObserverComponentDefinitions } from "editor";
 import { createTestComponentRegistry } from "../test-support";
 import {
@@ -101,7 +101,7 @@ function createWorkspace(options: CreateWorkspaceOptions) {
   const actorSystem = new ActorSystem();
   const document = new FakeDocument();
   const { registry } = createTestComponentRegistry({ actorSystem });
-  installGizmoRuntimeComponentDefinitions(registry);
+  installActorInputComponentDefinitions(registry);
   installEditorStateObserverComponentDefinitions(registry);
   installWindowComponentDefinitions(registry);
   const framePorts = new WindowFramePortRegistry();

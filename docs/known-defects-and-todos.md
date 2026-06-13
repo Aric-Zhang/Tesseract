@@ -234,6 +234,67 @@ Verification:
 - A package source change should have an obvious, reproducible path into the
   running app during local debugging.
 
+### DCK-006: Floating Debug tab cannot dock into root Scene during Phase 8 smoke
+
+Status: `closed`
+
+Area: `apps/wallpaper-tesseract/src/window-runtime`,
+`packages/ui-framework/src/chrome`, `packages/ui-framework/src/model`,
+`packages/ui-framework/src/services`
+
+Original evidence:
+
+- During Phase 8 Step 7 smoke, the app booted at
+  `http://127.0.0.1:5173/?resetWorkspaceLayout=1`.
+- Dragging the floating `Debug` tab into the root `Scene` content area did not
+  dock; DOM still showed `Debug` under `.floating-gizmo-window__titlebar`.
+- Retrying against the Scene tab strip and Scene right-edge target also left
+  `Debug` floating.
+- `npm run build -w ui-framework` was run before a final retry to rule out the
+  known stale package-output issue from `DEV-001`; the dock still failed.
+- Evidence files:
+  - `temp/project-prism-phase-8-smoke-report.md`
+  - `temp/project-prism-phase-8-smoke-blocker-data.json`
+  - `temp/project-prism-phase-8-dock-debug-into-scene.png`
+  - `temp/project-prism-phase-8-dock-debug-into-scene-attempt-2.png`
+  - `temp/project-prism-phase-8-dock-debug-into-scene-after-ui-framework-build.png`
+
+Impact:
+
+- Phase 8 cannot close because its fresh smoke contract requires a visual
+  Debug/Scene dock mutation with graph/DOM evidence.
+- This is not a smoke validator gap: the visual DOM after the drag does not show
+  a docked root layout.
+
+Completed fix:
+
+- The primary failure branch was `test-driver-did-not-hit-tab-drag-path` /
+  floating-frame tab drag state loss.
+- `FloatingWindowComponent` now tracks an active tab drag for the whole pointer
+  session, matching the root frame behavior, so moving away from the tab no
+  longer falls through to floating-window movement.
+- `handleWindowFrameTabInputEnd` now commits an already-started tab drag
+  independently of the release hit part. The session state, not the final DOM
+  hit, owns dock intent generation.
+- A focused `floating-window-component.test.ts` regression proves that a drag
+  starting on the Debug tab and ending on a non-tab hit still moves the tab
+  drag session, submits a split dock intent, and leaves the floating window
+  position unchanged.
+
+Verification completed:
+
+- Browser verification at `http://127.0.0.1:5173/?resetWorkspaceLayout=1`
+  docked floating Debug into the root Scene right split; floating Debug shell
+  count became `0`.
+- Fresh evidence:
+  - `temp/dck-006-debug-docked-into-scene-fixed.png`
+  - `temp/project-prism-phase-8-smoke-data.json`
+  - `temp/project-prism-phase-8-smoke-report.md`
+- `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-8-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file`
+- `npm run test -w wallpaper-tesseract -- floating-window-component window-frame-tab-input architecture-boundaries`
+- `npm run test -w ui-framework -- window-tab-drag-session window-dock-targets dock-target-region-source window-dock-preview-component`
+- Root `npm run test`, `npm run typecheck`, and `npm run build`.
+
 ## Recently Closed Or Historical Notes
 
 Closed entries retained above:
@@ -247,6 +308,9 @@ Closed entries retained above:
 - DCK-005: closed by commit `5d528a4`; repeated Debug/Scene split dock is
   covered by reducer, lifecycle/controller, root validation, and browser
   evidence.
+- DCK-006: closed by the Phase 8 dock blocker fix; floating tab-drag state is
+  now session-owned through `FloatingWindowComponent` and
+  `handleWindowFrameTabInputEnd`, with fresh Phase 8 smoke evidence.
 
 Move entries here only when retaining the full active-entry detail no longer
 helps future agents.

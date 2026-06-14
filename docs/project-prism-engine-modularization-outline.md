@@ -84,7 +84,10 @@ runtime scheduler/work attachment, Camera3 motion, Tesseract4 runtime
 actor/renderable ownership, runtime Scene content/frame-source/view registry
 ownership into it, deleted `apps/wallpaper-tesseract/src/runtime`, and
 validated fresh Phase 10 smoke evidence from
-`temp/project-prism-phase-10-smoke-data.json`.
+`temp/project-prism-phase-10-smoke-data.json`. Review hardening tightened
+mobile smoke validation, refreshed true 390x844 mobile evidence, narrowed
+`wallpaper-runtime` public exports, and reclassified app-local Scene wiring as
+`wallpaper-scene-integration` rather than an editor package candidate.
 ```
 
 ## Codename

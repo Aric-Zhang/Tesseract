@@ -38,6 +38,23 @@ describe("ImmediateUpdateScheduler", () => {
     expect(updates).toEqual([1]);
   });
 
+  it("uses the monotonic performance clock for default immediate updates", () => {
+    const updates: number[] = [];
+    const microtasks: Array<() => void> = [];
+    const scheduler = new ImmediateUpdateScheduler({
+      update: (timeMs) => updates.push(timeMs),
+      isUpdatingFrame: () => false,
+      enqueueMicrotask: (callback) => microtasks.push(callback)
+    });
+
+    scheduler.requestUpdate();
+    microtasks[0]();
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toBeGreaterThanOrEqual(0);
+    expect(updates[0]).toBeLessThan(Date.now());
+  });
+
   it("does not queue while the normal frame update is running", () => {
     const updates: number[] = [];
     const microtasks: Array<() => void> = [];

@@ -89,10 +89,11 @@ Current gate:
   app-local `tesseract4`, the mixed Scene content installer, app-local actor-id
   constants, and app-local component-definition/workspace-mode files under
   `src/app` have been deleted rather than preserved as compatibility shells.
-  Runtime Scene session/content ownership, Camera3 motion components,
-  Tesseract actor/runtime renderable ownership, and runtime-work attachment now
-  live under `apps/wallpaper-tesseract/src/runtime`; Scene presentation binding
-  stays in the Scene feature layer.
+  At the end of Phase 7 those owners still lived under app-local
+  `apps/wallpaper-tesseract/src/runtime`; Phase 10 has since moved that
+  production runtime ownership into `packages/wallpaper-runtime` and deleted
+  the app-local runtime directory. Scene presentation binding stays in the
+  Scene feature layer.
 - Phase 8 execution has completed Steps 0-7. It deleted the app-local
   `features/install-wallpaper-component-definitions.ts` and
   `gizmo-runtime/install-component-definitions.ts` installers, moved
@@ -172,7 +173,11 @@ Current gate:
 - Fresh Phase 10 smoke evidence lives at
   `temp/project-prism-phase-10-smoke-data.json` and validates with
   `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-10-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file`.
-  The report is `temp/project-prism-phase-10-smoke-report.md`.
+  The report is `temp/project-prism-phase-10-smoke-report.md`. The Phase 10
+  closure hardening tightened mobile smoke validation so Scene, Tesseract,
+  Window menu, and Camera3 gizmo rects must intersect the 390x844 viewport.
+  The refreshed Phase 10 evidence satisfies that stricter validator and has no
+  console errors.
 - The pre-Phase 6 window-workspace truth closure is complete.
 - `ui-framework` and `editor` are no longer blocked by
   `window-workspace-multi-truth-debt`.

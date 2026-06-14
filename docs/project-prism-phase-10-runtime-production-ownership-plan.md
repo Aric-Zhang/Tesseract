@@ -37,6 +37,19 @@ The validator passed:
 $env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-10-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file
 ```
 
+Closure hardening after review:
+
+- mobile smoke validation now requires key UI rects to intersect the reported
+  mobile viewport, preventing desktop-sized measurements from passing as mobile
+  evidence;
+- fresh Phase 10 mobile evidence was regenerated at 390x844 and passes the
+  stricter validator;
+- `wallpaper-runtime` public exports were narrowed so app code cannot bypass
+  the runtime owner by importing internal Scene/Tesseract/Camera3 constructors
+  or individual component definitions;
+- app-local Scene integration is classified as `wallpaper-scene-integration`,
+  not as an editor package candidate.
+
 ## Current Facts
 
 Phase 9 is complete:

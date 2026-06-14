@@ -31,7 +31,9 @@ export const projectPrismSourceZones = [
     /^packages\/wallpaper-runtime\/src\//
   ]),
   definePathZone("editor-candidate", "Concrete editor features and editor presentation components.", [
-    /^packages\/editor\/src\//,
+    /^packages\/editor\/src\//
+  ]),
+  definePathZone("wallpaper-scene-integration", "App-local Scene integration that bridges editor presentation, window view registration, and Wallpaper runtime ownership without becoming an editor package candidate.", [
     /^\.\/features\/scene\/(?:index|install-scene-view-feature)\.ts$/,
     /^\.\/features\/scene\/components\//
   ]),
@@ -168,6 +170,12 @@ export const projectPrismZoneDependencyRules = [
     forbiddenTargetZones: [
       "app-composition"
     ]
+  },
+  {
+    sourceZone: "wallpaper-scene-integration",
+    forbiddenTargetZones: [
+      "app-composition"
+    ]
   }
 ] as const satisfies readonly ZoneDependencyRule[];
 
@@ -246,7 +254,7 @@ export const projectPrismPackageTargets = [
   },
   {
     id: "wallpaper-app",
-    cleanCandidateZones: ["app-composition"],
+    cleanCandidateZones: ["app-composition", "wallpaper-scene-integration"],
     debtZones: [],
     blockedBy: [],
     extractionPhase: "Phase 9",

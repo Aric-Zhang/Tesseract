@@ -367,10 +367,22 @@ function validateMobileViewportEvidence(
     if (rect.width <= 0 || rect.height <= 0) {
       errors.push(`mobileViewport ${name} must be measurable`);
     }
+    if (!rectIntersectsViewport(rect, mobileViewport.viewport)) {
+      errors.push(`mobileViewport ${name} must intersect the mobile viewport`);
+    }
   }
   if (!mobileViewport.screenshotPath) {
     errors.push("mobileViewport screenshotPath is required");
   }
+}
+
+function rectIntersectsViewport(
+  rect: ProjectPrismSmokeRect,
+  viewport: ProjectPrismMobileViewportEvidence["viewport"]
+): boolean {
+  const right = rect.x + rect.width;
+  const bottom = rect.y + rect.height;
+  return rect.x < viewport.width && right > 0 && rect.y < viewport.height && bottom > 0;
 }
 
 function validateCamera3ActionEvidence(

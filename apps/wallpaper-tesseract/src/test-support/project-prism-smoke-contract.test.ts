@@ -292,6 +292,20 @@ describe("Project Prism smoke evidence contract", () => {
     );
   });
 
+  it("rejects mobile viewport proof when key UI rects are outside the viewport", () => {
+    const evidence = {
+      ...createValidEvidence(),
+      mobileViewport: {
+        ...createValidEvidence().mobileViewport,
+        windowMenuRect: { x: 1200, y: 10, width: 48, height: 25 }
+      }
+    };
+
+    expect(validateProjectPrismSmokeEvidence(evidence)).toContain(
+      "mobileViewport windowMenuRect must intersect the mobile viewport"
+    );
+  });
+
   it("rejects Camera3 action proof when view state does not change", () => {
     const evidence = {
       ...createValidEvidence(),

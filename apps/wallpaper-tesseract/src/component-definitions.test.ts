@@ -15,8 +15,7 @@ import {
 } from "editor";
 import {
   camera3MotionComponentType,
-  installWallpaperRuntimeComponentDefinitions,
-  tesseract4ComponentType
+  installWallpaperRuntimeComponentDefinitions
 } from "wallpaper-runtime";
 import {
   installSceneComponentDefinitions,
@@ -64,12 +63,12 @@ describe("component definition installers", () => {
     expect(registry.getDefinition(floatingWindowComponentType).type).toBe(floatingWindowComponentType);
   });
 
-  it("installs tesseract4 component definitions explicitly", () => {
+  it("installs runtime component definitions explicitly", () => {
     const registry = createRegistry();
 
     installWallpaperRuntimeComponentDefinitions(registry);
 
-    expect(registry.getDefinition(tesseract4ComponentType).type).toBe(tesseract4ComponentType);
+    expect(registry.getDefinition(camera3MotionComponentType).type).toBe(camera3MotionComponentType);
   });
 
   it("installs runtime and scene definitions through separate owner paths", () => {
@@ -82,7 +81,6 @@ describe("component definition installers", () => {
     expect(registry.getDefinition(sceneCamera3ViewportBindingComponentType).type).toBe(
       sceneCamera3ViewportBindingComponentType
     );
-    expect(registry.getDefinition(tesseract4ComponentType).type).toBe(tesseract4ComponentType);
     expect(() => registry.getDefinition(gizmoEventBindingComponentType)).toThrow(/is not registered/);
     expect(() => registry.getDefinition(stateObserverBindingComponentType)).toThrow(/is not registered/);
     expect(() => registry.getDefinition(floatingWindowComponentType)).toThrow(/is not registered/);

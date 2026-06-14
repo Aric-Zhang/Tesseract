@@ -18,7 +18,7 @@ export class ImmediateUpdateScheduler {
   constructor(options: ImmediateUpdateSchedulerOptions) {
     this.update = options.update;
     this.isUpdatingFrame = options.isUpdatingFrame;
-    this.now = options.now ?? (() => Date.now());
+    this.now = options.now ?? readMonotonicTime;
     this.enqueueMicrotask = options.enqueueMicrotask ?? enqueueMicrotask;
   }
 
@@ -44,4 +44,8 @@ function enqueueMicrotask(callback: () => void): void {
     return;
   }
   Promise.resolve().then(callback);
+}
+
+function readMonotonicTime(): number {
+  return globalThis.performance?.now() ?? Date.now();
 }

@@ -395,8 +395,9 @@ describe("architecture boundaries", () => {
     )).toEqual([]);
   });
 
-  it("keeps Phase 10 runtime extraction blockers concrete until app-local runtime staging is deleted", () => {
+  it("keeps Phase 10 runtime ownership package-owned after app-local staging deletion", () => {
     expect(projectPrismSourceZones.map((zone) => zone.id)).toContain("wallpaper-runtime-candidate");
+    expect(projectPrismSourceZones.map((zone) => zone.id)).toContain("wallpaper-scene-integration");
     expect(projectPrismSourceZones.map((zone) => zone.id)).not.toContain("runtime-ownership-debt");
     expect(projectPrismRuntimeExtractionBlockers).toEqual([]);
     expect(sourceFiles["./runtime/runtime-scene-content.ts"]).toBeUndefined();
@@ -776,6 +777,8 @@ describe("architecture boundaries", () => {
     const editorSceneViewHostSource = editorPackageSources["packages/editor/src/scene/editor-scene-view-host.ts"] ?? "";
     const runtimeSceneContentSource =
       wallpaperRuntimePackageSources["packages/wallpaper-runtime/src/scene/runtime-scene-content.ts"] ?? "";
+    const wallpaperRuntimePublicIndexSource =
+      wallpaperRuntimePackageSources["packages/wallpaper-runtime/src/index.ts"] ?? "";
     const runtimeThreeRenderOutputSource =
       runtimeThreePackageSources["packages/runtime-three/src/runtime-three-scene-render-output.ts"] ?? "";
 
@@ -819,6 +822,14 @@ describe("architecture boundaries", () => {
     expect(runtimeSceneViewRuntimeSource).toMatch(/\bSceneViewFrameSourceRegistry\b/);
     expect(sceneFeatureInstallerSource).not.toMatch(/\bCurrentRenderableSceneViewRegistry\b/);
     expect(runtimeSceneContentSource).toMatch(/\bcreateRuntimeSceneContent\b/);
+    expect(wallpaperRuntimePublicIndexSource).toMatch(/\bRuntimeSceneViewRuntimeRegistry\b/);
+    expect(wallpaperRuntimePublicIndexSource).toMatch(/\binstallWallpaperRuntimeComponentDefinitions\b/);
+    expect(wallpaperRuntimePublicIndexSource).not.toMatch(/\bcreateRuntimeSceneContent\b/);
+    expect(wallpaperRuntimePublicIndexSource).not.toMatch(/\bcreateRenderableSceneView\b/);
+    expect(wallpaperRuntimePublicIndexSource).not.toMatch(/\bSceneViewFrameSourceRegistry\b/);
+    expect(wallpaperRuntimePublicIndexSource).not.toMatch(/\bcamera3MotionComponentDefinition\b/);
+    expect(wallpaperRuntimePublicIndexSource).not.toMatch(/\btesseract4ComponentDefinition\b/);
+    expect(wallpaperRuntimePublicIndexSource).not.toMatch(/\bcreateTesseract4Actor\b/);
     expect(sourceFiles["./features/scene/editor-scene-view-host.ts"]).toBeUndefined();
     expect(sourceFiles["./features/scene/scene-window-actor-factory.ts"]).toBeUndefined();
     expect(sourceFiles["./features/scene/components/index.ts"]).toMatch(/\bSceneCamera3ViewportBindingComponent\b/);

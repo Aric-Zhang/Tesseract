@@ -12,7 +12,6 @@ import {
   getPersistedViewDescriptorRuntimeViewKey,
   parsePersistedWindowWorkspaceFrameLayout,
   serializeWindowWorkspaceFrameLayout,
-  WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION,
   WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION,
   type PersistedWindowWorkspaceViewDescriptor
 } from "./window-workspace-layout-persistence";
@@ -188,11 +187,11 @@ describe("window workspace frame layout persistence", () => {
 
   it("hydrates mixed known and unknown views while collapsing now-empty split branches", () => {
     const persisted = parsePersistedWindowWorkspaceFrameLayout({
-      version: 1,
+      version: WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION,
       views: [
-        { viewKey: "missing", title: "Missing" },
-        { viewKey: "scene", title: "Scene" },
-        { viewKey: "debug", title: "Debug Log" }
+        { typeKey: "missing", instanceId: "missing:default", title: "Missing", singleton: true },
+        { typeKey: "scene", instanceId: "scene:default", title: "Scene", singleton: true },
+        { typeKey: "debug", instanceId: "debug:default", title: "Debug Log", singleton: true }
       ],
       frames: [{
         frameId: "mixed-frame",
@@ -210,14 +209,14 @@ describe("window workspace frame layout persistence", () => {
           first: {
             kind: "tabset",
             id: "unknown-branch",
-            tabs: ["missing"],
-            activeTabId: "missing"
+            tabs: ["missing:default"],
+            activeTabId: "missing:default"
           },
           second: {
             kind: "tabset",
             id: "known-branch",
-            tabs: ["scene", "debug"],
-            activeTabId: "debug"
+            tabs: ["scene:default", "debug:default"],
+            activeTabId: "debug:default"
           }
         }
       }],
@@ -239,11 +238,11 @@ describe("window workspace frame layout persistence", () => {
 
   it("normalizes duplicate persisted views and duplicate tabs deterministically", () => {
     const persisted = parsePersistedWindowWorkspaceFrameLayout({
-      version: 1,
+      version: WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION,
       views: [
-        { viewKey: "scene", title: "Old Scene" },
-        { viewKey: "debug", title: "Debug Log" },
-        { viewKey: "scene", title: "New Scene" }
+        { typeKey: "scene", instanceId: "scene:default", title: "Old Scene", singleton: true },
+        { typeKey: "debug", instanceId: "debug:default", title: "Debug Log", singleton: true },
+        { typeKey: "scene", instanceId: "scene:default", title: "New Scene", singleton: true }
       ],
       frames: [{
         frameId: "duplicate-frame",
@@ -256,8 +255,8 @@ describe("window workspace frame layout persistence", () => {
         root: {
           kind: "tabset",
           id: "duplicate-tabset",
-          tabs: ["scene", "scene", "debug"],
-          activeTabId: "scene"
+          tabs: ["scene:default", "scene:default", "debug:default"],
+          activeTabId: "scene:default"
         }
       }],
       hiddenViewKeys: ["debug", "debug"]
@@ -288,9 +287,9 @@ describe("window workspace frame layout persistence", () => {
     expect(parsePersistedWindowWorkspaceFrameLayout("not layout")).toBeNull();
   });
 
-  it("migrates v1 persisted view keys to singleton identities during hydration", () => {
+  it("rejects v1 persisted view keys instead of carrying legacy schema migration", () => {
     const legacy = parsePersistedWindowWorkspaceFrameLayout({
-      version: WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION,
+      version: 1,
       views: [
         { viewKey: "scene", title: "Scene" },
         { viewKey: "debug", title: "Debug Log" }
@@ -312,26 +311,15 @@ describe("window workspace frame layout persistence", () => {
       }],
       hiddenViewKeys: []
     });
-    expect(legacy).not.toBeNull();
-
-    const hydrated = hydrateWindowWorkspaceFrameLayout(legacy!, [
-      { viewKey: "scene", actorId: "scene-view-actor-2", title: "Scene Runtime 2" },
-      { viewKey: "debug", actorId: "debug-view-actor-2", title: "Debug Runtime 2" }
-    ]);
-
-    expect(hydrated.views.scene?.identity?.instanceId).toBe("scene:default");
-    expect(hydrated.views.debug?.identity?.instanceId).toBe("debug:default");
-    expect(expectTabset(hydrated.frames[0]?.root).tabs).toEqual(["scene", "debug"]);
-    expect(serializeWindowWorkspaceFrameLayout(hydrated).version)
-      .toBe(WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION);
+    expect(legacy).toBeNull();
   });
 
   it("parses top-level-valid payloads by pruning malformed entries", () => {
     const parsed = parsePersistedWindowWorkspaceFrameLayout({
-      version: 1,
+      version: WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION,
       views: [
-        { viewKey: "scene", title: "Scene" },
-        { viewKey: "" },
+        { typeKey: "scene", instanceId: "scene:default", title: "Scene", singleton: true },
+        { typeKey: "debug" },
         42
       ],
       frames: [
@@ -346,8 +334,8 @@ describe("window workspace frame layout persistence", () => {
           root: {
             kind: "tabset",
             id: "valid-tabset",
-            tabs: ["scene"],
-            activeTabId: "scene"
+            tabs: ["scene:default"],
+            activeTabId: "scene:default"
           }
         },
         {
@@ -361,8 +349,8 @@ describe("window workspace frame layout persistence", () => {
           root: {
             kind: "tabset",
             id: "missing-frame-id",
-            tabs: ["scene"],
-            activeTabId: "scene"
+            tabs: ["scene:default"],
+            activeTabId: "scene:default"
           }
         },
         {
@@ -459,7 +447,7 @@ function expectPersistedTabset(node: unknown): {
 }
 
 function getPersistedViewKeyForTest(view: PersistedWindowWorkspaceViewDescriptor): string {
-  return "viewKey" in view ? view.viewKey : view.typeKey;
+  return view.typeKey;
 }
 
 function expectValidFrameLayout(layout: WindowWorkspaceFrameLayout): void {

@@ -1,0 +1,455 @@
+{
+  "passed": true,
+  "validationErrors": [],
+  "url": "http://127.0.0.1:5173/?resetWorkspaceLayout=1",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "consoleErrors": [],
+  "graph": {
+    "revision": 4,
+    "frames": [
+      {
+        "frameId": "workspace-root-frame",
+        "kind": "persistent",
+        "presentation": "windowed",
+        "visible": true,
+        "tabsetIds": [
+          "frame-tabset:target:tabset:content:instance:debug:default"
+        ],
+        "splitIds": []
+      },
+      {
+        "frameId": "scene-window",
+        "kind": "persistent",
+        "presentation": "windowed",
+        "visible": true,
+        "tabsetIds": [
+          "frame-tabset:target"
+        ],
+        "splitIds": []
+      }
+    ],
+    "tabsets": [
+      {
+        "frameId": "workspace-root-frame",
+        "tabsetId": "frame-tabset:target:tabset:content:instance:debug:default",
+        "contentIds": [
+          "content:instance:debug:default"
+        ],
+        "activeContentId": "content:instance:debug:default"
+      },
+      {
+        "frameId": "scene-window",
+        "tabsetId": "frame-tabset:target",
+        "contentIds": [
+          "content:instance:scene:default"
+        ],
+        "activeContentId": "content:instance:scene:default"
+      }
+    ],
+    "splits": [],
+    "contents": [
+      {
+        "contentId": "content:instance:debug:default",
+        "frameId": "workspace-root-frame",
+        "tabsetId": "frame-tabset:target:tabset:content:instance:debug:default",
+        "viewActorId": "debug-log-window:view",
+        "identity": {
+          "typeKey": "debug",
+          "instanceId": "debug:default"
+        },
+        "active": true,
+        "interactable": true
+      },
+      {
+        "contentId": "content:instance:scene:default",
+        "frameId": "scene-window",
+        "tabsetId": "frame-tabset:target",
+        "viewActorId": "scene-window:view",
+        "identity": {
+          "typeKey": "scene",
+          "instanceId": "scene:default"
+        },
+        "active": true,
+        "interactable": true
+      }
+    ]
+  },
+  "dom": {
+    "contents": [
+      {
+        "contentId": "content:instance:debug:default",
+        "parentCount": 1,
+        "parentFrameId": "workspace-root-frame",
+        "parentTabsetId": "frame-tabset:target:tabset:content:instance:debug:default",
+        "hidden": false,
+        "interactable": true,
+        "rect": {
+          "x": 0,
+          "y": 57,
+          "width": 1280,
+          "height": 663
+        }
+      },
+      {
+        "contentId": "content:instance:scene:default",
+        "parentCount": 1,
+        "parentFrameId": "scene-window",
+        "parentTabsetId": "frame-tabset:target",
+        "hidden": false,
+        "interactable": true,
+        "rect": {
+          "x": 206,
+          "y": 168,
+          "width": 868,
+          "height": 414
+        }
+      }
+    ]
+  },
+  "persistence": {
+    "version": 2,
+    "descriptors": [
+      {
+        "typeKey": "debug",
+        "instanceId": "debug:default"
+      },
+      {
+        "typeKey": "scene",
+        "instanceId": "scene:default"
+      }
+    ],
+    "frameIds": [
+      "workspace-root-frame",
+      "scene-window"
+    ],
+    "runtimeOnlyFrameIds": [],
+    "containsActorIds": false,
+    "containsDomIds": false,
+    "containsRuntimeFrameIds": false,
+    "containsContentDomIds": false
+  },
+  "scenarios": [
+    {
+      "name": "boot-baseline",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-final-gate-boot-baseline.png"
+      ],
+      "notes": "Fresh Final Gate rebuilt browser session loaded Scene, floating Debug, and floating Hierarchy."
+    },
+    {
+      "name": "window-menu-open-focus",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-final-gate-menu-hover.png"
+      ],
+      "notes": "Fresh menu hover hit Debug Log Window."
+    },
+    {
+      "name": "root-tab-close-reopen",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-final-gate-scene-close-reopen-repeat.png"
+      ],
+      "notes": "Hierarchy Panel and Scene were closed/reopened fresh; repeated Scene counts {\"Scene View\":1,\"Tesseract4\":1,\"Camera3\":1} remained exact-once for Scene View, Tesseract4, and Camera3."
+    },
+    {
+      "name": "dock-mutation-5b-5c",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-final-gate-scene-docked-into-debug.png"
+      ],
+      "notes": "Fresh Final Gate bidirectional dock: floating Debug docked into Scene, then root Scene tab docked into Debug pane."
+    },
+    {
+      "name": "splitter-resize",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-final-gate-splitter-resize.png"
+      ],
+      "notes": "Root splitter remained measurable and draggable after runtime package migration."
+    },
+    {
+      "name": "scene-fullscreen-restore",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-final-gate-fullscreen-restore.png"
+      ],
+      "notes": "Scene fullscreen and restore returned to a two-pane root workspace."
+    },
+    {
+      "name": "persistence-reload",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-final-gate-fullscreen-restore.png"
+      ],
+      "notes": "Persistence remains descriptor-only with schema version 2 after layout v1 migration deletion."
+    },
+    {
+      "name": "mobile-viewport",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-final-gate-mobile-viewport.png"
+      ],
+      "notes": "Fresh Final Gate mobile viewport smoke at 390x844."
+    },
+    {
+      "name": "render-input-sanity",
+      "passed": true,
+      "screenshotPaths": [
+        "temp/project-prism-final-gate-camera3-action.png"
+      ],
+      "notes": "Camera3 projection mode action changed the visible mode label."
+    }
+  ],
+  "interactions": [
+    {
+      "name": "scene-to-debug-root-tab-dock",
+      "point": {
+        "x": 640,
+        "y": 388.5
+      },
+      "expected": "Root Scene tab drag into Debug pane commits a dock mutation after leaving tab hit.",
+      "expectedTarget": {
+        "actionResultContains": {
+          "dockCommit": true
+        }
+      },
+      "domTop": {
+        "tag": "CANVAS",
+        "className": "",
+        "role": null,
+        "aria": null,
+        "text": ""
+      },
+      "domStack": [
+        {
+          "tag": "CANVAS",
+          "className": "",
+          "role": null,
+          "aria": null,
+          "text": ""
+        },
+        {
+          "tag": "DIV",
+          "className": "scene-window__canvas-host",
+          "role": null,
+          "aria": null,
+          "text": ""
+        },
+        {
+          "tag": "DIV",
+          "className": "scene-window__viewport",
+          "role": null,
+          "aria": null,
+          "text": "< Persp"
+        },
+        {
+          "tag": "DIV",
+          "className": "floating-gizmo-window__content scene-window__content",
+          "role": null,
+          "aria": null,
+          "text": "< Persp"
+        },
+        {
+          "tag": "DIV",
+          "className": "floating-gizmo-window scene-window",
+          "role": null,
+          "aria": null,
+          "text": "scenexx< Persp"
+        }
+      ],
+      "actorInputHit": {
+        "actorId": "workspace-root-frame",
+        "partId": "window-tab",
+        "graphTabsetId": "frame-tabset:target",
+        "graphContentId": "content:instance:scene:default"
+      },
+      "actionResult": {
+        "dockCommit": true,
+        "preview": {
+          "dockKind": "split",
+          "targetFrameId": "workspace-root-frame",
+          "targetTabsetId": "frame-tabset:target:tabset:content:instance:debug:default"
+        }
+      },
+      "screenshotPath": "temp/project-prism-final-gate-scene-docked-into-debug.png"
+    },
+    {
+      "name": "splitter-resize",
+      "point": {
+        "x": 675.859375,
+        "y": 388
+      },
+      "expected": "Root splitter remains actor-input reachable after runtime owner migration.",
+      "expectedTarget": {
+        "actionResultContains": {
+          "resized": true
+        }
+      },
+      "domTop": {
+        "tag": "DIV",
+        "className": "workspace-root-dock-frame__splitter workspace-root-dock-frame__splitter--horizontal",
+        "role": null,
+        "aria": null,
+        "text": ""
+      },
+      "domStack": [
+        {
+          "tag": "DIV",
+          "className": "workspace-root-dock-frame__splitter workspace-root-dock-frame__splitter--horizontal",
+          "role": null,
+          "aria": null,
+          "text": ""
+        },
+        {
+          "tag": "DIV",
+          "className": "workspace-root-dock-frame__split workspace-root-dock-frame__split--horizontal",
+          "role": null,
+          "aria": null,
+          "text": "scenex< Perspdebugx 1764 pointerdown pid=1 type=mouse button=0 buttons=1 xy=1234"
+        },
+        {
+          "tag": "DIV",
+          "className": "workspace-root-dock-frame__content",
+          "role": null,
+          "aria": null,
+          "text": "scenex< Perspdebugx 1764 pointerdown pid=1 type=mouse button=0 buttons=1 xy=1234"
+        },
+        {
+          "tag": "DIV",
+          "className": "workspace-root-dock-frame",
+          "role": null,
+          "aria": null,
+          "text": "scenex< Perspdebugx 1764 pointerdown pid=1 type=mouse button=0 buttons=1 xy=1234"
+        },
+        {
+          "tag": "DIV",
+          "className": "app-shell__root-dock",
+          "role": null,
+          "aria": null,
+          "text": "scenex< Perspdebugx 1764 pointerdown pid=1 type=mouse button=0 buttons=1 xy=1234"
+        }
+      ],
+      "actorInputHit": {
+        "actorId": "workspace-root-frame",
+        "partId": "window-splitter"
+      },
+      "actionResult": {
+        "resized": true
+      },
+      "screenshotPath": "temp/project-prism-final-gate-splitter-resize.png"
+    }
+  ],
+  "menuHover": {
+    "pointer": {
+      "x": 1184,
+      "y": 82
+    },
+    "hoveredLabel": "Debug Log Window",
+    "highlightedLabel": "Debug Log Window",
+    "screenshotPath": "temp/project-prism-final-gate-menu-hover.png"
+  },
+  "dockMutation": {
+    "beforeGraphRevision": 4,
+    "afterGraphRevision": 5,
+    "source": {
+      "typeKey": "scene",
+      "instanceId": "scene:default"
+    },
+    "target": {
+      "typeKey": "debug",
+      "instanceId": "debug:default"
+    },
+    "previewElement": {
+      "dockKind": "split",
+      "targetFrameId": "workspace-root-frame",
+      "targetTabsetId": "frame-tabset:target:tabset:content:instance:debug:default"
+    },
+    "domDelta": {
+      "beforePaneCount": 2,
+      "afterPaneCount": 2,
+      "beforeTabsetCount": 2,
+      "afterTabsetCount": 2,
+      "beforeSplitterCount": 1,
+      "afterSplitterCount": 1,
+      "beforeLayoutSignature": "{\"kind\":\"split\",\"id\":\"frame-tabset:target:split:content:instance:debug:default\",\"direction\":\"horizontal\",\"ratio\":0.5,\"first\":{\"kind\":\"tabset\",\"id\":\"frame-tabset:target\",\"tabs\":[\"scene:default\"],\"activeTabId\":\"scene:default\"},\"second\":{\"kind\":\"tabset\",\"id\":\"frame-tabset:target:tabset:content:instance:debug:default\",\"tabs\":[\"debug:default\"],\"activeTabId\":\"debug:default\"}}",
+      "afterLayoutSignature": "{\"kind\":\"split\",\"id\":\"frame-tabset:target:tabset:content:instance:debug:default:split:content:instance:scene:default\",\"direction\":\"horizontal\",\"ratio\":0.5,\"first\":{\"kind\":\"tabset\",\"id\":\"frame-tabset:target:tabset:content:instance:debug:default:tabset:content:instance:scene:default\",\"tabs\":[\"scene:default\"],\"activeTabId\":\"scene:default\"},\"second\":{\"kind\":\"tabset\",\"id\":\"frame-tabset:target:tabset:content:instance:debug:default\",\"tabs\":[\"debug:default\"],\"activeTabId\":\"debug:default\"}}"
+    },
+    "afterDomContents": [
+      {
+        "contentId": "content:instance:debug:default",
+        "parentCount": 1,
+        "parentFrameId": "workspace-root-frame",
+        "parentTabsetId": "frame-tabset:target:tabset:content:instance:debug:default",
+        "hidden": false,
+        "interactable": true,
+        "rect": {
+          "x": 0,
+          "y": 57,
+          "width": 1280,
+          "height": 663
+        }
+      },
+      {
+        "contentId": "content:instance:scene:default",
+        "parentCount": 1,
+        "parentFrameId": "scene-window",
+        "parentTabsetId": "frame-tabset:target",
+        "hidden": false,
+        "interactable": true,
+        "rect": {
+          "x": 206,
+          "y": 168,
+          "width": 868,
+          "height": 414
+        }
+      }
+    ],
+    "screenshotPath": "temp/project-prism-final-gate-scene-docked-into-debug.png"
+  },
+  "mobileViewport": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "sceneRect": {
+      "x": 0,
+      "y": 57,
+      "width": 390,
+      "height": 787
+    },
+    "tesseractRect": {
+      "x": 0,
+      "y": 57,
+      "width": 390,
+      "height": 787
+    },
+    "windowMenuRect": {
+      "x": 310,
+      "y": 10,
+      "width": 68,
+      "height": 26
+    },
+    "camera3GizmoRect": {
+      "x": 236,
+      "y": 79,
+      "width": 132,
+      "height": 150
+    },
+    "screenshotPath": "temp/project-prism-final-gate-mobile-viewport.png"
+  },
+  "camera3Action": {
+    "actionName": "camera3-toggle-projection-mode",
+    "beforeViewStateHash": "< Persp",
+    "afterViewStateHash": "|| Iso",
+    "actionResult": {
+      "before": "< Persp",
+      "after": "|| Iso"
+    },
+    "screenshotPath": "temp/project-prism-final-gate-camera3-action.png"
+  }
+}

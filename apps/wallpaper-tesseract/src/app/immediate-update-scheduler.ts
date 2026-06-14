@@ -22,13 +22,13 @@ export class ImmediateUpdateScheduler {
     this.enqueueMicrotask = options.enqueueMicrotask ?? enqueueMicrotask;
   }
 
-  requestUpdate(timeMs = this.now()): void {
+  requestUpdate(timeMs?: number): void {
     if (this.disposed || this.queued || this.isUpdatingFrame()) return;
     this.queued = true;
     this.enqueueMicrotask(() => {
       this.queued = false;
       if (this.disposed) return;
-      this.update(timeMs);
+      this.update(timeMs ?? this.now());
     });
   }
 

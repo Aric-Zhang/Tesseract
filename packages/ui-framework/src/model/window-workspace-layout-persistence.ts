@@ -23,13 +23,6 @@ import {
 } from "./window-view-identity";
 
 export const WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION = 2;
-export const WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION = 1;
-
-export interface PersistedWindowWorkspaceViewDescriptorV1 {
-  readonly viewKey: WindowViewKey;
-  readonly title?: string;
-  readonly canDock?: boolean;
-}
 
 export interface PersistedWindowWorkspaceViewDescriptorV2 {
   readonly typeKey: WindowViewTypeKey;
@@ -39,9 +32,7 @@ export interface PersistedWindowWorkspaceViewDescriptorV2 {
   readonly singleton?: boolean;
 }
 
-export type PersistedWindowWorkspaceViewDescriptor =
-  | PersistedWindowWorkspaceViewDescriptorV1
-  | PersistedWindowWorkspaceViewDescriptorV2;
+export type PersistedWindowWorkspaceViewDescriptor = PersistedWindowWorkspaceViewDescriptorV2;
 
 export interface PersistedWindowFrameTabsetNode {
   readonly kind: "tabset";
@@ -71,7 +62,7 @@ export interface PersistedWindowWorkspaceFrameDescriptor {
 }
 
 export interface PersistedWindowWorkspaceFrameLayout {
-  readonly version: typeof WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION | typeof WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION;
+  readonly version: typeof WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION;
   readonly views: readonly PersistedWindowWorkspaceViewDescriptor[];
   readonly frames: readonly PersistedWindowWorkspaceFrameDescriptor[];
   readonly hiddenViewKeys: readonly WindowViewKey[];
@@ -107,7 +98,6 @@ export function hydrateWindowWorkspaceFrameLayout(
   persisted: PersistedWindowWorkspaceFrameLayout,
   runtimeViews: readonly WindowWorkspaceViewDescriptor[]
 ): WindowWorkspaceFrameLayout {
-  const runtimeViewsByKey = new Map(runtimeViews.map((view) => [view.viewKey, view]));
   const runtimeViewsByInstanceId = new Map(
     runtimeViews.map((view) => [getViewDescriptorIdentity(view).instanceId, view])
   );
@@ -115,9 +105,7 @@ export function hydrateWindowWorkspaceFrameLayout(
   const views = persisted.views
     .map((persistedView): WindowWorkspaceViewDescriptor | null => {
       const identity = getPersistedViewDescriptorIdentity(persistedView);
-      const runtimeView = isPersistedViewDescriptorV2(persistedView)
-        ? runtimeViewsByInstanceId.get(identity.instanceId)
-        : runtimeViewsByKey.get(persistedView.viewKey);
+      const runtimeView = runtimeViewsByInstanceId.get(identity.instanceId);
       if (!runtimeView) return null;
       runtimeViewKeyByPersistedTabId.set(getPersistedViewTabId(persistedView), runtimeView.viewKey);
       return {
@@ -137,9 +125,7 @@ export function hydrateWindowWorkspaceFrameLayout(
       presentation: frame.presentation,
       root: hydrateFrameDockNode(frame.root, runtimeViewKeyByPersistedTabId)
     })),
-    hiddenViewKeys: persisted.version === WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION
-      ? persisted.hiddenViewKeys.filter((viewKey) => runtimeViewsByKey.has(viewKey))
-      : []
+    hiddenViewKeys: []
   });
 }
 
@@ -148,17 +134,14 @@ export function parsePersistedWindowWorkspaceFrameLayout(
 ): PersistedWindowWorkspaceFrameLayout | null {
   if (!isRecord(value)) return null;
   const version = value.version;
-  if (
-    version !== WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION &&
-    version !== WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION
-  ) {
+  if (version !== WINDOW_WORKSPACE_FRAME_LAYOUT_PERSISTENCE_VERSION) {
     return null;
   }
   if (!Array.isArray(value.views) || !Array.isArray(value.frames) || !Array.isArray(value.hiddenViewKeys)) {
     return null;
   }
   const views = value.views
-    .map((view) => parsePersistedViewDescriptor(view, version))
+    .map(parsePersistedViewDescriptor)
     .filter((view): view is PersistedWindowWorkspaceViewDescriptor => view !== null);
   const frames = value.frames
     .map(parsePersistedFrameDescriptor)
@@ -174,19 +157,8 @@ export function parsePersistedWindowWorkspaceFrameLayout(
   };
 }
 
-function parsePersistedViewDescriptor(
-  value: unknown,
-  version: PersistedWindowWorkspaceFrameLayout["version"]
-): PersistedWindowWorkspaceViewDescriptor | null {
+function parsePersistedViewDescriptor(value: unknown): PersistedWindowWorkspaceViewDescriptor | null {
   if (!isRecord(value)) return null;
-  if (version === WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION) {
-    if (typeof value.viewKey !== "string" || value.viewKey.length === 0) return null;
-    return {
-      viewKey: windowViewKey(value.viewKey),
-      title: typeof value.title === "string" ? value.title : undefined,
-      canDock: typeof value.canDock === "boolean" ? value.canDock : undefined
-    };
-  }
   if (typeof value.typeKey !== "string" || value.typeKey.length === 0) return null;
   if (typeof value.instanceId !== "string" || value.instanceId.length === 0) return null;
   return {
@@ -330,34 +302,24 @@ function getViewDescriptorIdentity(view: WindowWorkspaceViewDescriptor): WindowV
 export function getPersistedViewDescriptorIdentity(
   view: PersistedWindowWorkspaceViewDescriptor
 ): WindowViewIdentity {
-  if (isPersistedViewDescriptorV2(view)) {
-    return {
-      viewKey: createWindowViewKeyFromTypeAndInstance(view.typeKey, view.instanceId),
-      typeKey: view.typeKey,
-      instanceId: view.instanceId,
-      multiplicity: view.singleton ? "singleton" : "multi-instance"
-    };
-  }
-  return createSingletonWindowViewIdentity(view.viewKey);
+  return {
+    viewKey: createWindowViewKeyFromTypeAndInstance(view.typeKey, view.instanceId),
+    typeKey: view.typeKey,
+    instanceId: view.instanceId,
+    multiplicity: view.singleton ? "singleton" : "multi-instance"
+  };
 }
 
 export function getPersistedViewDescriptorRuntimeViewKey(
   view: PersistedWindowWorkspaceViewDescriptor
 ): WindowViewKey {
-  if (!isPersistedViewDescriptorV2(view)) return view.viewKey;
   return view.singleton
     ? windowViewKey(view.typeKey)
     : createWindowViewKeyFromTypeAndInstance(view.typeKey, view.instanceId);
 }
 
 function getPersistedViewTabId(view: PersistedWindowWorkspaceViewDescriptor): string {
-  return isPersistedViewDescriptorV2(view) ? view.instanceId : view.viewKey;
-}
-
-function isPersistedViewDescriptorV2(
-  view: PersistedWindowWorkspaceViewDescriptor
-): view is PersistedWindowWorkspaceViewDescriptorV2 {
-  return "instanceId" in view;
+  return view.instanceId;
 }
 
 function readFiniteNumber(value: unknown): number | null {

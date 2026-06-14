@@ -1,6 +1,6 @@
 # Known Defects And Todos
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 This document is the permanent defect and follow-up ledger for the repository.
 Use it for known bugs, reproducible investigation findings, and non-plan
@@ -208,7 +208,7 @@ Verification completed:
 
 ### DEV-001: App dev server consumes built package output for ui-framework
 
-Status: `watch`
+Status: `closed`
 
 Area: workspace dev/build tooling
 
@@ -223,16 +223,25 @@ Impact:
 - Debug sessions may appear contradictory when source tests pass but the app
   still runs old package output.
 
-Next action:
+Completed decision:
 
-- Decide whether the app dev server should alias workspace package source,
-  run package build/watch automatically, or keep the current dist contract with
-  explicit documentation.
+- Keep the package `dist` contract for app dev/smoke. This avoids Vite source
+  aliases, app-local package `src` imports, and compatibility barrels that
+  would weaken package boundary tests.
+- Browser smoke must run the explicit package build contract before starting
+  the app dev server:
+
+```powershell
+npm run prism:smoke:prepare
+npm run dev -w wallpaper-tesseract
+```
 
 Verification:
 
-- A package source change should have an obvious, reproducible path into the
-  running app during local debugging.
+- `npm run prism:smoke:prepare` rebuilds workspace package output in dependency
+  order. A package source change has a reproducible path into the running app
+  before browser verification without changing runtime imports or Vite
+  resolution.
 
 ### DCK-006: Floating Debug tab cannot dock into root Scene during Phase 8 smoke
 

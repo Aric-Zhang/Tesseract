@@ -824,6 +824,8 @@ describe("architecture boundaries", () => {
     expect(runtimeSceneContentSource).toMatch(/\bcreateRuntimeSceneContent\b/);
     expect(wallpaperRuntimePublicIndexSource).toMatch(/\bRuntimeSceneViewRuntimeRegistry\b/);
     expect(wallpaperRuntimePublicIndexSource).toMatch(/\binstallWallpaperRuntimeComponentDefinitions\b/);
+    expect(runtimeSceneViewRuntimeSource).not.toMatch(/\bexport\s+class\s+RuntimeSceneViewRuntime\b/);
+    expect(wallpaperRuntimePublicIndexSource).not.toMatch(/export\s*\{[^}]*\bRuntimeSceneViewRuntime\b/);
     expect(wallpaperRuntimePublicIndexSource).not.toMatch(/\bcreateRuntimeSceneContent\b/);
     expect(wallpaperRuntimePublicIndexSource).not.toMatch(/\bcreateRenderableSceneView\b/);
     expect(wallpaperRuntimePublicIndexSource).not.toMatch(/\bSceneViewFrameSourceRegistry\b/);
@@ -1391,6 +1393,9 @@ describe("architecture boundaries", () => {
     expect(persistenceSource).toMatch(/\btypeKey:\s*WindowViewTypeKey\b/);
     expect(persistenceSource).toMatch(/\binstanceId:\s*WindowViewInstanceId\b/);
     expect(persistenceSource).toMatch(/\bgetPersistedViewDescriptorIdentity\b/);
+    expect(persistenceSource).not.toMatch(/\bWINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION\b/);
+    expect(persistenceSource).not.toMatch(/\bPersistedWindowWorkspaceViewDescriptorV1\b/);
+    expect(persistenceSource).not.toMatch(/\bversion\s*!==\s*WINDOW_WORKSPACE_FRAME_LAYOUT_LEGACY_VERSION\b/);
     expect(persistenceSource).not.toMatch(/\bviewActorId\b/);
     expect(persistenceSource).not.toMatch(/\bactorId\b/);
     expect(persistenceSource).not.toMatch(/\bframeActorId\b/);

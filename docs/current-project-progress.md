@@ -49,6 +49,10 @@ Current workspace packages:
 
 ## Project Prism Status
 
+Project Prism is complete as of 2026-06-14. The remaining items in
+`docs/known-defects-and-todos.md` are non-blocking historical/watch entries, not
+active phase blockers.
+
 Accepted or completed phases:
 
 - Phase 0 / 0B established boundary reports, interaction host evidence, and
@@ -72,7 +76,7 @@ Accepted or completed phases:
   and the surface/content-host/dock-tree cleanup slice has deleted the old
   exposed placement implementation.
 
-Current gate:
+Completed phase record:
 
 - Phase 6 editor package extraction is complete through the final browser
   evidence gate. Remaining work belongs to the next runtime-owner/app bootstrap
@@ -216,9 +220,10 @@ Current gate:
 - The Phase 6 extraction gate regenerated browser smoke evidence at
   `temp/project-prism-phase-6-smoke-data.json` and validated it with
   `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-6-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file`.
-- Continue deletion-first. Do not add compatibility wrappers or idle legacy
-  paths during Phase 7; simplify ownership or delete obsolete paths in the
-  subsystem where new issues are found.
+- Project Prism Final Gate is complete. Future work should preserve the same
+  deletion-first rules: do not add compatibility wrappers or idle legacy paths;
+  simplify ownership or delete obsolete paths in the subsystem where new issues
+  are found.
 
 Current pre-Phase 6 blocker from boundary facts:
 
@@ -474,8 +479,10 @@ Diagnostics Gate` is now complete: split dock ids are allocated by
 `newSplitId`, `requestCommitDock` returns `WindowDockCommitResult`, tab input
 exposes a narrow assertable dock evidence object, root validation passed, and
 browser evidence proves the repeated two-tab Debug/Scene dock path visually
-lands in the expected root layout. DCK-003 and DEV-001 remain watch items in
-the permanent defect ledger, but they do not block the next architecture slice.
+lands in the expected root layout. DCK-003 remains a watch item in the
+permanent defect ledger, but it does not block the next architecture slice.
+DEV-001 is closed by the explicit `npm run prism:smoke:prepare` dist-freshness
+contract before browser smoke.
 
 The plan keeps
 deletion-first rules explicit: no app-local compatibility barrels, no duplicate
@@ -552,6 +559,18 @@ backend-only, split Scene presentation component definitions from runtime
 Camera3/Tesseract definitions, and validated fresh Phase 10 browser smoke from
 `temp/project-prism-phase-10-smoke-data.json`.
 
+Completed Project Prism final gate closure plan:
+
+```text
+docs/project-prism-final-gate-closure-plan.md
+```
+
+Treat this as the completed Project Prism closeout record. It closed `DEV-001`
+with `npm run prism:smoke:prepare`, deleted layout schema version 1 migration
+support, tightened `wallpaper-runtime` public API boundaries, cleaned historical
+temp run traces, and validated fresh Final Gate browser smoke from
+`temp/project-prism-final-gate-smoke-data.json`.
+
 Older window/docking/view-identity plans are now Git history, not active files
 in `temp/`. Recover historical context from Git when needed, then compare it
 against current implementation and boundary facts before acting on it.
@@ -599,6 +618,7 @@ npm run test -w wallpaper-tesseract -- architecture-boundaries project-prism-bou
 npm run test -w runtime-core
 npm run test -w runtime-three
 npm run typecheck -w wallpaper-tesseract
+$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-final-gate-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file
 ```
 
 Useful window/docking/view-identity checks:
@@ -627,6 +647,7 @@ $env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-7-smoke-data.json"; 
 For UI/input/window/runtime-render changes, run the Vite dev server:
 
 ```text
+npm run prism:smoke:prepare
 npm run dev -w wallpaper-tesseract
 ```
 
@@ -656,8 +677,9 @@ Then verify at least:
 - Root/floating drag and dock cycles work in both directions.
 - Merge/split layout survives reload using version 2 type/instance
   persistence.
-- Legacy version 1 layout migration still hydrates until the active plan
-  removes it.
+- Legacy layout schema version 1 is rejected by the current persistence parser.
+  The `.v1` suffix in the localStorage key is retained only as a storage
+  namespace, not as schema compatibility.
 - Camera3 drag updates camera behavior and gizmo display.
 - Camera3 double-click snap still works.
 - Projection toggle updates the gizmo label/view state.

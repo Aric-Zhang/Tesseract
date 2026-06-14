@@ -1291,8 +1291,11 @@ describe("DefaultWindowFrameLifecycleController", () => {
     ]));
     expect(subject.actorSystem.getActor("debug-frame-1")).toBeNull();
     expect(subject.actorSystem.getParentId(subject.actorSystem.getActor("debug-view-1")!)).toBe("scene-frame");
-    expect(asOptionalTestFramePort(subject.controller.getLiveViewByActorId("debug-view-1")?.framePort)
-      ?.readRenderedViewActorIds().sort()).toEqual(["debug-view-1", "scene-view"]);
+    const renderedViewActorIds = asOptionalTestFramePort(
+      subject.controller.getLiveViewByActorId("debug-view-1")?.framePort
+    )?.readRenderedViewActorIds();
+    expect(renderedViewActorIds ? [...renderedViewActorIds].sort() : renderedViewActorIds)
+      .toEqual(["debug-view-1", "scene-view"]);
   });
 
   it("resizes a graph split without mutating frame-local placement APIs", () => {

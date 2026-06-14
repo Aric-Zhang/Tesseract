@@ -13,12 +13,12 @@ export {
 } from "./camera3/camera3-motion-component";
 export { installWallpaperRuntimeComponentDefinitions } from "./install-component-definitions";
 export {
-  RuntimeSceneViewRuntime,
   RuntimeSceneViewRuntimeRegistry
 } from "./scene/runtime-scene-view-runtime";
 export type {
   AttachRuntimeSceneViewOptions,
-  CreateRuntimeSceneViewRuntimeOptions
+  CreateRuntimeSceneViewRuntimeOptions,
+  RuntimeSceneViewRuntime
 } from "./scene/runtime-scene-view-runtime";
 export type {
   RuntimeSceneViewVisibilityPort

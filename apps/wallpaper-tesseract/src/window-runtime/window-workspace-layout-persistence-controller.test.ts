@@ -102,10 +102,10 @@ describe("WindowWorkspaceFrameLayoutPersistenceController", () => {
   it("loads partially recoverable top-level-valid storage without cleaning the key", () => {
     const storage = createStorage();
     storage.setItem(WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY, JSON.stringify({
-      version: 1,
+      version: 2,
       views: [
-        { viewKey: "scene", title: "Scene" },
-        { viewKey: "" }
+        { typeKey: "scene", instanceId: "scene:default", title: "Scene", singleton: true },
+        { typeKey: "debug" }
       ],
       frames: [
         {
@@ -119,8 +119,8 @@ describe("WindowWorkspaceFrameLayoutPersistenceController", () => {
           root: {
             kind: "tabset",
             id: "scene-tabset",
-            tabs: ["scene"],
-            activeTabId: "scene"
+            tabs: ["scene:default"],
+            activeTabId: "scene:default"
           }
         },
         {
@@ -134,8 +134,8 @@ describe("WindowWorkspaceFrameLayoutPersistenceController", () => {
           root: {
             kind: "tabset",
             id: "bad-frame",
-            tabs: ["scene"],
-            activeTabId: "scene"
+            tabs: ["scene:default"],
+            activeTabId: "scene:default"
           }
         }
       ],

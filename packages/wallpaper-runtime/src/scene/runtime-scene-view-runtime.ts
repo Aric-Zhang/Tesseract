@@ -4,7 +4,6 @@ import {
   createRuntimeThreeSceneRenderOutput,
   type RuntimeThreeSceneRenderOutput
 } from "runtime-three";
-import type { Camera3MotionComponent } from "../camera3/camera3-motion-component";
 import {
   createRuntimeSceneContent,
   type RuntimeSceneContent
@@ -26,7 +25,13 @@ export interface AttachRuntimeSceneViewOptions {
   readonly presentation: RuntimeSceneViewVisibilityPort;
 }
 
-export class RuntimeSceneViewRuntime {
+export interface RuntimeSceneViewRuntime {
+  readonly renderTarget: RuntimeThreeSceneRenderOutput;
+  attachSceneView(options: AttachRuntimeSceneViewOptions): RuntimeSceneContent;
+  dispose(): void;
+}
+
+class WallpaperRuntimeSceneViewRuntime implements RuntimeSceneViewRuntime {
   readonly #renderOutput: RuntimeThreeSceneRenderOutput;
   readonly #frameSources: SceneViewFrameSourceRegistry;
   #content: RuntimeSceneContent | null = null;
@@ -43,18 +48,6 @@ export class RuntimeSceneViewRuntime {
 
   get renderTarget(): RuntimeThreeSceneRenderOutput {
     return this.#renderOutput;
-  }
-
-  get renderOutput(): RuntimeThreeSceneRenderOutput {
-    return this.#content?.renderOutput ?? this.#renderOutput;
-  }
-
-  get camera3Motion(): Camera3MotionComponent {
-    const content = this.#content;
-    if (!content) {
-      throw new Error("Runtime Scene content has not been attached.");
-    }
-    return content.camera3Motion;
   }
 
   attachSceneView(options: AttachRuntimeSceneViewOptions): RuntimeSceneContent {
@@ -90,7 +83,7 @@ export class RuntimeSceneViewRuntimeRegistry {
   readonly #frameSources = new SceneViewFrameSourceRegistry();
 
   createRuntime(options: CreateRuntimeSceneViewRuntimeOptions): RuntimeSceneViewRuntime {
-    return new RuntimeSceneViewRuntime(options, this.#frameSources);
+    return new WallpaperRuntimeSceneViewRuntime(options, this.#frameSources);
   }
 
   measureCurrentView(): void {

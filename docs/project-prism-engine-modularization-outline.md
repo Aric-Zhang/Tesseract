@@ -86,8 +86,13 @@ ownership into it, deleted `apps/wallpaper-tesseract/src/runtime`, and
 validated fresh Phase 10 smoke evidence from
 `temp/project-prism-phase-10-smoke-data.json`. Review hardening tightened
 mobile smoke validation, refreshed true 390x844 mobile evidence, narrowed
-`wallpaper-runtime` public exports, and reclassified app-local Scene wiring as
-`wallpaper-scene-integration` rather than an editor package candidate.
+`wallpaper-runtime` public exports initially, and reclassified app-local Scene
+wiring as `wallpaper-scene-integration` rather than an editor package
+candidate. The Final Gate is complete:
+`docs/project-prism-final-gate-closure-plan.md`. It closed `DEV-001`, deleted
+layout schema version 1 migration support, tightened the final public API
+surface, generated `temp/project-prism-final-gate-smoke-data.json`, and closed
+Project Prism.
 ```
 
 ## Codename

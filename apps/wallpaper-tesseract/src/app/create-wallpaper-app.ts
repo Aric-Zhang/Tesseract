@@ -99,7 +99,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const frameStateBridge: StateObserverRegistry<AppStateObserver> & AppStateCommandSink = {
     submit(command) {
       frameStateController.submit(command);
-      immediateUpdates.requestUpdate(command.timeStamp);
+      immediateUpdates.requestUpdate();
     },
     subscribe(observer) {
       return frameStateController.subscribe(observer);
@@ -236,8 +236,12 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     runtimeSceneViews.measureCurrentView();
   }
 
+  let lastRuntimeFrameTimeMs = Number.NEGATIVE_INFINITY;
+
   function update(timeMs: number): void {
-    const frame = frameClock.tick(timeMs);
+    const runtimeTimeMs = Math.max(timeMs, lastRuntimeFrameTimeMs);
+    lastRuntimeFrameTimeMs = runtimeTimeMs;
+    const frame = frameClock.tick(runtimeTimeMs);
     isUpdatingFrame = true;
     try {
       frameOrchestrator.updateFrame(frame);

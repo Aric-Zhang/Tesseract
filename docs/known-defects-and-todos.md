@@ -18,6 +18,11 @@ Keep this file current when:
 Do not use this file as a dumping ground for speculative ideas. Each entry
 should include status, evidence, impact, next action, and verification.
 
+Project Prism temporary smoke screenshots, blocker dumps, and phase execution
+artifacts were cleaned after the Final Gate baseline. Historical closed entries
+may mention removed `temp/` paths as context; the retained reproducible Project
+Prism evidence is the Final Gate smoke data/report.
+
 ## Status Key
 
 - `open`: confirmed issue or cleanup debt still needs implementation.
@@ -29,8 +34,8 @@ should include status, evidence, impact, next action, and verification.
 
 ## Current Entries
 
-Completed execution plan for the dock-related Step 10 entries:
-`temp/project-prism-phase-6-editor-extraction-plan.md`, Step 10.
+The old dock-related Step 10 execution plan was retained in Git history and
+removed from `temp/` during Project Prism closure cleanup.
 
 ### DCK-001: Dock commit failures are silent
 
@@ -128,6 +133,37 @@ Next action:
 Verification:
 
 - Gizmo tests should describe whether the event continues or is canceled.
+
+### BUILD-001: Vite production build reports chunk-size warning
+
+Status: `watch`
+
+Area: `apps/wallpaper-tesseract` production bundle
+
+Evidence:
+
+- Project Prism Final Gate `npm run build` passes, but Vite still reports the
+  existing warning that some chunks exceed the default 500 kB limit.
+
+Impact:
+
+- This does not block Project Prism architecture closure or functional smoke
+  verification.
+- It may become a product performance concern if startup or Wallpaper Engine
+  loading time becomes a real user-facing issue.
+
+Next action:
+
+- Treat this as ordinary build/performance maintenance, not a Project Prism
+  compatibility task.
+- If it becomes actionable, profile the actual production bundle first, then
+  prefer deleting unused code or owner-local lazy loading over broad manual
+  chunking rules.
+
+Verification:
+
+- `npm run build` must continue to pass. Any future fix should compare bundle
+  output before and after and avoid weakening package boundaries.
 
 ### DCK-004: Dock node id derivation still lives outside the graph reducer
 

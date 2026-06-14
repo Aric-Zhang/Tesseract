@@ -53,6 +53,13 @@ Project Prism is complete as of 2026-06-14. The remaining items in
 `docs/known-defects-and-todos.md` are non-blocking historical/watch entries, not
 active phase blockers.
 
+Post-closure temp cleanup is complete. The repository keeps only the Final Gate
+smoke data/report under `temp/` as reproducible Project Prism acceptance
+evidence; older phase screenshots, blocker dumps, smoke intermediates, and
+execution scripts were removed as process artifacts. Historical references to
+those files in archived phase notes are context, not current verification
+inputs.
+
 Accepted or completed phases:
 
 - Phase 0 / 0B established boundary reports, interaction host evidence, and

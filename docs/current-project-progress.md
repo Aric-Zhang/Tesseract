@@ -53,6 +53,17 @@ Project Prism is complete as of 2026-06-14. The remaining items in
 `docs/known-defects-and-todos.md` are non-blocking historical/watch entries, not
 active phase blockers.
 
+Next proposed architecture plan:
+
+- `docs/project-arbor-ui-framework-actor-layout-plan.md` defines Project Arbor,
+  the actor-backed UI layout/control refactor. It first prepares generic
+  `ui-framework` UI primitives, then migrates Editor/App Menu/Scene presentation
+  onto those primitives and deletes the old monolithic menu/viewport paths.
+- `docs/project-arbor-step-1-ui-element-ownership-plan.md` is the detailed
+  execution file for Arbor Step 1. It adds only `UiElementComponent` ownership
+  semantics inside `ui-framework` and explicitly excludes layout, menu,
+  viewport, fullscreen, App Menu, and Scene migration work.
+
 Post-closure temp cleanup is complete. The repository keeps only the Final Gate
 smoke data/report under `temp/` as reproducible Project Prism acceptance
 evidence; older phase screenshots, blocker dumps, smoke intermediates, and

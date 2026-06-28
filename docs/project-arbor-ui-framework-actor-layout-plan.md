@@ -2,7 +2,7 @@
 
 Status: consolidated execution plan, amended after Step 3 closure
 Created: 2026-06-14
-Amended: 2026-06-28
+Amended: 2026-06-29
 Scope: `packages/ui-framework`, `packages/editor`, and the app-local Scene/App
 Menu integration needed to remove old presentation ownership.
 
@@ -67,22 +67,31 @@ viewport, or overlay was added.
 
 - `ui-framework` already depends on `actor-core` and `actor-input`, so
   actor-backed controls are allowed inside the package.
-- `ui-framework` currently has only generic App Menu model helpers. The active
-  App Menu component still lives in app-local `features/app-menu`.
-- The existing `ui-framework/src/model/app-menu-model.ts` is the only current
-  generic menu model. Project Arbor must migrate or rename it into the new menu
-  area, not create a second `ui/menu/menu-model.ts` with overlapping menu truth.
-- The current App Menu component is a monolith: it creates menu DOM rows,
-  stores row state, manages active row highlighting, and triggers window
-  commands.
+- Gates 1-3 added `UiElementComponent`, `UiLayoutItemComponent`, and
+  `UiLayoutHostComponent` as the generic actor-backed UI foundation.
+- Gate 4 deleted the old `ui-framework/src/model/app-menu-model.ts`,
+  app-local App Menu row component, direct `parent: HTMLElement` append path,
+  and old row/highlight/CSS selectors. The real App Menu now uses an Arbor
+  host actor, generic menu components, and an app-local window-menu adapter.
+- Gate 5 deleted `SceneViewportComponent`, `SceneModeToggle`,
+  `editor-scene-view-host`, raw Camera3 DOM parent handoff, and old Scene
+  overlay/canvas/fullscreen selectors. The real Scene tab is now an Arbor
+  actor subtree with a generic render viewport and sibling Camera3 overlay.
+- Gate 6 moved reusable menu/viewport/fullscreen CSS into `ui-framework`,
+  removed explicit generic UI `actorInputScopeRoutePriority` imports, deleted
+  the app bootstrap `window.resize -> measureSceneViewport` hook, and narrowed
+  Scene integration exports.
 - `WindowFrameSurfaceComponent` owns tab/split/content realization and should
   not absorb menu or Scene-specific control behavior.
-- `SceneViewportComponent` in `packages/editor` currently mixes content
-  registration, canvas host, overlay host, render target resize, and the parent
-  DOM for Camera3 gizmo.
-- Scene integration currently creates the Scene view, runtime render output,
-  runtime content, and Camera3 gizmo in one app-local installer. It is cleaner
-  than pre-Prism code, but still not a fully generic actor-backed UI subtree.
+- No generic `ScrollViewComponent`, `TreeViewComponent`, `ListViewComponent`,
+  or table-like collection control exists yet.
+- Hierarchy still owns local row DOM, local scrolling style, row construction,
+  and local tree presentation instead of generic Arbor collection controls.
+- Debug still presents log output through a monolithic text/pre-style path
+  rather than generic scroll/list controls.
+- Inspector, window chrome, generic controls, and editor panels still contain
+  scattered hard-coded visual styling. There is no semantic theme-token system
+  or UI-framework theme module contract yet.
 
 ## Target Architecture
 
@@ -639,6 +648,41 @@ Browser smoke must cover:
   actors, no old resize subscriber, and no stale frame source.
 - Render view fullscreen/restore works and persistence remains logical.
 - Mobile viewport still has menu/viewport/gizmo reachable.
+
+### Gates 7A-7D: Unified Controls And Theme System
+
+Detailed proposed plan:
+
+```text
+docs/project-arbor-gate-7-unified-controls-and-theme-plan.md
+```
+
+Status: Gate 7A and Gate 7B complete; Gates 7C-7D pending.
+
+The original Gate 7 scope is intentionally split into four execution gates so
+each gate proves a vertical capability and deletes the old path in the same
+cleanup:
+
+- Gate 7A: theme token foundation. Add default-backed semantic theme tokens,
+  pure theme module parse/create/validate/apply APIs, invalid-token handling
+  policies, generated theme CSS, package CSS export support, and a root theme
+  owner contract. `ui-framework` must not own theme file paths. This gate is
+  complete.
+- Gate 7B: ScrollView + TreeView + Hierarchy migration. Use native scrolling,
+  pick one TreeView hierarchy fact source, migrate Hierarchy to stable item
+  actors, and delete its old row/scroll DOM/CSS path. This gate is complete for
+  implementation and default browser smoke; the large-node Hierarchy smoke
+  fixture is tracked separately as `ARB-001`.
+- Gate 7C: ListView/TableView + Debug migration. Migrate Debug away from the
+  monolithic text/pre presentation, keep stable row actors and scroll behavior,
+  and delete old log-list rendering.
+- Gate 7D: theme adoption and manual switching. Apply semantic tokens across
+  windows, editor panels, and generic controls; add Edit -> Theme submenu
+  switching in the real App Menu; and audit Inspector/window chrome leftovers.
+
+All four gates remain deletion-first: old Hierarchy/Debug row/list/scroll
+implementations, hard-coded generic styles, and compatibility presentation
+paths must be deleted in the same migration path, not retained as fallbacks.
 
 ## Stop Conditions
 

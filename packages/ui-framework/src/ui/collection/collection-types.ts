@@ -1,0 +1,21 @@
+export interface TreeViewActivation {
+  readonly itemActorId: string;
+  readonly itemId: string;
+  readonly inputKind: "pointer" | "keyboard";
+}
+
+export interface TreeViewActivationSink {
+  activateTreeItem(activation: TreeViewActivation): void;
+}
+
+export interface TreeViewItemDescriptor {
+  readonly itemId: string;
+  readonly label: string;
+  readonly parentItemId?: string | null;
+  readonly order?: number;
+  readonly selected?: boolean;
+  readonly enabled?: boolean;
+  readonly muted?: boolean;
+}
+
+export type TreeViewItemUpdate = Partial<TreeViewItemDescriptor>;

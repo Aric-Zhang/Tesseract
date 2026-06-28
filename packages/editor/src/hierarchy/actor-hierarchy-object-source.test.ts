@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem } from "actor-core";
 import { createActorHierarchyObjectSource } from "./actor-hierarchy-object-source";
+import {
+  createHierarchyTreeItemActorId,
+  isHierarchyTreeItemActorId
+} from "./hierarchy-tree-item-actor-reconciler";
 
 describe("ActorHierarchyObjectSource", () => {
   it("lists current actors using actor id and name", () => {
@@ -201,6 +205,26 @@ describe("ActorHierarchyObjectSource", () => {
     });
 
     expect(source.listObjects().map((item) => item.id)).toEqual(["scene-window"]);
+  });
+
+  it("filters hierarchy tree item presentation actors before they can recurse into visible objects", () => {
+    const actorSystem = new ActorSystem();
+    const hierarchyView = actorSystem.createActor({ id: "hierarchy-panel:view", name: "Hierarchy View" });
+    actorSystem.createActor({ id: "scene-window", name: "Scene" });
+    actorSystem.createActor({
+      id: createHierarchyTreeItemActorId(hierarchyView.id, "scene-window"),
+      name: "Scene Item",
+      parent: hierarchyView
+    });
+    const source = createActorHierarchyObjectSource({
+      actorSystem,
+      includeActor: (actor) => !isHierarchyTreeItemActorId(actor.id)
+    });
+
+    expect(source.listObjects().map((item) => item.id)).toEqual([
+      "hierarchy-panel:view",
+      "scene-window"
+    ]);
   });
 
   it("does not expose mutable item references", () => {

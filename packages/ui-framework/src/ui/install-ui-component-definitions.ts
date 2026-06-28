@@ -10,9 +10,15 @@ import {
   popupMenuComponentDefinition
 } from "./menu";
 import {
+  treeViewComponentDefinition,
+  treeViewItemComponentDefinition
+} from "./collection";
+import {
   uiLayoutHostComponentDefinition,
   uiLayoutItemComponentDefinition
 } from "./layout";
+import { scrollViewComponentDefinition } from "./scroll";
+import { uiThemeComponentDefinition } from "./theme";
 import {
   fullscreenableViewComponentDefinition,
   renderViewportComponentDefinition
@@ -20,8 +26,12 @@ import {
 
 export function installUiComponentDefinitions(componentRegistry: ComponentRegistry): void {
   installComponentDefinition(componentRegistry, uiElementComponentDefinition);
+  installComponentDefinition(componentRegistry, uiThemeComponentDefinition);
   installComponentDefinition(componentRegistry, uiLayoutItemComponentDefinition);
   installComponentDefinition(componentRegistry, uiLayoutHostComponentDefinition);
+  installComponentDefinition(componentRegistry, scrollViewComponentDefinition);
+  installComponentDefinition(componentRegistry, treeViewItemComponentDefinition);
+  installComponentDefinition(componentRegistry, treeViewComponentDefinition);
   installComponentDefinition(componentRegistry, menuBarComponentDefinition);
   installComponentDefinition(componentRegistry, menuBarItemComponentDefinition);
   installComponentDefinition(componentRegistry, popupMenuComponentDefinition);

@@ -18,7 +18,6 @@
       "import": "./dist/index.js"
     },
     "./debug/debug-log.css": "./src/debug/debug-log.css",
-    "./hierarchy/hierarchy.css": "./src/hierarchy/hierarchy.css",
     "./inspector/inspector.css": "./src/inspector/inspector.css",
     "./scene/scene-window.css": "./src/scene/scene-window.css",
     "./camera3/camera3-gizmo.css": "./src/camera3/camera3-gizmo.css"

@@ -3,8 +3,10 @@ import type {
   GizmoCancelEvent,
   GizmoClickEvent,
   GizmoController,
+  GizmoEndEvent,
   GizmoHit,
   GizmoMoveEvent,
+  GizmoStartEvent,
   ScreenPoint
 } from "gizmo-core";
 import {
@@ -186,12 +188,28 @@ function createFakeGizmoFactory(
       hitTest(_point: ScreenPoint): GizmoHit | null {
         return hit;
       },
+      onGizmoStart(event: GizmoStartEvent): void {
+        options.commandSink.submit({
+          type: "orbit-drag-start",
+          source: "camera3-gizmo",
+          sessionId: `test-drag:${event.pointerId}`
+        });
+      },
       onGizmoMove(event: GizmoMoveEvent): void {
         options.commandSink.submit({
-          type: "orbit-delta",
+          type: "orbit-drag-delta",
           source: "camera3-gizmo",
+          sessionId: `test-drag:${event.pointerId}`,
           dx: event.delta.dx,
           dy: event.delta.dy
+        });
+      },
+      onGizmoEnd(event: GizmoEndEvent): void {
+        options.commandSink.submit({
+          type: "orbit-drag-end",
+          source: "camera3-gizmo",
+          sessionId: `test-drag:${event.pointerId}`,
+          reason: "pointerup"
         });
       },
       onGizmoDoubleClick(): void {
@@ -209,6 +227,12 @@ function createFakeGizmoFactory(
         });
       },
       onGizmoCancel(event: GizmoCancelEvent): void {
+        options.commandSink.submit({
+          type: "orbit-drag-end",
+          source: "camera3-gizmo",
+          sessionId: `test-drag:${event.pointerId}`,
+          reason: "cancel"
+        });
         fake.cancelEvents.push(event);
         calls.push(`gizmo-cancel:${event.reason}`);
       },
@@ -365,13 +389,19 @@ describe("createCamera3GizmoActor", () => {
 
     binding.onGizmoStart?.(createMoveEvent(binding, hit));
     binding.onGizmoMove?.(createMoveEvent(binding, hit));
+    binding.onGizmoEnd?.({
+      ...createMoveEvent(binding, hit),
+      wasClick: false
+    });
     binding.onGizmoDoubleClick?.({
       ...createMoveEvent(binding, hit),
       clickCount: 2
     });
 
     expect(commands).toEqual([
-      { type: "orbit-delta", source: "camera3-gizmo", dx: 3, dy: 4 },
+      { type: "orbit-drag-start", source: "camera3-gizmo", sessionId: "test-drag:1" },
+      { type: "orbit-drag-delta", source: "camera3-gizmo", sessionId: "test-drag:1", dx: 3, dy: 4 },
+      { type: "orbit-drag-end", source: "camera3-gizmo", sessionId: "test-drag:1", reason: "pointerup" },
       { type: "snap-axis", source: "camera3-gizmo", axis: "+x" }
     ]);
   });

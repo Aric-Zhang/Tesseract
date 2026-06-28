@@ -1,10 +1,16 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
-import type { WindowContentRegistrationPort } from "ui-framework";
+import {
+  scrollViewComponentType,
+  treeViewComponentType,
+  uiElementComponentType,
+  type WindowContentRegistrationPort
+} from "ui-framework";
 import {
   hierarchyPanelComponentType,
   type HierarchyPanelComponent
 } from "./hierarchy-panel-component";
 import type { HierarchyObjectSource } from "./hierarchy-object-source";
+import { HierarchyTreeItemActorReconciler } from "./hierarchy-tree-item-actor-reconciler";
 
 export interface HierarchyPanelViewActorOptions {
   actorId?: string;
@@ -30,12 +36,20 @@ export function createHierarchyPanelViewActor(
     parent: options.parentActor
   });
   try {
+    context.componentRegistry.addComponent(actor, uiElementComponentType, {
+      className: "hierarchy-panel",
+      document: options.document
+    });
+    context.componentRegistry.addComponent(actor, scrollViewComponentType, {
+      orientation: "vertical"
+    });
+    context.componentRegistry.addComponent(actor, treeViewComponentType);
     const component = context.componentRegistry.addComponent(actor, hierarchyPanelComponentType, {
       id: "hierarchy-panel",
       objectSource: options.objectSource,
-      document: options.document,
       contentId: options.contentId,
-      contentRegistration: options.contentRegistration
+      contentRegistration: options.contentRegistration,
+      itemReconciler: new HierarchyTreeItemActorReconciler(context, actor)
     });
     let untrack: ReturnType<ActorCreationContext["trackRegisteredActor"]> | null = null;
     const baseHandle = createRegisteredActor({

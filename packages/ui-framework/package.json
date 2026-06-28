@@ -17,6 +17,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./ui/theme.css": "./dist/ui/theme.css",
     "./ui/ui-framework-controls.css": "./dist/ui/ui-framework-controls.css"
   },
   "types": "./dist/index.d.ts",

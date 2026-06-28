@@ -1,7 +1,16 @@
 import { Camera3GizmoHitTester } from "./camera3-gizmo-hit-test";
 import { Camera3GizmoRenderer } from "./camera3-gizmo-renderer";
 import { Camera3GizmoState } from "./camera3-gizmo-state";
-import type { GizmoClickEvent, GizmoController, GizmoHit, GizmoMoveEvent, ScreenPoint } from "gizmo-core";
+import type {
+  GizmoCancelEvent,
+  GizmoClickEvent,
+  GizmoController,
+  GizmoEndEvent,
+  GizmoHit,
+  GizmoMoveEvent,
+  GizmoStartEvent,
+  ScreenPoint
+} from "gizmo-core";
 import type { RuntimeCameraAxis, RuntimeCameraCommandSink, RuntimeCameraViewState } from "runtime-core";
 
 const projectionModePartId = "projection-mode";
@@ -26,6 +35,8 @@ export class Camera3Gizmo implements GizmoController {
   private readonly commandSink: RuntimeCameraCommandSink;
   private viewState: RuntimeCameraViewState;
   private currentModeLabel = "";
+  private activeOrbitDragSessionId: string | null = null;
+  private nextOrbitDragSessionIndex = 1;
 
   constructor(options: Camera3GizmoOptions) {
     this.commandSink = options.commandSink;
@@ -87,12 +98,32 @@ export class Camera3Gizmo implements GizmoController {
 
   onGizmoMove(event: GizmoMoveEvent): void {
     if (!event.isDragging) return;
+    if (!this.activeOrbitDragSessionId) return;
     this.commandSink.submit({
-      type: "orbit-delta",
+      type: "orbit-drag-delta",
       source: "camera3-gizmo",
+      sessionId: this.activeOrbitDragSessionId,
       dx: event.delta.dx,
       dy: event.delta.dy
     });
+  }
+
+  onGizmoStart(event: GizmoStartEvent): void {
+    if (!this.isOrbitDragHit(event.hit)) return;
+    this.activeOrbitDragSessionId = `${this.id}:orbit:${this.nextOrbitDragSessionIndex++}`;
+    this.commandSink.submit({
+      type: "orbit-drag-start",
+      source: "camera3-gizmo",
+      sessionId: this.activeOrbitDragSessionId
+    });
+  }
+
+  onGizmoEnd(_event: GizmoEndEvent): void {
+    this.endActiveOrbitDrag("pointerup");
+  }
+
+  onGizmoCancel(_event: GizmoCancelEvent): void {
+    this.endActiveOrbitDrag("cancel");
   }
 
   onGizmoDoubleClick(event: GizmoClickEvent): void {
@@ -139,5 +170,20 @@ export class Camera3Gizmo implements GizmoController {
 
   private isCamera3Axis(axis: string): axis is RuntimeCameraAxis {
     return axis === "+x" || axis === "-x" || axis === "+y" || axis === "-y" || axis === "+z" || axis === "-z";
+  }
+
+  private isOrbitDragHit(hit: GizmoHit): boolean {
+    return hit.partId !== projectionModePartId;
+  }
+
+  private endActiveOrbitDrag(reason: "pointerup" | "cancel"): void {
+    if (!this.activeOrbitDragSessionId) return;
+    this.commandSink.submit({
+      type: "orbit-drag-end",
+      source: "camera3-gizmo",
+      sessionId: this.activeOrbitDragSessionId,
+      reason
+    });
+    this.activeOrbitDragSessionId = null;
   }
 }

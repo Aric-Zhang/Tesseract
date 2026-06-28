@@ -9,9 +9,11 @@ import { actorInputScopeRoutePriority } from "actor-input";
 import type {
   ActorInputCancelEvent,
   ActorInputClickEvent,
+  ActorInputEndEvent,
   ActorInputHit,
   ActorInputMoveEvent,
-  ActorInputParticipant
+  ActorInputParticipant,
+  ActorInputStartEvent
 } from "actor-input";
 import { Camera3Gizmo, type Camera3GizmoOptions } from "../camera3-gizmo";
 import type { RuntimeCameraViewState } from "runtime-core";
@@ -80,6 +82,14 @@ export class Camera3GizmoComponent implements ActorInputParticipant {
 
   onInputMove(event: ActorInputMoveEvent): void {
     this.gizmo.onGizmoMove?.(toCamera3GizmoEvent(event));
+  }
+
+  onInputStart(event: ActorInputStartEvent): void {
+    this.gizmo.onGizmoStart?.(toCamera3GizmoEvent(event));
+  }
+
+  onInputEnd(event: ActorInputEndEvent): void {
+    this.gizmo.onGizmoEnd?.(toCamera3GizmoEvent(event));
   }
 
   onInputCancel(event: ActorInputCancelEvent): void {

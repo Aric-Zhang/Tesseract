@@ -1,6 +1,6 @@
 # Known Defects And Todos
 
-Last updated: 2026-06-14
+Last updated: 2026-06-29
 
 This document is the permanent defect and follow-up ledger for the repository.
 Use it for known bugs, reproducible investigation findings, and non-plan
@@ -36,6 +36,40 @@ Prism evidence is the Final Gate smoke data/report.
 
 The old dock-related Step 10 execution plan was retained in Git history and
 removed from `temp/` during Project Prism closure cleanup.
+
+### ARB-001: Gate 7B needs deterministic large Hierarchy smoke fixture
+
+Status: `open`
+
+Area: `packages/editor/src/hierarchy`, `apps/wallpaper-tesseract` smoke support
+
+Evidence:
+
+- Gate 7B migrated Hierarchy to actor-backed `ScrollViewComponent` /
+  `TreeViewComponent` and generated fresh default browser smoke evidence in
+  `temp/project-arbor-gate-7b-hierarchy-smoke-data.json`.
+- The default product boot currently exposes 10 Hierarchy rows, which proves the
+  new TreeView/ScrollView path and source-pollution guard, but does not prove
+  large-node scrolling.
+
+Impact:
+
+- The UI architecture is not blocked, but future TreeView scrolling or
+  virtualization changes should have a reproducible high-row-count browser
+  fixture.
+
+Next action:
+
+- Add a deterministic test-only actor population or fixture source for browser
+  smoke, run large Hierarchy scroll, then dispose the test population before
+  handoff.
+- Do not add smoke-only actors to the product default state.
+
+Verification target:
+
+- Fresh browser smoke records many Hierarchy rows, scroll position changes,
+  no duplicate item ids, no visible Hierarchy item actor recursion, and no
+  stale test actors after cleanup.
 
 ### DCK-001: Dock commit failures are silent
 

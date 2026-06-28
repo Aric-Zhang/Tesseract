@@ -7,7 +7,9 @@ import type {
 export type RuntimeCameraControlSource = string;
 
 export type RuntimeCameraControlCommand =
-  | RuntimeCameraOrbitDeltaCommand
+  | RuntimeCameraOrbitDragStartCommand
+  | RuntimeCameraOrbitDragDeltaCommand
+  | RuntimeCameraOrbitDragEndCommand
   | RuntimeCameraSnapAxisCommand
   | RuntimeCameraToggleProjectionCommand
   | RuntimeCameraSetProjectionModeCommand;
@@ -21,11 +23,27 @@ export interface RuntimeCameraViewState {
   readonly projectionMode: RuntimeCameraProjectionMode;
 }
 
-export interface RuntimeCameraOrbitDeltaCommand {
-  type: "orbit-delta";
+export type RuntimeCameraOrbitDragEndReason = "pointerup" | "cancel";
+
+export interface RuntimeCameraOrbitDragStartCommand {
+  type: "orbit-drag-start";
   source: RuntimeCameraControlSource;
+  sessionId: string;
+}
+
+export interface RuntimeCameraOrbitDragDeltaCommand {
+  type: "orbit-drag-delta";
+  source: RuntimeCameraControlSource;
+  sessionId: string;
   dx: number;
   dy: number;
+}
+
+export interface RuntimeCameraOrbitDragEndCommand {
+  type: "orbit-drag-end";
+  source: RuntimeCameraControlSource;
+  sessionId: string;
+  reason: RuntimeCameraOrbitDragEndReason;
 }
 
 export interface RuntimeCameraSnapAxisCommand {

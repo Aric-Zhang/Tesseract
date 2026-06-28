@@ -9,17 +9,26 @@ function createController(options: ConstructorParameters<typeof RuntimeThreeCame
   return new RuntimeThreeCameraMotionController(options);
 }
 
+function submitOrbitDrag(
+  controller: RuntimeThreeCameraMotionController,
+  delta: { readonly dx: number; readonly dy: number },
+  sessionId = "test-drag"
+): void {
+  controller.submit({ type: "orbit-drag-start", source: "camera3-gizmo", sessionId });
+  controller.submit({ type: "orbit-drag-delta", source: "camera3-gizmo", sessionId, ...delta });
+}
+
 describe("RuntimeThreeCameraMotionController", () => {
   it("queues commands and applies them during the frame update", () => {
     const controller = createController();
 
-    controller.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 10, dy: 5 });
+    submitOrbitDrag(controller, { dx: 10, dy: 5 });
     expect(controller.cameraState.orbit?.yaw).toBe(0);
     expect(controller.cameraState.orbit?.pitch).toBe(0);
 
     const result = controller.update(frame);
 
-    expect(result).toEqual({ changed: true, commandCount: 1 });
+    expect(result).toEqual({ changed: true, commandCount: 2 });
     expect(controller.cameraState.orbit?.yaw).toBeCloseTo(-10 * orbitSensitivity);
     expect(controller.cameraState.orbit?.pitch).toBeCloseTo(5 * orbitSensitivity);
   });
@@ -35,13 +44,13 @@ describe("RuntimeThreeCameraMotionController", () => {
         frameIndex: event.frame.frameIndex
       })
     });
-    controller.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 2, dy: 0 });
+    submitOrbitDrag(controller, { dx: 2, dy: 0 });
     controller.submit({ type: "toggle-projection", source: "camera3-gizmo" });
     controller.update(frame);
 
     expect(calls).toEqual([{
       projectionMode: "orthographic",
-      commandTypes: ["orbit-delta", "toggle-projection"],
+      commandTypes: ["orbit-drag-start", "orbit-drag-delta", "toggle-projection"],
       frameIndex: 1
     }]);
   });
@@ -130,10 +139,52 @@ describe("RuntimeThreeCameraMotionController", () => {
     expect(bottom.cameraState.pose.up?.[2]).toBeCloseTo(1);
   });
 
+  it("flips horizontal orbit drag when the drag starts upside down", () => {
+    const controller = createController({ yaw: 0, pitch: Math.PI * 0.75 });
+
+    submitOrbitDrag(controller, { dx: 10, dy: 0 });
+    controller.update(frame);
+
+    expect(controller.cameraState.orbit?.yaw).toBeCloseTo(10 * orbitSensitivity);
+  });
+
+  it("locks horizontal orbit drag direction for the active drag session", () => {
+    const controller = createController({ yaw: 0, pitch: 0 });
+    const sessionId = "continuous-drag";
+
+    controller.submit({ type: "orbit-drag-start", source: "camera3-gizmo", sessionId });
+    controller.submit({ type: "orbit-drag-delta", source: "camera3-gizmo", sessionId, dx: 0, dy: 400 });
+    controller.update(frame);
+    expect(controller.cameraState.pose.up?.[1]).toBeLessThan(0);
+
+    controller.submit({ type: "orbit-drag-delta", source: "camera3-gizmo", sessionId, dx: 10, dy: 0 });
+    controller.update({ timeMs: 32, deltaMs: 16, frameIndex: 2 });
+
+    expect(controller.cameraState.orbit?.yaw).toBeCloseTo(-10 * orbitSensitivity);
+  });
+
+  it("recomputes horizontal orbit drag direction after the previous session ends", () => {
+    const controller = createController({ yaw: 0, pitch: 0 });
+    const firstSessionId = "first-drag";
+    const secondSessionId = "second-drag";
+
+    controller.submit({ type: "orbit-drag-start", source: "camera3-gizmo", sessionId: firstSessionId });
+    controller.submit({ type: "orbit-drag-delta", source: "camera3-gizmo", sessionId: firstSessionId, dx: 0, dy: 400 });
+    controller.submit({ type: "orbit-drag-end", source: "camera3-gizmo", sessionId: firstSessionId, reason: "pointerup" });
+    controller.update(frame);
+    expect(controller.cameraState.pose.up?.[1]).toBeLessThan(0);
+
+    controller.submit({ type: "orbit-drag-start", source: "camera3-gizmo", sessionId: secondSessionId });
+    controller.submit({ type: "orbit-drag-delta", source: "camera3-gizmo", sessionId: secondSessionId, dx: 10, dy: 0 });
+    controller.update({ timeMs: 32, deltaMs: 16, frameIndex: 2 });
+
+    expect(controller.cameraState.orbit?.yaw).toBeCloseTo(10 * orbitSensitivity);
+  });
+
   it("ignores camera motion while locked but still allows projection changes", () => {
     const controller = createController({ locked: true });
 
-    controller.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 10, dy: 10 });
+    submitOrbitDrag(controller, { dx: 10, dy: 10 });
     controller.submit({ type: "snap-axis", source: "camera3-gizmo", axis: "+y" });
     controller.submit({ type: "toggle-projection", source: "camera3-gizmo" });
     const result = controller.update(frame);
@@ -148,11 +199,11 @@ describe("RuntimeThreeCameraMotionController", () => {
     const controller = createController();
     controller.subscribe({
       onCamera3MotionChanged: () => {
-        controller.submit({ type: "orbit-delta", source: "script", dx: 4, dy: 0 });
+        submitOrbitDrag(controller, { dx: 4, dy: 0 }, "observer-drag");
       }
     });
 
-    controller.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 2, dy: 0 });
+    submitOrbitDrag(controller, { dx: 2, dy: 0 });
     controller.update(frame);
     const yawAfterFirstFrame = controller.cameraState.orbit?.yaw ?? 0;
     controller.update({ timeMs: 32, deltaMs: 16, frameIndex: 2 });

@@ -1,6 +1,6 @@
 # Current Project Progress
 
-Last updated: 2026-06-28
+Last updated: 2026-06-29
 
 This document is the mutable project-status companion to `AGENTS.md`. Keep
 phase status, package lists, source topology, active plans, and verification
@@ -105,6 +105,41 @@ Next architecture plan:
   `$env:PROJECT_ARBOR_FINAL_SMOKE_EVIDENCE="temp/project-arbor-final-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-arbor-final-smoke-contract`.
   The final evidence includes three Scene close/reopen cycles and records
   stale canvas/frame-source counts of zero for each cycle.
+- `docs/project-arbor-gate-7-unified-controls-and-theme-plan.md` is the active
+  Arbor plan. The original broad Gate 7 scope has been split into Gates 7A-7D
+  so each gate proves one vertical capability and deletes the old path in the
+  same cleanup. Gate 7A is complete: `ui-framework` now owns default-backed
+  semantic theme token definitions, pure theme module parse/create/validate
+  APIs, `UiThemeComponent`, generated `ui-framework/ui/theme.css`, package CSS
+  export/build support, and app/fixture imports through the package export.
+  `ui-theme-tokens.ts` is the single default-value fact source; theme CSS is
+  generated from the compiled token definitions; app/editor code does not own
+  defaults and `ui-framework` does not own theme file paths. Camera3 axis
+  colors are explicitly excluded from the `ui-framework` core token set unless
+  a later editor-owned theme extension is designed. Gate 7A validation passed:
+  `$env:PROJECT_ARBOR_FINAL_SMOKE_EVIDENCE="temp/project-arbor-final-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-arbor-final-smoke-contract`,
+  `npm run test -w ui-framework -- theme menu fullscreenable-view render-viewport`,
+  `npm run typecheck:test -w ui-framework`, `npm run build -w ui-framework`,
+  `npm run test -w wallpaper-tesseract -- architecture-boundaries`,
+  `npm run typecheck -w wallpaper-tesseract`, and
+  `npm run build -w wallpaper-tesseract`. Gate 7B implementation is complete:
+  native `ScrollViewComponent`, descriptor-only `TreeViewItemComponent`, and
+  `TreeViewComponent` were added to `ui-framework`; Hierarchy now registers the
+  same-actor `UiElementComponent` as content, reconciles stable item actors, and
+  routes selection through generic TreeView activation; Hierarchy
+  item/presentation actors are excluded from `ActorHierarchyObjectSource`; the
+  old Hierarchy row DOM/CSS/input path was deleted. Gate 7B validation passed:
+  `npm run test -w ui-framework -- scroll tree ui-layout-host`,
+  `npm run typecheck:test -w ui-framework`, `npm run build -w ui-framework`,
+  `npm run test -w editor -- hierarchy`, `npm run typecheck -w editor`,
+  `npm run build -w editor`,
+  `npm run test -w wallpaper-tesseract -- architecture-boundaries`,
+  `npm run typecheck -w wallpaper-tesseract`, and
+  `npm run build -w wallpaper-tesseract`. Fresh default browser smoke evidence
+  is stored at `temp/project-arbor-gate-7b-hierarchy-smoke-data.json` and
+  `temp/project-arbor-gate-7b-hierarchy-smoke-report.md`; the large-node
+  Hierarchy smoke fixture remains tracked as `ARB-001`. The next unexecuted
+  slice is Gate 7C: ListView/TableView + Debug Log migration.
 - `docs/project-arbor-step-1-ui-element-ownership-plan.md` is the detailed
   execution record for Arbor Step 1. It added only `UiElementComponent`
   ownership semantics inside `ui-framework` and explicitly excluded layout,

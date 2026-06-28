@@ -11,6 +11,7 @@ import {
   createDefaultHierarchyPanelState,
   createActorHierarchyObjectSource,
   createHierarchyPanelViewActor,
+  isHierarchyTreeItemActorId,
   HIERARCHY_WINDOW_MIN_HEIGHT,
   HIERARCHY_WINDOW_MIN_WIDTH,
   registerHierarchyPanelParameters,
@@ -103,7 +104,12 @@ export function installToolWindowWorkspacePolicy(
 
 export function installToolWindowFeatures(options: InstallToolWindowFeaturesOptions): void {
   const hierarchyObjectSource = createActorHierarchyObjectSource({
-    actorSystem: options.context.actorSystem
+    actorSystem: options.context.actorSystem,
+    includeActor: (actor) => (
+      actor.id !== HIERARCHY_PANEL_ACTOR_ID &&
+      actor.id !== HIERARCHY_PANEL_VIEW_ACTOR_ID &&
+      !isHierarchyTreeItemActorId(actor.id)
+    )
   });
   options.viewFactories.register({
     viewKey: "debug",

@@ -41,6 +41,11 @@ interface RuntimeThreeCameraSnapshot {
   state: RuntimeCameraState;
 }
 
+interface RuntimeThreeOrbitDragSession {
+  readonly sessionId: string;
+  readonly yawSign: -1 | 1;
+}
+
 export class RuntimeThreeCameraMotionController implements RuntimeCameraCommandSink {
   readonly runtimeCameraId: RuntimeCameraId;
   private pendingCommands: RuntimeCameraControlCommand[] = [];
@@ -48,6 +53,7 @@ export class RuntimeThreeCameraMotionController implements RuntimeCameraCommandS
   private readonly runtimeCamera: RuntimeThreeOrbitCamera;
   private readonly locked: boolean;
   private readonly orbitSensitivity: number;
+  private activeOrbitDragSession: RuntimeThreeOrbitDragSession | null = null;
 
   constructor(options: RuntimeThreeCameraMotionControllerOptions = {}) {
     this.locked = options.locked ?? false;
@@ -132,28 +138,47 @@ export class RuntimeThreeCameraMotionController implements RuntimeCameraCommandS
   dispose(): void {
     this.pendingCommands = [];
     this.observers.length = 0;
+    this.activeOrbitDragSession = null;
     this.runtimeCamera.dispose();
   }
 
   private applyCommand(command: RuntimeCameraControlCommand): void {
     switch (command.type) {
-      case "orbit-delta":
+      case "orbit-drag-start":
         if (!this.locked) {
+          this.activeOrbitDragSession = {
+            sessionId: command.sessionId,
+            yawSign: getOrbitDragYawSign(this.runtimeCamera.state)
+          };
+        }
+        return;
+      case "orbit-drag-delta":
+        if (!this.locked) {
+          const session = this.activeOrbitDragSession;
+          if (!session || session.sessionId !== command.sessionId) return;
           this.runtimeCamera.orbitDelta({
-            yaw: -command.dx * this.orbitSensitivity,
+            yaw: command.dx * this.orbitSensitivity * session.yawSign,
             pitch: command.dy * this.orbitSensitivity
           });
         }
         return;
+      case "orbit-drag-end":
+        if (this.activeOrbitDragSession?.sessionId === command.sessionId) {
+          this.activeOrbitDragSession = null;
+        }
+        return;
       case "snap-axis":
+        this.activeOrbitDragSession = null;
         if (!this.locked) {
           this.runtimeCamera.snapAxis(command.axis);
         }
         return;
       case "toggle-projection":
+        this.activeOrbitDragSession = null;
         this.runtimeCamera.toggleProjection();
         return;
       case "set-projection-mode":
+        this.activeOrbitDragSession = null;
         this.runtimeCamera.setProjectionMode(command.mode);
         return;
     }
@@ -183,9 +208,16 @@ function getProjectionMode(state: RuntimeCameraState): RuntimeCameraProjectionMo
 
 function validateCommand(command: RuntimeCameraControlCommand): void {
   switch (command.type) {
-    case "orbit-delta":
-      assertFinite(command.dx, "orbit-delta.dx");
-      assertFinite(command.dy, "orbit-delta.dy");
+    case "orbit-drag-start":
+      assertNonEmptyString(command.sessionId, "orbit-drag-start.sessionId");
+      return;
+    case "orbit-drag-delta":
+      assertNonEmptyString(command.sessionId, "orbit-drag-delta.sessionId");
+      assertFinite(command.dx, "orbit-drag-delta.dx");
+      assertFinite(command.dy, "orbit-drag-delta.dy");
+      return;
+    case "orbit-drag-end":
+      assertNonEmptyString(command.sessionId, "orbit-drag-end.sessionId");
       return;
     case "snap-axis":
       return;
@@ -200,6 +232,17 @@ function assertFinite(value: number, label: string): void {
   if (!Number.isFinite(value)) {
       throw new Error(`RuntimeThreeCameraMotionController ${label} must be finite.`);
   }
+}
+
+function assertNonEmptyString(value: string, label: string): void {
+  if (value.length === 0) {
+    throw new Error(`RuntimeThreeCameraMotionController ${label} must be non-empty.`);
+  }
+}
+
+function getOrbitDragYawSign(state: RuntimeCameraState): -1 | 1 {
+  const worldUpY = state.pose.up?.[1] ?? 1;
+  return worldUpY < 0 ? 1 : -1;
 }
 
 function sameSnapshot(a: RuntimeThreeCameraSnapshot, b: RuntimeThreeCameraSnapshot): boolean {

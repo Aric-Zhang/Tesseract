@@ -28,6 +28,15 @@ function createSubject() {
   return { actor, actorSystem, motion, registry, scheduler };
 }
 
+function submitOrbitDrag(
+  motion: Camera3MotionComponent,
+  delta: { readonly dx: number; readonly dy: number },
+  sessionId = "test-drag"
+): void {
+  motion.submit({ type: "orbit-drag-start", source: "camera3-gizmo", sessionId });
+  motion.submit({ type: "orbit-drag-delta", source: "camera3-gizmo", sessionId, ...delta });
+}
+
 describe("Camera3 feature components", () => {
   it("creates motion as the camera runtime owner", () => {
     const { actor, motion } = createSubject();
@@ -39,10 +48,10 @@ describe("Camera3 feature components", () => {
   it("applies camera motion commands through component-owned runtime state", () => {
     const { motion } = createSubject();
 
-    motion.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 10, dy: 5 });
+    submitOrbitDrag(motion, { dx: 10, dy: 5 });
     const result = motion.update(frame);
 
-    expect(result).toEqual({ changed: true, commandCount: 1 });
+    expect(result).toEqual({ changed: true, commandCount: 2 });
     expect(motion.readViewState().cameraState.orbit?.yaw).toBeCloseTo(-10 * orbitSensitivity);
     expect(motion.readViewState().cameraState.orbit?.pitch).toBeCloseTo(5 * orbitSensitivity);
   });
@@ -50,7 +59,7 @@ describe("Camera3 feature components", () => {
   it("updates motion components through the actor system frame pass", () => {
     const { motion, scheduler } = createSubject();
 
-    motion.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 8, dy: 4 });
+    submitOrbitDrag(motion, { dx: 8, dy: 4 });
     scheduler.updateRuntimeFrame(frame);
 
     expect(motion.readViewState().cameraState.orbit?.yaw).toBeCloseTo(-8 * orbitSensitivity);
@@ -72,7 +81,7 @@ describe("Camera3 feature components", () => {
   it("exposes renderer-agnostic runtime camera state as the Camera3 view state", () => {
     const { motion } = createSubject();
 
-    motion.submit({ type: "orbit-delta", source: "camera3-gizmo", dx: 12, dy: 6 });
+    submitOrbitDrag(motion, { dx: 12, dy: 6 });
     motion.update(frame);
     const viewState = motion.readViewState();
 

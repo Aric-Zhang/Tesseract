@@ -655,14 +655,22 @@ describe("architecture boundaries", () => {
     expect(fullWindowFactoryViolations).toEqual([]);
   });
 
-  it("keeps hierarchy pointer selection on the gizmo path instead of DOM click mutation", () => {
+  it("keeps hierarchy pointer selection on generic TreeView actor input instead of local row mutation", () => {
     const source = editorPackageSources["packages/editor/src/hierarchy/hierarchy-panel-component.ts"] ?? "";
+    const definitionSource = editorPackageSources["packages/editor/src/hierarchy/hierarchy-panel-definition.ts"] ?? "";
+    const treeViewSource = uiFrameworkPackageSources["packages/ui-framework/src/ui/collection/tree-view-component.ts"] ?? "";
 
     expect(source).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
     expect(source).not.toMatch(/\.onclick\s*=/);
-    expect(source).toMatch(/hitTestInput/);
-    expect(source).toMatch(/onInputEnd/);
-    expect(source).toMatch(/submitSelection\s*\([^)]*["']keyboard["']/);
+    expect(source).not.toMatch(/\bActorInputParticipant\b/);
+    expect(source).not.toMatch(/\bhitTestInput\b/);
+    expect(source).not.toMatch(/\bonInputEnd\b/);
+    expect(definitionSource).not.toMatch(/\bgizmoEventBindingComponentType\b/);
+    expect(source).toMatch(/\bTreeViewActivation\b/);
+    expect(source).toMatch(/\bactivateTreeItem\b/);
+    expect(treeViewSource).toMatch(/\bActorInputParticipant\b/);
+    expect(treeViewSource).toMatch(/\bhitTestInput\b/);
+    expect(treeViewSource).toMatch(/\bonInputEnd\b/);
   });
 
   it("keeps production hierarchy rows actor-backed instead of static app lists", () => {
@@ -1096,9 +1104,11 @@ describe("architecture boundaries", () => {
     const appRootStyles = readSourceFile("./style.css");
     const floatingWindowStyles = readSourceFile("./window-runtime/floating-window.css");
     const debugLogStyles = readWorkspaceSourceFile("packages/editor/src/debug/debug-log.css");
-    const hierarchyStyles = readWorkspaceSourceFile("packages/editor/src/hierarchy/hierarchy.css");
     const camera3GizmoStyles = readWorkspaceSourceFile("packages/editor/src/camera3/camera3-gizmo.css");
     const sceneWindowStyles = readWorkspaceSourceFile("packages/editor/src/scene/scene-window.css");
+    const uiFrameworkThemeStyles = readWorkspaceSourceFile(
+      "packages/ui-framework/src/ui/theme/ui-theme-css.ts"
+    );
     const uiFrameworkControlsStyles = readWorkspaceSourceFile(
       "packages/ui-framework/src/ui/ui-framework-controls.css"
     );
@@ -1114,24 +1124,28 @@ describe("architecture boundaries", () => {
     expect(appShellStyles).toMatch(/:has\(\.floating-gizmo-window--fullscreen\)/);
     expect(floatingWindowStyles).toMatch(/floating-gizmo-window/);
     expect(debugLogStyles).toMatch(/debug-log-window/);
-    expect(hierarchyStyles).toMatch(/hierarchy-panel/);
     expect(camera3GizmoStyles).toMatch(/camera3-gizmo/);
     expect(sceneWindowStyles).toMatch(/scene-window/);
     expect(sceneWindowStyles).not.toMatch(/ui-render-viewport|ui-fullscreenable-view__control/);
+    expect(uiFrameworkThemeStyles).toMatch(/generateUiThemeCss/);
     expect(uiFrameworkControlsStyles).toMatch(/ui-menu-bar/);
     expect(uiFrameworkControlsStyles).toMatch(/ui-popup-menu/);
     expect(uiFrameworkControlsStyles).toMatch(/ui-render-viewport/);
     expect(uiFrameworkControlsStyles).toMatch(/ui-fullscreenable-view__control/);
-    expect(uiFrameworkControlsStyles).not.toMatch(/app-menu-bar|scene-window/);
+    expect(uiFrameworkControlsStyles).toMatch(/ui-scroll-view/);
+    expect(uiFrameworkControlsStyles).toMatch(/ui-tree-view/);
+    expect(uiFrameworkControlsStyles).not.toMatch(/app-menu-bar|scene-window|hierarchy-panel/);
     expect(sourceFiles["./features/app-menu/app-menu.css"]).toBeUndefined();
+    expect(editorPackageSources["packages/editor/src/hierarchy/hierarchy.css"]).toBeUndefined();
     expect(appStyleManifestSource).toMatch(/["']\.\.\/style\.css["']/);
+    expect(appStyleManifestSource).toMatch(/["']ui-framework\/ui\/theme\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']ui-framework\/ui\/ui-framework-controls\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\/app-shell\.css["']/);
     expect(appStyleManifestSource).not.toMatch(/features\/app-menu\/app-menu\.css/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/window-runtime\/floating-window\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']editor\/scene\/scene-window\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']editor\/debug\/debug-log\.css["']/);
-    expect(appStyleManifestSource).toMatch(/["']editor\/hierarchy\/hierarchy\.css["']/);
+    expect(appStyleManifestSource).not.toMatch(/["']editor\/hierarchy\/hierarchy\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']editor\/camera3\/camera3-gizmo\.css["']/);
   });
 

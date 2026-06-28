@@ -31,6 +31,11 @@ export {
   hierarchyPanelComponentDefinition
 } from "./hierarchy-panel-definition";
 export type { HierarchyPanelComponentDefinitionOptions } from "./hierarchy-panel-definition";
+export {
+  createHierarchyTreeItemActorId,
+  HIERARCHY_TREE_ITEM_ACTOR_SEGMENT,
+  isHierarchyTreeItemActorId
+} from "./hierarchy-tree-item-actor-reconciler";
 export { createHierarchyPanelViewActor } from "./hierarchy-panel-actor-factory";
 export type {
   HierarchyPanelViewActorOptions,

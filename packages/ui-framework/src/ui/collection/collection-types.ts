@@ -19,3 +19,14 @@ export interface TreeViewItemDescriptor {
 }
 
 export type TreeViewItemUpdate = Partial<TreeViewItemDescriptor>;
+
+export interface ListViewItemDescriptor {
+  readonly itemId: string;
+  readonly text: string;
+  readonly order?: number;
+  readonly selected?: boolean;
+  readonly enabled?: boolean;
+  readonly muted?: boolean;
+}
+
+export type ListViewItemUpdate = Partial<ListViewItemDescriptor>;

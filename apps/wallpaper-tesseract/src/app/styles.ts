@@ -7,5 +7,4 @@ import "../window-runtime/floating-window.css";
 import "../window-runtime/workspace-root-dock-frame.css";
 import "../window-runtime/window-frame-tab-chrome.css";
 import "editor/scene/scene-window.css";
-import "editor/debug/debug-log.css";
 import "editor/camera3/camera3-gizmo.css";

@@ -10,6 +10,8 @@ import {
   popupMenuComponentDefinition
 } from "./menu";
 import {
+  listViewComponentDefinition,
+  listViewItemComponentDefinition,
   treeViewComponentDefinition,
   treeViewItemComponentDefinition
 } from "./collection";
@@ -30,6 +32,8 @@ export function installUiComponentDefinitions(componentRegistry: ComponentRegist
   installComponentDefinition(componentRegistry, uiLayoutItemComponentDefinition);
   installComponentDefinition(componentRegistry, uiLayoutHostComponentDefinition);
   installComponentDefinition(componentRegistry, scrollViewComponentDefinition);
+  installComponentDefinition(componentRegistry, listViewItemComponentDefinition);
+  installComponentDefinition(componentRegistry, listViewComponentDefinition);
   installComponentDefinition(componentRegistry, treeViewItemComponentDefinition);
   installComponentDefinition(componentRegistry, treeViewComponentDefinition);
   installComponentDefinition(componentRegistry, menuBarComponentDefinition);

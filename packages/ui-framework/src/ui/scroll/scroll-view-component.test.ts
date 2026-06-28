@@ -25,6 +25,7 @@ class FakeElement {
   clientHeight = 100;
   scrollWidth = 100;
   scrollHeight = 100;
+  readonly #listeners = new Map<string, Set<() => void>>();
 
   constructor(ownerDocument: FakeDocument, tagName: string) {
     this.ownerDocument = ownerDocument;
@@ -32,6 +33,22 @@ class FakeElement {
   }
 
   remove(): void {}
+
+  addEventListener(type: string, listener: () => void): void {
+    const listeners = this.#listeners.get(type) ?? new Set();
+    listeners.add(listener);
+    this.#listeners.set(type, listeners);
+  }
+
+  removeEventListener(type: string, listener: () => void): void {
+    this.#listeners.get(type)?.delete(listener);
+  }
+
+  dispatchEvent(type: string): void {
+    for (const listener of this.#listeners.get(type) ?? []) {
+      listener();
+    }
+  }
 }
 
 describe("ScrollViewComponent", () => {
@@ -77,6 +94,91 @@ describe("ScrollViewComponent", () => {
     expect(element.style.overflowX).toBe("clip");
     expect(element.style.overflowY).toBe("scroll");
     expect(element.dataset.uiScrollView).toBe("external");
+  });
+
+  it("preserves end position across synchronous content mutation", () => {
+    const { actorSystem, componentRegistry, document } = createFixture();
+    const actor = actorSystem.createActor({ id: "scroll" });
+    const element = componentRegistry.addComponent(actor, uiElementComponentType, {
+      document: document as unknown as Document
+    }).element as unknown as FakeElement;
+    element.clientHeight = 50;
+    element.scrollHeight = 100;
+    element.scrollTop = 49;
+    const scroll = componentRegistry.addComponent(actor, scrollViewComponentType, {
+      orientation: "vertical"
+    });
+
+    scroll.preserveEndOnMutation(() => {
+      element.scrollHeight = 180;
+    });
+
+    expect(element.scrollTop).toBe(130);
+    expect(element.dataset.uiScrollAtEnd).toBe("true");
+  });
+
+  it("keeps non-end scroll offsets stable across content mutation", () => {
+    const { actorSystem, componentRegistry, document } = createFixture();
+    const actor = actorSystem.createActor({ id: "scroll" });
+    const element = componentRegistry.addComponent(actor, uiElementComponentType, {
+      document: document as unknown as Document
+    }).element as unknown as FakeElement;
+    element.clientWidth = 30;
+    element.clientHeight = 50;
+    element.scrollWidth = 120;
+    element.scrollHeight = 180;
+    element.scrollLeft = 12;
+    element.scrollTop = 20;
+    const scroll = componentRegistry.addComponent(actor, scrollViewComponentType, {
+      orientation: "both"
+    });
+
+    scroll.preserveEndOnMutation(() => {
+      element.scrollWidth = 200;
+      element.scrollHeight = 240;
+    });
+
+    expect(element.scrollLeft).toBe(12);
+    expect(element.scrollTop).toBe(20);
+    expect(element.dataset.uiScrollAtEnd).toBe("false");
+  });
+
+  it("updates scroll diagnostics when the user scrolls the element", () => {
+    const { actorSystem, componentRegistry, document } = createFixture();
+    const actor = actorSystem.createActor({ id: "scroll" });
+    const element = componentRegistry.addComponent(actor, uiElementComponentType, {
+      document: document as unknown as Document
+    }).element as unknown as FakeElement;
+    element.clientHeight = 50;
+    element.scrollHeight = 120;
+    element.scrollTop = 70;
+    componentRegistry.addComponent(actor, scrollViewComponentType, {
+      orientation: "vertical"
+    });
+
+    expect(element.dataset.uiScrollAtEnd).toBe("true");
+
+    element.scrollTop = 20;
+    element.dispatchEvent("scroll");
+
+    expect(element.dataset.uiScrollAtStart).toBe("false");
+    expect(element.dataset.uiScrollAtEnd).toBe("false");
+  });
+
+  it("does not swallow mutation errors", () => {
+    const { actorSystem, componentRegistry, document } = createFixture();
+    const actor = actorSystem.createActor({ id: "scroll" });
+    const element = componentRegistry.addComponent(actor, uiElementComponentType, {
+      document: document as unknown as Document
+    }).element as unknown as FakeElement;
+    const scroll = componentRegistry.addComponent(actor, scrollViewComponentType, {
+      orientation: "vertical"
+    });
+
+    expect(() => scroll.preserveEndOnMutation(() => {
+      throw new Error("boom");
+    })).toThrow("boom");
+    expect(element.dataset.uiScrollAtEnd).toBe("true");
   });
 
   it("fails through required UiElement dependency instead of creating hidden DOM", () => {

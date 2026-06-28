@@ -1,9 +1,15 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
-import type { WindowContentRegistrationPort } from "ui-framework";
+import {
+  listViewComponentType,
+  scrollViewComponentType,
+  uiElementComponentType,
+  type WindowContentRegistrationPort
+} from "ui-framework";
 import {
   debugLogContentComponentType,
   type DebugLogContentComponent
 } from "./debug-log-content-component";
+import { DebugLogEntryActorReconciler } from "./debug-log-entry-actor-reconciler";
 
 export interface DebugLogViewActorOptions {
   actorId?: string;
@@ -29,12 +35,23 @@ export function createDebugLogViewActor(
     parent: options.parentActor
   });
   try {
+    context.componentRegistry.addComponent(actor, uiElementComponentType, {
+      className: "debug-log-window",
+      document: options.document
+    });
+    context.componentRegistry.addComponent(actor, scrollViewComponentType, {
+      orientation: "vertical"
+    });
+    context.componentRegistry.addComponent(actor, listViewComponentType, {
+      textStyle: "mono",
+      textWrap: "wrap"
+    });
     const component = context.componentRegistry.addComponent(actor, debugLogContentComponentType, {
       id: "debug-log-content",
       maxLines: options.maxLines,
-      document: options.document,
       contentId: options.contentId,
-      contentRegistration: options.contentRegistration
+      contentRegistration: options.contentRegistration,
+      itemReconciler: new DebugLogEntryActorReconciler(context, actor)
     });
     let untrack: ReturnType<ActorCreationContext["trackRegisteredActor"]> | null = null;
     const baseHandle = createRegisteredActor({

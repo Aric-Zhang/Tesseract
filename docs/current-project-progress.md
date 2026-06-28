@@ -138,8 +138,40 @@ Next architecture plan:
   `npm run build -w wallpaper-tesseract`. Fresh default browser smoke evidence
   is stored at `temp/project-arbor-gate-7b-hierarchy-smoke-data.json` and
   `temp/project-arbor-gate-7b-hierarchy-smoke-report.md`; the large-node
-  Hierarchy smoke fixture remains tracked as `ARB-001`. The next unexecuted
-  slice is Gate 7C: ListView/TableView + Debug Log migration.
+  Hierarchy smoke fixture remains tracked as `ARB-001`. Gate 7C implementation
+  is complete: descriptor-only `ListViewItemComponent` and passive
+  `ListViewComponent` were added to `ui-framework`; `ScrollViewComponent`
+  gained a generic synchronous `preserveEndOnMutation(...)` helper for
+  bottom/end anchoring; Debug Log now registers the same-actor
+  `UiElementComponent` as window content, reconciles stable log item actors,
+  renders through generic ScrollView/ListView rows, and filters those
+  presentation actors from Hierarchy. The old Debug monolithic `<pre>` /
+  `textContent = join(...)` renderer, `debug-log.css` package export, app style
+  import, and Debug-specific row styling path were deleted. Gate 7C validation
+  passed: `npm run test -w ui-framework -- theme scroll list collection`,
+  `npm run typecheck:test -w ui-framework`, `npm run build -w ui-framework`,
+  `npm run test -w editor -- debug`, `npm run typecheck -w editor`,
+  `npm run build -w editor`,
+  `npm run test -w wallpaper-tesseract -- architecture-boundaries`,
+  `npm run typecheck -w wallpaper-tesseract`, and
+  `npm run build -w wallpaper-tesseract`. Fresh browser smoke evidence is
+  stored at `temp/project-arbor-gate-7c-debug-smoke-data.json` and
+  `temp/project-arbor-gate-7c-debug-smoke-report.md`; it proves real
+  pointer-generated Debug logs exceed the visible capacity, bottom anchoring
+  stays at end, non-bottom scroll is preserved, Debug close/reopen works
+  through UI actions, and Debug log item actors do not leak into Hierarchy.
+  Gate 7C.5 is now the active pre-Gate-7D cleanup:
+  `docs/project-arbor-gate-7c-5-debug-virtual-list-performance-plan.md`.
+  It addresses the confirmed Debug performance issue caused by frame-attached
+  actor-backed ListView refresh and per-log actor reconciliation. Gate 7C.5
+  should add a reusable fixed-row-height data-backed
+  `VirtualListViewComponent`, make actor-backed `ListViewComponent`
+  owner-driven, migrate Debug off per-log actors, keep Debug refresh batched
+  through an O(1) dirty frame check, and refresh performance smoke evidence.
+  The Debug virtual-list data source must be owned by the Debug view factory and
+  injected into both Debug content and the virtual list. Gate 7D remains next
+  after Gate 7C.5: Inspector/window theme adoption and user-facing theme
+  switching.
 - `docs/project-arbor-step-1-ui-element-ownership-plan.md` is the detailed
   execution record for Arbor Step 1. It added only `UiElementComponent`
   ownership semantics inside `ui-framework` and explicitly excluded layout,

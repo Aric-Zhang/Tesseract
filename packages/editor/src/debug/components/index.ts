@@ -11,3 +11,4 @@ export type {
   DebugLogContentComponentOptions
 } from "./debug-log-content-component";
 export { debugLogContentComponentDefinition } from "./debug-log-content-definition";
+export { isDebugLogEntryActorId } from "./debug-log-entry-actor-reconciler";

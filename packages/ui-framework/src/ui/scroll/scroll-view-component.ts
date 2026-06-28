@@ -32,6 +32,9 @@ export class ScrollViewComponent implements Component {
 
   readonly #className: string | undefined;
   readonly #appliedState: ScrollViewAppliedState;
+  readonly #handleScroll = (): void => {
+    this.refreshScrollDiagnostics();
+  };
   #disposed = false;
 
   constructor(
@@ -46,27 +49,51 @@ export class ScrollViewComponent implements Component {
     this.#className = options.className;
     this.#appliedState = captureAppliedState(this.element);
     this.applyScrollState();
+    this.element.addEventListener("scroll", this.#handleScroll);
   }
 
   refreshScrollDiagnostics(): void {
     if (this.#disposed) return;
-    const horizontal = this.orientation === "horizontal" || this.orientation === "both";
-    const vertical = this.orientation === "vertical" || this.orientation === "both";
+    const horizontal = isHorizontalEnabled(this.orientation);
+    const vertical = isVerticalEnabled(this.orientation);
     const atHorizontalStart = !horizontal || this.element.scrollLeft <= 0;
     const atVerticalStart = !vertical || this.element.scrollTop <= 0;
-    const atHorizontalEnd = !horizontal ||
-      this.element.scrollLeft + this.element.clientWidth >= this.element.scrollWidth;
-    const atVerticalEnd = !vertical ||
-      this.element.scrollTop + this.element.clientHeight >= this.element.scrollHeight;
+    const atHorizontalEnd = !horizontal || isHorizontalAtEnd(this.element);
+    const atVerticalEnd = !vertical || isVerticalAtEnd(this.element);
 
     this.element.dataset.uiScrollAtStart = String(atHorizontalStart && atVerticalStart);
     this.element.dataset.uiScrollAtEnd = String(atHorizontalEnd && atVerticalEnd);
+  }
+
+  preserveEndOnMutation(mutator: () => void): void {
+    if (this.#disposed) return;
+    const horizontal = isHorizontalEnabled(this.orientation);
+    const vertical = isVerticalEnabled(this.orientation);
+    const wasHorizontalAtEnd = horizontal && isHorizontalAtEnd(this.element);
+    const wasVerticalAtEnd = vertical && isVerticalAtEnd(this.element);
+    const previousScrollLeft = this.element.scrollLeft;
+    const previousScrollTop = this.element.scrollTop;
+
+    mutator();
+
+    if (horizontal) {
+      this.element.scrollLeft = wasHorizontalAtEnd
+        ? Math.max(0, this.element.scrollWidth - this.element.clientWidth)
+        : previousScrollLeft;
+    }
+    if (vertical) {
+      this.element.scrollTop = wasVerticalAtEnd
+        ? Math.max(0, this.element.scrollHeight - this.element.clientHeight)
+        : previousScrollTop;
+    }
+    this.refreshScrollDiagnostics();
   }
 
   dispose(): void {
     if (this.#disposed) return;
     this.#disposed = true;
     this.enabled = false;
+    this.element.removeEventListener("scroll", this.#handleScroll);
     restoreAppliedState(this.element, this.#appliedState);
   }
 
@@ -97,6 +124,22 @@ function overflowXForOrientation(orientation: ScrollViewOrientation): string {
 
 function overflowYForOrientation(orientation: ScrollViewOrientation): string {
   return orientation === "vertical" || orientation === "both" ? "auto" : "hidden";
+}
+
+function isHorizontalEnabled(orientation: ScrollViewOrientation): boolean {
+  return orientation === "horizontal" || orientation === "both";
+}
+
+function isVerticalEnabled(orientation: ScrollViewOrientation): boolean {
+  return orientation === "vertical" || orientation === "both";
+}
+
+function isHorizontalAtEnd(element: HTMLElement): boolean {
+  return element.scrollLeft + element.clientWidth >= element.scrollWidth - 1;
+}
+
+function isVerticalAtEnd(element: HTMLElement): boolean {
+  return element.scrollTop + element.clientHeight >= element.scrollHeight - 1;
 }
 
 function captureAppliedState(element: HTMLElement): ScrollViewAppliedState {

@@ -71,6 +71,52 @@ Verification target:
   no duplicate item ids, no visible Hierarchy item actor recursion, and no
   stale test actors after cleanup.
 
+### ARB-002: Debug Log actor-backed ListView causes frame-time regression
+
+Status: `open`
+
+Area: `packages/ui-framework/src/ui/collection`,
+`packages/editor/src/debug`
+
+Evidence:
+
+- Gate 7C moved Debug Log to `ScrollViewComponent` / `ListViewComponent` and
+  stable log item actors.
+- `ListViewComponent` currently has `frameUpdateAttachment`, so opening Debug
+  causes `refreshItems()` to run every UI frame.
+- `refreshItems()` walks child actors, reads item components, sorts rows,
+  rewrites row DOM state, and appends rows even when no log data changed.
+- Debug log append also reconciles up to `maxLines` per-log actors/components.
+- Browser probing found continuous ListView row append work while Debug is
+  open; closing Debug drops that work to zero and restores smoother frame
+  cadence.
+
+Impact:
+
+- Debug Window noticeably slows interaction when open.
+- The issue would become more expensive as list-like controls grow if
+  frame-attached full refresh remains the default collection pattern.
+
+Next action:
+
+- Execute
+  `docs/project-arbor-gate-7c-5-debug-virtual-list-performance-plan.md`
+  before Gate 7D.
+- Make actor-backed `ListViewComponent` owner-driven, add a reusable
+  fixed-row-height data-backed `VirtualListViewComponent`, and migrate Debug
+  Log away from per-log actors.
+- Create the Debug virtual-list data source in the Debug view factory, inject it
+  into both Debug content and `VirtualListViewComponent`, and keep Debug refresh
+  batched through a cheap dirty-frame check rather than synchronous per-append
+  DOM updates.
+
+Verification target:
+
+- Fresh Gate 7C.5 browser evidence proves Debug open idle state does not
+  continuously rewrite list rows, log bursts update only a bounded visible row
+  pool, Debug close/reopen still works, and no Debug log row data leaks into
+  Hierarchy.
+
 ### DCK-001: Dock commit failures are silent
 
 Status: `closed`

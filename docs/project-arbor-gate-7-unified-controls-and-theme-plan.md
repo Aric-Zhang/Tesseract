@@ -1,6 +1,6 @@
 # Project Arbor Gates 7A-7D: Unified Controls And Theme System
 
-Status: Gate 7A complete; Gates 7B-7D pending
+Status: Gates 7A-7C complete; Gate 7C.5 planned before Gate 7D
 Created: 2026-06-29
 Amended: 2026-06-29 after review
 Scope: primarily `packages/ui-framework`; `packages/editor` adopts the new UI
@@ -20,9 +20,18 @@ acceptance evidence:
 - **Gate 7B: ScrollView + TreeView + Hierarchy Migration**
   - Add generic native-scroll and tree controls, migrate Hierarchy, delete old
     Hierarchy row/scroll DOM and CSS.
+  - Status: complete.
 - **Gate 7C: ListView/TableView + Debug Log Migration**
   - Add generic list/table collection controls as needed, migrate Debug Log,
     delete the old `<pre>` presentation.
+  - Status: complete.
+- **Gate 7C.5: Virtual List And Debug Performance Closure**
+  - Add a data-backed virtual list for high-frequency passive rows, remove
+    Debug's per-log actor path, and make actor-backed `ListViewComponent`
+    owner-driven instead of frame-refreshed.
+  - Plan:
+    `docs/project-arbor-gate-7c-5-debug-virtual-list-performance-plan.md`.
+  - Status: planned and must run before Gate 7D.
 - **Gate 7D: Editor Theme Adoption, Window Chrome Tokens, And Theme Menu**
   - Apply tokens to app/window/editor chrome, audit Inspector, add Edit -> Theme
     submenu and theme switching.
@@ -36,16 +45,26 @@ converted into a follow-up defect/plan item.
 - `ui-framework` owns the Arbor base controls:
   `UiElementComponent`, `UiLayoutItemComponent`, `UiLayoutHostComponent`,
   generic menu controls, `RenderViewportComponent`,
-  `FullscreenableViewComponent`, and generic control CSS.
+  `FullscreenableViewComponent`, `ScrollViewComponent`, `TreeViewComponent`,
+  `ListViewComponent`, and generic control CSS.
 - App Menu and Scene have already migrated to Arbor actor composition. Do not
   reopen those migrations except to consume the new theme tokens.
-- There is no generic `ScrollViewComponent`, `TreeViewComponent`,
-  `ListViewComponent`, or `TableViewComponent`.
-- `HierarchyPanelComponent` still directly owns row DOM: `#rows`,
-  `replaceChildren()`, button creation, local selection/hover CSS, and root
-  native `overflow: auto`.
-- `DebugLogContentComponent` still owns a single `<pre>` and rewrites
-  `textContent` from joined log lines.
+- Gate 7B migrated Hierarchy to generic `ScrollViewComponent` and
+  `TreeViewComponent`. `HierarchyPanelComponent` registers the same-actor
+  `UiElementComponent` as window content, stable item actors are reconciled by
+  the editor owner, and old local row/input/CSS paths are gone.
+- Gate 7C migrated Debug Log to generic `ScrollViewComponent` and
+  `ListViewComponent`. `DebugLogContentComponent` registers the same-actor
+  `UiElementComponent` as window content, stable log item actors are reconciled
+  by the editor owner, and the old `<pre>` / joined `textContent` renderer and
+  `debug-log.css` path are gone.
+- Gate 7C.5 is required before Gate 7D because the current actor-backed
+  Debug ListView has a confirmed performance flaw: `ListViewComponent` is
+  frame-attached and refreshes rows every frame, while Debug log changes also
+  reconcile per-log actors. The target is a reusable data-backed virtual list
+  and deletion of the Debug per-log actor path.
+- There is no generic `TableViewComponent`; Gate 7C intentionally avoided
+  adding one because Debug Log only needed a flat passive list.
 - Inspector and remaining editor panels still use local CSS with hard-coded
   colors and may need a ScrollView adoption pass after Hierarchy/Debug.
 - Window/app/editor CSS contains many hard-coded colors, borders, fonts,
@@ -674,8 +693,48 @@ npm run build -w wallpaper-tesseract
 
 ### Goal
 
-Add generic list/table controls as needed, migrate Debug Log, and delete the old
-monolithic `<pre>` presentation.
+Add a generic flat list control, migrate Debug Log onto
+`UiElementComponent + ScrollViewComponent + ListViewComponent`, and delete the
+old monolithic `<pre>` presentation.
+
+Gate 7C should not add `TableViewComponent` unless execution discovers an
+immediate multi-column product requirement. The current Debug Log is a
+single-line, monospace row stream, so the intended first implementation is a
+flat `ListViewComponent`.
+
+### Current Implementation Facts
+
+- `packages/editor/src/debug/components/debug-log-content-component.ts`
+  currently creates a `<pre>`, registers that element as window content, stores
+  log lines in an array, and rewrites the whole text node with
+  `textContent = lines.join("\n")`.
+- `packages/editor/src/debug/debug-log.css` owns Debug presentation style and
+  is imported from `apps/wallpaper-tesseract/src/app/styles.ts`.
+- `packages/editor/src/debug/components/debug-log-window-actor-factory.ts`
+  currently installs only `DebugLogContentComponent`; it does not install
+  `UiElementComponent`, `ScrollViewComponent`, or collection components.
+- Hierarchy now enumerates the actor tree through `ActorHierarchyObjectSource`.
+  Any Debug log item actors created in Gate 7C are presentation actors and must
+  be filtered out of Hierarchy, just like Hierarchy tree item actors from Gate
+  7B.
+
+### Entry Gates
+
+- Gate 7A and Gate 7B are complete and the worktree is clean or has a clear
+  checkpoint commit.
+- Re-run the targeted Gate 7B baseline if the worktree has moved materially:
+
+```powershell
+npm run test -w ui-framework -- theme scroll tree ui-layout-host
+npm run test -w editor -- hierarchy
+npm run test -w wallpaper-tesseract -- architecture-boundaries
+```
+
+- Confirm old Debug surfaces before editing:
+
+```powershell
+rg -n "createElement\(\"pre\"|textContent\s*=.*join\\(|debug-log-window__content|editor/debug/debug-log\\.css" packages/editor/src/debug apps/wallpaper-tesseract/src/app packages/editor/package.json -g "*.ts" -g "*.css" -g "*.json"
+```
 
 ### Required Controls
 
@@ -688,17 +747,80 @@ packages/ui-framework/src/ui/collection/
   list-view-component.test.ts
 ```
 
-Add `TableViewComponent` only if Debug needs columns immediately. Prefer
-`ListViewComponent` with monospace formatted rows unless a real multi-column
-behavior is required.
+Update existing `collection-types.ts` rather than adding a second model file for
+list descriptors.
+
+Initial generic list descriptor shape:
+
+```ts
+export interface ListViewItemDescriptor {
+  readonly itemId: string;
+  readonly text: string;
+  readonly order?: number;
+  readonly selected?: boolean;
+  readonly enabled?: boolean;
+  readonly muted?: boolean;
+}
+
+export type ListViewItemUpdate = Partial<ListViewItemDescriptor>;
+```
+
+This is intentionally flat. If table columns, icons, rich cells, or virtualized
+rows become necessary, stop and amend the plan instead of stretching the first
+list descriptor into a hidden table model.
 
 ### Collection Ownership Rules
 
 - `ListViewComponent` and `ListViewItemComponent` read existing child item
   actors and components.
-- They may sort, layout, highlight, select, and route activation intent.
+- They may sort, layout, and apply descriptor state styling such as selected,
+  muted, or disabled.
 - They must not accept raw log arrays and create actors internally.
+- `ListViewItemComponent` is descriptor-only. It must not create row DOM,
+  subscribe to Debug state, or import product/editor modules.
+- `ListViewComponent` owns private row DOM. Row internals are not actors and are
+  not exposed as product API.
+- Stable diagnostics:
+  - list root: `data-ui-list-view`;
+  - rows: `data-ui-list-row`;
+  - row item identity: `data-ui-list-item-id`;
+  - row actor identity: `data-ui-list-item-actor-id`.
+- Gate 7C `ListViewComponent` must not implement actor-input activation.
+  Debug Log is a passive stream, and adding row activation here would create
+  unused API surface. Add actor-input list activation only when a real product
+  use case needs it.
 - Debug owns stable log-entry actor creation/deletion and descriptor updates.
+
+### ScrollView End Anchoring
+
+Gate 7C should extend `ScrollViewComponent` with one narrow end-anchor helper
+instead of putting scroll math in Debug:
+
+```ts
+preserveEndOnMutation(mutator: () => void): void
+```
+
+Required behavior:
+
+- `mutator` is synchronous. Do not accept a promise or async callback in this
+  API.
+- before running `mutator`, determine whether the view is currently at the end
+  for its configured orientation using a 1px tolerance;
+- run `mutator`;
+- refresh scroll diagnostics;
+- if the view was at the end for an enabled axis, scroll that axis to the end
+  after mutation;
+- if the user had scrolled away from the end for an enabled axis, restore that
+  axis to its previous `scrollTop` / `scrollLeft`, allowing the browser to
+  clamp naturally when content shrinks;
+- `orientation: "vertical"` checks and preserves only vertical scroll;
+- `orientation: "horizontal"` checks and preserves only horizontal scroll;
+- `orientation: "both"` checks and preserves each axis independently;
+- if `mutator` throws, do not swallow the error and do not introduce
+  compensating fallback behavior.
+
+Do not add ResizeObserver, global scroll registry, or product-specific
+auto-scroll ports in this gate.
 
 ### Debug Migration Rules
 
@@ -708,16 +830,163 @@ behavior is required.
   - stable row actor ids based on monotonic log entry ids, not array index or
     text content;
   - mapping log entries to list item descriptors.
+- `DebugLogContentComponent` no longer creates DOM. It requires same-actor
+  `UiElementComponent`, `ScrollViewComponent`, and `ListViewComponent`.
+- `DebugLogContentComponent` registers the same-actor
+  `UiElementComponent.element` as window content. Do not register a separate
+  child element.
+- Empty Debug Log state is represented through the same ListView path with a
+  single stable placeholder item, not by assigning element text directly.
+- Add a Debug-owned reconciler, for example:
+
+```text
+packages/editor/src/debug/components/debug-log-entry-actor-reconciler.ts
+```
+
+The reconciler owns:
+
+- stable item actor ids such as
+  `${debugViewActorId}:log-entry:${monotonicEntryId}`;
+- a stable placeholder actor id for the default empty message;
+- create/update/delete of `ListViewItemComponent` on direct child actors;
+- disposal of all Debug log item actors on Debug view disposal.
+
+Construct the reconciler the same way Hierarchy does:
+`createDebugLogViewActor(...)` creates
+`new DebugLogEntryActorReconciler(context, debugViewActor)` and injects it
+through `DebugLogContentComponent` options. `DebugLogContentComponent` must not
+look up `ActorCreationContext`, `ActorSystem`, or `ComponentRegistry` through a
+global service locator.
+
 - `ListViewComponent` owns row layout, selection/highlight styling if needed,
   and generic list semantics.
-- `ScrollViewComponent` owns scrolling and `autoScroll: "end"`.
-- Auto-scroll rule:
-  - if user is at end, new log entries keep the view at end;
-  - if user scrolled away from end, new log entries do not steal scroll.
+- `ScrollViewComponent.preserveEndOnMutation(...)` owns the auto-scroll rule.
+  Debug may call the helper while reconciling list items, but Debug must not
+  duplicate end detection with ad hoc `scrollTop` / `scrollHeight` math.
+- Debug log item actors are presentation actors. Update the Hierarchy source
+  filter in `packages/editor/src/tool-windows/install-tool-window-features.ts`
+  so `ActorHierarchyObjectSource` never displays Debug log item actors.
 - Delete:
   - `<pre>` root;
   - `debug-log-window__content` generic presentation CSS;
+  - `packages/editor/src/debug/debug-log.css`;
+  - the `./debug/debug-log.css` export from `packages/editor/package.json`;
+  - the `editor/debug/debug-log.css` import from
+    `apps/wallpaper-tesseract/src/app/styles.ts`;
   - whole-log `textContent = lines.join("\n")` rendering.
+
+### Execution Steps
+
+#### 7C.1 Add Generic List Components
+
+Implement `ListViewItemComponent`, `ListViewComponent`, and definitions under
+`packages/ui-framework/src/ui/collection`.
+
+Tests must prove:
+
+- descriptor normalization rejects invalid `itemId`, `text`, and `order`;
+- descriptor getters return immutable snapshots;
+- `ListViewComponent` reads only active direct child actors with
+  `ListViewItemComponent`;
+- row DOM is private implementation and does not create actors;
+- stale rows are removed when child item actors disappear;
+- item order is stable by `order`, then actor tree order;
+- Gate 7C `ListViewComponent` does not import `actor-input`, does not implement
+  `ActorInputParticipant`, and exposes no pointer/keyboard activation payload;
+- no product/editor imports appear in `ui-framework/src/ui/collection`.
+
+#### 7C.2 Add ScrollView End Anchoring
+
+Add `preserveEndOnMutation(...)` to `ScrollViewComponent`.
+
+Tests must prove:
+
+- at-end content mutation scrolls to the end;
+- non-bottom mutation does not steal scroll;
+- diagnostics are refreshed after both paths;
+- dispose still restores only state owned by `ScrollViewComponent`.
+
+#### 7C.3 Migrate Debug Actor Composition
+
+Update `createDebugLogViewActor(...)` so the Debug view actor installs:
+
+1. `UiElementComponent` with the Debug root class only;
+2. `ScrollViewComponent` with vertical orientation;
+3. `ListViewComponent` with monospace list presentation;
+4. `DebugLogContentComponent`.
+
+`DebugLogContentComponent` should receive the already-installed components via
+definition dependencies, mirroring the Hierarchy migration pattern. It should
+not query global registries or create fallback DOM.
+
+#### 7C.4 Add Debug Log Entry Reconciler
+
+Add a Debug-owned log item actor reconciler.
+
+Tests must prove:
+
+- maxLines trims old actors;
+- retained monotonic entry actors keep stable actor ids after trimming;
+- the placeholder row exists only while the log is empty;
+- repeated append/update does not churn retained actors;
+- disposing Debug destroys all log entry actors.
+
+Export a narrow `isDebugLogEntryActorId(...)` helper only if needed by
+Hierarchy filtering. Do not export the reconciler as app/product API.
+
+#### 7C.5 Delete Old Debug DOM/CSS Path
+
+Remove old Debug CSS and imports/exports in the same cleanup:
+
+- delete `packages/editor/src/debug/debug-log.css`;
+- delete `./debug/debug-log.css` from `packages/editor/package.json`;
+- delete `editor/debug/debug-log.css` from app styles;
+- move generic monospace list styling into
+  `packages/ui-framework/src/ui/ui-framework-controls.css` using existing
+  theme tokens such as `--ui-font-family-mono`, `--ui-font-size`, and
+  `--ui-line-height`.
+
+Do not add Debug-specific selectors to `ui-framework` CSS. If Debug needs a
+monospace presentation, express it as a generic list option/dataset such as
+`data-ui-list-text-style="mono"`.
+
+Preserve current long-line readability from the old Debug `<pre>` path:
+generic list rows should support a `textWrap: "wrap"` option or equivalent
+dataset such as `data-ui-list-text-wrap="wrap"`. Do not solve this with
+Debug-specific CSS, horizontal scroll, or truncation unless the plan is amended
+with a product decision to change Debug readability.
+
+#### 7C.6 Boundary And Smoke
+
+Strengthen `architecture-boundaries.test.ts`:
+
+- Debug content must not create `<pre>`, set whole-log `textContent`, or import
+  old CSS.
+- Debug definition must require `UiElementComponent`, `ScrollViewComponent`,
+  and `ListViewComponent`.
+- `list-view-component.ts` must not import `actor-input` or implement
+  `ActorInputParticipant` in Gate 7C.
+- Generic `ui-framework/src/ui/collection` must not import Debug, Editor,
+  Scene, Camera3, Tesseract, app, window workspace, or wallpaper runtime code.
+- Extend the CSS token usage validator so any new ListView CSS in
+  `ui-framework-controls.css` references only tokens present in
+  `ui-theme-tokens.ts`.
+- Hierarchy object source filtering must exclude Debug log item actors.
+
+Fresh Gate 7C browser smoke must use real app behavior, not a production-only
+test append port. Prefer scripted pointer/debug interactions that flow through
+the existing app debug logger. If the app cannot deterministically produce
+enough Debug entries for scroll evidence, stop and amend the plan; do not add a
+hidden product debug injection API.
+
+Minimum smoke evidence:
+
+- produce enough real Debug rows that
+  `rowCount > visibleRowCapacity + 5`;
+- record `rowCount`, `visibleRowCapacity`, `scrollTop`, `scrollHeight`,
+  `clientHeight`, and `data-ui-scroll-at-end` before and after append;
+- close and reopen Debug, then prove old log item actors are gone and do not
+  leak into Hierarchy.
 
 ### Exit Gate
 
@@ -726,6 +995,11 @@ behavior is required.
   log entry ids.
 - Tests prove append updates list items rather than a single text node.
 - Tests prove non-bottom scroll does not auto-jump.
+- Tests prove Debug log item actors do not appear in Hierarchy.
+- Tests prove deleting the old Debug CSS/export/import leaves app and editor
+  builds green.
+- Tests prove all `--ui-*` variables referenced by new ListView CSS are defined
+  in `ui-theme-tokens.ts`.
 - Fresh Gate 7C browser smoke evidence is generated; do not wait for Gate 7D:
 
 ```text
@@ -734,21 +1008,27 @@ temp/project-arbor-gate-7c-debug-smoke-report.md
 ```
 
 Smoke must cover Debug at bottom, Debug scrolled away from bottom, new log
-append without scroll stealing, and no duplicate/churned retained row actors.
+append without scroll stealing, no duplicate/churned retained row actors, and
+no Debug log item actors leaking into Hierarchy. The evidence must include a
+row count above visible capacity rather than a short log that never scrolls.
 - Grep has no production hits:
 
 ```powershell
-rg -n "debug-log-window__content|createElement\(\"pre\"|textContent\s*=.*join\\(" packages/editor/src/debug -g "*.ts" -g "*.css" -g "!*.test.ts"
+rg -n "debug-log-window__content|createElement\(\"pre\"|textContent\s*=.*join\\(|editor/debug/debug-log\\.css|debug-log\\.css" packages/editor/src/debug apps/wallpaper-tesseract/src/app packages/editor/package.json -g "*.ts" -g "*.css" -g "*.json" -g "!*.test.ts"
+rg -n "DebugLog|debug-log|editor|wallpaper|WindowWorkspace|Scene|Camera3|Tesseract" packages/ui-framework/src/ui/collection -g "*.ts" -g "!*.test.ts"
+rg -n "actor-input|ActorInputParticipant|hitTestInput|onInputEnd" packages/ui-framework/src/ui/collection/list-view-component.ts
 ```
 
 - Validation:
 
 ```powershell
-npm run test -w ui-framework -- scroll list collection
+npm run test -w ui-framework -- theme scroll list collection
 npm run test -w editor -- debug
 npm run typecheck -w editor
 npm run build -w editor
 npm run test -w wallpaper-tesseract -- architecture-boundaries
+npm run typecheck -w wallpaper-tesseract
+npm run build -w wallpaper-tesseract
 ```
 
 ## Gate 7D: Editor Theme Adoption, Window Chrome Tokens, And Theme Menu

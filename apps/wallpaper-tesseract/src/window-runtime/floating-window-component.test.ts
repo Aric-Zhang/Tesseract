@@ -11,6 +11,60 @@ import type { WindowTabDragSink } from "./window-dock-preview-component";
 import { FloatingWindowComponent } from "./floating-window-component";
 
 describe("FloatingWindowComponent", () => {
+  it("uses CSS-owned fullscreen sizing instead of freezing parent rect pixels", () => {
+    const actorSystem = new ActorSystem();
+    const actor = actorSystem.createActor({ id: "scene-frame" });
+    const document = new FakeDocument();
+    const parent = document.createElement("div");
+    const component = new FloatingWindowComponent(actor, {
+      id: "floating-window:scene",
+      frameId: "scene-frame",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      title: "Scene",
+      stateBinding: { kind: "runtime" },
+      initialState: {
+        position: uiVec2(12, 24),
+        size: uiVec2(320, 180),
+        visible: true
+      }
+    }, {
+      surface: createSurface()
+    });
+    const root = parent.children[0];
+
+    expect(root.style).toMatchObject({
+      left: "12px",
+      top: "24px",
+      width: "320px",
+      height: "180px"
+    });
+
+    component.setPresentation("fullscreen");
+
+    expect(root.className).toContain("floating-gizmo-window--fullscreen");
+    expect(root.style).toMatchObject({
+      left: "",
+      top: "",
+      right: "",
+      bottom: "",
+      width: "",
+      height: ""
+    });
+
+    component.setPresentation("windowed");
+
+    expect(root.className).not.toContain("floating-gizmo-window--fullscreen");
+    expect(root.style).toMatchObject({
+      left: "12px",
+      top: "24px",
+      right: "",
+      bottom: "",
+      width: "320px",
+      height: "180px"
+    });
+  });
+
   it("keeps a tab drag session active after the pointer leaves the tab hit", () => {
     const actorSystem = new ActorSystem();
     const actor = actorSystem.createActor({ id: "debug-frame" });

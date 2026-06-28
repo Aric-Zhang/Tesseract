@@ -7,10 +7,13 @@ import type {
   WindowWorkspaceViewCatalog
 } from "./window-workspace-view-catalog";
 import type { WindowWorkspaceStackPriorityPort } from "./window-workspace-stack-priority-port";
+import {
+  WINDOW_FLOATING_FOCUS_LAYER_END,
+  WINDOW_FLOATING_FOCUS_LAYER_START,
+  WINDOW_FULLSCREEN_PRESENTATION_LAYER
+} from "./window-presentation-stack";
 
 export const WINDOW_WORKSPACE_CONTROLLER_ID = "window-workspace-controller";
-export const WINDOW_FLOATING_FOCUS_LAYER_START = 2_000;
-export const WINDOW_FLOATING_FOCUS_LAYER_END = 9_999;
 
 export interface WindowWorkspaceControllerOptions {
   readonly actorSystem: ActorSystemView;
@@ -217,7 +220,13 @@ export class WindowWorkspaceController implements UiScheduledService, ActorInput
     }
     for (const entry of framesByActorId.values()) {
       if (!entry.entry.stackManaged || this.#effectivePriorities.has(entry.entry.frameActorId)) continue;
-      this.#stackPriorityPort?.setFrameStackPriority(entry.entry.frameActorId, entry.entry.baseStackPriority);
+      const effectivePriority = this.resolveNonDenseFramePriority(entry);
+      if (effectivePriority !== null) {
+        this.#effectivePriorities.set(entry.entry.frameActorId, effectivePriority);
+        this.#stackPriorityPort?.setFrameStackPriority(entry.entry.frameActorId, effectivePriority);
+      } else {
+        this.#stackPriorityPort?.setFrameStackPriority(entry.entry.frameActorId, entry.entry.baseStackPriority);
+      }
     }
   }
 
@@ -234,6 +243,18 @@ export class WindowWorkspaceController implements UiScheduledService, ActorInput
       entry.entry.activeInHierarchy &&
       entry.entry.presentation === "windowed" &&
       entry.entry.stackManaged;
+  }
+
+  private resolveNonDenseFramePriority(entry: IndexedWindowFrameEntry): number | null {
+    if (
+      entry.entry.visible &&
+      entry.entry.effectiveVisible &&
+      entry.entry.activeInHierarchy &&
+      entry.entry.presentation === "fullscreen"
+    ) {
+      return WINDOW_FULLSCREEN_PRESENTATION_LAYER;
+    }
+    return null;
   }
 
   private moveActorIdToFront(actorId: string): void {

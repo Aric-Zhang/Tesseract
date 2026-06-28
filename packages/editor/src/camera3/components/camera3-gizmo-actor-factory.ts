@@ -1,4 +1,9 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
+import {
+  uiElementComponentType,
+  uiLayoutItemComponentType,
+  type UiLayoutItemComponentOptions
+} from "ui-framework";
 import { camera3GizmoComponentType, type Camera3GizmoViewFactory } from "./camera3-gizmo-component";
 import type { Camera3GizmoComponentOptions, Camera3GizmoComponent } from "./camera3-gizmo-component";
 
@@ -6,6 +11,8 @@ export interface Camera3GizmoActorOptions extends Camera3GizmoComponentOptions {
   actorId?: string;
   actorName?: string;
   parentActor?: Actor | string | null;
+  document?: Pick<Document, "createElement">;
+  layoutItem?: UiLayoutItemComponentOptions;
 }
 
 export function createCamera3GizmoActor(
@@ -13,15 +20,31 @@ export function createCamera3GizmoActor(
   options: Camera3GizmoActorOptions,
   createGizmo?: Camera3GizmoViewFactory
 ): RegisteredActor<Camera3GizmoComponent> {
+  const {
+    actorId,
+    actorName,
+    parentActor,
+    document,
+    layoutItem,
+    createGizmo: optionsCreateGizmo,
+    ...componentOptions
+  } = options;
   const actor = context.actorSystem.createActor({
-    id: options.actorId,
-    name: options.actorName ?? options.actorId,
-    parent: options.parentActor
+    id: actorId,
+    name: actorName ?? actorId,
+    parent: parentActor
   });
   try {
+    context.componentRegistry.addComponent(actor, uiElementComponentType, {
+      className: "camera3-gizmo-host",
+      document
+    });
+    if (layoutItem) {
+      context.componentRegistry.addComponent(actor, uiLayoutItemComponentType, layoutItem);
+    }
     const component = context.componentRegistry.addComponent(actor, camera3GizmoComponentType, {
-      ...options,
-      createGizmo: createGizmo ?? options.createGizmo
+      ...componentOptions,
+      createGizmo: createGizmo ?? optionsCreateGizmo
     });
     let untrack: ReturnType<ActorCreationContext["trackRegisteredActor"]> | null = null;
     const handle = createRegisteredActor({

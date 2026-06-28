@@ -25,7 +25,7 @@
 .app-shell__toolbar,
 .app-shell__status {
   position: relative;
-  z-index: 10000;
+  z-index: var(--window-top-docked-chrome-layer);
 }
 
 .app-shell__root-dock {
@@ -44,6 +44,10 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
+}
+
+.app-shell:has(.floating-gizmo-window--fullscreen) .app-shell__floating-overlay {
+  z-index: var(--window-fullscreen-presentation-layer);
 }
 
 .app-shell__floating-overlay > * {

@@ -150,20 +150,20 @@ export const projectPrismFrameUpdateLaneMap = [
     "Hierarchy frame-update attachment belongs to UI component tick until replaced by a UI scheduler."
   ),
   entry(
-    "app-menu-bar-component",
-    "./features/app-menu/app-menu-bar-component.ts",
+    "app-menu-adapter-component",
+    "./features/app-menu/app-menu-adapter-component.ts",
     "ui-component-tick",
     "ui-component-scheduler",
     false,
-    "App menu refresh remains UI tick and never enters RuntimeScheduler."
+    "App menu actor synchronization remains UI tick and never enters RuntimeScheduler."
   ),
   entry(
-    "app-menu-bar-definition",
-    "./features/app-menu/app-menu-bar-definition.ts",
+    "app-menu-adapter-definition",
+    "./features/app-menu/app-menu-adapter-definition.ts",
     "ui-component-tick",
     "ui-component-scheduler",
     false,
-    "App menu frame-update attachment belongs to UI component tick until replaced by a UI scheduler."
+    "App menu adapter frame-update attachment belongs to UI component tick until replaced by a UI scheduler."
   )
 ] as const satisfies readonly ProjectPrismFrameUpdateLaneEntry[];
 

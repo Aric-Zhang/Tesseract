@@ -1,6 +1,6 @@
 import "../style.css";
+import "ui-framework/ui/ui-framework-controls.css";
 import "./app-shell.css";
-import "../features/app-menu/app-menu.css";
 import "editor/inspector/inspector.css";
 import "../window-runtime/floating-window.css";
 import "../window-runtime/workspace-root-dock-frame.css";

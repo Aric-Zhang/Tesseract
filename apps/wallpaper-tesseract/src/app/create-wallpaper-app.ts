@@ -26,7 +26,10 @@ import {
 } from "editor";
 import { RuntimeFrameClock } from "runtime-core";
 import { ActiveInputCancellationRuntime, GizmoControllerAttachmentRuntime } from "../gizmo-runtime";
-import { FrameUpdateAttachmentRuntime } from "ui-framework";
+import {
+  FrameUpdateAttachmentRuntime,
+  installUiComponentDefinitions
+} from "ui-framework";
 import type { StateObserverRegistry } from "editor";
 import {
   createWindowFocusServiceProxy,
@@ -51,7 +54,7 @@ import {
   installSceneRunModeCommand,
   installSceneRunModeState
 } from "../features/scene-run-mode-command";
-import { installSceneComponentDefinitions } from "../features/scene/components";
+import { installSceneIntegrationComponentDefinitions } from "../features/scene/components";
 import { createWallpaperAppShell } from "./app-shell";
 import { ImmediateUpdateScheduler } from "./immediate-update-scheduler";
 import { RenderLoop } from "./render-loop";
@@ -148,12 +151,13 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   installWindowComponentDefinitions(componentRegistry, {
     commandSink: createEditorBackedUiLayoutCommandSink(frameStateBridge)
   });
+  installUiComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
   installEditorComponentDefinitions(componentRegistry, {
     commandSink: createEditorBackedWorkspaceCommandSink(frameStateBridge)
   });
   installWallpaperRuntimeComponentDefinitions(componentRegistry);
-  installSceneComponentDefinitions(componentRegistry);
+  installSceneIntegrationComponentDefinitions(componentRegistry);
 
   const layoutStorage = createBrowserWindowWorkspaceFrameLayoutStorage(window, {
     resetKeys: shouldResetWindowWorkspaceLayout(window)
@@ -177,7 +181,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     mount: floatingFrameParent,
     runtimeSceneViews,
     viewFactories: windowWorkspace.viewFactories,
-    locations: windowWorkspace.lifecycle
+    locations: windowWorkspace.lifecycle,
+    workspacePresentation: windowWorkspace.presentationController
   });
   installInspectorFeature({
     context: actorCreationScope,
@@ -192,7 +197,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   });
   installAppMenuFeature({
     context: actorCreationScope,
-    parent: appShell.menuSlot,
+    hostElement: appShell.menuSlot,
     windowCatalog: windowWorkspace.catalog,
     windowFrameIntents: windowWorkspace.frameIntents,
     workspaceModePath: editorStatePaths.workspace.mode
@@ -232,7 +237,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     }
   });
 
-  function measureSceneViewport(): void {
+  function measureScenePresentationAfterVisibilityChange(): void {
     runtimeSceneViews.measureCurrentView();
   }
 
@@ -251,7 +256,7 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   }
 
   function handleVisibilityChange(): void {
-    measureSceneViewport();
+    measureScenePresentationAfterVisibilityChange();
     renderLoop.restart();
   }
 
@@ -267,7 +272,6 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   }
 
   function dispose(): void {
-    window.removeEventListener("resize", measureSceneViewport);
     document.removeEventListener("visibilitychange", handleVisibilityChange);
     document.removeEventListener("keydown", handleKeyDown);
     renderLoop.dispose();
@@ -286,9 +290,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     appShell.dispose();
   }
 
-  measureSceneViewport();
+  measureScenePresentationAfterVisibilityChange();
   renderLoop.start();
-  window.addEventListener("resize", measureSceneViewport);
   document.addEventListener("visibilitychange", handleVisibilityChange);
   document.addEventListener("keydown", handleKeyDown);
 

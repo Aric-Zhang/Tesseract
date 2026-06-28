@@ -162,7 +162,6 @@ export class FloatingWindowComponent
   readonly #menuDescriptor: FloatingWindowMenuDescriptor;
   readonly #basePriority: number;
   readonly #minSize: UiVec2;
-  readonly #parentElement: HTMLElement;
   readonly #rootClassName: string;
   readonly #rootElement: HTMLDivElement;
   readonly #titlebar: HTMLDivElement;
@@ -196,7 +195,6 @@ export class FloatingWindowComponent
     this.#effectivePriority = this.#basePriority;
     this.#menuDescriptor = createMenuDescriptor(options, this.#basePriority);
     this.#minSize = cloneUiVec2(options.minSize ?? DEFAULT_FLOATING_WINDOW_MIN_SIZE);
-    this.#parentElement = options.parent;
     this.#rootClassName = joinClassNames("floating-gizmo-window", options.className);
     this.#presentation = options.presentation ?? "windowed";
     this.state = cloneFloatingWindowState(options.initialState);
@@ -564,12 +562,15 @@ export class FloatingWindowComponent
       this.#presentation === "fullscreen" ? "floating-gizmo-window--fullscreen" : undefined
     );
     if (this.#presentation === "fullscreen") {
-      const parentRect = resolveParentRect(this.#parentElement, this.state);
-      this.#rootElement.style.left = `${parentRect.left}px`;
-      this.#rootElement.style.top = `${parentRect.top}px`;
-      this.#rootElement.style.width = `${parentRect.width}px`;
-      this.#rootElement.style.height = `${parentRect.height}px`;
+      this.#rootElement.style.left = "";
+      this.#rootElement.style.top = "";
+      this.#rootElement.style.right = "";
+      this.#rootElement.style.bottom = "";
+      this.#rootElement.style.width = "";
+      this.#rootElement.style.height = "";
     } else {
+      this.#rootElement.style.right = "";
+      this.#rootElement.style.bottom = "";
       this.#rootElement.style.left = `${this.state.position.x}px`;
       this.#rootElement.style.top = `${this.state.position.y}px`;
       this.#rootElement.style.width = `${this.state.size.x}px`;
@@ -733,26 +734,6 @@ function createRuntimeFloatingWindowStateBinding(): FloatingWindowStateBinding {
     },
     applyStateChanged() {
       return false;
-    }
-  };
-}
-
-function resolveParentRect(parent: HTMLElement, fallbackState: FloatingWindowState): DOMRectReadOnly {
-  const rect = parent.getBoundingClientRect();
-  if (rect.width > 0 && rect.height > 0) return rect;
-  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : fallbackState.size.x;
-  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : fallbackState.size.y;
-  return {
-    x: 0,
-    y: 0,
-    left: 0,
-    top: 0,
-    right: viewportWidth,
-    bottom: viewportHeight,
-    width: viewportWidth,
-    height: viewportHeight,
-    toJSON() {
-      return this;
     }
   };
 }

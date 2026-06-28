@@ -479,8 +479,6 @@ describe("architecture boundaries", () => {
       uiFrameworkPackageSources["packages/ui-framework/src/ports/window-frame-targetability-source.ts"] ?? "";
     const persistenceSource =
       uiFrameworkPackageSources["packages/ui-framework/src/model/window-workspace-layout-persistence.ts"] ?? "";
-    const appMenuModelSource =
-      uiFrameworkPackageSources["packages/ui-framework/src/model/app-menu-model.ts"] ?? "";
 
     expect(findForbiddenSourceMatches(/\b(?:GizmoResponder|hitTestGizmo|gizmoPriority)\b/)).toEqual([]);
     expect(actorInputRouterSource).toMatch(/\bActorInputRouter\b/);
@@ -513,8 +511,7 @@ describe("architecture boundaries", () => {
     expect(sourceFiles["./window-runtime/window-control-source.ts"]).toBeUndefined();
     expect(sourceFiles["./window-runtime/window-menu-view-source.ts"]).toBeUndefined();
     expect(sourceFiles["./window-runtime/window-visibility-activation-controller.ts"]).toBeUndefined();
-    expect(appMenuModelSource).toMatch(/\bkind:\s*["']open-or-focus-type["']/);
-    expect(appMenuModelSource).toMatch(/\bkind:\s*["']focus-instance["']/);
+    expect(uiFrameworkPackageSources["packages/ui-framework/src/model/app-menu-model.ts"]).toBeUndefined();
   });
 
   it("keeps Project Prism app composition debt from reaching back into concrete internals", () => {
@@ -774,13 +771,18 @@ describe("architecture boundaries", () => {
       wallpaperRuntimePackageSources["packages/wallpaper-runtime/src/scene/runtime-scene-frame-source.ts"] ?? "";
     const runtimeSceneViewRuntimeSource =
       wallpaperRuntimePackageSources["packages/wallpaper-runtime/src/scene/runtime-scene-view-runtime.ts"] ?? "";
-    const editorSceneViewHostSource = editorPackageSources["packages/editor/src/scene/editor-scene-view-host.ts"] ?? "";
     const runtimeSceneContentSource =
       wallpaperRuntimePackageSources["packages/wallpaper-runtime/src/scene/runtime-scene-content.ts"] ?? "";
     const wallpaperRuntimePublicIndexSource =
       wallpaperRuntimePackageSources["packages/wallpaper-runtime/src/index.ts"] ?? "";
     const runtimeThreeRenderOutputSource =
       runtimeThreePackageSources["packages/runtime-three/src/runtime-three-scene-render-output.ts"] ?? "";
+    const sceneWindowActorFactorySource =
+      editorPackageSources["packages/editor/src/scene/scene-window-actor-factory.ts"] ?? "";
+    const uiViewportSource = [
+      uiFrameworkPackageSources["packages/ui-framework/src/ui/viewport/render-viewport-component.ts"] ?? "",
+      uiFrameworkPackageSources["packages/ui-framework/src/ui/viewport/fullscreenable-view-component.ts"] ?? ""
+    ].join("\n");
 
     expect(appSource).not.toMatch(/\bnew\s+THREE\.WebGLRenderer\b/);
     expect(appSource).not.toMatch(/replaceChildren\s*\(\s*renderer\.domElement\s*\)/);
@@ -799,6 +801,9 @@ describe("architecture boundaries", () => {
     expect(appSource).toMatch(/runtimeSceneViews\.renderCurrentFrameSource\(\)/);
     expect(appSource).not.toMatch(/renderableSceneViews/);
     expect(appSource).not.toMatch(/\bCurrentSceneViewSource\b|\bcurrentSceneView\b|\bSceneViewRuntime\b/);
+    expect(appSource).not.toMatch(/\bmeasureSceneViewport\b/);
+    expect(appSource).not.toMatch(/window\.addEventListener\s*\(\s*["']resize["']/);
+    expect(appSource).toMatch(/\bmeasureScenePresentationAfterVisibilityChange\b/);
     expect(appSource).not.toMatch(/\bcreateSceneWindowActor\b/);
     expect(appSource).not.toMatch(/sceneWindow\.viewport\.render/);
     expect(appSource).not.toMatch(/sceneView\.viewport\.render/);
@@ -815,7 +820,8 @@ describe("architecture boundaries", () => {
     expect(sceneFeatureInstallerSource).not.toMatch(/\bcreateRuntimeSceneContent\b/);
     expect(sceneFeatureInstallerSource).not.toMatch(/\bcreateRuntimeSceneViewRuntime\b/);
     expect(sceneFeatureInstallerSource).toMatch(/\bruntimeSceneViews\.createRuntime\b/);
-    expect(sceneFeatureInstallerSource).toMatch(/\bcreateEditorSceneViewHost\b/);
+    expect(sceneFeatureInstallerSource).not.toMatch(/\bcreateEditorSceneViewHost\b/);
+    expect(sceneFeatureInstallerSource).toMatch(/\bcreateSceneRenderViewPresentation\b/);
     expect(sceneFeatureInstallerSource).not.toMatch(/\bcreateRenderableSceneView\b/);
     expect(sceneFeatureInstallerSource).not.toMatch(/\bSceneViewFrameSourceRegistry\b/);
     expect(runtimeSceneViewRuntimeSource).toMatch(/\bcreateRenderableSceneView\b/);
@@ -834,26 +840,40 @@ describe("architecture boundaries", () => {
     expect(wallpaperRuntimePublicIndexSource).not.toMatch(/\bcreateTesseract4Actor\b/);
     expect(sourceFiles["./features/scene/editor-scene-view-host.ts"]).toBeUndefined();
     expect(sourceFiles["./features/scene/scene-window-actor-factory.ts"]).toBeUndefined();
-    expect(sourceFiles["./features/scene/components/index.ts"]).toMatch(/\bSceneCamera3ViewportBindingComponent\b/);
+    expect(editorPackageSources["packages/editor/src/scene/editor-scene-view-host.ts"]).toBeUndefined();
+    expect(sourceFiles["./features/scene/components/index.ts"]).not.toMatch(/\bSceneCamera3ViewportBindingComponent\b/);
+    expect(sourceFiles["./features/scene/components/index.ts"]).toMatch(/\binstallSceneIntegrationComponentDefinitions\b/);
+    expect(sceneWindowActorFactorySource).toMatch(/\brenderViewportComponentType\b/);
+    expect(sceneWindowActorFactorySource).toMatch(/\bfullscreenableViewComponentType\b/);
+    expect(sceneWindowActorFactorySource).toMatch(/\buiLayoutHostComponentType\b/);
+    expect(sceneWindowActorFactorySource).toMatch(/\buiLayoutItemComponentType\b/);
+    expect(sceneWindowActorFactorySource).toMatch(/\btargetOwnership:\s*["']borrowed["']/);
+    expect(sceneWindowActorFactorySource).toMatch(/\bworldRenderActor\b/);
+    expect(sceneWindowActorFactorySource).not.toMatch(/\boverlayElement\b|\bcanvasHostElement\b/);
+    expect(uiViewportSource).not.toMatch(/\bWindowRegisteredContent\b|\bWindowContentRegistrationPort\b/);
+    expect(uiViewportSource).not.toMatch(/addEventListener\??\s*\(\s*["']click["']|\.onclick\s*=/);
+    expect(uiViewportSource).not.toMatch(/\bactorInputScopeRoutePriority\b/);
     expect(renderableSceneViewSource).toMatch(/renderOutput\.render/);
     expect(renderableSceneViewSource).not.toMatch(/sceneView\.viewport\.render/);
-    expect(editorSceneViewHostSource).not.toMatch(/renderWithCamera|sceneView\.viewport\.render/);
+    expect(sceneWindowActorFactorySource).not.toMatch(/renderWithCamera|sceneView\.viewport\.render/);
   });
 
   it("guards Scene viewport rendering behind current view ownership and active state", () => {
     const renderableSceneViewSource =
       wallpaperRuntimePackageSources["packages/wallpaper-runtime/src/scene/runtime-scene-frame-source.ts"] ?? "";
-    const editorSceneViewHostSource = editorPackageSources["packages/editor/src/scene/editor-scene-view-host.ts"] ?? "";
+    const sceneFeatureInstallerSource = sourceFiles["./features/scene/install-scene-view-feature.ts"] ?? "";
 
     expect(renderableSceneViewSource).toMatch(/\bisRenderable\s*\(\)\s*{/);
     expect(renderableSceneViewSource).not.toMatch(/sceneWindow\.window\.state\.visible/);
     expect(renderableSceneViewSource).toMatch(/options\.presentation\.isVisibleInCurrentLocation/);
     expect(renderableSceneViewSource).toMatch(/renderOutput\.render\(options\.camera3Motion\.getRuntimeThreeCameraForRender\(\)\)/);
     expect(renderableSceneViewSource).not.toMatch(/camera3Motion\.activeCamera/);
-    expect(editorSceneViewHostSource).toMatch(/locations\.getLocationByViewActorId/);
-    expect(editorSceneViewHostSource).toMatch(/location\.ownerFrameVisible/);
-    expect(editorSceneViewHostSource).toMatch(/location\.visibleInFrame/);
-    expect(editorSceneViewHostSource).toMatch(/actorSystem\.isActorActive\s*\(\s*options\.sceneView\.viewport\.actor\s*\)/);
+    expect(sceneFeatureInstallerSource).toMatch(/locations\.getLocationByViewActorId/);
+    expect(sceneFeatureInstallerSource).toMatch(/location\.ownerFrameVisible/);
+    expect(sceneFeatureInstallerSource).toMatch(/location\.ownerFrameActiveInHierarchy/);
+    expect(sceneFeatureInstallerSource).toMatch(/location\.visibleInFrame/);
+    expect(sceneFeatureInstallerSource).toMatch(/actorSystem\.isActorActive\s*\(\s*options\.sceneView\.sceneActor\s*\)/);
+    expect(sceneFeatureInstallerSource).toMatch(/sceneView\.renderViewport\.measureNow\(\)/);
   });
 
   it("keeps Camera3 motion and viewport subscriptions in components without shadow rig state", () => {
@@ -882,6 +902,7 @@ describe("architecture boundaries", () => {
     expect(sceneFeatureInstallerSource).not.toMatch(/\bcamera3RigComponentType\b/);
     expect(runtimeSceneContentSource).toMatch(/\bcamera3MotionComponentType\b/);
     expect(sceneFeatureInstallerSource).toMatch(/\bsceneCamera3ViewportBindingComponentType\b/);
+    expect(sceneFeatureInstallerSource).toMatch(/renderViewportActorId:\s*sceneView\.worldRenderActor\.id/);
     expect(sourceFiles["./features/camera3/components/index.ts"]).toBeUndefined();
     expect(sourceFiles["./features/camera3/components/camera3-motion-component.ts"]).toBeUndefined();
     expect(sourceFiles["./runtime/camera3/camera3-motion-definition.ts"]).toBeUndefined();
@@ -889,7 +910,10 @@ describe("architecture boundaries", () => {
     expect(sceneCamera3ComponentsSource).not.toMatch(/\bCamera3RigComponent\b/);
     expect(sceneCamera3ComponentsSource).not.toMatch(/\bCamera3MotionComponent\b/);
     expect(sceneCamera3ComponentsSource).not.toMatch(/\bcamera3MotionComponentDefinition\b/);
-    expect(sceneCamera3ComponentsSource).toMatch(/\bSceneCamera3ViewportBindingComponent\b/);
+    expect(sceneCamera3ComponentsSource).not.toMatch(/\bSceneCamera3ViewportBindingComponent\b/);
+    expect(sceneCamera3ComponentsSource).toMatch(/\binstallSceneIntegrationComponentDefinitions\b/);
+    expect(camera3BindingSource).toMatch(/\bRenderViewportComponent\b/);
+    expect(camera3BindingSource).not.toMatch(/\bSceneViewportComponent\b|\bsceneViewportComponentType\b/);
     expect(camera3BindingSource).toMatch(/subscribeResize\s*\(/);
     expect(camera3BindingSource).toMatch(/onCamera3MotionChanged/);
     expect(camera3BindingSource).not.toMatch(/\bCamera3RigComponent\b/);
@@ -901,7 +925,7 @@ describe("architecture boundaries", () => {
     expect(camera3ControllerSource).not.toMatch(/\bCamera3Rig\b|\bCamera3ProjectionModeController\b/);
     expect(camera3ControllerSource).not.toMatch(/\b(?:AppRuntimeContext|FeatureActorContext|runtime\/ports)\b/);
     expect(appSource).toMatch(/\binstallEditorComponentDefinitions\b/);
-    expect(appSource).toMatch(/\binstallSceneComponentDefinitions\b/);
+    expect(appSource).toMatch(/\binstallSceneIntegrationComponentDefinitions\b/);
     expect(appSource).toMatch(/\binstallWallpaperRuntimeComponentDefinitions\b/);
     expect(appSource).not.toMatch(/\bcamera3MotionComponentDefinition\b/);
     expect(appSource).not.toMatch(/\binstallWallpaperComponentDefinitions\b/);
@@ -945,27 +969,30 @@ describe("architecture boundaries", () => {
     expect(sceneFeatureInstallerSource).not.toMatch(/\bmeasureNow\s*\(\)\s*:/);
   });
 
-  it("parents the Camera3 actor gizmo inside the Scene viewport overlay", () => {
+  it("parents the Camera3 actor gizmo as a Scene overlay sibling", () => {
     const sceneFeatureInstallerSource = sourceFiles["./features/scene/install-scene-view-feature.ts"] ?? "";
     const camera3Styles = readWorkspaceSourceFile("packages/editor/src/camera3/camera3-gizmo.css");
-    const camera3ActorCall = /createCamera3GizmoActor\s*\(\s*options\.context\s*,\s*{[\s\S]*?parentActor:\s*sceneView\.viewport\.actor[\s\S]*?}/
+    const camera3ActorCall = /createCamera3GizmoActor\s*\(\s*options\.context\s*,\s*{[\s\S]*?parentActor:\s*sceneView\.sceneActor[\s\S]*?layoutItem:\s*{[\s\S]*?}/
       .exec(sceneFeatureInstallerSource)?.[0] ?? "";
 
-    expect(camera3ActorCall).toMatch(/parent:\s*sceneView\.viewport\.overlayElement/);
-    expect(camera3ActorCall).toMatch(/parentActor:\s*sceneView\.viewport\.actor/);
+    expect(camera3ActorCall).toMatch(/parentActor:\s*sceneView\.sceneActor/);
+    expect(camera3ActorCall).toMatch(/slot:\s*["']overlay["']/);
+    expect(camera3ActorCall).toMatch(/layer:\s*CAMERA3_GIZMO_OVERLAY_LAYER/);
+    expect(camera3ActorCall).not.toMatch(/parent:\s*sceneView\./);
     expect(camera3ActorCall).not.toMatch(/parent:\s*mount/);
-    expect(camera3Styles).toMatch(/\.scene-window__overlay\s+\.camera3-gizmo\s*{[\s\S]*position:\s*absolute/);
+    expect(sceneFeatureInstallerSource).not.toMatch(/\boverlayElement\b|\bcanvasHostElement\b/);
+    expect(camera3Styles).toMatch(/\.camera3-gizmo-host\s*{[\s\S]*position:\s*absolute/);
+    expect(camera3Styles).not.toMatch(/\.scene-window__overlay\s+\.camera3-gizmo/);
   });
 
   it("keeps the Scene view recoverable through the window lifecycle view factory", () => {
     const sceneFeatureInstaller = sourceFiles["./features/scene/install-scene-view-feature.ts"] ?? "";
-    const appMenuActorFactory = sourceFiles["./features/app-menu/app-menu-bar-actor-factory.ts"] ?? "";
 
     expect(sceneFeatureInstaller).toMatch(/viewKey:\s*["']scene["']/);
     expect(sceneFeatureInstaller).toMatch(/order:\s*0/);
     expect(sceneFeatureInstaller).toMatch(/\bcreateViewRuntime\b/);
     expect(sceneFeatureInstaller).not.toMatch(/\bcreateSceneWindowActor\b/);
-    expect(appMenuActorFactory).not.toMatch(/\bfloatingWindowComponentType\b/);
+    expect(sourceFiles["./features/app-menu/app-menu-bar-actor-factory.ts"]).toBeUndefined();
   });
 
   it("composes the window workspace through a feature installer", () => {
@@ -1058,7 +1085,7 @@ describe("architecture boundaries", () => {
     expect(appSource).toMatch(/\binstallWindowComponentDefinitions\b/);
     expect(appSource).toMatch(/\binstallAppMenuComponentDefinitions\b/);
     expect(appSource).toMatch(/\binstallEditorComponentDefinitions\b/);
-    expect(appSource).toMatch(/\binstallSceneComponentDefinitions\b/);
+    expect(appSource).toMatch(/\binstallSceneIntegrationComponentDefinitions\b/);
     expect(appSource).toMatch(/\binstallWallpaperRuntimeComponentDefinitions\b/);
     expect(appSource).not.toMatch(/\bcamera3MotionComponentDefinition\b/);
     expect(appSource).not.toMatch(/\binstallTesseract4ComponentDefinitions\b/);
@@ -1072,22 +1099,35 @@ describe("architecture boundaries", () => {
     const hierarchyStyles = readWorkspaceSourceFile("packages/editor/src/hierarchy/hierarchy.css");
     const camera3GizmoStyles = readWorkspaceSourceFile("packages/editor/src/camera3/camera3-gizmo.css");
     const sceneWindowStyles = readWorkspaceSourceFile("packages/editor/src/scene/scene-window.css");
-    const appMenuStyles = readSourceFile("./features/app-menu/app-menu.css");
+    const uiFrameworkControlsStyles = readWorkspaceSourceFile(
+      "packages/ui-framework/src/ui/ui-framework-controls.css"
+    );
     const appShellStyles = readSourceFile("./app/app-shell.css");
     const appStyleManifestSource = sourceFiles["./app/styles.ts"] ?? "";
 
     expect(appRootStyles).not.toMatch(/floating-gizmo-window|debug-log-window|hierarchy-panel|camera3-gizmo|scene-window|app-menu-bar/);
     expect(appShellStyles).toMatch(/app-shell/);
-    expect(appShellStyles).not.toMatch(/floating-gizmo-window|debug-log-window|hierarchy-panel|camera3-gizmo|scene-window|app-menu-bar/);
+    expect(appShellStyles).not.toMatch(/debug-log-window|hierarchy-panel|camera3-gizmo|scene-window|app-menu-bar/);
+    expect(appShellStyles).not.toMatch(/z-index:\s*10000/);
+    expect(appShellStyles).toMatch(/--window-top-docked-chrome-layer/);
+    expect(appShellStyles).toMatch(/--window-fullscreen-presentation-layer/);
+    expect(appShellStyles).toMatch(/:has\(\.floating-gizmo-window--fullscreen\)/);
     expect(floatingWindowStyles).toMatch(/floating-gizmo-window/);
     expect(debugLogStyles).toMatch(/debug-log-window/);
     expect(hierarchyStyles).toMatch(/hierarchy-panel/);
     expect(camera3GizmoStyles).toMatch(/camera3-gizmo/);
     expect(sceneWindowStyles).toMatch(/scene-window/);
-    expect(appMenuStyles).toMatch(/app-menu-bar/);
+    expect(sceneWindowStyles).not.toMatch(/ui-render-viewport|ui-fullscreenable-view__control/);
+    expect(uiFrameworkControlsStyles).toMatch(/ui-menu-bar/);
+    expect(uiFrameworkControlsStyles).toMatch(/ui-popup-menu/);
+    expect(uiFrameworkControlsStyles).toMatch(/ui-render-viewport/);
+    expect(uiFrameworkControlsStyles).toMatch(/ui-fullscreenable-view__control/);
+    expect(uiFrameworkControlsStyles).not.toMatch(/app-menu-bar|scene-window/);
+    expect(sourceFiles["./features/app-menu/app-menu.css"]).toBeUndefined();
     expect(appStyleManifestSource).toMatch(/["']\.\.\/style\.css["']/);
+    expect(appStyleManifestSource).toMatch(/["']ui-framework\/ui\/ui-framework-controls\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']\.\/app-shell\.css["']/);
-    expect(appStyleManifestSource).toMatch(/["']\.\.\/features\/app-menu\/app-menu\.css["']/);
+    expect(appStyleManifestSource).not.toMatch(/features\/app-menu\/app-menu\.css/);
     expect(appStyleManifestSource).toMatch(/["']\.\.\/window-runtime\/floating-window\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']editor\/scene\/scene-window\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']editor\/debug\/debug-log\.css["']/);
@@ -1096,27 +1136,49 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps App Menu routed through actor input and state observer bindings", () => {
-    const componentSource = sourceFiles["./features/app-menu/app-menu-bar-component.ts"] ?? "";
-    const definitionSource = sourceFiles["./features/app-menu/app-menu-bar-definition.ts"] ?? "";
+    const adapterSource = sourceFiles["./features/app-menu/app-menu-adapter-component.ts"] ?? "";
+    const adapterDefinitionSource = sourceFiles["./features/app-menu/app-menu-adapter-definition.ts"] ?? "";
+    const installSource = sourceFiles["./features/app-menu/install-app-menu-feature.ts"] ?? "";
+    const uiMenuSource = [
+      uiFrameworkPackageSources["packages/ui-framework/src/ui/menu/menu-bar-component.ts"] ?? "",
+      uiFrameworkPackageSources["packages/ui-framework/src/ui/menu/popup-menu-component.ts"] ?? "",
+      uiFrameworkPackageSources["packages/ui-framework/src/ui/menu/menu-item-component.ts"] ?? "",
+      uiFrameworkPackageSources["packages/ui-framework/src/ui/menu/menu-bar-item-component.ts"] ?? ""
+    ].join("\n");
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
+    const presentationStackSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/services/window-presentation-stack.ts"] ?? "";
 
     expect(sourceFiles["./features/install-wallpaper-product-features.ts"]).toBeUndefined();
+    expect(sourceFiles["./features/app-menu/app-menu-bar-component.ts"]).toBeUndefined();
+    expect(sourceFiles["./features/app-menu/app-menu-bar-definition.ts"]).toBeUndefined();
+    expect(sourceFiles["./features/app-menu/app-menu-bar-actor-factory.ts"]).toBeUndefined();
     expect(appSource).toMatch(/\binstallAppMenuFeature\b/);
+    expect(appSource).toMatch(/\binstallUiComponentDefinitions\b/);
     expect(appSource).not.toMatch(/\bcreateAppMenuBarActor\b/);
-    expect(componentSource).toMatch(/\bhitTestInput\b/);
-    expect(componentSource).toMatch(/\bonInputEnd\b/);
-    expect(componentSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
-    expect(componentSource).not.toMatch(/document\.addEventListener\s*\(\s*["']click["']/);
-    expect(componentSource).not.toMatch(/\.onclick\s*=/);
-    expect(componentSource).toMatch(/\bmenu-dismiss\b/);
-    expect(componentSource).toMatch(/activateWindowCommandRow\(row,\s*event\.timeStamp\)/);
-    expect(componentSource).toMatch(/requestOpenOrFocusViewType\(row\.action\.typeKey,\s*["']menu["']\)/);
-    expect(componentSource).toMatch(/requestCreateViewInstance\?\.\(row\.action\.typeKey,\s*["']menu["']\)/);
-    expect(componentSource).toMatch(/requestFocusViewInstance\?\.\(row\.action\.identity,\s*["']menu["']\)/);
-    expect(componentSource).not.toMatch(/requestOpenView\(row\.viewKey/);
-    expect(componentSource).not.toMatch(/requestOpenView\([^)]*actorId/);
-    expect(definitionSource).toMatch(/\bgizmoEventBindingComponentType\b/);
-    expect(definitionSource).toMatch(/\bstateObserverBindingComponentType\b/);
+    expect(installSource).toMatch(/\bhostElement\b/);
+    expect(installSource).not.toMatch(/\bparent:\s*HTMLElement\b/);
+    expect(installSource).toMatch(/\bWINDOW_TOP_DOCKED_CHROME_LAYER\b/);
+    expect(installSource).not.toMatch(/\bAPP_MENU_STACK_PRIORITY\b/);
+    expect(installSource).not.toMatch(/\bactorInputScopeRoutePriority\b/);
+    expect(installSource).toMatch(/\bUiLayoutHostComponent\b|\buiLayoutHostComponentType\b/);
+    expect(adapterSource).toMatch(/\bcreateWindowMenuItems\b/);
+    expect(adapterSource).toMatch(/\brequestOpenOrFocusViewType\?\.\(action\.typeKey,\s*["']menu["']\)/);
+    expect(adapterSource).toMatch(/\brequestCreateViewInstance\?\.\(action\.typeKey,\s*["']menu["']\)/);
+    expect(adapterSource).toMatch(/\brequestFocusViewInstance\?\.\(action\.identity,\s*["']menu["']\)/);
+    expect(adapterSource).not.toMatch(/\b#rows\b|#activeRowIndex\b|renderMenu|createMenuItemElement/);
+    expect(adapterSource).not.toMatch(/addEventListener\s*\(\s*["']click["']/);
+    expect(adapterSource).not.toMatch(/\.onclick\s*=/);
+    expect(adapterDefinitionSource).toMatch(/\bstateObserverBindingComponentType\b/);
+    expect(uiMenuSource).toMatch(/\bhitTestInput\b/);
+    expect(uiMenuSource).toMatch(/\bonInputEnd\b/);
+    expect(uiMenuSource).not.toMatch(/\bactorInputScopeRoutePriority\b/);
+    expect(uiMenuSource).not.toMatch(/\bmenu-dismiss\b/);
+    expect(uiMenuSource).not.toMatch(/addEventListener\??\s*\(\s*["']click["']|\.onclick\s*=/);
+    expect(uiMenuSource).not.toMatch(/\bAPP_MENU_PRIORITY\b|10_000/);
+    expect(presentationStackSource).toMatch(/\bWINDOW_TOP_DOCKED_CHROME_LAYER\b/);
+    expect(presentationStackSource).toMatch(/\bWINDOW_FULLSCREEN_PRESENTATION_LAYER\b/);
+    expect(presentationStackSource).not.toMatch(/\bAPP_MENU\b/);
   });
 
   it("keeps tab-local window actions on actor input lifecycle intents", () => {
@@ -1261,31 +1323,31 @@ describe("architecture boundaries", () => {
     expect(priorityPortSource).toMatch(/\bsetFrameStackPriority\b/);
   });
 
-  it("keeps App Menu model product-free and feature component as the actor-input adapter", () => {
-    const appMenuModelSource =
-      uiFrameworkPackageSources["packages/ui-framework/src/model/app-menu-model.ts"] ?? "";
-    const appMenuComponentSource = sourceFiles["./features/app-menu/app-menu-bar-component.ts"] ?? "";
+  it("keeps generic menu product-free and App Menu as a thin window adapter", () => {
+    const genericMenuSource = Object.entries(uiFrameworkPackageSources)
+      .filter(([file]) => file.startsWith("packages/ui-framework/src/ui/menu/"))
+      .filter(([file]) => !file.endsWith(".test.ts"))
+      .map(([, source]) => source)
+      .join("\n");
+    const appMenuAdapterSource = sourceFiles["./features/app-menu/app-menu-adapter-component.ts"] ?? "";
+    const windowMenuItemsSource = sourceFiles["./features/app-menu/window-menu-items.ts"] ?? "";
     const windowRuntimeViolations = Object.entries(sourceFiles)
       .filter(([file]) => file.startsWith("./window-runtime/"))
       .filter(([, source]) => /features\/app-menu/.test(source))
       .map(([file]) => file)
       .sort();
 
-    expect(appMenuModelSource).not.toMatch(/features\/|window-runtime|scene-runtime|debug|hierarchy|tesseract|camera3/);
-    expect(appMenuModelSource).toMatch(/\bkind:\s*["']window-command["']/);
-    expect(appMenuModelSource).toMatch(/\bkind:\s*["']open-or-focus-type["']/);
-    expect(appMenuModelSource).toMatch(/\bkind:\s*["']new-instance["']/);
-    expect(appMenuModelSource).toMatch(/\bkind:\s*["']focus-instance["']/);
-    expect(appMenuModelSource).toMatch(/\bactivationSequence\b/);
-    expect(appMenuModelSource).toMatch(/\btypeKey\b/);
-    expect(appMenuModelSource).toMatch(/\bviewKey\b/);
-    expect(appMenuModelSource).toMatch(/\bWindowWorkspaceViewEntry\b/);
-    expect(appMenuModelSource).not.toMatch(/\bdata\s*\?:\s*unknown\b/);
+    expect(uiFrameworkPackageSources["packages/ui-framework/src/model/app-menu-model.ts"]).toBeUndefined();
+    expect(genericMenuSource).not.toMatch(/WindowViewIdentity|WindowWorkspaceViewEntry|WindowWorkspace|WindowFrame|createWindowMenuItems/);
+    expect(genericMenuSource).not.toMatch(/features\/|window-runtime|scene-runtime|debug|hierarchy|tesseract|camera3/);
+    expect(genericMenuSource).toMatch(/\bpayload\??:\s*TPayload\b|\bpayload\??:\s*unknown\b/);
+    expect(windowMenuItemsSource).toMatch(/\bWindowWorkspaceViewEntry\b/);
+    expect(windowMenuItemsSource).toMatch(/\bkind:\s*["']open-or-focus-type["']/);
+    expect(windowMenuItemsSource).toMatch(/\bkind:\s*["']new-instance["']/);
+    expect(appMenuAdapterSource).toMatch(/\bcreateWindowMenuItems\b/);
+    expect(appMenuAdapterSource).not.toMatch(/\b#rows\b|#activeRowIndex\b|renderMenu|createMenuItemElement/);
     expect(sourceFiles["./features/app-menu/app-menu-model.ts"]).toBeUndefined();
-    expect(appMenuComponentSource).toMatch(/\bActorInputParticipant\b/);
-    expect(appMenuComponentSource).toMatch(/\bStateObserverResponder\b/);
-    expect(appMenuComponentSource).not.toMatch(/from\s+["']\.\/app-menu-model["']/);
-    expect(appMenuComponentSource).toMatch(/from\s+["']ui-framework["']/);
+    expect(sourceFiles["./features/app-menu/app-menu-bar-component.ts"]).toBeUndefined();
     expect(windowRuntimeViolations).toEqual([]);
   });
 

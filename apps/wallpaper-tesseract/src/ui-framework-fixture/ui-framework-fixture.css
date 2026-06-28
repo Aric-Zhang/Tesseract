@@ -10,7 +10,7 @@
 
 .ui-framework-fixture__menu {
   position: relative;
-  z-index: 10000;
+  z-index: var(--window-top-docked-chrome-layer, 1000);
   min-height: 28px;
   background: #161d25;
   border-bottom: 1px solid #2b3746;

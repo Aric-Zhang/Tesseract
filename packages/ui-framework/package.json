@@ -2,25 +2,29 @@
   "name": "ui-framework",
   "version": "0.1.0",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/**/*.css"
+  ],
   "files": [
     "dist/**/*.js",
     "dist/**/*.js.map",
     "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map"
+    "dist/**/*.d.ts.map",
+    "dist/**/*.css"
   ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./ui/ui-framework-controls.css": "./dist/ui/ui-framework-controls.css"
   },
   "types": "./dist/index.d.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests src",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && node scripts/copy-css.mjs"
   },
   "dependencies": {
     "actor-core": "0.1.0",

@@ -1,6 +1,6 @@
 # Current Project Progress
 
-Last updated: 2026-06-14
+Last updated: 2026-06-28
 
 This document is the mutable project-status companion to `AGENTS.md`. Keep
 phase status, package lists, source topology, active plans, and verification
@@ -53,23 +53,96 @@ Project Prism is complete as of 2026-06-14. The remaining items in
 `docs/known-defects-and-todos.md` are non-blocking historical/watch entries, not
 active phase blockers.
 
-Next proposed architecture plan:
+Next architecture plan:
 
 - `docs/project-arbor-ui-framework-actor-layout-plan.md` defines Project Arbor,
-  the actor-backed UI layout/control refactor. It first prepares generic
-  `ui-framework` UI primitives, then migrates Editor/App Menu/Scene presentation
-  onto those primitives and deletes the old monolithic menu/viewport paths.
+  the actor-backed UI layout/control refactor. It now uses wider execution
+  gates instead of many small component-only steps. Gates 1-5 are complete:
+  the foundation gates added `UiElementComponent`, `UiLayoutItemComponent`, and
+  `UiLayoutHostComponent`; Gate 4 added generic menu controls, UI definition
+  installation, a vertical menu/fill/overlay layout fixture, and replaced the
+  app-local App Menu with an Arbor actor tree. The old
+  `ui-framework/src/model/app-menu-model.ts`, app-local App Menu row component,
+  direct `parent: HTMLElement` append contract, old app-menu CSS selectors, and
+  old row/highlight state path were deleted rather than retained. Generic menu
+  model/components remain product/window agnostic; window-specific menu
+  descriptor mapping now lives in the app-local App Menu adapter. Gate 4 smoke
+  evidence lives at `temp/project-arbor-gate-4-smoke-data.json` with report
+  `temp/project-arbor-gate-4-smoke-report.md`, and validates with
+  `$env:PROJECT_ARBOR_GATE_4_SMOKE_EVIDENCE="temp/project-arbor-gate-4-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-arbor-gate-4-smoke-contract`.
+  Gate 5 added generic `RenderViewportComponent` and
+  `FullscreenableViewComponent`, migrated the real Scene tab to a root Arbor
+  host actor with a fill World Render View child and sibling Camera3 overlay
+  actor, and deleted the old `SceneViewportComponent`, `SceneModeToggle`,
+  `editor-scene-view-host`, raw Camera3 DOM parent channel, and old Scene
+  overlay/canvas/fullscreen selectors. The Scene render target is explicitly
+  borrowed from `wallpaper-runtime`; generic viewport code does not import or
+  implement window content registration. Fresh Gate 5 smoke evidence lives at
+  `temp/project-arbor-gate-5-smoke-data.json` with report
+  `temp/project-arbor-gate-5-smoke-report.md`, and validates with
+  `$env:PROJECT_ARBOR_GATE_5_SMOKE_EVIDENCE="temp/project-arbor-gate-5-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-arbor-gate-5-smoke-contract`.
+  Gate 5A presentation-stack closure is also complete:
+  `docs/project-arbor-gate-5-presentation-stack-closure-plan.md`. It moved
+  window presentation layers into `ui-framework`'s
+  `window-presentation-stack` fact source, made fullscreen frames own the
+  fullscreen layer, moved App Menu visual/input priority to the top-docked
+  chrome layer, and added menu DOM-occlusion checks so visually covered generic
+  menu controls do not keep actor-input hits. The refreshed Gate 5 smoke
+  evidence proves fullscreen Scene covers and blocks the top-docked Window
+  menu.
+  Gate 6 final boundary/browser closure is complete:
+  `docs/project-arbor-gate-6-final-boundary-browser-gate-plan.md`. It moved
+  reusable generic menu/viewport/fullscreen CSS into `ui-framework` with an
+  explicit package export/build copy contract, removed explicit
+  `actorInputScopeRoutePriority` imports from generic UI controls, deleted the
+  app bootstrap `window.resize -> measureSceneViewport` hook, and narrowed the
+  app-local Scene integration barrel to its installer instead of component
+  internals. The current Arbor browser acceptance entry is:
+  `npm run prism:smoke:prepare`, `npm run dev -w wallpaper-tesseract`, then
+  `npm run smoke:arbor:final -w wallpaper-tesseract`. It writes
+  `temp/project-arbor-final-smoke-data.json` and
+  `temp/project-arbor-final-smoke-report.md`, and validates with
+  `$env:PROJECT_ARBOR_FINAL_SMOKE_EVIDENCE="temp/project-arbor-final-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-arbor-final-smoke-contract`.
+  The final evidence includes three Scene close/reopen cycles and records
+  stale canvas/frame-source counts of zero for each cycle.
 - `docs/project-arbor-step-1-ui-element-ownership-plan.md` is the detailed
-  execution file for Arbor Step 1. It adds only `UiElementComponent` ownership
-  semantics inside `ui-framework` and explicitly excludes layout, menu,
-  viewport, fullscreen, App Menu, and Scene migration work.
+  execution record for Arbor Step 1. It added only `UiElementComponent`
+  ownership semantics inside `ui-framework` and explicitly excluded layout,
+  menu, viewport, fullscreen, App Menu, and Scene migration work. Step 1 passed
+  `npm run test -w ui-framework -- ui-element`,
+  `npm run typecheck:test -w ui-framework`, `npm run build -w ui-framework`,
+  and its generic-boundary grep gates.
+- `docs/project-arbor-step-2-ui-layout-item-plan.md` is the detailed execution
+  record for Arbor Step 2. It added only the declarative
+  `UiLayoutItemComponent` in `ui-framework`, requires a same-actor
+  `UiElementComponent`, and explicitly excludes parent layout host behavior,
+  DOM sibling mutation, menu, viewport, fullscreen, App Menu, and Scene
+  migration work. Step 2 passed `npm run test -w ui-framework -- ui-layout-item`,
+  `npm run typecheck:test -w ui-framework`, `npm run build -w ui-framework`,
+  and its generic-boundary grep gates.
+- `docs/project-arbor-step-3-ui-layout-host-plan.md` is the detailed execution
+  record for Arbor Step 3. It added `UiLayoutHostComponent` as the first Arbor
+  component allowed to read direct child actors and move child
+  `UiLayoutItemComponent` elements into host-owned layout regions. It still
+  excludes menu, viewport, fullscreen, App Menu, Scene, and Editor migration.
+  Step 3 includes descriptor-size/stretch in layout signatures, no-op semantics
+  for disabled/disposed refresh, stable dataset diagnostics, host-root existing
+  DOM preservation, minimal real top/fill/overlay structural layout styles,
+  immutable/cloned commit snapshots, and explicit borrowed-child DOM placement
+  delegation semantics. Step 3 passed the targeted
+  `ui-layout-host ui-layout-item ui-element` ui-framework test,
+  `npm run typecheck:test -w ui-framework`, `npm run build -w ui-framework`,
+  and its generic-boundary grep gates. Reviewer closure accepted Step 3 as
+  complete; future controls must treat `UiLayoutHostComponent` DOM regions and
+  wrappers as private implementation detail, with `data-ui-layout-*` reserved
+  for diagnostics/smoke/test evidence rather than product logic.
 
-Post-closure temp cleanup is complete. The repository keeps only the Final Gate
-smoke data/report under `temp/` as reproducible Project Prism acceptance
-evidence; older phase screenshots, blocker dumps, smoke intermediates, and
-execution scripts were removed as process artifacts. Historical references to
-those files in archived phase notes are context, not current verification
-inputs.
+Post-closure temp cleanup is complete for Project Prism. The repository keeps
+Final Gate and current Project Arbor smoke data/reports under `temp/` as
+reproducible acceptance evidence; older phase screenshots, blocker dumps,
+smoke intermediates, and execution scripts are process artifacts unless named
+by the current progress document. Historical references to those files in
+archived phase notes are context, not current verification inputs.
 
 Accepted or completed phases:
 

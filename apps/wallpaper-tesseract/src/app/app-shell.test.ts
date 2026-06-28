@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  WINDOW_FULLSCREEN_PRESENTATION_LAYER,
+  WINDOW_TOP_DOCKED_CHROME_LAYER
+} from "ui-framework";
 import { createWallpaperAppShell } from "./app-shell";
 
 class FakeElement {
@@ -7,6 +11,12 @@ class FakeElement {
   parentElement: FakeElement | null = null;
   readonly children: FakeElement[] = [];
   readonly ownerDocument: FakeDocument;
+  readonly style = {
+    properties: new Map<string, string>(),
+    setProperty(name: string, value: string): void {
+      this.properties.set(name, value);
+    }
+  };
 
   constructor(ownerDocument: FakeDocument) {
     this.ownerDocument = ownerDocument;
@@ -61,6 +71,10 @@ describe("createWallpaperAppShell", () => {
       "app-shell__status",
       "app-shell__floating-overlay"
     ]);
+    expect(root.style.properties.get("--window-top-docked-chrome-layer"))
+      .toBe(String(WINDOW_TOP_DOCKED_CHROME_LAYER));
+    expect(root.style.properties.get("--window-fullscreen-presentation-layer"))
+      .toBe(String(WINDOW_FULLSCREEN_PRESENTATION_LAYER));
     expect(shell.toolbarSlot.hidden).toBe(true);
     expect(shell.statusSlot.hidden).toBe(true);
   });

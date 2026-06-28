@@ -1,4 +1,4 @@
-export * from "./model/app-menu-model";
+export * from "./ui";
 export * from "./chrome/window-frame-surface-component";
 export * from "./chrome/window-frame-surface-definition";
 export * from "./chrome/window-frame-tab-chrome";
@@ -37,6 +37,7 @@ export * from "./ports/window-view-factory-registry";
 export * from "./services/window-focus-command-port";
 export * from "./services/window-frame-lifecycle";
 export * from "./services/window-frame-lifecycle-controller";
+export * from "./services/window-presentation-stack";
 export * from "./services/window-workspace-controller";
 export * from "./services/window-workspace-graph-reconciler";
 export * from "./services/window-workspace-layout-persistence-controller";

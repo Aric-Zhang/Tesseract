@@ -1,5 +1,6 @@
 import type { ComponentDefinition } from "actor-core";
 import { gizmoEventBindingComponentType } from "actor-input";
+import { uiElementComponentType } from "ui-framework";
 import {
   Camera3GizmoComponent,
   camera3GizmoComponentType,
@@ -9,17 +10,28 @@ import {
 export const camera3GizmoComponentDefinition:
   ComponentDefinition<Camera3GizmoComponent, Camera3GizmoComponentOptions> = {
     type: camera3GizmoComponentType,
-    requires: [{
-      type: gizmoEventBindingComponentType,
-      autoAdd: true
-    }],
+    requires: [
+      {
+        type: uiElementComponentType,
+        autoAdd: false,
+        reuseExisting: true
+      },
+      {
+        type: gizmoEventBindingComponentType,
+        autoAdd: true
+      }
+    ],
     createId() {
       return "camera3-view-gizmo";
     },
-    create(actor, _context, options) {
+    create(actor, context, options) {
       if (!options) {
         throw new Error("Camera3GizmoComponent options are required.");
       }
-      return new Camera3GizmoComponent(actor, options);
+      const uiElement = context.componentRegistry.getComponent(actor, uiElementComponentType);
+      if (!uiElement) {
+        throw new Error("Camera3GizmoComponent requires UiElementComponent.");
+      }
+      return new Camera3GizmoComponent(actor, uiElement, options);
     }
   };

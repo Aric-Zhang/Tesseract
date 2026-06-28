@@ -2,7 +2,7 @@
   background: #07090d;
 }
 
-.scene-window__viewport {
+.scene-view {
   position: relative;
   width: 100%;
   height: 100%;
@@ -10,89 +10,8 @@
   background: #07090d;
 }
 
-.scene-window__canvas-host {
-  position: absolute;
-  inset: 0;
-}
-
-.scene-window__canvas-host canvas {
-  display: block;
+.scene-world-render-view,
+.scene-world-render-view {
   width: 100%;
   height: 100%;
-}
-
-.scene-window__overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.scene-window__view-controls {
-  position: absolute;
-  top: min(188px, calc(100% - 56px));
-  right: 22px;
-  z-index: 4;
-  display: grid;
-  gap: 8px;
-  pointer-events: auto;
-}
-
-.scene-window__mode-toggle-button {
-  position: relative;
-  display: grid;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 1px solid rgba(220, 240, 255, 0.38);
-  border-radius: 6px;
-  background: rgba(4, 9, 14, 0.68);
-  color: rgba(234, 248, 255, 0.9);
-  cursor: pointer;
-  opacity: 0.78;
-  place-items: center;
-  pointer-events: auto;
-  transition: opacity 120ms ease, background 120ms ease, border-color 120ms ease;
-}
-
-.scene-window__view-controls:hover .scene-window__mode-toggle-button,
-.scene-window__view-controls:focus-within .scene-window__mode-toggle-button,
-.scene-window__view-controls:active .scene-window__mode-toggle-button {
-  opacity: 1;
-}
-
-.scene-window__mode-toggle-button:hover,
-.scene-window__mode-toggle-button:focus-visible {
-  background: rgba(20, 34, 45, 0.82);
-  border-color: rgba(234, 248, 255, 0.72);
-  outline: none;
-}
-
-.scene-window__mode-toggle-button::before,
-.scene-window__mode-toggle-button::after {
-  position: absolute;
-  border: 2px solid currentColor;
-  content: "";
-}
-
-.scene-window__mode-toggle-button--fullscreen::before {
-  width: 18px;
-  height: 18px;
-}
-
-.scene-window__mode-toggle-button--fullscreen::after {
-  display: none;
-}
-
-.scene-window__mode-toggle-button--windowed::before {
-  width: 18px;
-  height: 14px;
-  transform: translate(2px, -2px);
-}
-
-.scene-window__mode-toggle-button--windowed::after {
-  width: 18px;
-  height: 14px;
-  opacity: 0.62;
-  transform: translate(-3px, 3px);
 }

@@ -17,27 +17,10 @@ export type {
   SceneViewActorOptions
 } from "./scene-window-actor-factory";
 export {
-  createEditorSceneViewHost
-} from "./editor-scene-view-host";
-export type {
-  CreateEditorSceneViewHostOptions,
-  EditorSceneViewHost
-} from "./editor-scene-view-host";
-export {
   installSceneComponentDefinitions,
-  SceneModeToggleComponent,
-  sceneModeToggleComponentType,
-  SCENE_MODE_TOGGLE_SOURCE,
-  SceneViewportComponent,
-  sceneViewportComponentType
+  SceneViewContentComponent,
+  sceneViewContentComponentType
 } from "./components";
 export type {
-  SceneModeToggleComponentOptions,
-  SceneModeToggleComponentServices,
-  SceneViewportComponentOptions,
-  SceneViewportRenderTarget,
-  SceneViewportResizeObserver,
-  SceneViewportResizeObserverFactory,
-  SceneViewportSize,
-  SceneWorkspaceMode
+  SceneViewContentComponentOptions
 } from "./components";

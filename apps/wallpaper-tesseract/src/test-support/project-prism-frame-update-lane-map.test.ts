@@ -47,7 +47,7 @@ describe("Project Prism frame update lane map", () => {
     expect(nonRuntimeLanes.some((entry) => entry.eligibleForRuntimeScheduler)).toBe(false);
     expect(projectPrismUiComponentTickLane.map((entry) => entry.sourceFile)).toEqual(expect.arrayContaining([
       "packages/editor/src/debug/components/debug-log-content-component.ts",
-      "./features/app-menu/app-menu-bar-component.ts",
+      "./features/app-menu/app-menu-adapter-component.ts",
       "packages/editor/src/hierarchy/hierarchy-panel-component.ts"
     ]));
     expect(projectPrismEditorStateFlushLane.map((entry) => entry.sourceFile)).toEqual([

@@ -16,6 +16,7 @@ import {
   GizmoControllerAttachmentRuntime
 } from "../gizmo-runtime";
 import { installEditorStateObserverComponentDefinitions } from "editor";
+import { installUiComponentDefinitions } from "ui-framework";
 import {
   createWindowFocusServiceProxy,
   createWindowWorkspaceContentId,
@@ -147,6 +148,7 @@ export function installUiFrameworkFixture(
   });
   installEditorStateObserverComponentDefinitions(componentRegistry);
   installWindowComponentDefinitions(componentRegistry);
+  installUiComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
   installComponentDefinition(componentRegistry, genericFixtureViewComponentDefinition);
 
@@ -180,7 +182,7 @@ export function installUiFrameworkFixture(
     context,
     actorId: "ui-fixture-app-menu",
     actorName: "UI Fixture App Menu",
-    parent: menuSlot,
+    hostElement: menuSlot,
     windowCatalog: workspace.catalog,
     windowFrameIntents: workspace.frameIntents,
     workspaceModePath: FIXTURE_WORKSPACE_MODE_PATH

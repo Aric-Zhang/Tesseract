@@ -1,6 +1,6 @@
 import { installComponentDefinition, type ComponentRegistry } from "../../actor-runtime";
-import { appMenuBarComponentDefinition } from "./app-menu-bar-definition";
+import { appMenuAdapterComponentDefinition } from "./app-menu-adapter-definition";
 
 export function installAppMenuComponentDefinitions(componentRegistry: ComponentRegistry): void {
-  installComponentDefinition(componentRegistry, appMenuBarComponentDefinition);
+  installComponentDefinition(componentRegistry, appMenuAdapterComponentDefinition);
 }

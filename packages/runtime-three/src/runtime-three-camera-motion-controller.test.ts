@@ -102,6 +102,34 @@ describe("RuntimeThreeCameraMotionController", () => {
     }
   });
 
+  it("keeps screen up continuous when orbit pitch passes vertical", () => {
+    const controller = createController({ yaw: 0, pitch: Math.PI * 0.75 });
+    const up = controller.cameraState.pose.up;
+
+    expect(up?.[0]).toBeCloseTo(0);
+    expect(up?.[1]).toBeLessThan(0);
+    expect(up?.[2]).toBeLessThan(0);
+    expect(controller.getRuntimeThreeCameraForRender().up.y).toBeLessThan(0);
+  });
+
+  it("uses stable screen-up vectors for vertical axis snaps", () => {
+    const top = createController({ yaw: 0 });
+    top.submit({ type: "snap-axis", source: "camera3-gizmo", axis: "+y" });
+    top.update(frame);
+
+    expect(top.cameraState.pose.up?.[0]).toBeCloseTo(0);
+    expect(top.cameraState.pose.up?.[1]).toBeCloseTo(0);
+    expect(top.cameraState.pose.up?.[2]).toBeCloseTo(-1);
+
+    const bottom = createController({ yaw: 0 });
+    bottom.submit({ type: "snap-axis", source: "camera3-gizmo", axis: "-y" });
+    bottom.update(frame);
+
+    expect(bottom.cameraState.pose.up?.[0]).toBeCloseTo(0);
+    expect(bottom.cameraState.pose.up?.[1]).toBeCloseTo(0);
+    expect(bottom.cameraState.pose.up?.[2]).toBeCloseTo(1);
+  });
+
   it("ignores camera motion while locked but still allows projection changes", () => {
     const controller = createController({ locked: true });
 

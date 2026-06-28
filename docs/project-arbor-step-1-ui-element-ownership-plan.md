@@ -1,6 +1,6 @@
 # Project Arbor Step 1: UI Element Ownership
 
-Status: detailed execution plan  
+Status: completed 2026-06-27  
 Parent plan: `docs/project-arbor-ui-framework-actor-layout-plan.md`  
 Scope: `packages/ui-framework` only
 
@@ -140,10 +140,13 @@ later step.
 - Supplied by an external owner.
 - `dispose()` must not call `element.remove()`.
 - `dispose()` must restore every generic DOM state that `UiElementComponent`
-  applied to the borrowed element:
+  actually changed on the borrowed element:
   - original `className`;
   - original `hidden`;
   - original `data-ui-interactable` attribute presence/value.
+- Each borrowed field should be snapshotted lazily before the first actual
+  write to that field. Borrowed elements that are only exposed as DOM roots
+  must not have external owner changes rolled back on dispose.
 - Do not store a parent pointer for borrowed cleanup yet. Parent layout slots
   are Step 3 work, not Step 1.
 
@@ -315,6 +318,30 @@ Step 1 is complete when:
   responsibilities.
 - Root `ui-framework` public exports expose only the Step 1 element API.
 - Targeted tests, test typecheck, and package build pass.
+
+## Execution Result
+
+Completed on 2026-06-27.
+
+Implemented:
+
+- `packages/ui-framework/src/ui/element/ui-element-component.ts`
+- `packages/ui-framework/src/ui/element/ui-element-definition.ts`
+- `packages/ui-framework/src/ui/element/index.ts`
+- `packages/ui-framework/src/ui/element/ui-element-component.test.ts`
+
+Validation passed:
+
+```powershell
+npm run test -w ui-framework -- ui-element
+npm run typecheck:test -w ui-framework
+npm run build -w ui-framework
+rg -n "Scene|Camera3|Tesseract|Debug|Hierarchy|wallpaper-runtime|features/app-menu|WindowFrameSurfaceComponent" packages/ui-framework/src/ui/element --glob "!*.test.ts"
+rg -n "UiLayoutItem|UiLayoutHost|MenuBarComponent|RenderViewportComponent|FullscreenableViewComponent" packages/ui-framework/src/ui/element --glob "!*.test.ts"
+```
+
+The two grep commands returned no matches. Step 1 did not migrate App Menu,
+Scene, Editor, fullscreen, layout host/item, or viewport behavior.
 
 ## Handoff Notes For Step 2
 

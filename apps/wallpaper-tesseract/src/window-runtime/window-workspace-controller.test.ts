@@ -17,6 +17,8 @@ import { WindowViewFactoryRegistry } from "./window-view-factory-registry";
 import { createWindowWorkspaceViewCatalog } from "./window-workspace-view-catalog";
 import {
   WINDOW_FLOATING_FOCUS_LAYER_START,
+  WINDOW_FULLSCREEN_PRESENTATION_LAYER,
+  WINDOW_TOP_DOCKED_CHROME_LAYER,
   WindowWorkspaceController
 } from "./window-workspace-controller";
 import { createWindowWorkspaceStackPriorityPort } from "./window-workspace-stack-priority-port";
@@ -197,7 +199,7 @@ describe("WindowWorkspaceController", () => {
     ]);
   });
 
-  it("excludes hidden, inactive, and fullscreen windows from dense stack priority", () => {
+  it("assigns fullscreen presentation priority above top-docked chrome while excluding hidden and inactive windows", () => {
     const { controller, windows } = createWorkspace({
       windows: [
         { actorId: "visible", priority: 500 },
@@ -210,10 +212,12 @@ describe("WindowWorkspaceController", () => {
     expect(controller.getEffectivePriority("visible")).toBe(WINDOW_FLOATING_FOCUS_LAYER_START);
     expect(controller.getEffectivePriority("hidden")).toBeNull();
     expect(controller.getEffectivePriority("inactive")).toBeNull();
-    expect(controller.getEffectivePriority("fullscreen")).toBeNull();
+    expect(controller.getEffectivePriority("fullscreen")).toBe(WINDOW_FULLSCREEN_PRESENTATION_LAYER);
+    expect(WINDOW_FULLSCREEN_PRESENTATION_LAYER).toBeGreaterThan(WINDOW_TOP_DOCKED_CHROME_LAYER);
+    expect(WINDOW_TOP_DOCKED_CHROME_LAYER).toBeGreaterThan(WINDOW_FLOATING_FOCUS_LAYER_START);
     expect(priorityOf(windows.hidden!)).toBe(900);
     expect(priorityOf(windows.inactive!)).toBe(1000);
-    expect(priorityOf(windows.fullscreen!)).toBe(1100);
+    expect(priorityOf(windows.fullscreen!)).toBe(WINDOW_FULLSCREEN_PRESENTATION_LAYER);
   });
 
   it("lets children of a fullscreen floating frame inherit its own input priority", () => {
@@ -228,9 +232,9 @@ describe("WindowWorkspaceController", () => {
       parent: windows.fullscreen!.actor
     });
 
-    expect(controller.getEffectivePriority("fullscreen")).toBeNull();
+    expect(controller.getEffectivePriority("fullscreen")).toBe(WINDOW_FULLSCREEN_PRESENTATION_LAYER);
     expect(controller.getEffectiveStackPriorityForActor(fullscreenChild)).toBe(
-      windows.fullscreen!.component.inputStackPriority
+      WINDOW_FULLSCREEN_PRESENTATION_LAYER
     );
   });
 

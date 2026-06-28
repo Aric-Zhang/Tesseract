@@ -1,28 +1,9 @@
 export {
-  SceneViewportComponent,
-  sceneViewportComponentType
-} from "./scene-viewport-component";
-export type { SceneViewportComponentOptions } from "./scene-viewport-component";
+  SceneViewContentComponent,
+  sceneViewContentComponentType
+} from "./scene-view-content-component";
 export type {
-  SceneViewportRenderTarget,
-  SceneViewportResizeObserver,
-  SceneViewportResizeObserverFactory,
-  SceneViewportSize
-} from "./scene-viewport-component";
-export {
-  SceneModeToggleComponent,
-  sceneModeToggleComponentType,
-  SCENE_MODE_TOGGLE_SOURCE
-} from "./scene-mode-toggle-component";
-export type {
-  SceneModeToggleComponentOptions,
-  SceneModeToggleComponentServices,
-  SceneWorkspaceMode
-} from "./scene-mode-toggle-component";
-export { sceneViewportComponentDefinition } from "./scene-viewport-definition";
-export {
-  createSceneModeToggleComponentDefinition,
-  sceneModeToggleComponentDefinition
-} from "./scene-mode-toggle-definition";
-export type { SceneModeToggleComponentDefinitionOptions } from "./scene-mode-toggle-definition";
+  SceneViewContentComponentOptions
+} from "./scene-view-content-component";
+export { sceneViewContentComponentDefinition } from "./scene-view-content-definition";
 export { installSceneComponentDefinitions } from "./install-component-definitions";

@@ -1,22 +1,11 @@
 import { installComponentDefinition, type ComponentRegistry } from "actor-core";
-import {
-  createSceneModeToggleComponentDefinition,
-  sceneModeToggleComponentDefinition,
-  type SceneModeToggleComponentDefinitionOptions
-} from "./scene-mode-toggle-definition";
-import { sceneViewportComponentDefinition } from "./scene-viewport-definition";
+import { sceneViewContentComponentDefinition } from "./scene-view-content-definition";
 
-export type InstallSceneComponentDefinitionsOptions = SceneModeToggleComponentDefinitionOptions;
+export interface InstallSceneComponentDefinitionsOptions {}
 
 export function installSceneComponentDefinitions(
   componentRegistry: ComponentRegistry,
-  options: InstallSceneComponentDefinitionsOptions = {}
+  _options: InstallSceneComponentDefinitionsOptions = {}
 ): void {
-  installComponentDefinition(componentRegistry, sceneViewportComponentDefinition);
-  installComponentDefinition(
-    componentRegistry,
-    options.commandSink
-      ? createSceneModeToggleComponentDefinition(options)
-      : sceneModeToggleComponentDefinition
-  );
+  installComponentDefinition(componentRegistry, sceneViewContentComponentDefinition);
 }

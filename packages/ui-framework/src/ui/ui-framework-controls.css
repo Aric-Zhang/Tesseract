@@ -1,0 +1,194 @@
+.ui-menu-bar {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  font: 12px/1.25 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: rgba(232, 242, 252, 0.94);
+}
+
+.ui-menu-bar[hidden],
+.ui-popup-menu[hidden] {
+  display: none;
+}
+
+.ui-menu-bar-item,
+.ui-menu-item {
+  border: 1px solid rgba(174, 203, 228, 0.2);
+  background: rgba(20, 26, 32, 0.86);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  pointer-events: auto;
+}
+
+.ui-menu-bar-item {
+  position: relative;
+  min-width: 68px;
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: 5px;
+}
+
+.ui-menu-bar-item[data-ui-menu-open="true"],
+.ui-menu-bar-item:focus-visible {
+  outline: none;
+  border-color: rgba(124, 195, 255, 0.55);
+  background: rgba(42, 58, 70, 0.92);
+}
+
+.ui-popup-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  display: grid;
+  min-width: 168px;
+  padding: 4px;
+  border: 1px solid rgba(174, 203, 228, 0.2);
+  border-radius: 6px;
+  background: rgba(16, 20, 25, 0.94);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  pointer-events: auto;
+}
+
+.ui-menu-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 7px;
+  width: 100%;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.ui-menu-item[aria-disabled="true"] {
+  color: rgba(188, 205, 220, 0.45);
+}
+
+.ui-menu-item__leading {
+  display: grid;
+  width: 18px;
+  min-width: 18px;
+  place-items: center;
+  pointer-events: none;
+}
+
+.ui-menu-item__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.ui-menu-item__shortcut {
+  color: rgba(188, 205, 220, 0.58);
+  pointer-events: none;
+}
+
+.ui-menu-item__checkbox {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(174, 203, 228, 0.52);
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.ui-menu-item__checkbox.is-checked {
+  border-color: rgba(124, 195, 255, 0.92);
+  background: rgba(124, 195, 255, 0.9);
+}
+
+.ui-menu-item__checkbox.is-checked::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 6px;
+  height: 3px;
+  border-left: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(-45deg);
+}
+
+.ui-menu-item__icon {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.78;
+}
+
+.ui-menu-item:focus-visible,
+.ui-menu-item:not([aria-disabled="true"]):hover,
+.ui-menu-item[data-ui-menu-highlighted="true"] {
+  outline: none;
+  background: rgba(124, 195, 255, 0.14);
+}
+
+.ui-render-viewport {
+  width: 100%;
+  height: 100%;
+}
+
+.ui-fullscreenable-view__control {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(220, 240, 255, 0.38);
+  border-radius: 6px;
+  background: rgba(4, 9, 14, 0.68);
+  color: rgba(234, 248, 255, 0.9);
+  cursor: pointer;
+  opacity: 0.78;
+  place-items: center;
+  pointer-events: auto;
+  transition: opacity 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.ui-fullscreenable-view__control:hover,
+.ui-fullscreenable-view__control:focus-visible,
+.ui-fullscreenable-view__control:active {
+  opacity: 1;
+  background: rgba(20, 34, 45, 0.82);
+  border-color: rgba(234, 248, 255, 0.72);
+  outline: none;
+}
+
+.ui-fullscreenable-view__control::before,
+.ui-fullscreenable-view__control::after {
+  position: absolute;
+  border: 2px solid currentColor;
+  content: "";
+}
+
+.ui-fullscreenable-view__control[data-ui-fullscreen-state="windowed"]::before {
+  width: 18px;
+  height: 18px;
+}
+
+.ui-fullscreenable-view__control[data-ui-fullscreen-state="windowed"]::after {
+  display: none;
+}
+
+.ui-fullscreenable-view__control[data-ui-fullscreen-state="fullscreen"]::before {
+  width: 18px;
+  height: 14px;
+  transform: translate(2px, -2px);
+}
+
+.ui-fullscreenable-view__control[data-ui-fullscreen-state="fullscreen"]::after {
+  width: 18px;
+  height: 14px;
+  opacity: 0.62;
+  transform: translate(-3px, 3px);
+}

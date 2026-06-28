@@ -1,3 +1,8 @@
+import {
+  WINDOW_FULLSCREEN_PRESENTATION_LAYER,
+  WINDOW_TOP_DOCKED_CHROME_LAYER
+} from "ui-framework";
+
 export interface WallpaperAppShell {
   readonly root: HTMLElement;
   readonly menuSlot: HTMLElement;
@@ -23,6 +28,8 @@ export function createWallpaperAppShell(parent: HTMLElement): WallpaperAppShell 
   rootDockSlot.className = "app-shell__root-dock";
   statusSlot.className = "app-shell__status";
   floatingOverlaySlot.className = "app-shell__floating-overlay";
+  root.style.setProperty("--window-top-docked-chrome-layer", String(WINDOW_TOP_DOCKED_CHROME_LAYER));
+  root.style.setProperty("--window-fullscreen-presentation-layer", String(WINDOW_FULLSCREEN_PRESENTATION_LAYER));
 
   toolbarSlot.hidden = true;
   statusSlot.hidden = true;
@@ -42,4 +49,3 @@ export function createWallpaperAppShell(parent: HTMLElement): WallpaperAppShell 
     }
   };
 }
-

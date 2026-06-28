@@ -9,7 +9,6 @@ const projectionModePartId = "projection-mode";
 export interface Camera3GizmoOptions {
   commandSink: RuntimeCameraCommandSink;
   initialViewState: RuntimeCameraViewState;
-  parent?: HTMLElement;
   size?: number;
 }
 
@@ -64,8 +63,6 @@ export class Camera3Gizmo implements GizmoController {
     this.modeLabel.textContent = "< Persp";
 
     this.element.append(this.canvas, this.modeLabel);
-    (options.parent ?? document.body).append(this.element);
-
     this.draw();
   }
 

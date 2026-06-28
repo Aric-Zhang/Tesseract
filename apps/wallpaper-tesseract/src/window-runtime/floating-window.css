@@ -13,6 +13,9 @@
 }
 
 .floating-gizmo-window--fullscreen {
+  inset: 0;
+  width: auto;
+  height: auto;
   max-width: none;
   max-height: none;
   border: 0;

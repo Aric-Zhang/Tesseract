@@ -229,6 +229,12 @@ function createPoseFromOrbit(orbit: RuntimeThreeOrbitCameraState): RuntimeCamera
   const directionX = Math.sin(orbit.yaw) * cosPitch;
   const directionY = Math.sin(orbit.pitch);
   const directionZ = Math.cos(orbit.yaw) * cosPitch;
+  const up = createStableScreenUpFromOrbit({
+    directionX,
+    directionY,
+    directionZ,
+    yaw: orbit.yaw
+  });
   return {
     position: [
       targetX + directionX * orbit.distance,
@@ -236,8 +242,62 @@ function createPoseFromOrbit(orbit: RuntimeThreeOrbitCameraState): RuntimeCamera
       targetZ + directionZ * orbit.distance
     ],
     target: orbit.target,
-    up: [0, 1, 0]
+    up
   };
+}
+
+function createStableScreenUpFromOrbit(options: {
+  readonly directionX: number;
+  readonly directionY: number;
+  readonly directionZ: number;
+  readonly yaw: number;
+}): [number, number, number] {
+  const rightX = Math.cos(options.yaw);
+  const rightY = 0;
+  const rightZ = -Math.sin(options.yaw);
+  const up = cross3(
+    options.directionX,
+    options.directionY,
+    options.directionZ,
+    rightX,
+    rightY,
+    rightZ
+  );
+  if (normalize3(up)) return up;
+  const fallbackUp = cross3(
+    options.directionX,
+    options.directionY,
+    options.directionZ,
+    1,
+    0,
+    0
+  );
+  if (normalize3(fallbackUp)) return fallbackUp;
+  return [0, 1, 0];
+}
+
+function cross3(
+  ax: number,
+  ay: number,
+  az: number,
+  bx: number,
+  by: number,
+  bz: number
+): [number, number, number] {
+  return [
+    ay * bz - az * by,
+    az * bx - ax * bz,
+    ax * by - ay * bx
+  ];
+}
+
+function normalize3(value: [number, number, number]): boolean {
+  const length = Math.hypot(value[0], value[1], value[2]);
+  if (length <= 1e-12) return false;
+  value[0] /= length;
+  value[1] /= length;
+  value[2] /= length;
+  return true;
 }
 
 function getProjectionMode(state: RuntimeCameraState): RuntimeCameraProjectionMode {

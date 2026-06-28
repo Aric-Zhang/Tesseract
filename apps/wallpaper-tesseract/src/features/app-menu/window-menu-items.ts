@@ -1,80 +1,48 @@
+import type { MenuItemDescriptor } from "ui-framework";
 import type {
   WindowViewIdentity,
-  WindowViewTypeKey
-} from "./window-view-identity";
-import type { WindowViewKey } from "./window-view-key";
-import type { WindowWorkspaceViewEntry } from "../services/window-workspace-view-catalog";
+  WindowViewTypeKey,
+  WindowWorkspaceViewEntry
+} from "../../window-runtime";
+import type { WindowViewKey } from "../../window-runtime";
 
-export type AppMenuLeadingAccessory =
-  | { readonly kind: "none" }
-  | { readonly kind: "checkbox" }
-  | { readonly kind: "icon"; readonly name: AppMenuIconName };
-
-export type AppMenuIconName =
-  | "window"
-  | "fullscreen"
-  | "console"
-  | "custom";
-
-export type AppMenuItemViewModel =
-  | AppMenuWindowCommandItemViewModel
-  | AppMenuCheckableCommandItemViewModel;
-
-export type AppMenuWindowAction =
+export type WindowMenuAction =
   | { readonly kind: "open-or-focus-type"; readonly typeKey: WindowViewTypeKey }
   | { readonly kind: "new-instance"; readonly typeKey: WindowViewTypeKey }
   | { readonly kind: "focus-instance"; readonly identity: WindowViewIdentity };
 
-export interface AppMenuWindowCommandItemViewModel {
-  readonly kind: "window-command";
-  readonly id: string;
-  readonly action: AppMenuWindowAction;
-  readonly typeKey: WindowViewTypeKey;
+export interface WindowMenuPayload {
+  readonly action: WindowMenuAction;
   readonly viewKey: WindowViewKey | null;
   readonly actorId: string | null;
-  readonly label: string;
-  readonly enabled: boolean;
-  readonly live: boolean;
-  readonly leading: AppMenuLeadingAccessory;
-  readonly shortcutLabel?: string;
 }
 
-export interface AppMenuCheckableCommandItemViewModel {
-  readonly kind: "checkable-command";
-  readonly id: string;
-  readonly commandId: string;
-  readonly label: string;
-  readonly enabled: boolean;
-  readonly checked: boolean;
-  readonly leading: AppMenuLeadingAccessory;
-  readonly shortcutLabel?: string;
-}
+type WindowMenuItemDescriptor = MenuItemDescriptor<WindowMenuPayload>;
 
 interface SortableMenuItem {
-  readonly item: AppMenuWindowCommandItemViewModel;
+  readonly item: WindowMenuItemDescriptor;
   readonly order: number;
   readonly sourceIndex: number;
   readonly offset: number;
 }
 
-export function createWindowMenuItem(item: WindowWorkspaceViewEntry): AppMenuWindowCommandItemViewModel {
+export function createWindowMenuItem(item: WindowWorkspaceViewEntry): WindowMenuItemDescriptor {
   return {
-    kind: "window-command",
     id: `type:${item.identity.typeKey}`,
-    action: { kind: "open-or-focus-type", typeKey: item.identity.typeKey },
-    typeKey: item.identity.typeKey,
-    viewKey: item.viewKey,
-    actorId: item.viewActorId,
     label: item.label,
     enabled: item.enabled,
-    live: item.live,
-    leading: { kind: "none" }
+    leading: { kind: "none" },
+    payload: {
+      action: { kind: "open-or-focus-type", typeKey: item.identity.typeKey },
+      viewKey: item.viewKey,
+      actorId: item.viewActorId
+    }
   };
 }
 
 export function createWindowMenuItems(
   items: readonly WindowWorkspaceViewEntry[]
-): readonly AppMenuWindowCommandItemViewModel[] {
+): readonly WindowMenuItemDescriptor[] {
   const entriesByType = new Map<WindowViewTypeKey, WindowWorkspaceViewEntry[]>();
   for (const item of items) {
     entriesByType.set(item.identity.typeKey, [
@@ -94,16 +62,15 @@ export function createWindowMenuItems(
     if (entries.some((entry) => entry.identity.multiplicity === "multi-instance")) {
       rows.push({
         item: {
-          kind: "window-command",
           id: `new:${representative.identity.typeKey}`,
-          action: { kind: "new-instance", typeKey: representative.identity.typeKey },
-          typeKey: representative.identity.typeKey,
-          viewKey: null,
-          actorId: null,
           label: `New ${representative.label}`,
           enabled: entries.some((entry) => entry.enabled),
-          live: false,
-          leading: { kind: "none" }
+          leading: { kind: "none" },
+          payload: {
+            action: { kind: "new-instance", typeKey: representative.identity.typeKey },
+            viewKey: null,
+            actorId: null
+          }
         },
         order: Math.min(...entries.map((entry) => entry.order)),
         sourceIndex: Math.min(...entries.map((entry) => entry.sourceIndex)),

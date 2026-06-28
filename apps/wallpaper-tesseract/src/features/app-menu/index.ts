@@ -1,27 +1,10 @@
 export {
-  APP_MENU_PRIORITY,
-  AppMenuBarComponent,
-  appMenuBarComponentType
-} from "./app-menu-bar-component";
-export type {
-  AppMenuBarComponentOptions,
-  AppMenuBarComponentServices,
-  AppMenuWorkspaceMode
-} from "./app-menu-bar-component";
-export { appMenuBarComponentDefinition } from "./app-menu-bar-definition";
-export { createAppMenuBarActor } from "./app-menu-bar-actor-factory";
-export type { AppMenuBarActorOptions } from "./app-menu-bar-actor-factory";
-export {
   installAppMenuFeature
 } from "./install-app-menu-feature";
 export type { InstallAppMenuFeatureOptions } from "./install-app-menu-feature";
-export { createWindowMenuItem, createWindowMenuItems } from "ui-framework";
 export type {
-  AppMenuIconName,
-  AppMenuItemViewModel,
-  AppMenuLeadingAccessory,
-  AppMenuCheckableCommandItemViewModel,
-  AppMenuWindowAction,
-  AppMenuWindowCommandItemViewModel
-} from "ui-framework";
+  AppMenuWorkspaceMode
+} from "./app-menu-adapter-component";
+export { createWindowMenuItem, createWindowMenuItems } from "./window-menu-items";
+export type { WindowMenuAction, WindowMenuPayload } from "./window-menu-items";
 export { installAppMenuComponentDefinitions } from "./install-component-definitions";

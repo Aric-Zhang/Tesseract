@@ -1,7 +1,8 @@
 # Project Arbor: Actor-Backed UI Layout And Controls
 
-Status: draft execution plan, amended after review  
-Created: 2026-06-14  
+Status: consolidated execution plan, amended after Step 3 closure
+Created: 2026-06-14
+Amended: 2026-06-28
 Scope: `packages/ui-framework`, `packages/editor`, and the app-local Scene/App
 Menu integration needed to remove old presentation ownership.
 
@@ -33,7 +34,7 @@ Tab Content Actor
 
   Camera3 Gizmo Actor
     UiElementComponent
-    UiLayoutItemComponent(slot: overlay, layer: gizmo)
+    UiLayoutItemComponent(slot: overlay, layer: CAMERA3_GIZMO_OVERLAY_LAYER)
     Camera3GizmoComponent
 ```
 
@@ -127,7 +128,7 @@ Scene View Actor
 
   Camera3 Gizmo Actor
     UiElementComponent
-    UiLayoutItemComponent(slot: overlay, layer: gizmo)
+    UiLayoutItemComponent(slot: overlay, layer: CAMERA3_GIZMO_OVERLAY_LAYER)
     Camera3GizmoComponent
 
   Runtime Content Actor(s)
@@ -137,6 +138,9 @@ Scene View Actor
 The world render view is the presentation target. Runtime content remains owned
 by runtime owners. Camera3 gizmo is a sibling overlay, not a child of the world
 render view.
+
+`CAMERA3_GIZMO_OVERLAY_LAYER` is a numeric app/editor constant. Generic
+`ui-framework` layout knows only numeric layer ordering, not product layer names.
 
 ## Suggested File Structure
 
@@ -194,183 +198,96 @@ Menu model rule:
   - delete it after replacing all callers with actor-backed menu descriptors.
 - Do not keep compatibility re-exports from the old path unless an active step
   explicitly names a short-lived migration boundary with a same-step deletion.
+- Do not move the current `app-menu-model.ts` into `ui/menu/menu-model.ts`
+  verbatim. The generic menu model may contain only product-agnostic menu
+  descriptors, menu item state, hierarchy, and opaque command payloads. It must
+  not import or encode `WindowViewIdentity`, `WindowWorkspaceViewEntry`,
+  window lifecycle types, docking/window commands, or app-local view policy.
+- Window-specific menu item derivation, such as `createWindowMenuItems`, must
+  either remain in the app/window composition layer as a thin adapter over the
+  generic menu descriptor or be deleted/replaced. It must not become part of the
+  generic menu model.
 
-## Part I: `ui-framework` Internal Refactor
+## Completed Foundation Gate
 
-This part prepares the generic foundation without migrating Editor behavior yet.
+The first three small steps are already complete and are kept as historical
+foundation records. Do not split future work this narrowly unless a real
+architecture blocker appears.
 
-### Step 1: Add UI Element Ownership
+Completed records:
 
-Add `UiElementComponent` and definition.
+```text
+docs/project-arbor-step-1-ui-element-ownership-plan.md
+docs/project-arbor-step-2-ui-layout-item-plan.md
+docs/project-arbor-step-3-ui-layout-host-plan.md
+```
+
+Delivered foundation:
+
+- `UiElementComponent`: explicit owned/borrowed DOM root ownership.
+- `UiLayoutItemComponent`: same-actor layout declaration.
+- `UiLayoutHostComponent`: first direct-child layout owner with host-owned
+  regions/wrappers and no product concepts.
+
+The remaining gates are intentionally wider. Each must prove a vertical
+capability and delete the old implementation path in the same gate.
+
+## Remaining Execution Gates
+
+### Gate 4: Generic Menus And App Menu Replacement
 
 Detailed execution file:
 
 ```text
-docs/project-arbor-step-1-ui-element-ownership-plan.md
+docs/project-arbor-gate-4-generic-menu-app-menu-plan.md
 ```
 
-Responsibilities:
+This gate merges the old generic menu, UI definition installer, vertical layout
+slice, and app-local App Menu replacement steps.
 
-- Create or accept an HTMLElement with explicit ownership:
-  - `owned`: created by the component or transferred to it; removed on dispose.
-  - `borrowed`: provided by another owner; never removed or disposed by this
-    component.
-- Expose the root element to sibling components on the same actor.
-- Own generic enabled/hidden/interactable DOM state only when it is generic.
-- Dispose by removing only owned elements and by detaching borrowed elements
-  only from generic layout slots that this component attached them to.
+Former steps covered:
 
-Exit gates:
+- old Step 4: generic menu components;
+- old Step 7: conservative UI definition installer and boundary checks;
+- old Step 7.5: vertical layout/menu fixture;
+- old Step 8: replace app-local App Menu monolith.
 
-- Tests prove owned element disposal removes the element.
-- Tests prove borrowed element disposal does not remove the external element.
-- No product concepts appear in `ui/element`.
-- No existing App Menu or Scene component imports this yet.
+Why these belong together:
 
-### Step 2: Add Layout Item Declaration
+- Generic menu components are not sufficiently proven until a real menu and a
+  layout-host fixture use them.
+- The old App Menu row/highlight implementation is the current duplicate menu
+  behavior; keeping it after generic menu lands would create two menu truths.
+- `installUiComponentDefinitions` should be introduced when real generic UI
+  definitions are installed together, not as a standalone mini-step.
 
-Add `UiLayoutItemComponent`.
+Required work:
 
-Responsibilities:
+Execute the gate internally in this order while keeping it one acceptance gate:
 
-- Declare the actor's desired parent layout contribution.
-- First supported fields:
-  - `slot: "top" | "bottom" | "left" | "right" | "fill" | "overlay"`
-  - `order`
-  - `layer`
-  - `stretch`
-  - optional `minSize` / `preferredSize`
-- Require a same-actor `UiElementComponent`.
+1. Define the generic menu model boundary and delete/rename the old public
+   `app-menu-model` path without preserving compatibility exports.
+2. Implement generic menu components and their definitions.
+3. Prove the vertical layout/menu fixture in `ui-framework`.
+4. Replace the app-local App Menu presentation and delete the old row DOM,
+   highlight, and selector implementation.
+5. Run fresh browser smoke and write evidence under `temp/`.
 
-Exit gates:
-
-- Tests prove layout item reads the same actor's UI element.
-- No DOM sibling mutation exists in `UiLayoutItemComponent`.
-- No global registry or second UI tree is introduced.
-- Tests cover slot/order/layer changes without requiring product-specific
-  parent knowledge.
-
-### Step 3: Add Parent Layout Host
-
-Add `UiLayoutHostComponent` with the first dock/fill/overlay layout.
-
-Responsibilities:
-
-- Read direct child actors from `ActorSystemView`.
-- For each child, read `UiLayoutItemComponent`.
-- Append child elements into deterministic regions.
-- Lay out top/bottom/left/right/fill and overlay layers.
-- Recompute from actor tree/component state on frame update or explicit refresh.
-
-Initial implementation should favor simple deterministic rebuilds over a
-complex observer system. If framework-agnostic actor tree lifecycle observation
-is later needed, evaluate it as an actor-core capability separately. UI
-layout/DOM semantics must not enter actor-core.
-
-Exit gates:
-
-- Adding/removing child actors updates layout without manually notifying the
-  parent.
-- A `top` child consumes a row and a `fill` child receives the remaining area.
-- An `overlay` child renders over `fill` by layer/order.
-- Disabled/inactive child actors do not contribute interactable UI.
-- No actor-core change is required.
-
-### Step 4: Add Generic Menu Components
-
-Add generic menu actors/components in `ui-framework`.
-
-Responsibilities:
-
-- `MenuBarComponent`: top-level menubar behavior and open menu coordination.
-- `MenuBarItemComponent`: menubar item behavior.
-- `PopupMenuComponent`: owns open menu active/highlight state for its child
-  menu items.
-- `MenuItemComponent`: command/checkable item behavior.
-- Highlight belongs to the popup/menu parent component, not each item.
-- Menu input goes through actor-input.
-
-Exit gates:
-
-- Unit tests cover hover highlight, keyboard active item, click activation,
-  disabled item behavior, Escape/dismiss, and nested child actor disposal.
-- The old "highlight first row forever" failure shape is covered by tests.
-- No app-local window command logic exists in generic menu components.
-- Product menu actions are represented by generic command payloads or a narrow
-  command sink.
-- `model/app-menu-model.ts` is either moved/renamed into the new generic menu
-  model or explicitly deleted once replacement descriptors exist. No two public
-  menu models remain.
-
-### Step 5: Add Generic Render Viewport
-
-Add `RenderViewportComponent`.
-
-Responsibilities:
-
-- Own a generic viewport/root element and canvas/render-target host.
-- Accept a generic render target interface with `domElement`, `setSize`, and
-  optional `dispose`.
-- Accept explicit render target ownership:
-  - `owned`: `RenderViewportComponent.dispose()` disposes the render target.
-  - `borrowed`: `RenderViewportComponent.dispose()` only detaches from DOM and
-    unsubscribes; the runtime owner disposes the target.
-- Measure itself and resize the target.
-- Optionally expose a resize subscription.
-- Stay independent from Scene/Camera/Tesseract/runtime package names.
-
-Exit gates:
-
-- Tests prove resize/measure behavior and disposal.
-- Tests prove borrowed render targets are not disposed.
-- Tests prove owned render targets are disposed exactly once.
-- No `editor`, `wallpaper-runtime`, `runtime-three`, Scene, or Camera3 imports
-  enter this generic component.
-
-### Step 6: Add Fullscreenable View Intent Component
-
-Add `FullscreenableViewComponent`.
-
-Responsibilities:
-
-- Represent control-level fullscreen state/commands.
-- Delegate workspace fullscreen/restore to a narrow presentation command port.
-- Optionally toggle local layout fullscreen if a parent layout host supports
-  local-only fullscreen.
-
-Exit gates:
-
-- Tests prove the component emits intent through a port and does not mutate
-  `WindowWorkspaceGraph` directly.
-- Existing lifecycle/presentation owner remains the only workspace presentation
-  mutation owner.
-
-### Step 7: Install And Export UI Definitions Conservatively
-
-Add `installUiComponentDefinitions`.
-
-Exit gates:
-
-- `ui-framework/src/index.ts` exports only stable generic UI APIs.
-- Internal helper files are not exported unless required by production callers.
-- Add early boundary tests:
-  - `packages/ui-framework/src/ui/**` must not import `editor`,
-    `wallpaper-runtime`, app-local feature modules, Scene, Camera3, Tesseract,
-    Debug, Inspector, or Hierarchy code.
-  - `WindowFrameSurfaceComponent` must not contain menu, toolbar, viewport, or
-    Scene-specific branches.
-  - generic menu files must not import window workspace command or lifecycle
-    types; product actions are provided by a generic command sink/descriptor.
-- `npm run test -w ui-framework`
-- `npm run typecheck:test -w ui-framework`
-- `npm run build -w ui-framework`
-
-### Step 7.5: Prove A Vertical UI Layout Slice
-
-Before migrating App Menu or Scene, create a small fixture in `ui-framework`
-that exercises the intended authoring model end to end.
-
-Fixture shape:
+- Add generic menu actors/components in `packages/ui-framework/src/ui/menu`:
+  - `MenuBarComponent`
+  - `MenuBarItemComponent`
+  - `PopupMenuComponent`
+  - `MenuItemComponent`
+  - a small highlight/open-menu owner, kept package-private unless needed.
+- Move/rename or delete `packages/ui-framework/src/model/app-menu-model.ts`.
+  There must not be both public `app-menu-model` and `ui/menu/menu-model`
+  concepts after the gate closes.
+- Generic `ui/menu` files must not import window workspace identity, view entry,
+  lifecycle, docking, or app-local product command types. If app/window code
+  still needs a window-menu adapter, keep it outside the generic menu package.
+- Add `installUiComponentDefinitions` only for definitions that are real and
+  used in this gate.
+- Add a ui-framework vertical fixture:
 
 ```text
 Fixture Root Actor
@@ -391,84 +308,163 @@ Fixture Root Actor
     UiLayoutItemComponent(slot: overlay, layer: 10)
 ```
 
-Required proof:
-
-- Adding the menu child gives the body less vertical space without manual parent
-  notification.
-- Removing/destroying the menu child collapses the body back to full height.
-- Adding/removing the overlay child updates stacking without moving the body.
-- Menu hover/highlight follows the hovered child menu item.
-- No `WindowFrameSurfaceComponent`, app-local Scene, or app-local App Menu code
-  participates in the fixture.
-
-Exit gates:
-
-- `npm run test -w ui-framework -- ui-layout`
-- `npm run typecheck:test -w ui-framework`
-- Do not begin Part II until this fixture proves the new layout fact is real.
-
-## Part II: Editor And Scene Migration
-
-This part removes old Editor/app-local presentation ownership and moves real
-features onto the new `ui-framework` primitives.
-
-### Step 8: Replace App-Local App Menu Monolith
-
-Move App Menu presentation onto generic menu primitives.
-
-Required changes:
-
-- Delete app-local row DOM/highlight/open-state implementation.
-- Keep product-specific menu descriptor/action wiring outside `ui-framework`.
-- Build the current Window menu as actor children:
-  - app menu bar actor
-  - Window menu bar item actor
-  - popup menu actor
-  - menu item actors
-- Generic menu components manage hover/highlight/keyboard/dismiss.
-- Migrate or delete the old `model/app-menu-model.ts` path so there is one
-  menu model/descriptive fact.
+- Migrate app-local App Menu presentation to actor-backed generic menu
+  components.
+- Production App Menu must create a borrowed App Menu Host actor over the app
+  shell menu slot, then use `UiLayoutHostComponent` and `UiLayoutItemComponent`
+  to place the real menu bar child actor. The old direct `parent: HTMLElement`
+  append contract must be deleted before Gate 4 closes.
+- Keep product-specific menu descriptors/actions outside generic `ui-framework`
+  controls.
+- Generic menu components must not hard-code app/global stack priority such as
+  the old `APP_MENU_PRIORITY`. Cross-window priority must be injected through
+  actor-input binding or app/window adapter ownership.
+- Delete app-local row DOM/highlight/open-state implementation instead of
+  wrapping it.
+- Clean old App Menu CSS/selectors; no compatibility selectors remain.
+- Add or update architecture boundaries:
+  - `packages/ui-framework/src/ui/**` must not import `editor`,
+    `wallpaper-runtime`, app-local feature modules, Scene, Camera3, Tesseract,
+    Debug, Inspector, or Hierarchy code.
+  - `WindowFrameSurfaceComponent` must not contain menu/toolbar/viewport/Scene
+    branches.
+  - generic menu files must not import window workspace command or lifecycle
+    types; product actions must use a generic command sink/descriptor.
+  - app-local App Menu must not render menu rows directly.
+  - app-local App Menu must not expose a direct DOM parent append API.
 
 Exit gates:
 
-- App-local App Menu component no longer owns `#rows`, `#activeRowIndex`, or
-  direct row rendering.
-- `rg "#rows|#activeRowIndex|renderMenu|createMenuItemElement" apps/wallpaper-tesseract/src/features/app-menu packages`
-  has no production matches outside new generic menu implementation/tests.
-- CSS cleanup is complete: old `.app-menu-bar__*` selectors are either moved
-  to generic menu styles with matching ownership or deleted. No orphan
-  compatibility selectors remain.
+- Unit tests cover hover highlight, keyboard active item, click activation,
+  disabled item behavior, Escape/dismiss, and nested actor disposal.
+- The old "highlight first row forever" failure shape is covered.
+- The vertical fixture proves:
+  - adding the menu child gives the body less vertical space;
+  - removing/destroying the menu child collapses the body back to full height;
+  - adding/removing overlay children updates stacking without moving the body;
+  - menu hover/highlight follows the hovered child menu item.
+- Real App Menu uses the same borrowed-host + layout-host path as the fixture;
+  no production direct DOM append menu path remains.
+- App/window adapter tests prove descriptor diffing uses stable actor ids,
+  deletes stale menu item actors, and converges highlight/open state when the
+  highlighted/open item disappears.
+- App-local App Menu no longer owns `#rows`, `#activeRowIndex`, or direct row
+  rendering.
+- Grep has no production matches for old menu row/highlight helpers outside the
+  old app-local App Menu path. Do not scan all `packages` for `#rows`, because
+  Hierarchy has an unrelated row implementation:
+
+```powershell
+rg "#rows|#activeRowIndex|renderMenu|createMenuItemElement|app-menu-bar__" apps/wallpaper-tesseract/src/features/app-menu --glob "!*.test.ts"
+```
+
+- Grep proves generic menu files did not absorb window-specific menu facts:
+
+```powershell
+Test-Path packages/ui-framework/src/model/app-menu-model.ts
+rg "WindowViewIdentity|WindowWorkspaceViewEntry|WindowWorkspace|WindowFrame|createWindowMenuItems" packages/ui-framework/src/ui/menu --glob "!*.test.ts"
+```
+
+The `Test-Path` command must print `False`; the old public app-menu model path
+must not remain as a compatibility surface.
+
 - App-local code does not import internal `ui-framework/src` paths.
 - Browser smoke verifies menu hover, activation, tab drag, dock preview, and
-  tab close hit targets still work.
-- Architecture boundary test forbids reintroducing app-local menu DOM row
-  rendering.
+  tab close hit targets still work. Smoke data and a short report must be
+  written under `temp/`, for example:
 
-### Step 9: Introduce Generic View Shell For Window Content
+```text
+temp/project-arbor-gate-4-smoke-data.json
+temp/project-arbor-gate-4-smoke-report.md
+```
 
-Create a reusable view shell in `ui-framework` and migrate Editor view content
-to use it where useful.
+- Validation:
 
-Responsibilities:
+```powershell
+npm run test -w ui-framework
+npm run typecheck:test -w ui-framework
+npm run build -w ui-framework
+npm run test -w wallpaper-tesseract -- architecture-boundaries app-menu
+npm run typecheck -w wallpaper-tesseract
+npm run build -w wallpaper-tesseract
+```
 
-- A tab content actor can host menu/toolbar/status/render/body children through
-  `UiLayoutHostComponent`.
-- `WindowFrameSurfaceComponent` remains unaware of menus/toolbars.
-- Window content registration still registers one root content element; the
-  internal child layout is owned by the view shell actor tree.
+### Gate 5: Generic Render View, Fullscreen Intent, And Scene Migration
 
-Exit gates:
+Status: completed on 2026-06-28. Fresh evidence:
+`temp/project-arbor-gate-5-smoke-data.json` and
+`temp/project-arbor-gate-5-smoke-report.md`.
 
-- A test proves a tab content actor gains a menu bar by adding a child actor,
-  with no manual tab notification.
-- A test proves removing that child actor collapses the layout.
-- No special-case menu logic is added to `WindowFrameSurfaceComponent`.
+Detailed execution plan:
 
-### Step 10: Split Scene View Into Ordinary UI Actors
+```text
+docs/project-arbor-gate-5-render-viewport-scene-migration-plan.md
+```
 
-Replace the current `SceneViewportComponent` monolith.
+This gate merges generic render viewport, fullscreen intent, generic view shell,
+Scene split, fullscreen migration, and legacy Scene/App presentation deletion.
 
-Target subtree:
+Entry guard: before Gate 5 starts, production `packages/ui-framework/src/ui/**`
+must have no DOM `click` activation shortcuts. Generic UI pointer activation
+must go through actor-input; DOM hover/outside-dismiss listeners are allowed
+only when they do not activate commands or intents.
+
+Former steps covered:
+
+- old Step 5: generic render viewport;
+- old Step 6: fullscreenable view intent component;
+- old Step 9: generic view shell for window content;
+- old Step 10: split Scene view into ordinary UI actors;
+- old Step 11: move fullscreen intent to render view;
+- old Step 12: remove legacy Editor/App Scene presentation APIs.
+
+Why these belong together:
+
+- `RenderViewportComponent` and `FullscreenableViewComponent` are only proven
+  when the Scene world view uses them.
+- A separate view shell step risks adding an abstraction before the Scene
+  migration proves it removes real complexity.
+- The old `SceneViewportComponent` DOM shell, overlay handoff, and fullscreen
+  shell behavior must be deleted in the same gate to avoid dual Scene
+  presentation ownership.
+
+Required work:
+
+Execute the gate internally with these checkpoints, but close it only after the
+whole Scene migration and old implementation deletion are complete:
+
+1. Implement `RenderViewportComponent` and `FullscreenableViewComponent` with
+   product-free unit tests.
+2. Migrate Scene to the ordinary actor subtree and delete the old
+   `SceneViewportComponent`/DOM handoff paths.
+3. Run fullscreen, close/reopen, mobile, and interaction smoke with fresh
+   evidence under `temp/`.
+
+- Add `RenderViewportComponent` in `ui-framework`:
+  - generic render target interface with `domElement`, `setSize`, and optional
+    `dispose`;
+  - explicit render target ownership:
+    - `owned`: viewport disposes target exactly once;
+    - `borrowed`: viewport only detaches/unsubscribes; runtime owner disposes;
+  - Scene must use borrowed render target mode while
+    `RuntimeSceneViewRuntime` remains the runtime render output disposal owner;
+  - measurement and resize ownership;
+  - no Scene/Camera/Tesseract/runtime package imports.
+- `RenderViewportComponent` must not implement or import
+  `WindowRegisteredContent`, `WindowContentRegistrationPort`, or any window
+  content-registration contract. Window content registration remains owned by
+  the Scene View/root content actor or the existing window content owner; the
+  render viewport owns only render target DOM, resize, and target disposal
+  according to its explicit ownership mode.
+- Add `FullscreenableViewComponent` in `ui-framework`:
+  - emits fullscreen/restore intent through a narrow presentation command port;
+  - does not mutate `WindowWorkspaceGraph` or lifecycle directly;
+  - emits source actor intent; app/editor integration must resolve that source
+    to the registered Scene root view actor before calling window lifecycle.
+- Add a generic view shell only if `UiLayoutHostComponent` alone cannot express
+  tab content composition without duplication. If added, it must be a small
+  owner-backed component, not a new window/content facade.
+- Replace the current `SceneViewportComponent` monolith with ordinary actors:
 
 ```text
 Scene View Actor
@@ -483,80 +479,115 @@ Scene View Actor
 
   Camera3 Gizmo Actor
     UiElementComponent
-    UiLayoutItemComponent(slot: overlay, layer: gizmo)
+    UiLayoutItemComponent(slot: overlay, layer: CAMERA3_GIZMO_OVERLAY_LAYER)
     Camera3GizmoComponent
 ```
 
-Required deletion:
-
-- Remove `SceneViewportComponent` ownership of `canvasHostElement` and
-  `overlayElement` once `RenderViewportComponent` and layout overlay host are
-  active.
-- Remove any direct parent DOM handoff from Scene viewport to Camera3 gizmo.
-- Remove `sceneView.viewport.overlayElement` as the parent path for Camera3.
-- Remove `sceneView.viewport.canvasHostElement` as a public Scene shell fact.
-- Remove or rewrite `createEditorSceneViewHost().measureNow()` assumptions so
-  measurement belongs to the render viewport/layout host, not the old shell.
-- Remove Scene-specific fullscreen ownership from the tab/Scene shell.
+- Camera3 gizmo becomes a sibling overlay actor, not a child of the render view.
+- Camera3 overlay ordering is a numeric app/editor constant, not a string layer
+  known by `ui-framework`.
+- Delete the raw Camera3 DOM parent channel (`Camera3GizmoOptions.parent` and
+  `parent:` handoff); Camera3 presentation must use its own actor element.
+- World render view owns only render target display/resize. Runtime content
+  remains owned by runtime owners.
+- Move Scene fullscreen/run-mode command to target the render view fullscreen
+  intent, while workspace presentation/lifecycle remains the placement mutation
+  owner.
+- Delete old Scene presentation facts:
+  - `SceneViewportComponent` ownership of `canvasHostElement`;
+  - `SceneViewportComponent` ownership of `overlayElement`;
+  - direct parent DOM handoff from Scene viewport to Camera3;
+  - `sceneView.viewport.overlayElement` public path;
+  - `sceneView.viewport.canvasHostElement` public path;
+  - old `createEditorSceneViewHost().measureNow()` assumptions if they only
+    support the previous shell;
+  - Scene-specific fullscreen implementation on the tab/Scene shell.
+- Clean old CSS selectors such as `.scene-window__canvas-host` and
+  `.scene-window__overlay`; no compatibility selectors remain.
 
 Exit gates:
 
-- World render view owns only render target display/resize.
-- Render target ownership is explicit. If the runtime still owns the render
-  output, `RenderViewportComponent` uses borrowed-target semantics and never
-  disposes it.
-- Camera3 gizmo is a sibling overlay actor.
-- Scene view is just a composition host.
-- Grep has no production matches for `overlayElement`, `canvasHostElement`, or
-  direct `sceneView.viewport` DOM handoff except deletion-proof tests.
-- CSS cleanup is complete: `.scene-window__canvas-host` and
-  `.scene-window__overlay` are deleted or renamed to the new generic viewport /
-  overlay classes. No compatibility selectors remain.
+- Tests prove render target resize/measure and disposal for owned/borrowed
+  targets.
+- Scene migration tests prove the runtime render target is borrowed and viewport
+  disposal does not dispose the runtime-owned render output.
+- Tests or boundary checks prove render viewport does not implement/import
+  window content registration contracts.
+- Tests prove fullscreen component emits intent through a port and does not
+  mutate workspace graph/lifecycle.
+- A tab content actor can gain/remove top/fill/overlay children without
+  notifying `WindowFrameSurfaceComponent`.
+- `WindowFrameSurfaceComponent` contains no menu/toolbar/Scene/viewport
+  special cases.
+- Grep has no production references to old Scene viewport DOM handoff:
+
+```powershell
+rg "overlayElement|canvasHostElement|sceneView\\.viewport" packages apps/wallpaper-tesseract/src
+```
+
+- Grep has no production Camera3 raw DOM parent handoff:
+
+```powershell
+rg "Camera3GizmoOptions[\\s\\S]*parent\\?|parent\\s*:\\s*.*HTMLElement|parent\\s*:\\s*sceneView|parent\\s*:\\s*.*overlay" packages/editor/src apps/wallpaper-tesseract/src --glob "!*.test.ts"
+```
+
+- Grep proves the generic viewport did not absorb old window content
+  registration ownership:
+
+```powershell
+rg "WindowRegisteredContent|WindowContentRegistrationPort" packages/ui-framework/src/ui/viewport --glob "!*.test.ts"
+```
+
+- Camera3 gizmo is a sibling overlay actor under Scene.
 - Hierarchy shows Scene View, World Render View, Camera3, and runtime content
   without duplicates after repeated close/reopen.
-
-### Step 11: Move Fullscreen Intent To Render View
-
-Make the render viewport control the fullscreen/restore command surface.
-
-Required changes:
-
-- Scene run mode command asks the render view fullscreen command, not the Scene
-  tab/shell.
-- The render view sends presentation intent through the existing window
-  presentation/lifecycle owner.
-- Workspace presentation owner still performs isolation/suppression and
-  restore.
-
-Exit gates:
-
-- `WindowWorkspaceGraph` and lifecycle remain the only placement/presentation
-  mutation truth.
-- Scene tab has no fullscreen-specific implementation.
 - Fullscreen/restore smoke proves runtime-only fullscreen frames are not
   persisted.
+- Browser smoke records render viewport rect, canvas rect, overlay rect, and
+  Camera3 actor-input hit evidence. Smoke data and a short report must be
+  written under `temp/`, for example:
 
-### Step 12: Remove Legacy Editor Dependencies
+```text
+temp/project-arbor-gate-5-smoke-data.json
+temp/project-arbor-gate-5-smoke-report.md
+```
 
-Delete old Editor/App Scene presentation APIs after migration.
+- Validation:
 
-Candidates to remove or shrink:
+```powershell
+npm run test -w ui-framework
+npm run typecheck:test -w ui-framework
+npm run build -w ui-framework
+npm run test -w editor
+npm run typecheck -w editor
+npm run build -w editor
+npm run test -w wallpaper-tesseract -- architecture-boundaries project-prism-smoke-contract
+npm run typecheck -w wallpaper-tesseract
+npm run build -w wallpaper-tesseract
+```
 
-- `SceneViewportComponent` old DOM/registration responsibilities.
-- Old `createEditorSceneViewHost` overlay assumptions if they only exist for
-  the previous viewport component.
-- App-local Scene installer code that manually wires overlay parent DOM.
-- App-local App Menu component if all menu behavior is generic.
+### Gate 6: Arbor Final Boundary And Browser Gate
 
-Exit gates:
+Detailed execution plan:
 
-- Grep has no production references to old Scene viewport overlay DOM fields.
-- Grep has no production references to app-local menu row/highlight state.
-- No compatibility re-export exists for old Scene/App Menu component APIs.
+```text
+docs/project-arbor-gate-6-final-boundary-browser-gate-plan.md
+```
 
-### Step 13: Boundary Tests And QA
+Update architecture boundaries once the new rules are real, and fold in the
+cleanup discovered by the Gate 4/5 incremental implementation:
 
-Update architecture boundaries once the new rules are real.
+- collapse duplicate generic UI input priority facts;
+- move reusable `.ui-*` control base styles to `ui-framework` with a real
+  package CSS distribution/export contract;
+- remove or narrow app-bootstrap Scene resize measurement if the render
+  viewport owner now covers it;
+- disambiguate app-local Scene integration component-definition ownership;
+- consolidate Arbor smoke helper duplication around the final contract;
+- keep the final Arbor smoke runner in a stable script location, with `temp/`
+  reserved for generated data/report artifacts;
+- audit new Arbor barrels so adapter/internal helpers do not become convenient
+  public surfaces.
 
 Required invariants:
 
@@ -580,9 +611,17 @@ npm run test -w editor
 npm run typecheck -w editor
 npm run build -w editor
 npm run test -w wallpaper-tesseract -- architecture-boundaries project-prism-smoke-contract project-prism-smoke-evidence-file
+npm run build -w wallpaper-tesseract
 npm run test
 npm run typecheck
 npm run build
+```
+
+Final browser smoke evidence must be written under `temp/`, for example:
+
+```text
+temp/project-arbor-final-smoke-data.json
+temp/project-arbor-final-smoke-report.md
 ```
 
 Browser smoke must cover:

@@ -4,6 +4,7 @@ import type {
   ScreenPoint
 } from "gizmo-core";
 import type { Actor, ComponentType } from "actor-core";
+import type { UiElementComponent } from "ui-framework";
 import { actorInputScopeRoutePriority } from "actor-input";
 import type {
   ActorInputCancelEvent,
@@ -36,9 +37,10 @@ export class Camera3GizmoComponent implements ActorInputParticipant {
   enabled = true;
   readonly gizmo: Camera3Gizmo;
 
-  constructor(actor: Actor, options: Camera3GizmoComponentOptions) {
+  constructor(actor: Actor, uiElement: UiElementComponent, options: Camera3GizmoComponentOptions) {
     this.actor = actor;
     this.gizmo = (options.createGizmo ?? ((gizmoOptions) => new Camera3Gizmo(gizmoOptions)))(options);
+    uiElement.element.append(this.gizmo.element);
   }
 
   get inputStackPriority(): number {

@@ -26,6 +26,7 @@ import {
   GizmoControllerAttachmentRuntime,
   isActorInputParticipant
 } from "actor-input";
+import { installUiComponentDefinitions, uiElementComponentType } from "ui-framework";
 import type {
   RuntimeCameraCommandSink,
   RuntimeCameraControlCommand,
@@ -64,6 +65,44 @@ class TestCompositeAttachmentRuntime implements ComponentAttachmentRuntime {
   }
 }
 
+class FakeDocument {
+  createElement(tagName: string): FakeElement {
+    return new FakeElement(this, tagName);
+  }
+}
+
+class FakeElement {
+  readonly ownerDocument: FakeDocument;
+  readonly tagName: string;
+  readonly dataset: Record<string, string | undefined> = {};
+  readonly style: Record<string, string | undefined> = {};
+  readonly children: unknown[] = [];
+  className = "";
+  parentElement: FakeElement | null = null;
+
+  constructor(ownerDocument: FakeDocument, tagName: string) {
+    this.ownerDocument = ownerDocument;
+    this.tagName = tagName;
+  }
+
+  append(...children: Array<{ remove(): void; parentElement?: FakeElement | null }>): void {
+    for (const child of children) {
+      child.remove();
+      child.parentElement = this;
+      this.children.push(child);
+    }
+  }
+
+  remove(): void {
+    if (!this.parentElement) return;
+    const index = this.parentElement.children.indexOf(this);
+    if (index >= 0) {
+      this.parentElement.children.splice(index, 1);
+    }
+    this.parentElement = null;
+  }
+}
+
 function createRegistration(label: string, calls: string[]): TestRegistration {
   return {
     dispose() {
@@ -75,6 +114,7 @@ function createRegistration(label: string, calls: string[]): TestRegistration {
 function createContext() {
   const calls: string[] = [];
   const registeredGizmos: GizmoController[] = [];
+  const document = new FakeDocument();
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({
     actorSystem,
@@ -104,8 +144,9 @@ function createContext() {
     }
   };
   installComponentDefinition(componentRegistry, gizmoEventBindingComponentDefinition);
+  installUiComponentDefinitions(componentRegistry);
   installCamera3ComponentDefinitions(componentRegistry);
-  return { calls, context, registeredGizmos, trackedActors };
+  return { calls, context, document, registeredGizmos, trackedActors };
 }
 
 function createCommandSink(commands: RuntimeCameraControlCommand[]): RuntimeCameraCommandSink {
@@ -229,14 +270,15 @@ function createClickEvent(gizmo: GizmoController, hit: GizmoHit): GizmoClickEven
 
 describe("createCamera3GizmoActor", () => {
   it("creates an actor and returns a RegisteredActor handle", () => {
-    const { context } = createContext();
+    const { context, document } = createContext();
     const commands: RuntimeCameraControlCommand[] = [];
     const { createGizmo } = createFakeGizmoFactory([], commands);
 
     const handle = createCamera3GizmoActor(context, {
       actorId: "camera-actor",
       initialViewState: createViewState(),
-      commandSink: createCommandSink(commands)
+      commandSink: createCommandSink(commands),
+      document: document as unknown as Document
     }, createGizmo);
 
     expect(handle.actor.id).toBe("camera-actor");
@@ -246,7 +288,7 @@ describe("createCamera3GizmoActor", () => {
   });
 
   it("parents the actor when parentActor is provided", () => {
-    const { context } = createContext();
+    const { context, document } = createContext();
     const sceneActor = context.actorSystem.createActor({ id: "scene-window" });
     const commands: RuntimeCameraControlCommand[] = [];
     const { createGizmo } = createFakeGizmoFactory([], commands);
@@ -255,20 +297,22 @@ describe("createCamera3GizmoActor", () => {
       actorId: "camera-actor",
       parentActor: sceneActor,
       initialViewState: createViewState(),
-      commandSink: createCommandSink(commands)
+      commandSink: createCommandSink(commands),
+      document: document as unknown as Document
     }, createGizmo);
 
     expect(context.actorSystem.getParent(handle.actor)).toBe(sceneActor);
   });
 
   it("auto-adds GizmoEventBindingComponent and registers the binding only once", () => {
-    const { calls, context, registeredGizmos } = createContext();
+    const { calls, context, document, registeredGizmos } = createContext();
     const { createGizmo } = createFakeGizmoFactory(calls);
 
     const handle = createCamera3GizmoActor(context, {
       actorId: "camera-actor",
       initialViewState: createViewState(),
-      commandSink: createCommandSink([])
+      commandSink: createCommandSink([]),
+      document: document as unknown as Document
     }, createGizmo);
 
     expect(handle.actor.hasComponent(gizmoEventBindingComponentType)).toBe(true);
@@ -278,30 +322,34 @@ describe("createCamera3GizmoActor", () => {
     ]);
   });
 
-  it("passes the configured parent element to the wrapped gizmo", () => {
-    const { context } = createContext();
-    const parent = { id: "scene-overlay" } as unknown as HTMLElement;
-    const { createGizmo, receivedOptions } = createFakeGizmoFactory([]);
+  it("hosts the wrapped gizmo in the actor UI element", () => {
+    const { context, document } = createContext();
+    const { createGizmo, created, receivedOptions } = createFakeGizmoFactory([]);
 
-    createCamera3GizmoActor(context, {
+    const handle = createCamera3GizmoActor(context, {
       actorId: "camera-actor",
       initialViewState: createViewState(),
       commandSink: createCommandSink([]),
-      parent
+      document: document as unknown as Document
     }, createGizmo);
+    const uiElement = handle.actor.getComponent(uiElementComponentType);
 
     expect(receivedOptions).toHaveLength(1);
-    expect(receivedOptions[0]?.parent).toBe(parent);
+    expect("parent" in receivedOptions[0]!).toBe(false);
+    expect((uiElement?.element as unknown as FakeElement).children).toEqual([
+      created[0]?.element
+    ]);
   });
 
   it("routes move and double-click events through the binding to the wrapped gizmo", () => {
-    const { context, registeredGizmos } = createContext();
+    const { context, document, registeredGizmos } = createContext();
     const commands: RuntimeCameraControlCommand[] = [];
     const { createGizmo } = createFakeGizmoFactory([], commands);
     createCamera3GizmoActor(context, {
       actorId: "camera-actor",
       initialViewState: createViewState(),
-      commandSink: createCommandSink(commands)
+      commandSink: createCommandSink(commands),
+      document: document as unknown as Document
     }, createGizmo);
     const binding = registeredGizmos[0];
     if (!binding) throw new Error("Expected registered binding.");
@@ -329,7 +377,7 @@ describe("createCamera3GizmoActor", () => {
   });
 
   it("routes projection mode clicks through actor input instead of DOM click handlers", () => {
-    const { context, registeredGizmos } = createContext();
+    const { context, document, registeredGizmos } = createContext();
     const commands: RuntimeCameraControlCommand[] = [];
     const { createGizmo } = createFakeGizmoFactory([], commands, {
       gizmoId: "camera3-view-gizmo",
@@ -340,7 +388,8 @@ describe("createCamera3GizmoActor", () => {
     createCamera3GizmoActor(context, {
       actorId: "camera-actor",
       initialViewState: createViewState(),
-      commandSink: createCommandSink(commands)
+      commandSink: createCommandSink(commands),
+      document: document as unknown as Document
     }, createGizmo);
     const binding = registeredGizmos[0];
     if (!binding) throw new Error("Expected registered binding.");
@@ -355,12 +404,13 @@ describe("createCamera3GizmoActor", () => {
   });
 
   it("disposes the actor handle and wrapped gizmo", () => {
-    const { calls, context } = createContext();
+    const { calls, context, document } = createContext();
     const { createGizmo } = createFakeGizmoFactory(calls);
     const handle = createCamera3GizmoActor(context, {
       actorId: "camera-actor",
       initialViewState: createViewState(),
-      commandSink: createCommandSink([])
+      commandSink: createCommandSink([]),
+      document: document as unknown as Document
     }, createGizmo);
     calls.length = 0;
 
@@ -377,12 +427,13 @@ describe("createCamera3GizmoActor", () => {
   });
 
   it("cancels active drag when the actor is destroyed", () => {
-    const { calls, context, registeredGizmos } = createContext();
+    const { calls, context, document, registeredGizmos } = createContext();
     const { createGizmo } = createFakeGizmoFactory(calls);
     const handle = createCamera3GizmoActor(context, {
       actorId: "camera-actor",
       initialViewState: createViewState(),
-      commandSink: createCommandSink([])
+      commandSink: createCommandSink([]),
+      document: document as unknown as Document
     }, createGizmo);
     const binding = registeredGizmos[0];
     if (!binding) throw new Error("Expected registered binding.");

@@ -1,10 +1,8 @@
 import type { ComponentDefinition } from "../../../actor-runtime";
 import {
-  sceneViewportComponentType
-} from "editor";
-import {
   camera3MotionComponentType
 } from "wallpaper-runtime";
+import { renderViewportComponentType } from "ui-framework";
 import {
   getCamera3GizmoComponent,
   SceneCamera3ViewportBindingComponent,
@@ -17,7 +15,6 @@ export const sceneCamera3ViewportBindingComponentDefinition:
     type: sceneCamera3ViewportBindingComponentType,
     singleton: true,
     requires: [
-      { type: sceneViewportComponentType, autoAdd: false },
       { type: camera3MotionComponentType, autoAdd: true }
     ],
     createId(_actor, options) {
@@ -27,12 +24,18 @@ export const sceneCamera3ViewportBindingComponentDefinition:
       if (!options?.camera3GizmoActorId) {
         throw new Error("SceneCamera3ViewportBindingComponent options.camera3GizmoActorId is required.");
       }
-      const viewport = context.componentRegistry.getComponent(actor, sceneViewportComponentType);
+      if (!options.renderViewportActorId) {
+        throw new Error("SceneCamera3ViewportBindingComponent options.renderViewportActorId is required.");
+      }
+      const renderViewportActor = context.actorSystem.getActor(options.renderViewportActorId);
+      const viewport = renderViewportActor
+        ? context.componentRegistry.getComponent(renderViewportActor, renderViewportComponentType)
+        : null;
       const motion = context.componentRegistry.getComponent(actor, camera3MotionComponentType);
       const camera3Actor = context.actorSystem.getActor(options.camera3GizmoActorId);
       const gizmo = camera3Actor ? getCamera3GizmoComponent(camera3Actor) : null;
       if (!viewport || !motion || !gizmo) {
-        throw new Error("SceneCamera3ViewportBindingComponent requires Scene viewport, Camera3 motion, and gizmo.");
+        throw new Error("SceneCamera3ViewportBindingComponent requires render viewport, Camera3 motion, and gizmo.");
       }
       return new SceneCamera3ViewportBindingComponent(actor, options, {
         viewport,

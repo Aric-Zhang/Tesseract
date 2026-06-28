@@ -1,12 +1,10 @@
 import type { Actor, Component, ComponentType } from "../../../actor-runtime";
 import type { RuntimeCameraViewState, RuntimeRegistration } from "runtime-core";
 import {
-  SceneViewportComponent
-} from "editor";
-import {
   Camera3GizmoComponent,
   camera3GizmoComponentType
 } from "editor";
+import type { RenderViewportComponent } from "ui-framework";
 
 export const sceneCamera3ViewportBindingComponentType =
   "scene-camera3-viewport-binding-component" as ComponentType<SceneCamera3ViewportBindingComponent>;
@@ -14,6 +12,7 @@ export const sceneCamera3ViewportBindingComponentType =
 export interface SceneCamera3ViewportBindingComponentOptions {
   readonly id?: string;
   readonly camera3GizmoActorId: string;
+  readonly renderViewportActorId: string;
 }
 
 export interface SceneCamera3MotionPort {
@@ -34,7 +33,7 @@ export class SceneCamera3ViewportBindingComponent implements Component {
     actor: Actor,
     options: SceneCamera3ViewportBindingComponentOptions,
     services: {
-      readonly viewport: SceneViewportComponent;
+      readonly viewport: RenderViewportComponent;
       readonly motion: SceneCamera3MotionPort;
       readonly gizmo: Camera3GizmoComponent;
     }

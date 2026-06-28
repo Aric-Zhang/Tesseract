@@ -9,8 +9,7 @@ import {
   hierarchyPanelComponentType,
   camera3GizmoComponentType,
   installEditorComponentDefinitions,
-  sceneModeToggleComponentType,
-  sceneViewportComponentType,
+  sceneViewContentComponentType,
   stateObserverBindingComponentType
 } from "editor";
 import {
@@ -18,9 +17,11 @@ import {
   installWallpaperRuntimeComponentDefinitions
 } from "wallpaper-runtime";
 import {
-  installSceneComponentDefinitions,
-  sceneCamera3ViewportBindingComponentType
+  installSceneIntegrationComponentDefinitions
 } from "./features/scene/components";
+import {
+  sceneCamera3ViewportBindingComponentType
+} from "./features/scene/components/scene-camera3-viewport-binding-component";
 import {
   floatingWindowComponentType,
   installWindowComponentDefinitions
@@ -48,8 +49,7 @@ describe("component definition installers", () => {
     installEditorComponentDefinitions(registry);
 
     expect(registry.getDefinition(stateObserverBindingComponentType).type).toBe(stateObserverBindingComponentType);
-    expect(registry.getDefinition(sceneViewportComponentType).type).toBe(sceneViewportComponentType);
-    expect(registry.getDefinition(sceneModeToggleComponentType).type).toBe(sceneModeToggleComponentType);
+    expect(registry.getDefinition(sceneViewContentComponentType).type).toBe(sceneViewContentComponentType);
     expect(registry.getDefinition(camera3GizmoComponentType).type).toBe(camera3GizmoComponentType);
     expect(registry.getDefinition(debugLogContentComponentType).type).toBe(debugLogContentComponentType);
     expect(registry.getDefinition(hierarchyPanelComponentType).type).toBe(hierarchyPanelComponentType);
@@ -75,7 +75,7 @@ describe("component definition installers", () => {
     const registry = createRegistry();
 
     installWallpaperRuntimeComponentDefinitions(registry);
-    installSceneComponentDefinitions(registry);
+    installSceneIntegrationComponentDefinitions(registry);
 
     expect(registry.getDefinition(camera3MotionComponentType).type).toBe(camera3MotionComponentType);
     expect(registry.getDefinition(sceneCamera3ViewportBindingComponentType).type).toBe(

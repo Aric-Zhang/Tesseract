@@ -1,17 +1,18 @@
-.camera3-gizmo {
-  position: fixed;
+.camera3-gizmo-host {
+  position: absolute;
   top: 22px;
   right: 22px;
+  width: 132px;
+  pointer-events: auto;
+}
+
+.camera3-gizmo {
+  position: relative;
   z-index: 10;
   width: 132px;
   color: #d6dde5;
   user-select: none;
   pointer-events: auto;
-}
-
-.scene-window__overlay .camera3-gizmo {
-  position: absolute;
-  z-index: 1;
 }
 
 .camera3-gizmo__canvas {

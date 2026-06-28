@@ -2,7 +2,6 @@ import type { ActorCreationContext } from "actor-core";
 import {
   createCamera3GizmoActor,
   createDefaultSceneWindowState,
-  createEditorSceneViewHost,
   createSceneViewActor,
   editorWindowLayoutPaths,
   registerSceneWindowParameters,
@@ -10,10 +9,14 @@ import {
   SCENE_WINDOW_MIN_WIDTH,
   SCENE_WINDOW_PRIORITY_DEVELOP,
   type Camera3GizmoViewFactory,
-  type RegisteredSceneViewActor,
-  type SceneViewportResizeObserverFactory
+  type RegisteredSceneViewActor
 } from "editor";
 import type { AppStateParameterStore } from "editor";
+import type {
+  FullscreenableViewIntent,
+  FullscreenableViewIntentSink,
+  RenderViewportResizeObserverFactory
+} from "ui-framework";
 import type {
   WindowViewFactoryRegistry,
   WindowViewLocationSource
@@ -26,11 +29,12 @@ import type {
 import { WORKSPACE_ROOT_FRAME_ID } from "../../window-runtime";
 import {
   RuntimeSceneViewRuntimeRegistry,
+  type RuntimeSceneViewVisibilityPort,
   type RuntimeSceneViewRuntime
 } from "wallpaper-runtime";
 import {
   sceneCamera3ViewportBindingComponentType
-} from "./components";
+} from "./components/scene-camera3-viewport-binding-component";
 
 const SCENE_VIEW_WINDOW_ACTOR_ID = "scene-window";
 const SCENE_VIEW_WINDOW_ACTOR_NAME = "Scene";
@@ -38,6 +42,7 @@ const SCENE_VIEW_ACTOR_ID = `${SCENE_VIEW_WINDOW_ACTOR_ID}:view`;
 const SCENE_VIEW_ACTOR_NAME = `${SCENE_VIEW_WINDOW_ACTOR_NAME} View`;
 const SCENE_VIEW_CAMERA_ACTOR_ID = `${SCENE_VIEW_ACTOR_ID}:camera-3`;
 const SCENE_VIEW_CAMERA_ACTOR_NAME = "Camera3";
+const CAMERA3_GIZMO_OVERLAY_LAYER = 100;
 
 export interface InstallSceneViewFeatureOptions {
   readonly context: ActorCreationContext;
@@ -45,9 +50,15 @@ export interface InstallSceneViewFeatureOptions {
   readonly runtimeSceneViews: RuntimeSceneViewRuntimeRegistry;
   readonly viewFactories: WindowViewFactoryRegistry;
   readonly locations: WindowViewLocationSource;
-  readonly createResizeObserver?: SceneViewportResizeObserverFactory;
+  readonly workspacePresentation: SceneFullscreenPresentationPort;
+  readonly createResizeObserver?: RenderViewportResizeObserverFactory;
   readonly createCamera3GizmoView?: Camera3GizmoViewFactory;
   readonly devicePixelRatio?: () => number;
+}
+
+export interface SceneFullscreenPresentationPort {
+  enterRunFullscreenForView(viewActorId: string, reason: "programmatic"): void;
+  exitRunFullscreen(reason: "programmatic"): void;
 }
 
 function createSceneWindowWorkspaceFloatingFramePolicy(
@@ -95,6 +106,13 @@ export function installSceneViewFeature(options: InstallSceneViewFeatureOptions)
         id: `${SCENE_VIEW_WINDOW_ACTOR_ID}:view:render-output`
       });
       try {
+        const fullscreenIntentSink: FullscreenableViewIntentSink = {
+          requestFullscreen(intent) {
+            handleSceneFullscreenIntent(intent, sceneView, options.workspacePresentation, () => {
+              options.runtimeSceneViews.measureCurrentView();
+            });
+          }
+        };
         sceneView = createSceneViewActor(options.context, {
           actorId: SCENE_VIEW_ACTOR_ID,
           actorName: SCENE_VIEW_ACTOR_NAME,
@@ -104,33 +122,41 @@ export function installSceneViewFeature(options: InstallSceneViewFeatureOptions)
           createResizeObserver: options.createResizeObserver,
           devicePixelRatio: options.devicePixelRatio,
           contentId: createWindowWorkspaceContentId(createOptions.identity),
-          contentRegistration: createOptions.contentRegistration
+          contentRegistration: createOptions.contentRegistration,
+          fullscreenIntentSink
         });
-        const host = createEditorSceneViewHost({
+        const presentation = createSceneRenderViewPresentation({
+          sceneView,
           actorSystem: options.context.actorSystem,
-          locations: options.locations,
-          sceneView
+          locations: options.locations
         });
         const runtimeContent = runtimeScene.attachSceneView({
           context: options.context,
-          sceneActor: sceneView.viewport.actor,
-          presentation: host
+          sceneActor: sceneView.sceneActor,
+          presentation
         });
         const camera3Gizmo = createCamera3GizmoActor(options.context, {
           actorId: SCENE_VIEW_CAMERA_ACTOR_ID,
           actorName: SCENE_VIEW_CAMERA_ACTOR_NAME,
           initialViewState: runtimeContent.camera3Motion.readViewState(),
           commandSink: runtimeContent.camera3Motion,
-          parent: sceneView.viewport.overlayElement,
-          parentActor: sceneView.viewport.actor
+          parentActor: sceneView.sceneActor,
+          document: options.mount.ownerDocument ?? undefined,
+          layoutItem: {
+            id: "scene-camera3-overlay-layout-item",
+            slot: "overlay",
+            layer: CAMERA3_GIZMO_OVERLAY_LAYER,
+            stretch: "none"
+          }
         }, options.createCamera3GizmoView);
-        options.context.componentRegistry.addComponent(sceneView.viewport.actor, sceneCamera3ViewportBindingComponentType, {
-          camera3GizmoActorId: camera3Gizmo.actor.id
+        options.context.componentRegistry.addComponent(sceneView.sceneActor, sceneCamera3ViewportBindingComponentType, {
+          camera3GizmoActorId: camera3Gizmo.actor.id,
+          renderViewportActorId: sceneView.worldRenderActor.id
         });
         const installedSceneView = sceneView;
         return {
-          viewActor: installedSceneView.viewport.actor,
-          content: installedSceneView.viewport,
+          viewActor: installedSceneView.sceneActor,
+          content: installedSceneView.content,
           title: SCENE_VIEW_WINDOW_ACTOR_NAME,
           disposeViewRuntime: () => {
             try {
@@ -150,4 +176,45 @@ export function installSceneViewFeature(options: InstallSceneViewFeatureOptions)
       }
     }
   });
+}
+
+function createSceneRenderViewPresentation(options: {
+  readonly sceneView: RegisteredSceneViewActor;
+  readonly actorSystem: ActorCreationContext["actorSystem"];
+  readonly locations: WindowViewLocationSource;
+}): RuntimeSceneViewVisibilityPort {
+  const viewActorId = options.sceneView.sceneActor.id;
+  return {
+    viewActorId,
+    measureNow() {
+      options.sceneView.renderViewport.measureNow();
+    },
+    isVisibleInCurrentLocation() {
+      const location = options.locations.getLocationByViewActorId(viewActorId);
+      return location !== null &&
+        location.ownerFrameVisible &&
+        location.ownerFrameActiveInHierarchy &&
+        location.visibleInFrame &&
+        options.actorSystem.hasActor(options.sceneView.sceneActor) &&
+        options.actorSystem.isActorActive(options.sceneView.sceneActor);
+    }
+  };
+}
+
+function handleSceneFullscreenIntent(
+  intent: FullscreenableViewIntent,
+  sceneView: RegisteredSceneViewActor | null,
+  presentation: SceneFullscreenPresentationPort,
+  onPresentationChanged: () => void
+): void {
+  if (!sceneView) return;
+  if (intent.sourceActorId !== sceneView.worldRenderActor.id) return;
+  if (intent.kind === "enter") {
+    presentation.enterRunFullscreenForView(sceneView.sceneActor.id, "programmatic");
+    sceneView.fullscreenableView.setFullscreen(true);
+  } else {
+    presentation.exitRunFullscreen("programmatic");
+    sceneView.fullscreenableView.setFullscreen(false);
+  }
+  onPresentationChanged();
 }

@@ -1,6 +1,6 @@
 # Current Project Progress
 
-Last updated: 2026-06-29
+Last updated: 2026-06-30
 
 This document is the mutable project-status companion to `AGENTS.md`. Keep
 phase status, package lists, source topology, active plans, and verification
@@ -121,7 +121,7 @@ $env:PROJECT_ARBOR_GATE_7_THEME_SMOKE_EVIDENCE="temp/project-arbor-gate-7-theme-
 `ARB-001` remains a non-blocking follow-up for a deterministic large Hierarchy
 browser fixture. It does not block the accepted Arbor architecture baseline.
 
-## Next Architecture Plan
+## Project Canopy Status
 
 - `docs/project-canopy-package-consolidation-plan.md` is the active package
   granularity plan. It evaluates consolidating the currently small actor/input/
@@ -157,8 +157,19 @@ browser fixture. It does not block the accepted Arbor architecture baseline.
   `scripts/run-workspace-sequence.mjs`, backed by the side-effect-free
   `scripts/workspace-sequence-config.mjs` sequence matrix. Package exports,
   dependencies, TypeScript references, app imports, and runtime behavior were
-  not changed by Gate 3. The current uncommitted worktree is a combined Gate 2
-  + Gate 3 checkpoint.
+  not changed by Gate 3. Gate 2 and Gate 3 were committed together as
+  `acc24120`.
+- Canopy Gate 4 is planned in
+  `docs/project-canopy-gate-4-runtime-consolidation-decision-plan.md` and is
+  complete. The decision report is
+  `docs/project-canopy-gate-4-runtime-consolidation-report.md`. Runtime/math
+  packages stay in their current shape: `runtime-core`, `runtime-three`,
+  `wallpaper-runtime`, `four-rotation`, `four-camera`, and
+  `four-camera-three` still protect distinct contract/backend/product/math
+  boundaries. No runtime merge implementation plan is created.
+
+Project Canopy is complete as of 2026-06-30. Future package consolidation
+should start from a new reviewed plan, not by extending Canopy by default.
 
 Current package graph baseline:
 

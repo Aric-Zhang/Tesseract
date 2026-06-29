@@ -1,8 +1,8 @@
 # Project Canopy: Package Consolidation And Submodule Boundary Plan
 
-Status: `planned`
+Status: `completed`
 
-Last updated: 2026-06-29
+Last updated: 2026-06-30
 
 ## Purpose
 
@@ -545,10 +545,19 @@ Exit criteria:
 
 ## Gate 4: Runtime Consolidation Decision
 
+Status: completed as of 2026-06-30. Decision: keep the current runtime/math
+package shape; no runtime merge implementation plan is created.
+
 Goal: decide, after actor/UI consolidation, whether runtime package granularity
 still creates enough friction to justify another package move.
 
 This is a decision gate, not an automatic implementation gate.
+
+Detailed execution plan:
+
+```text
+docs/project-canopy-gate-4-runtime-consolidation-decision-plan.md
+```
 
 Questions:
 
@@ -572,6 +581,12 @@ Exit criteria:
 
 - A short decision record is added to `docs/current-project-progress.md` or a
   new plan is created only if a runtime merge is justified.
+
+Decision report:
+
+```text
+docs/project-canopy-gate-4-runtime-consolidation-report.md
+```
 
 ## Final Validation
 

@@ -319,7 +319,12 @@ implements Component, ActorInputParticipant {
   private readonly handlePointerMove = (event: PointerEvent): void => {
     if (!this.#open || this.#disposed) return;
     const entry = this.findItemForTarget(event.target);
-    this.setHighlightedItemActorId(entry?.item.itemEnabled ? entry.actor.id : null);
+    if (entry) {
+      this.setHighlightedItemActorId(entry.item.itemEnabled ? entry.actor.id : null);
+      return;
+    }
+    if (this.isPointInsideOpenSubmenuBridge(readPointerEventPoint(event))) return;
+    this.setHighlightedItemActorId(null);
   };
 
   private readonly handleDocumentKeyDown = (event: KeyboardEvent): void => {
@@ -357,6 +362,19 @@ implements Component, ActorInputParticipant {
     if (!target) return null;
     return this.listItems().find(({ item }) => isNodeInsideElement(target, item.element)) ?? null;
   }
+
+  private isPointInsideOpenSubmenuBridge(point: ScreenPoint): boolean {
+    if (!this.#openSubmenuItemActorId) return false;
+    const openEntry = this.listItems().find((entry) => entry.actor.id === this.#openSubmenuItemActorId);
+    if (!openEntry) return false;
+    const submenu = this.findSubmenuPopupForItem(openEntry.actor);
+    if (!submenu?.open) return false;
+    return isPointInsideSubmenuBridge(
+      point,
+      openEntry.item.element.getBoundingClientRect(),
+      submenu.element.getBoundingClientRect()
+    );
+  }
 }
 
 function readItemActorId(data: unknown): string | null {
@@ -367,6 +385,29 @@ function readItemActorId(data: unknown): string | null {
 
 function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {
   return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
+}
+
+function readPointerEventPoint(event: PointerEvent): ScreenPoint {
+  return {
+    x: event.clientX,
+    y: event.clientY
+  };
+}
+
+function isPointInsideSubmenuBridge(
+  point: ScreenPoint,
+  itemRect: DOMRectReadOnly,
+  submenuRect: DOMRectReadOnly
+): boolean {
+  const horizontalGapStart = Math.min(itemRect.right, submenuRect.right);
+  const horizontalGapEnd = Math.max(itemRect.left, submenuRect.left);
+  if (horizontalGapStart > horizontalGapEnd) return false;
+  const verticalStart = itemRect.top;
+  const verticalEnd = itemRect.bottom;
+  return point.x >= horizontalGapStart &&
+    point.x <= horizontalGapEnd &&
+    point.y >= verticalStart &&
+    point.y <= verticalEnd;
 }
 
 function isNodeInsideElement(target: EventTarget | null, element: HTMLElement): boolean {
@@ -393,20 +434,23 @@ function positionSubmenuPopup(itemElement: HTMLElement, popupElement: HTMLElemen
   const itemRect = itemElement.getBoundingClientRect();
   const popupRect = popupElement.getBoundingClientRect();
   const viewport = readViewportSize(itemElement.ownerDocument);
-  const offset = 4;
-  const wouldOverflowRight = itemRect.right + offset + popupRect.width > viewport.width;
-  const fitsLeft = itemRect.left - offset - popupRect.width >= 0;
+  const viewportPadding = 4;
+  const wouldOverflowRight = itemRect.right + popupRect.width > viewport.width;
+  const fitsLeft = itemRect.left - popupRect.width >= 0;
   if (wouldOverflowRight && fitsLeft) {
     popupElement.style.left = "auto";
-    popupElement.style.right = `calc(100% + ${offset}px)`;
+    popupElement.style.right = "100%";
   } else {
-    popupElement.style.left = `calc(100% + ${offset}px)`;
+    popupElement.style.left = "100%";
     popupElement.style.right = "auto";
   }
 
-  const wouldOverflowBottom = itemRect.top + popupRect.height > viewport.height - offset;
+  const wouldOverflowBottom = itemRect.top + popupRect.height > viewport.height - viewportPadding;
   const top = wouldOverflowBottom
-    ? Math.max(offset - itemRect.top, viewport.height - popupRect.height - itemRect.top - offset)
+    ? Math.max(
+      viewportPadding - itemRect.top,
+      viewport.height - popupRect.height - itemRect.top - viewportPadding
+    )
     : 0;
   popupElement.style.top = `${top}px`;
 }

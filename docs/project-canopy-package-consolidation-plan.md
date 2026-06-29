@@ -21,11 +21,10 @@ The goal is to make the extracted architecture easier to consume.
 
 Current workspace packages:
 
-- `actor-core`: actor system, actor tree, component definitions, component
-  registry, lifecycle, and actor creation context.
-- `actor-input`: actor input participant/binding layer over `actor-core` and
-  `gizmo-core`.
-- `gizmo-core`: framework-agnostic pointer/gizmo event model.
+- `actor-system`: consolidated actor package with explicit `actor-system/core`,
+  `actor-system/input`, and `actor-system/gizmo` submodule exports. Gate 1
+  deleted the former `actor-core`, `actor-input`, and `gizmo-core` packages
+  instead of preserving compatibility shells.
 - `ui-framework`: product-agnostic UI/window/app-shell controls, layout, menu,
   theme, docking, frame lifecycle, and persistence.
 - `runtime-core`: renderer-agnostic runtime contracts.
@@ -37,11 +36,10 @@ Current workspace packages:
 
 Current pain points:
 
-- Actor-backed feature work usually needs `actor-core`, `actor-input`, and
-  `gizmo-core` together. Their package split is clean internally but awkward as
-  a consumer surface.
-- Root scripts and workspace dependency ordering are noisy because each small
-  foundational package is built/tested separately.
+- Gate 1 closed the actor foundation package split. Historical pre-Gate-1
+  actor-backed feature work usually needed `actor-core`, `actor-input`, and
+  `gizmo-core` together; current code depends on one `actor-system` package and
+  imports explicit submodules.
 - `ui-framework` has become the correct umbrella for product-agnostic UI, but
   its public root barrel can hide which sub-area a feature really needs.
 - Further package extraction would likely add ceremony before it removes
@@ -101,9 +99,10 @@ Consumer intent:
 - Interactive actor features import `actor-system/input`.
 - Low-level pointer/gizmo code imports `actor-system/gizmo`.
 - Apps that want the whole actor subsystem depend on one package, not three.
-- Production code should prefer explicit submodule imports. The package root
-  export must stay tiny and curated; it is not a replacement for the old three
-  package names and must not become a "grab everything" barrel.
+- Production code must use explicit submodule imports. Gate 1 intentionally did
+  not create an `actor-system` root export; if a root export is ever needed, it
+  requires a reviewed follow-up plan rather than an opportunistic convenience
+  barrel.
 
 ### UI Framework Package
 

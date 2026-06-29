@@ -200,7 +200,7 @@ Verification completed:
 
 Status: `watch`
 
-Area: `packages/gizmo-core/src/gizmo-event-system.ts`
+Area: `packages/actor-system/src/gizmo/gizmo-event-system.ts`
 
 Evidence:
 

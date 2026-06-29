@@ -145,6 +145,13 @@ export function parseStaticExportFrom(source: string): StaticModuleImport[] {
   return parseExportFromDeclarations(source);
 }
 
+export function barePackageName(specifier: string): string {
+  if (specifier.startsWith("@")) {
+    return specifier.split("/").slice(0, 2).join("/");
+  }
+  return specifier.split("/")[0] ?? specifier;
+}
+
 export function listModuleEdges(files: Record<string, string> = sourceFiles): ModuleEdge[] {
   const paths = new Set(Object.keys(files));
   const edges: ModuleEdge[] = [];
@@ -238,7 +245,10 @@ export function resolveImportSpecifier(
   const candidates = [
     basePath,
     `${basePath}.ts`,
-    `${basePath}/index.ts`
+    `${basePath}/index.ts`,
+    basePath.replace(/^\.\//, ""),
+    `${basePath}.ts`.replace(/^\.\//, ""),
+    `${basePath}/index.ts`.replace(/^\.\//, "")
   ];
   return candidates.find((candidate) => availableFiles.has(candidate)) ?? null;
 }

@@ -1,6 +1,6 @@
 # Project Canopy Gate 0: Package Graph Baseline Plan
 
-Status: `planned`
+Status: `complete`
 
 Last updated: 2026-06-29
 
@@ -448,3 +448,43 @@ Gate 1 may start only after Gate 0 is committed. Gate 1 should reuse the Gate 0
 helpers instead of writing new import scanners. The first Gate 1 code change
 should be creating `packages/actor-system` and moving source into the submodule
 shape that Gate 0 already knows how to validate.
+
+## Completion Record
+
+Implemented on 2026-06-29.
+
+Production code was not changed. Gate 0 added the reusable package graph helper
+at:
+
+```text
+apps/wallpaper-tesseract/src/test-support/package-graph-boundaries.ts
+```
+
+and strengthened:
+
+```text
+apps/wallpaper-tesseract/src/architecture-boundaries.test.ts
+apps/wallpaper-tesseract/src/test-support/architecture-boundaries.ts
+```
+
+Locked checks:
+
+- workspace package descriptors cover every current workspace package;
+- production source filtering is centralized through `isProductionSourceFile`;
+- undeclared workspace imports remain a hard gate;
+- manifest dependency cycles are a hard gate;
+- current package zone dependency rules cover bare imports and resolved relative
+  imports;
+- future `actor-system/core`, `actor-system/input`, and `actor-system/gizmo`
+  submodule fixtures catch bare subpath imports, root import bypasses, and
+  relative cross-submodule imports.
+
+Validation:
+
+```text
+npm run test -w wallpaper-tesseract -- architecture-boundaries
+npm run typecheck -w wallpaper-tesseract
+npm run test
+npm run typecheck
+npm run build
+```

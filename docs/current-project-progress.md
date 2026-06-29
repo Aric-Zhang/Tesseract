@@ -128,10 +128,31 @@ browser fixture. It does not block the accepted Arbor architecture baseline.
   gizmo packages into one coherent actor-system package and tightening
   `ui-framework` submodule boundaries so reusable feature development needs
   fewer package-level dependencies without creating compatibility barrels. The
-  first executable slice is
-  `docs/project-canopy-gate-0-package-graph-baseline-plan.md`, which must lock
-  package graph, cycle, undeclared workspace import, and future actor-system
-  submodule boundary tests before any package files move.
+  first executable slice,
+  `docs/project-canopy-gate-0-package-graph-baseline-plan.md`, is complete. It
+  added package graph descriptors, centralized production source filtering,
+  manifest cycle detection, undeclared workspace import checks, current package
+  zone dependency rules, and future `actor-system/core|input|gizmo` submodule
+  boundary fixtures before any package files moved.
+
+Current package graph baseline:
+
+```text
+actor-core -> []
+gizmo-core -> []
+actor-input -> [actor-core, gizmo-core]
+ui-framework -> [actor-core, actor-input]
+runtime-core -> []
+runtime-three -> [four-camera, four-camera-three, runtime-core]
+wallpaper-runtime -> [actor-core, four-camera, four-rotation, runtime-core, runtime-three]
+editor -> [actor-core, actor-input, gizmo-core, runtime-core, ui-framework]
+four-rotation -> []
+four-camera -> [four-rotation]
+four-camera-three -> [four-camera]
+wallpaper-tesseract -> [actor-core, actor-input, editor, gizmo-core, runtime-core, runtime-three, ui-framework, wallpaper-runtime]
+```
+
+Gate 1 must reuse the Gate 0 helpers instead of writing a second import scanner.
 
 Post-closure temp cleanup is complete for Project Prism and Project Arbor.
 Tracked Project Prism Final Gate evidence remains under `temp/`. Arbor smoke

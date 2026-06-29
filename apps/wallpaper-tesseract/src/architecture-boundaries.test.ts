@@ -23,6 +23,22 @@ import {
   projectPrismUiFrameworkExtractionBlockers,
   projectPrismZoneDependencyRules
 } from "./test-support/project-prism-boundary-facts";
+import {
+  collectProductionWorkspaceSources,
+  createWorkspacePackageGraph,
+  currentPackageDependencyRules,
+  defineSubmoduleZone,
+  evaluatePackageDependencyRules,
+  evaluateSubmoduleDependencyRules,
+  findPackageDependencyCycles,
+  findUndeclaredWorkspaceImports,
+  isProductionSourceFile,
+  listWorkspaceManifestDirectories,
+  readWorkspacePackageManifest,
+  workspacePackageDescriptors,
+  type WorkspacePackageGraphNode,
+  type WorkspacePackageManifest
+} from "./test-support/package-graph-boundaries";
 
 describe("architecture boundaries", () => {
   const actorInputPackageSources = collectWorkspaceSourceFiles("packages/actor-input/src");
@@ -155,51 +171,234 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps workspace package production imports declared in package manifests", () => {
-    const packageDirs = [
-      "packages/actor-core",
-      "packages/actor-input",
-      "packages/ui-framework",
-      "packages/runtime-core",
-      "packages/runtime-three",
-      "packages/wallpaper-runtime",
-      "packages/editor",
-      "packages/four-rotation",
-      "packages/four-camera",
-      "packages/four-camera-three",
-      "packages/gizmo-core"
-    ];
-    const packageManifests = packageDirs.map((directory) => {
-      const manifest = JSON.parse(readWorkspaceSourceFile(`${directory}/package.json`)) as {
-        readonly name: string;
-        readonly dependencies?: Record<string, string>;
-        readonly peerDependencies?: Record<string, string>;
-      };
-      return { directory, manifest };
-    });
-    const packageNames = new Set(packageManifests.map(({ manifest }) => manifest.name));
-    const productionPackageSources = Object.fromEntries(
-      Object.entries(collectWorkspaceSourceFiles("packages"))
-        .filter(([file]) => file.includes("/src/"))
-        .filter(([file]) => !file.endsWith(".test.ts") && !file.includes("/tests/"))
-    );
-    const missing = listModuleEdges(productionPackageSources)
-      .map((edge) => {
-        const owner = packageManifests.find(({ directory }) => edge.fromFile.startsWith(`${directory}/`));
-        if (!owner) return null;
-        const importedPackage = barePackageName(edge.specifier);
-        if (!packageNames.has(importedPackage) || importedPackage === owner.manifest.name) return null;
-        const declared = {
-          ...owner.manifest.dependencies,
-          ...owner.manifest.peerDependencies
-        };
-        return declared[importedPackage] === undefined
-          ? `${owner.manifest.name}: ${edge.fromFile} imports undeclared ${importedPackage}`
-          : null;
-      })
-      .filter((entry): entry is string => entry !== null)
-      .sort();
+    expect(findUndeclaredWorkspaceImports()).toEqual([]);
+  });
 
-    expect(missing).toEqual([]);
+  it("keeps Canopy package descriptors aligned with workspace manifests", () => {
+    const descriptorDirectories = workspacePackageDescriptors.map((descriptor) => descriptor.directory).sort();
+    const manifestDirectories = listWorkspaceManifestDirectories();
+
+    expect(descriptorDirectories).toEqual(manifestDirectories);
+    for (const descriptor of workspacePackageDescriptors) {
+      expect(readWorkspacePackageManifest(descriptor).name).toBe(descriptor.name);
+    }
+  });
+
+  it("uses one production source filter for Canopy package graph checks", () => {
+    expect(isProductionSourceFile("packages/actor-core/src/index.ts")).toBe(true);
+    expect(isProductionSourceFile("packages/actor-core/src/index.test.ts")).toBe(false);
+    expect(isProductionSourceFile("apps/wallpaper-tesseract/src/test-support/package-graph-boundaries.ts"))
+      .toBe(false);
+    expect(Object.keys(collectProductionWorkspaceSources()).every(isProductionSourceFile)).toBe(true);
+  });
+
+  it("detects undeclared workspace imports from package graph fixtures", () => {
+    const descriptors = workspacePackageDescriptors.filter((descriptor) => (
+      descriptor.name === "actor-core" || descriptor.name === "actor-input"
+    ));
+    const manifests = new Map<string, WorkspacePackageManifest>([
+      ["actor-core", { name: "actor-core" }],
+      ["actor-input", { name: "actor-input", dependencies: { "actor-core": "0.1.0" } }]
+    ]);
+    const edges = [
+      {
+        fromFile: "packages/actor-input/src/index.ts",
+        specifier: "actor-core",
+        resolvedFile: null,
+        kind: "import" as const,
+        typeOnly: false,
+        sideEffectOnly: false
+      },
+      {
+        fromFile: "packages/actor-core/src/index.ts",
+        specifier: "actor-input",
+        resolvedFile: null,
+        kind: "import" as const,
+        typeOnly: false,
+        sideEffectOnly: false
+      },
+      {
+        fromFile: "packages/actor-core/src/self.ts",
+        specifier: "actor-core",
+        resolvedFile: null,
+        kind: "import" as const,
+        typeOnly: false,
+        sideEffectOnly: false
+      },
+      {
+        fromFile: "packages/actor-core/src/external.ts",
+        specifier: "three",
+        resolvedFile: null,
+        kind: "import" as const,
+        typeOnly: false,
+        sideEffectOnly: false
+      }
+    ];
+
+    expect(findUndeclaredWorkspaceImports(descriptors, edges, manifests)).toEqual([
+      "actor-core: packages/actor-core/src/index.ts imports undeclared actor-input"
+    ]);
+  });
+
+  it("keeps the workspace package manifest graph acyclic", () => {
+    expect(findPackageDependencyCycles(createWorkspacePackageGraph())).toEqual([]);
+  });
+
+  it("detects package dependency cycles from manifest graph fixtures", () => {
+    const acyclicDiamond: readonly WorkspacePackageGraphNode[] = [
+      { name: "a", dependencies: ["b", "c"] },
+      { name: "b", dependencies: ["d"] },
+      { name: "c", dependencies: ["d"] },
+      { name: "d", dependencies: [] }
+    ];
+
+    expect(findPackageDependencyCycles([
+      { name: "a", dependencies: ["a"] }
+    ])).toEqual(["a -> a"]);
+    expect(findPackageDependencyCycles([
+      { name: "a", dependencies: ["b"] },
+      { name: "b", dependencies: ["a"] }
+    ])).toEqual(["a -> b -> a"]);
+    expect(findPackageDependencyCycles([
+      { name: "a", dependencies: ["b"] },
+      { name: "b", dependencies: ["c"] },
+      { name: "c", dependencies: ["a"] }
+    ])).toEqual(["a -> b -> c -> a"]);
+    expect(findPackageDependencyCycles(acyclicDiamond)).toEqual([]);
+  });
+
+  it("keeps current package zones from importing forbidden owners", () => {
+    expect(evaluatePackageDependencyRules(
+      workspacePackageDescriptors,
+      currentPackageDependencyRules
+    )).toEqual([]);
+  });
+
+  it("detects forbidden package-zone imports from bare and resolved relative edges", () => {
+    const descriptors = workspacePackageDescriptors.filter((descriptor) => (
+      descriptor.name === "actor-core" || descriptor.name === "ui-framework"
+    ));
+    const edges = [
+      {
+        fromFile: "packages/actor-core/src/bare.ts",
+        specifier: "ui-framework",
+        resolvedFile: null,
+        kind: "import" as const,
+        typeOnly: false,
+        sideEffectOnly: false
+      },
+      {
+        fromFile: "packages/actor-core/src/relative.ts",
+        specifier: "../../ui-framework/src/index",
+        resolvedFile: "packages/ui-framework/src/index.ts",
+        kind: "import" as const,
+        typeOnly: false,
+        sideEffectOnly: false
+      }
+    ];
+
+    expect(evaluatePackageDependencyRules(descriptors, [
+      { sourcePackage: "actor-core", forbiddenPackages: ["ui-framework"] }
+    ], edges)).toEqual([
+      {
+        sourcePackage: "actor-core",
+        fromFile: "packages/actor-core/src/bare.ts",
+        targetPackage: "ui-framework",
+        specifier: "ui-framework"
+      },
+      {
+        sourcePackage: "actor-core",
+        fromFile: "packages/actor-core/src/relative.ts",
+        targetPackage: "ui-framework",
+        specifier: "../../ui-framework/src/index"
+      }
+    ]);
+  });
+
+  it("proves future actor-system submodule rules catch root and relative bypass imports", () => {
+    const zones = [
+      defineSubmoduleZone("actor-system/core", "packages/actor-system/src/core/"),
+      defineSubmoduleZone("actor-system/input", "packages/actor-system/src/input/"),
+      defineSubmoduleZone("actor-system/gizmo", "packages/actor-system/src/gizmo/"),
+      defineSubmoduleZone("ui-framework", "packages/ui-framework/src/")
+    ];
+    const rules = [
+      {
+        sourceZone: "actor-system/core",
+        forbiddenTargetZones: ["actor-system/input", "actor-system/gizmo", "ui-framework"],
+        forbiddenRootPackages: ["actor-system"]
+      },
+      {
+        sourceZone: "actor-system/input",
+        forbiddenTargetZones: ["ui-framework"],
+        forbiddenRootPackages: ["actor-system"]
+      },
+      {
+        sourceZone: "actor-system/gizmo",
+        forbiddenTargetZones: ["actor-system/core", "actor-system/input", "ui-framework"],
+        forbiddenRootPackages: ["actor-system"]
+      }
+    ];
+    const files = {
+      "packages/actor-system/src/core/bare.ts": 'import { input } from "actor-system/input";',
+      "packages/actor-system/src/core/relative.ts": 'import { input } from "../input";',
+      "packages/actor-system/src/core/deep-relative.ts": 'import { input } from "../input/foo";',
+      "packages/actor-system/src/core/root.ts": 'import { ActorSystem } from "actor-system";',
+      "packages/actor-system/src/gizmo/nested/deep-relative.ts": 'import { input } from "../../input/foo";',
+      "packages/actor-system/src/input/root.ts": 'import { ActorSystem } from "actor-system";',
+      "packages/actor-system/src/input/ui.ts": 'import { ui } from "../../../ui-framework/src/index";',
+      "packages/actor-system/src/input/allowed.ts": 'import { core } from "../core"; import { gizmo } from "../gizmo";',
+      "packages/actor-system/src/input/foo.ts": "export const input = 1;",
+      "packages/actor-system/src/input/index.ts": "export const input = 1;",
+      "packages/actor-system/src/core/index.ts": "export const core = 1;",
+      "packages/actor-system/src/gizmo/index.ts": "export const gizmo = 1;",
+      "packages/ui-framework/src/index.ts": "export const ui = 1;"
+    };
+
+    expect(evaluateSubmoduleDependencyRules(files, zones, rules)).toEqual([
+      {
+        fromFile: "packages/actor-system/src/core/bare.ts",
+        sourceZone: "actor-system/core",
+        target: "actor-system/input",
+        specifier: "actor-system/input"
+      },
+      {
+        fromFile: "packages/actor-system/src/core/deep-relative.ts",
+        sourceZone: "actor-system/core",
+        target: "actor-system/input",
+        specifier: "../input/foo"
+      },
+      {
+        fromFile: "packages/actor-system/src/core/relative.ts",
+        sourceZone: "actor-system/core",
+        target: "actor-system/input",
+        specifier: "../input"
+      },
+      {
+        fromFile: "packages/actor-system/src/core/root.ts",
+        sourceZone: "actor-system/core",
+        target: "actor-system",
+        specifier: "actor-system"
+      },
+      {
+        fromFile: "packages/actor-system/src/gizmo/nested/deep-relative.ts",
+        sourceZone: "actor-system/gizmo",
+        target: "actor-system/input",
+        specifier: "../../input/foo"
+      },
+      {
+        fromFile: "packages/actor-system/src/input/root.ts",
+        sourceZone: "actor-system/input",
+        target: "actor-system",
+        specifier: "actor-system"
+      },
+      {
+        fromFile: "packages/actor-system/src/input/ui.ts",
+        sourceZone: "actor-system/input",
+        target: "ui-framework",
+        specifier: "../../../ui-framework/src/index"
+      }
+    ]);
   });
 
   it("keeps Gate 7 theme CSS raw style debt tokenized or explicitly allowlisted", () => {
@@ -2019,11 +2218,4 @@ describe("architecture boundaries", () => {
     ], allowedFiles)).toEqual([]);
   });
 });
-
-function barePackageName(specifier: string): string {
-  if (specifier.startsWith("@")) {
-    return specifier.split("/").slice(0, 2).join("/");
-  }
-  return specifier.split("/")[0] ?? specifier;
-}
 

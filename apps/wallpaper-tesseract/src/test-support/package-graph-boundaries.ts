@@ -21,6 +21,7 @@ export interface WorkspacePackageDescriptor {
 
 export interface WorkspacePackageManifest {
   readonly name: string;
+  readonly exports?: Record<string, unknown>;
   readonly dependencies?: Record<string, string>;
   readonly peerDependencies?: Record<string, string>;
 }
@@ -58,6 +59,11 @@ export interface SubmoduleDependencyViolation {
   readonly sourceZone: string;
   readonly target: string;
   readonly specifier: string;
+}
+
+export interface SubmoduleZoneOverlap {
+  readonly file: string;
+  readonly zones: readonly string[];
 }
 
 export const workspacePackageDescriptors = [
@@ -329,13 +335,43 @@ function resolveSubmoduleTargetZone(
   )) ?? null;
 }
 
-export function defineSubmoduleZone(id: string, prefix: string): SubmoduleZoneDefinition {
+export function defineSubmoduleZone(id: string, prefix: string | readonly string[]): SubmoduleZoneDefinition {
+  const prefixes = Array.isArray(prefix) ? prefix : [prefix];
   return {
     id,
     includes(file: string): boolean {
-      return file.startsWith(prefix);
+      return prefixes.some((entry) => file.startsWith(entry));
     }
   };
+}
+
+export function findSubmoduleZoneOverlaps(
+  files: Iterable<string>,
+  zones: readonly SubmoduleZoneDefinition[]
+): SubmoduleZoneOverlap[] {
+  return [...files]
+    .map((file) => ({
+      file,
+      zones: zones
+        .filter((zone) => zone.includes(file))
+        .map((zone) => zone.id)
+        .sort()
+    }))
+    .filter((entry) => entry.zones.length > 1)
+    .sort((left, right) => left.file.localeCompare(right.file));
+}
+
+export function findUnclassifiedSubmoduleFiles(
+  files: Iterable<string>,
+  zones: readonly SubmoduleZoneDefinition[],
+  options: { readonly rootPrefix: string; readonly allowlist?: readonly string[] }
+): string[] {
+  const allowlist = new Set(options.allowlist ?? []);
+  return [...files]
+    .filter((file) => file.startsWith(options.rootPrefix))
+    .filter((file) => !allowlist.has(file))
+    .filter((file) => !zones.some((zone) => zone.includes(file)))
+    .sort();
 }
 
 export function findDescriptorForFile(

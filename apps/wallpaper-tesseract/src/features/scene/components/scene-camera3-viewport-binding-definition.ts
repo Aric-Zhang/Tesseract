@@ -2,7 +2,7 @@ import type { ComponentDefinition } from "../../../actor-runtime";
 import {
   camera3MotionComponentType
 } from "wallpaper-runtime";
-import { renderViewportComponentType } from "ui-framework";
+import { renderViewportComponentType } from "ui-framework/controls";
 import {
   getCamera3GizmoComponent,
   SceneCamera3ViewportBindingComponent,

@@ -1,11 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { ActorSystem } from "../actor-runtime";
 import { createActorInputEndEvent, createActorInputHit, createActorInputMoveEvent, createActorInputStartEvent } from "../test-support";
-import {
-  WINDOW_FRAME_TAB_PART_ID,
-  uiVec2,
-  type WindowFrameSurfaceComponent
-} from "ui-framework";
+import { WINDOW_FRAME_TAB_PART_ID, type WindowFrameSurfaceComponent } from "ui-framework/window";
+import { uiVec2 } from "ui-framework/actor-ui";
 import type { WindowDockCommitIntent, WindowFrameIntentSink } from "./window-frame-lifecycle";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
 import { FloatingWindowComponent } from "./floating-window-component";

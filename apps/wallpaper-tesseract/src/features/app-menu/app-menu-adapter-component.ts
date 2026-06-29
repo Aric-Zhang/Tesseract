@@ -6,13 +6,10 @@ import type {
   ComponentType
 } from "../../actor-runtime";
 import type { EditorStateChangedEvent, StateObserverResponder } from "editor";
-import type { FrameUpdateParticipant, MenuCommand } from "ui-framework";
-import {
-  menuBarComponentType,
-  menuItemComponentType,
-  popupMenuComponentType,
-  uiElementComponentType
-} from "ui-framework";
+import { type FrameUpdateParticipant } from "ui-framework/actor-ui";
+import { type MenuCommand } from "ui-framework/menu";
+import { menuBarComponentType, menuItemComponentType, popupMenuComponentType } from "ui-framework/menu";
+import { uiElementComponentType } from "ui-framework/actor-ui";
 import type {
   WindowFrameIntentSink,
   WindowWorkspaceViewCatalog

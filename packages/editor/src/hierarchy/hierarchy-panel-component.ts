@@ -2,15 +2,9 @@ import type { Actor, Component, ComponentType } from "actor-system/core";
 import { editorStatePaths, type EditorCommandSink } from "../editor-state";
 import type { AppStateChangedEvent } from "../app-state";
 import type { StateObserverResponder } from "../state-observer/state-observer-responder";
-import type {
-  TreeViewActivation,
-  TreeViewComponent,
-  UiElementComponent,
-  WindowContentLayoutCommit,
-  WindowContentLayoutCommitRegistration,
-  WindowContentRegistrationPort,
-  WindowRegisteredContent
-} from "ui-framework";
+import { type TreeViewActivation, type TreeViewComponent } from "ui-framework/controls";
+import { type UiElementComponent } from "ui-framework/actor-ui";
+import { type WindowContentLayoutCommit, type WindowContentLayoutCommitRegistration, type WindowContentRegistrationPort, type WindowRegisteredContent } from "ui-framework/window";
 import type { HierarchyObjectSource } from "./hierarchy-object-source";
 import type { HierarchyTreeItemActorReconciler } from "./hierarchy-tree-item-actor-reconciler";
 

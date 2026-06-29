@@ -42,9 +42,13 @@ Current execution status, updated 2026-06-14:
 
 ```text
 Phases 0 through 6 are accepted at the package-boundary level.
-actor-core, actor-input, ui-framework, runtime-core, and runtime-three now
-exist as workspace packages, and packages/editor now owns the extracted editor
-presentation/features that moved out of app-local source.
+This is a Prism-era historical status block. Current package names and source
+topology live in docs/current-project-progress.md. In the current Canopy-era
+package shape, actor-core/actor-input/gizmo-core terminology maps to
+actor-system/core, actor-system/input, and actor-system/gizmo.
+ui-framework, runtime-core, and runtime-three exist as workspace packages, and
+packages/editor owns the extracted editor presentation/features that moved out
+of app-local source.
 Phase 5.5 pre-Phase 6 window-workspace cleanup is complete: generic SceneRuntime/RuntimeObject bus
 deletion has landed, app frame orchestration is explicit, Tesseract runtime
 renderable staging exists, Camera3 motion/orbit camera ownership has moved to

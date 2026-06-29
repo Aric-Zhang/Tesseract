@@ -1,11 +1,4 @@
-import {
-  createUiThemeModule,
-  parseUiThemeModule,
-  type UiThemeComponent,
-  type UiThemeDiagnostic,
-  type UiThemeModule,
-  type UiThemeModuleInput
-} from "ui-framework";
+import { createUiThemeModule, parseUiThemeModule, type UiThemeComponent, type UiThemeDiagnostic, type UiThemeModule, type UiThemeModuleInput } from "ui-framework/theme";
 
 export interface AppThemeDescriptor {
   readonly id: string;

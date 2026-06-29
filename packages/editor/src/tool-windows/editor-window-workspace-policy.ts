@@ -1,9 +1,5 @@
-import type {
-  FloatingWindowParameterPaths,
-  FloatingWindowState,
-  UiVec2,
-  WindowViewKey
-} from "ui-framework";
+import { type FloatingWindowParameterPaths, type FloatingWindowState, type WindowViewKey } from "ui-framework/window";
+import { type UiVec2 } from "ui-framework/actor-ui";
 
 export interface EditorWindowWorkspaceFloatingFramePolicy {
   readonly preferredActorId: string;

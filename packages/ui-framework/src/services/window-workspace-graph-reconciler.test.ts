@@ -16,7 +16,7 @@ import {
   type WindowWorkspaceGraphReconcilerSurface,
   type WindowWorkspaceGraphSnapshot,
   type WindowWorkspaceSurfaceGeometryProjection
-} from "..";
+} from "../window";
 import { createWindowViewIdentity, windowViewInstanceId, windowViewTypeKey } from "../model/window-view-identity";
 import { windowViewKey } from "../model/window-view-key";
 

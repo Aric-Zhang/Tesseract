@@ -1,0 +1,40 @@
+export * from "../chrome/window-frame-surface-component";
+export * from "../chrome/window-frame-surface-definition";
+export * from "../chrome/window-frame-tab-chrome";
+export * from "../chrome/window-frame-hit-data";
+export * from "../chrome/window-tab-action";
+export * from "../chrome/window-dock-preview-component";
+export * from "../model/floating-window-state";
+export * from "../model/window-dock-targets";
+export * from "../model/window-frame-tab";
+export * from "../model/window-tab-drag-session";
+export * from "../model/window-view-identity";
+export * from "../model/window-view-key";
+export * from "../model/window-workspace-graph";
+export * from "../model/window-workspace-layout";
+export * from "../model/window-workspace-layout-persistence";
+export * from "../ports/dock-target-region-source";
+export { WindowContentRegistry } from "../ports/window-content-registry";
+export type {
+  WindowContentLayoutCommit,
+  WindowContentLayoutCommitRegistration,
+  WindowContentLayoutCommitRect,
+  WindowContentLayoutCommitSplit,
+  WindowContentRegistrationPort,
+  WindowContentRegistrationRequest,
+  WindowRegisteredContent
+} from "../ports/window-content-registry";
+export * from "../ports/window-frame-targetability-source";
+export * from "../ports/window-frame-port";
+export * from "../ports/window-frame-port-registry";
+export * from "../ports/window-view-factory-registry";
+export * from "../services/window-focus-command-port";
+export * from "../services/window-frame-lifecycle";
+export * from "../services/window-frame-lifecycle-controller";
+export * from "../services/window-presentation-stack";
+export * from "../services/window-workspace-controller";
+export * from "../services/window-workspace-graph-reconciler";
+export * from "../services/window-workspace-layout-persistence-controller";
+export * from "../services/window-workspace-presentation-controller";
+export * from "../services/window-workspace-stack-priority-port";
+export * from "../services/window-workspace-view-catalog";

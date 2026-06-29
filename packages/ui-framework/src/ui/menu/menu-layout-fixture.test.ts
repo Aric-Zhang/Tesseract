@@ -1,16 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry } from "actor-system/core";
 import { installActorInputComponentDefinitions } from "actor-system/input";
-import {
-  installUiComponentDefinitions,
-  menuBarComponentType,
-  menuBarItemComponentType,
-  menuItemComponentType,
-  popupMenuComponentType,
-  uiElementComponentType,
-  uiLayoutHostComponentType,
-  uiLayoutItemComponentType
-} from "..";
+import { installActorUiComponentDefinitions } from "../../actor-ui";
+import { installControlComponentDefinitions } from "../../controls";
+import { installMenuComponentDefinitions } from "../../menu";
+import { installThemeComponentDefinitions } from "../../theme";
+import { menuBarComponentType, menuBarItemComponentType, menuItemComponentType, popupMenuComponentType } from "./index";
+import { uiElementComponentType } from "../element";
+import { uiLayoutHostComponentType, uiLayoutItemComponentType } from "../layout";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -94,7 +91,10 @@ function createSubject() {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
   installActorInputComponentDefinitions(componentRegistry);
-  installUiComponentDefinitions(componentRegistry);
+  installActorUiComponentDefinitions(componentRegistry);
+  installControlComponentDefinitions(componentRegistry);
+  installMenuComponentDefinitions(componentRegistry);
+  installThemeComponentDefinitions(componentRegistry);
   const documentRef = new FakeDocument();
   return { actorSystem, componentRegistry, documentRef };
 }

@@ -1,11 +1,8 @@
 import type { ComponentDefinition } from "actor-system/core";
 import { noopEditorCommandSink, type EditorCommandSink } from "../editor-state";
 import { stateObserverBindingComponentType } from "../state-observer/state-observer-binding-component";
-import {
-  frameUpdateAttachment,
-  treeViewComponentType,
-  uiElementComponentType
-} from "ui-framework";
+import { frameUpdateAttachment, uiElementComponentType } from "ui-framework/actor-ui";
+import { treeViewComponentType } from "ui-framework/controls";
 import {
   HierarchyPanelComponent,
   hierarchyPanelComponentType,

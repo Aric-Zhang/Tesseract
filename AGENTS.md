@@ -47,6 +47,10 @@ transitional code. New work should move the codebase toward these boundaries:
   surfaces, and frame lifecycle. It must not know about Scene rendering,
   Tesseract, Camera3, Debug Log contents, Inspector contents, or Hierarchy
   business data.
+- `ui-framework` production consumers should import explicit public submodules
+  such as `ui-framework/actor-ui`, `ui-framework/controls`,
+  `ui-framework/menu`, `ui-framework/theme`, and `ui-framework/window`. The
+  package root is not a production API.
 - Runtime/rendering code is editor-agnostic: worlds, projection graph, cameras,
   render/update orchestration, frame sources, and runtime commands. It must not
   import editor features, debug/inspector/hierarchy/menu/window/dock UI, or app

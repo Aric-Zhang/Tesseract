@@ -4,7 +4,7 @@ import {
   SceneViewContentComponent,
   type SceneViewContentComponentOptions
 } from "./scene-view-content-component";
-import { uiElementComponentType } from "ui-framework";
+import { uiElementComponentType } from "ui-framework/actor-ui";
 
 export const sceneViewContentComponentDefinition:
   ComponentDefinition<SceneViewContentComponent, SceneViewContentComponentOptions> = {

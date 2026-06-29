@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { AppFrameStateController } from "../app-state-controller";
 import { AppStateParameterStore } from "../app-state-store";
 import { editorWindowLayoutPaths } from "../window-layout-state";
-import { uiVec2 } from "ui-framework";
+import { uiVec2 } from "ui-framework/actor-ui";
 import { createDefaultDebugWindowState, registerDebugWindowParameters } from "./debug-window-parameters";
 
 describe("debug window parameters", () => {

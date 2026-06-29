@@ -1,8 +1,5 @@
 import type { Actor, ActorCreationContext } from "actor-system/core";
-import {
-  treeViewItemComponentType,
-  type TreeViewItemDescriptor
-} from "ui-framework";
+import { treeViewItemComponentType, type TreeViewItemDescriptor } from "ui-framework/controls";
 import type { HierarchyObjectItem } from "./hierarchy-object-source";
 
 export const HIERARCHY_TREE_ITEM_ACTOR_SEGMENT = ":item:";

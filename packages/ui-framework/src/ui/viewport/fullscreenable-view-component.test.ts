@@ -5,7 +5,10 @@ import {
   getActorInputScopeRoutePriority,
   installActorInputComponentDefinitions
 } from "actor-system/input";
-import { installUiComponentDefinitions } from "../install-ui-component-definitions";
+import { installActorUiComponentDefinitions } from "../../actor-ui";
+import { installControlComponentDefinitions } from "../../controls";
+import { installMenuComponentDefinitions } from "../../menu";
+import { installThemeComponentDefinitions } from "../../theme";
 import { uiElementComponentType } from "../element";
 import {
   type FullscreenableViewComponent,
@@ -187,7 +190,10 @@ function createFixture() {
 function createRegistry(actorSystem: ActorSystem): ComponentRegistry {
   const registry = new ComponentRegistry({ actorSystem });
   installActorInputComponentDefinitions(registry);
-  installUiComponentDefinitions(registry);
+  installActorUiComponentDefinitions(registry);
+  installControlComponentDefinitions(registry);
+  installMenuComponentDefinitions(registry);
+  installThemeComponentDefinitions(registry);
   return registry;
 }
 

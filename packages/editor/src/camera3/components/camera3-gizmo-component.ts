@@ -4,7 +4,7 @@ import type {
   ScreenPoint
 } from "actor-system/gizmo";
 import type { Actor, ComponentType } from "actor-system/core";
-import type { UiElementComponent } from "ui-framework";
+import { type UiElementComponent } from "ui-framework/actor-ui";
 import { actorInputScopeRoutePriority } from "actor-system/input";
 import type {
   ActorInputCancelEvent,

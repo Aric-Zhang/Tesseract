@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  WINDOW_FULLSCREEN_PRESENTATION_LAYER,
-  WINDOW_TOP_DOCKED_CHROME_LAYER
-} from "ui-framework";
+import { WINDOW_FULLSCREEN_PRESENTATION_LAYER, WINDOW_TOP_DOCKED_CHROME_LAYER } from "ui-framework/window";
 import { createWallpaperAppShell } from "./app-shell";
 
 class FakeElement {

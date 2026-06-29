@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { uiVec2 } from "ui-framework";
+import { uiVec2 } from "ui-framework/actor-ui";
 import { AppFrameStateController, type AppStateChangedEvent } from "./app-state-controller";
 import { AppStateParameterStore } from "./app-state-store";
 

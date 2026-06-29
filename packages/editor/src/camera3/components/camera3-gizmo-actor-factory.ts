@@ -1,9 +1,5 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-system/core";
-import {
-  uiElementComponentType,
-  uiLayoutItemComponentType,
-  type UiLayoutItemComponentOptions
-} from "ui-framework";
+import { uiElementComponentType, uiLayoutItemComponentType, type UiLayoutItemComponentOptions } from "ui-framework/actor-ui";
 import { camera3GizmoComponentType, type Camera3GizmoViewFactory } from "./camera3-gizmo-component";
 import type { Camera3GizmoComponentOptions, Camera3GizmoComponent } from "./camera3-gizmo-component";
 

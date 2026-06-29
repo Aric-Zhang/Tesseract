@@ -1,41 +1,10 @@
-export {
-  DEFAULT_FLOATING_WINDOW_MIN_SIZE,
-  cloneFloatingWindowState,
-  createDefaultFloatingWindowState
-} from "ui-framework";
-export {
-  addUiVec2,
-  assertUiVec2,
-  cloneUiVec2,
-  equalsUiVec2,
-  uiVec2
-} from "ui-framework";
-export { uiLayoutPath } from "ui-framework";
-export type {
-  UiFrame,
-  UiScheduledService,
-  UiScheduler,
-  UiSchedulerRegistration
-} from "ui-framework";
-export type {
-  UiActorContext,
-  UiActorContextRegistration
-} from "ui-framework";
-export type {
-  UiPoint,
-  UiSize,
-  UiVec2
-} from "ui-framework";
-export type {
-  UiLayoutCommand,
-  UiLayoutCommandOperation,
-  UiLayoutCommandSink,
-  UiLayoutCommandSource,
-  UiLayoutPath,
-  UiLayoutStateReader,
-  UiLayoutStateChange,
-  UiLayoutStateChangedEvent
-} from "ui-framework";
+export { DEFAULT_FLOATING_WINDOW_MIN_SIZE, cloneFloatingWindowState, createDefaultFloatingWindowState } from "ui-framework/window";
+export { addUiVec2, assertUiVec2, cloneUiVec2, equalsUiVec2, uiVec2 } from "ui-framework/actor-ui";
+export { uiLayoutPath } from "ui-framework/actor-ui";
+export type { UiFrame, UiScheduledService, UiScheduler, UiSchedulerRegistration } from "ui-framework/actor-ui";
+export type { UiActorContext, UiActorContextRegistration } from "ui-framework/actor-ui";
+export type { UiPoint, UiSize, UiVec2 } from "ui-framework/actor-ui";
+export type { UiLayoutCommand, UiLayoutCommandOperation, UiLayoutCommandSink, UiLayoutCommandSource, UiLayoutPath, UiLayoutStateReader, UiLayoutStateChange, UiLayoutStateChangedEvent } from "ui-framework/actor-ui";
 export { createWindowFocusServiceProxy } from "./window-focus-service-proxy";
 export type { WindowFocusServiceProxy } from "./window-focus-service-proxy";
 export type {
@@ -47,32 +16,13 @@ export type {
   DockTargetRegionSource,
   DockTargetRegionSourceOptions
 } from "./dock-target-region-source";
-export { createWindowFrameTargetabilitySource } from "ui-framework";
-export type {
-  WindowFrameTargetability,
-  WindowFrameTargetabilitySource,
-  WindowFrameTargetabilitySourceOptions
-} from "ui-framework";
-export type {
-  FloatingWindowParameterPaths,
-  FloatingWindowState,
-  FloatingWindowStateOptions
-} from "ui-framework";
-export { windowViewKey } from "ui-framework";
-export type { WindowViewKey } from "ui-framework";
-export {
-  createSingletonWindowViewIdentity,
-  createWindowViewIdentity,
-  createWindowViewKeyFromTypeAndInstance,
-  windowViewInstanceId,
-  windowViewTypeKey
-} from "ui-framework";
-export type {
-  WindowViewIdentity,
-  WindowViewInstanceId,
-  WindowViewMultiplicity,
-  WindowViewTypeKey
-} from "ui-framework";
+export { createWindowFrameTargetabilitySource } from "ui-framework/window";
+export type { WindowFrameTargetability, WindowFrameTargetabilitySource, WindowFrameTargetabilitySourceOptions } from "ui-framework/window";
+export type { FloatingWindowParameterPaths, FloatingWindowState, FloatingWindowStateOptions } from "ui-framework/window";
+export { windowViewKey } from "ui-framework/window";
+export type { WindowViewKey } from "ui-framework/window";
+export { createSingletonWindowViewIdentity, createWindowViewIdentity, createWindowViewKeyFromTypeAndInstance, windowViewInstanceId, windowViewTypeKey } from "ui-framework/window";
+export type { WindowViewIdentity, WindowViewInstanceId, WindowViewMultiplicity, WindowViewTypeKey } from "ui-framework/window";
 export type {
   WindowFramePort,
   WindowFramePresentation,
@@ -123,13 +73,8 @@ export type {
   WindowViewFactoryCreateOptions,
   WindowViewRuntimeFactoryResult
 } from "./window-view-factory-registry";
-export {
-  createWindowWorkspaceContentId
-} from "ui-framework";
-export type {
-  WindowContentLayoutCommit,
-  WindowContentLayoutCommitRegistration
-} from "ui-framework";
+export { createWindowWorkspaceContentId } from "ui-framework/window";
+export type { WindowContentLayoutCommit, WindowContentLayoutCommitRegistration } from "ui-framework/window";
 export { WindowContentRegistry } from "./floating-window-host";
 export {
   WindowDockPreviewComponent,
@@ -141,10 +86,8 @@ export type {
   WindowDockPreviewControllerOptions,
   WindowTabDragSink
 } from "./window-dock-preview-component";
-export {
-  rectFromDomRect,
-  resolveWindowDockPreview
-} from "ui-framework";
+export { rectFromDomRect } from "ui-framework/window";
+export { resolveWindowDockPreview } from "ui-framework/window";
 export type {
   ResolveWindowDockPreviewOptions,
   WindowDockPreview,
@@ -152,8 +95,8 @@ export type {
   WindowDockRect,
   WindowDockSplitPlacement,
   WindowDockTargetRegion
-} from "ui-framework";
-export { WindowTabDragSession } from "ui-framework";
+} from "ui-framework/window";
+export { WindowTabDragSession } from "ui-framework/window";
 export type {
   WindowTabDragSessionEndResult,
   WindowTabDragSessionMoveResult,
@@ -161,32 +104,32 @@ export type {
   WindowTabDragSessionStart,
   WindowTabDragSessionState,
   WindowTabDragSource
-} from "ui-framework";
+} from "ui-framework/window";
 export {
   createWindowTabCloseAction,
   isWindowTabAction
-} from "ui-framework";
-export type { WindowTabAction } from "ui-framework";
+} from "ui-framework/window";
+export type { WindowTabAction } from "ui-framework/window";
 export {
   WINDOW_FRAME_TAB_ACTION_PART_ID,
   WINDOW_FRAME_TAB_PART_ID,
   findWindowFrameTabActionAtPoint,
   findWindowFrameTabAtPoint,
   renderWindowFrameTabsetTabs
-} from "ui-framework";
+} from "ui-framework/window";
 export type {
   RenderWindowFrameTabsetOptions,
   WindowFrameTabChromeMaps
-} from "ui-framework";
+} from "ui-framework/window";
 export {
   WindowFrameSurfaceComponent,
   windowFrameSurfaceComponentType
-} from "ui-framework";
+} from "ui-framework/window";
 export type {
   WindowFrameSurfaceComponentOptions,
   WindowFrameSurfaceHit,
   WindowFrameSurfaceHost
-} from "ui-framework";
+} from "ui-framework/window";
 export type {
   WindowContentRegistrationPort,
   WindowRegisteredContent
@@ -221,7 +164,7 @@ export type {
   WorkspaceRootDockFrameComponentServices
 } from "./workspace-root-dock-frame-component";
 export { workspaceRootDockFrameComponentDefinition } from "./workspace-root-dock-frame-definition";
-export { windowFrameSurfaceComponentDefinition } from "ui-framework";
+export { windowFrameSurfaceComponentDefinition } from "ui-framework/window";
 export { installWindowComponentDefinitions } from "./install-component-definitions";
 export type { RegisteredWindowActor } from "./registered-window-actor";
 export {

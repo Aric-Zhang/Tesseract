@@ -14,42 +14,24 @@ import type {
 import type { StateObserverResponder } from "editor";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
 import type { WindowFrameIntentSink } from "./window-frame-lifecycle";
-import {
-  readWindowTabDragSource
-} from "ui-framework";
+import { readWindowTabDragSource } from "ui-framework/window";
 import type {
   RegisteredWindowFramePort,
   WindowFramePortRegistry
 } from "./window-frame-port-registry";
-import {
-  cloneFloatingWindowState,
-  DEFAULT_FLOATING_WINDOW_MIN_SIZE,
-  type FloatingWindowParameterPaths,
-  type FloatingWindowState
-} from "ui-framework";
-import { cloneUiVec2, uiVec2, type UiVec2 } from "ui-framework";
-import type { UiLayoutCommandSink, UiLayoutPath, UiLayoutStateChangedEvent } from "ui-framework";
+import { cloneFloatingWindowState, DEFAULT_FLOATING_WINDOW_MIN_SIZE, type FloatingWindowParameterPaths, type FloatingWindowState } from "ui-framework/window";
+import { cloneUiVec2, uiVec2, type UiVec2 } from "ui-framework/actor-ui";
+import { type UiLayoutCommandSink, type UiLayoutPath, type UiLayoutStateChangedEvent } from "ui-framework/actor-ui";
 import type {
   WindowFramePort,
   WindowFramePresentation,
   WindowFrameSuppressionReason
 } from "./window-frame-port";
-import type { WindowViewKey } from "ui-framework";
-import {
-  WINDOW_FRAME_TAB_ACTION_PART_ID,
-  WINDOW_FRAME_TAB_PART_ID
-} from "ui-framework";
+import { type WindowViewKey } from "ui-framework/window";
+import { WINDOW_FRAME_TAB_ACTION_PART_ID, WINDOW_FRAME_TAB_PART_ID } from "ui-framework/window";
 import { handleWindowFrameTabInputEnd } from "./window-frame-tab-input";
-import { rectFromDomRect } from "ui-framework";
-import type {
-  WindowFrameSurfaceComponent,
-  WindowFrameSurfaceHost,
-  WindowFrameSurfaceSnapshot,
-  WindowWorkspaceGraphContentActiveState,
-  WindowWorkspaceGraphContentPlacement,
-  WindowWorkspaceSurfaceGeometryProjection,
-  WindowRegisteredContent
-} from "ui-framework";
+import { rectFromDomRect } from "ui-framework/window";
+import { type WindowFrameSurfaceComponent, type WindowFrameSurfaceHost, type WindowFrameSurfaceSnapshot, type WindowWorkspaceGraphContentActiveState, type WindowWorkspaceGraphContentPlacement, type WindowWorkspaceSurfaceGeometryProjection, type WindowRegisteredContent } from "ui-framework/window";
 
 export const floatingWindowComponentType =
   "floating-window-component" as ComponentType<FloatingWindowComponent>;

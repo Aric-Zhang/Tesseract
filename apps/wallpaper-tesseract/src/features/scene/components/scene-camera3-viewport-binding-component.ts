@@ -4,7 +4,7 @@ import {
   Camera3GizmoComponent,
   camera3GizmoComponentType
 } from "editor";
-import type { RenderViewportComponent } from "ui-framework";
+import { type RenderViewportComponent } from "ui-framework/controls";
 
 export const sceneCamera3ViewportBindingComponentType =
   "scene-camera3-viewport-binding-component" as ComponentType<SceneCamera3ViewportBindingComponent>;

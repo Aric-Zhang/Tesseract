@@ -3,7 +3,7 @@ import { AppFrameStateController } from "../app-state-controller";
 import { AppStateParameterStore } from "../app-state-store";
 import { editorStatePath, editorStatePaths } from "../editor-state";
 import { editorWindowLayoutPaths } from "../window-layout-state";
-import { uiVec2 } from "ui-framework";
+import { uiVec2 } from "ui-framework/actor-ui";
 import {
   createDefaultHierarchyPanelState,
   HIERARCHY_WINDOW_MIN_HEIGHT,

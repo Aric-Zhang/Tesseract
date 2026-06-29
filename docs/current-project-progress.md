@@ -139,6 +139,26 @@ browser fixture. It does not block the accepted Arbor architecture baseline.
   complete. It merged the former actor foundation packages into
   `packages/actor-system`, deleted the old package folders, and keeps internal
   `core/input/gizmo` direction enforced by boundary tests.
+- Canopy Gate 2,
+  `docs/project-canopy-gate-2-ui-framework-submodule-boundaries-plan.md`, is
+  complete. `ui-framework` remains one package, but its public package surface
+  is now explicit submodule exports only: `ui-framework/actor-ui`,
+  `ui-framework/controls`, `ui-framework/menu`, `ui-framework/theme`, and
+  `ui-framework/window`, plus the existing `ui-framework/ui/theme.css` and
+  `ui-framework/ui/ui-framework-controls.css` CSS entries. The root package
+  export was removed, production root imports were reduced from the reviewer
+  baseline of about 63 files / 108 sites to 0, and the old aggregate
+  `installUiComponentDefinitions` was deleted in favor of owner-specific
+  installers.
+- Canopy Gate 3,
+  `docs/project-canopy-gate-3-root-script-workspace-simplification-plan.md`, is
+  complete. Repeated root `test`, `typecheck`, `build`, and
+  `prism:smoke:prepare` workspace chains now delegate to
+  `scripts/run-workspace-sequence.mjs`, backed by the side-effect-free
+  `scripts/workspace-sequence-config.mjs` sequence matrix. Package exports,
+  dependencies, TypeScript references, app imports, and runtime behavior were
+  not changed by Gate 3. The current uncommitted worktree is a combined Gate 2
+  + Gate 3 checkpoint.
 
 Current package graph baseline:
 
@@ -155,7 +175,8 @@ four-camera-three -> [four-camera]
 wallpaper-tesseract -> [actor-system, editor, runtime-core, runtime-three, ui-framework, wallpaper-runtime]
 ```
 
-Gate 1 must reuse the Gate 0 helpers instead of writing a second import scanner.
+Gate 2 reuses the Gate 0 package graph and resolved import helpers for package
+export, root-import, and submodule-zone boundary checks.
 
 Post-closure temp cleanup is complete for Project Prism and Project Arbor.
 Tracked Project Prism Final Gate evidence remains under `temp/`. Arbor smoke

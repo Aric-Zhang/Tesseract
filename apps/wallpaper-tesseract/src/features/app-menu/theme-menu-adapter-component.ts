@@ -5,13 +5,9 @@ import type {
   ComponentRegistry,
   ComponentType
 } from "../../actor-runtime";
-import type { MenuCommand } from "ui-framework";
-import {
-  menuBarComponentType,
-  menuItemComponentType,
-  popupMenuComponentType,
-  uiElementComponentType
-} from "ui-framework";
+import { type MenuCommand } from "ui-framework/menu";
+import { menuBarComponentType, menuItemComponentType, popupMenuComponentType } from "ui-framework/menu";
+import { uiElementComponentType } from "ui-framework/actor-ui";
 import type { AppMenuThemeController } from "./app-menu-theme-port";
 import {
   createThemeMenuItems,

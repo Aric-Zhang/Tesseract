@@ -1,6 +1,6 @@
 import type { ComponentDefinition } from "actor-system/core";
 import { gizmoEventBindingComponentType } from "actor-system/input";
-import { uiElementComponentType } from "ui-framework";
+import { uiElementComponentType } from "ui-framework/actor-ui";
 import {
   Camera3GizmoComponent,
   camera3GizmoComponentType,

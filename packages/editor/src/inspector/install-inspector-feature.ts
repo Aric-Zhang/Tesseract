@@ -1,12 +1,6 @@
 import type { ActorCreationContext } from "actor-system/core";
-import {
-  createWindowWorkspaceContentId,
-  uiVec2,
-  windowViewInstanceId,
-  windowViewKey,
-  windowViewTypeKey,
-  type WindowViewFactoryRegistry
-} from "ui-framework";
+import { createWindowWorkspaceContentId, windowViewInstanceId, windowViewKey, windowViewTypeKey, type WindowViewFactoryRegistry } from "ui-framework/window";
+import { uiVec2 } from "ui-framework/actor-ui";
 import type {
   EditorWindowWorkspaceFloatingFramePolicy
 } from "../tool-windows/editor-window-workspace-policy";

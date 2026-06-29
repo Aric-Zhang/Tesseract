@@ -1,15 +1,9 @@
 import type { GizmoDebugLogEntry } from "actor-system/gizmo";
 import type { Actor, Component, ComponentType } from "actor-system/core";
-import type { UiFrame } from "ui-framework";
-import type {
-  ScrollViewComponent,
-  UiElementComponent,
-  VirtualListViewComponent,
-  WindowContentLayoutCommit,
-  WindowContentLayoutCommitRegistration,
-  WindowContentRegistrationPort,
-  WindowRegisteredContent
-} from "ui-framework";
+import { type UiFrame } from "ui-framework/actor-ui";
+import { type ScrollViewComponent, type VirtualListViewComponent } from "ui-framework/controls";
+import { type UiElementComponent } from "ui-framework/actor-ui";
+import { type WindowContentLayoutCommit, type WindowContentLayoutCommitRegistration, type WindowContentRegistrationPort, type WindowRegisteredContent } from "ui-framework/window";
 import type { DebugLogDataSource } from "./debug-log-data-source";
 
 export const debugLogContentComponentType =

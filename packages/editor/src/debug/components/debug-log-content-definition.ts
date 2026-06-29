@@ -1,10 +1,6 @@
 import type { ComponentDefinition } from "actor-system/core";
-import {
-  frameUpdateAttachment,
-  scrollViewComponentType,
-  uiElementComponentType,
-  virtualListViewComponentType
-} from "ui-framework";
+import { frameUpdateAttachment, uiElementComponentType } from "ui-framework/actor-ui";
+import { scrollViewComponentType, virtualListViewComponentType } from "ui-framework/controls";
 import {
   DebugLogContentComponent,
   debugLogContentComponentType,

@@ -1,4 +1,4 @@
-import type { MenuItemDescriptor } from "ui-framework";
+import { type MenuItemDescriptor } from "ui-framework/menu";
 import type { AppMenuThemeDescriptor } from "./app-menu-theme-port";
 
 export interface ThemeMenuPayload {

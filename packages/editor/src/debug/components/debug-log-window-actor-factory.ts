@@ -1,10 +1,7 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-system/core";
-import {
-  scrollViewComponentType,
-  uiElementComponentType,
-  virtualListViewComponentType,
-  type WindowContentRegistrationPort
-} from "ui-framework";
+import { scrollViewComponentType, virtualListViewComponentType } from "ui-framework/controls";
+import { uiElementComponentType } from "ui-framework/actor-ui";
+import { type WindowContentRegistrationPort } from "ui-framework/window";
 import {
   debugLogContentComponentType,
   type DebugLogContentComponent

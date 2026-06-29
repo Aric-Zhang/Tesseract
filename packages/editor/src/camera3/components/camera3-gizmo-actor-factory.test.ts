@@ -28,7 +28,11 @@ import {
   GizmoControllerAttachmentRuntime,
   isActorInputParticipant
 } from "actor-system/input";
-import { installUiComponentDefinitions, uiElementComponentType } from "ui-framework";
+import { installActorUiComponentDefinitions } from "ui-framework/actor-ui";
+import { installControlComponentDefinitions } from "ui-framework/controls";
+import { installMenuComponentDefinitions } from "ui-framework/menu";
+import { installThemeComponentDefinitions } from "ui-framework/theme";
+import { uiElementComponentType } from "ui-framework/actor-ui";
 import type {
   RuntimeCameraCommandSink,
   RuntimeCameraControlCommand,
@@ -146,7 +150,10 @@ function createContext() {
     }
   };
   installComponentDefinition(componentRegistry, gizmoEventBindingComponentDefinition);
-  installUiComponentDefinitions(componentRegistry);
+  installActorUiComponentDefinitions(componentRegistry);
+  installControlComponentDefinitions(componentRegistry);
+  installMenuComponentDefinitions(componentRegistry);
+  installThemeComponentDefinitions(componentRegistry);
   installCamera3ComponentDefinitions(componentRegistry);
   return { calls, context, document, registeredGizmos, trackedActors };
 }

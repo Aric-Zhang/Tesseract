@@ -13,14 +13,29 @@
     "dist/**/*.css"
   ],
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./actor-ui": {
+      "types": "./dist/actor-ui/index.d.ts",
+      "import": "./dist/actor-ui/index.js"
+    },
+    "./controls": {
+      "types": "./dist/controls/index.d.ts",
+      "import": "./dist/controls/index.js"
+    },
+    "./menu": {
+      "types": "./dist/menu/index.d.ts",
+      "import": "./dist/menu/index.js"
+    },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "import": "./dist/theme/index.js"
+    },
+    "./window": {
+      "types": "./dist/window/index.d.ts",
+      "import": "./dist/window/index.js"
     },
     "./ui/theme.css": "./dist/ui/theme.css",
     "./ui/ui-framework-controls.css": "./dist/ui/ui-framework-controls.css"
   },
-  "types": "./dist/index.d.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests src",
     "typecheck": "tsc --noEmit -p tsconfig.json",

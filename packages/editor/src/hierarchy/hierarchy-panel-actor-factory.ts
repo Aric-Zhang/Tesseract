@@ -1,10 +1,7 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-system/core";
-import {
-  scrollViewComponentType,
-  treeViewComponentType,
-  uiElementComponentType,
-  type WindowContentRegistrationPort
-} from "ui-framework";
+import { scrollViewComponentType, treeViewComponentType } from "ui-framework/controls";
+import { uiElementComponentType } from "ui-framework/actor-ui";
+import { type WindowContentRegistrationPort } from "ui-framework/window";
 import {
   hierarchyPanelComponentType,
   type HierarchyPanelComponent

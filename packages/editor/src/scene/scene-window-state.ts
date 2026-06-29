@@ -1,11 +1,8 @@
 import type { AppStateParameterStore } from "../app-state-store";
 import { registerFloatingWindowParameters } from "../adapters/floating-window-editor-state-adapter";
 import { editorWindowLayoutPaths } from "../window-layout-state";
-import {
-  createDefaultFloatingWindowState,
-  type FloatingWindowState,
-  uiVec2
-} from "ui-framework";
+import { createDefaultFloatingWindowState, type FloatingWindowState } from "ui-framework/window";
+import { uiVec2 } from "ui-framework/actor-ui";
 
 export interface SceneWindowStateOptions {
   viewportWidth?: number;

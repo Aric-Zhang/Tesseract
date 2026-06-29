@@ -5,13 +5,11 @@ import {
   createActorCreationScope
 } from "actor-system/core";
 import { installActorInputComponentDefinitions } from "actor-system/input";
-import {
-  installUiComponentDefinitions,
-  type WindowContentLayoutCommit,
-  type WindowContentLayoutCommitRegistration,
-  type WindowContentRegistrationPort,
-  type WindowRegisteredContent
-} from "ui-framework";
+import { installActorUiComponentDefinitions } from "ui-framework/actor-ui";
+import { installControlComponentDefinitions } from "ui-framework/controls";
+import { installMenuComponentDefinitions } from "ui-framework/menu";
+import { installThemeComponentDefinitions } from "ui-framework/theme";
+import { type WindowContentLayoutCommit, type WindowContentLayoutCommitRegistration, type WindowContentRegistrationPort, type WindowRegisteredContent } from "ui-framework/window";
 import { installEditorStateObserverComponentDefinitions } from "../state-observer";
 import { installHierarchyComponentDefinitions } from "./install-component-definitions";
 import { createHierarchyPanelViewActor } from "./hierarchy-panel-actor-factory";
@@ -131,7 +129,10 @@ describe("createHierarchyPanelViewActor", () => {
     const actorSystem = new ActorSystem();
     const componentRegistry = new ComponentRegistry({ actorSystem });
     installActorInputComponentDefinitions(componentRegistry);
-    installUiComponentDefinitions(componentRegistry);
+    installActorUiComponentDefinitions(componentRegistry);
+  installControlComponentDefinitions(componentRegistry);
+  installMenuComponentDefinitions(componentRegistry);
+  installThemeComponentDefinitions(componentRegistry);
     installEditorStateObserverComponentDefinitions(componentRegistry);
     installHierarchyComponentDefinitions(componentRegistry);
     const context = createActorCreationScope({ actorSystem, componentRegistry });

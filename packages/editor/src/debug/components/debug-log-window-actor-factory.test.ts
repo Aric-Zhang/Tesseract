@@ -4,13 +4,11 @@ import {
   ComponentRegistry,
   createActorCreationScope
 } from "actor-system/core";
-import {
-  installUiComponentDefinitions,
-  type WindowContentLayoutCommit,
-  type WindowContentLayoutCommitRegistration,
-  type WindowContentRegistrationPort,
-  type WindowRegisteredContent
-} from "ui-framework";
+import { installActorUiComponentDefinitions } from "ui-framework/actor-ui";
+import { installControlComponentDefinitions } from "ui-framework/controls";
+import { installMenuComponentDefinitions } from "ui-framework/menu";
+import { installThemeComponentDefinitions } from "ui-framework/theme";
+import { type WindowContentLayoutCommit, type WindowContentLayoutCommitRegistration, type WindowContentRegistrationPort, type WindowRegisteredContent } from "ui-framework/window";
 import { installDebugLogComponentDefinitions } from "../install-component-definitions";
 import { createDebugLogViewActor } from "./debug-log-window-actor-factory";
 
@@ -175,7 +173,10 @@ function createFixture(): {
 } {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
-  installUiComponentDefinitions(componentRegistry);
+  installActorUiComponentDefinitions(componentRegistry);
+  installControlComponentDefinitions(componentRegistry);
+  installMenuComponentDefinitions(componentRegistry);
+  installThemeComponentDefinitions(componentRegistry);
   installDebugLogComponentDefinitions(componentRegistry);
   const context = createActorCreationScope({ actorSystem, componentRegistry });
   const parent = actorSystem.createActor({ id: "frame" });

@@ -16,7 +16,10 @@ import {
   GizmoControllerAttachmentRuntime
 } from "../gizmo-runtime";
 import { installEditorStateObserverComponentDefinitions } from "editor";
-import { createUiThemeModule, installUiComponentDefinitions } from "ui-framework";
+import { installActorUiComponentDefinitions } from "ui-framework/actor-ui";
+import { installControlComponentDefinitions } from "ui-framework/controls";
+import { installMenuComponentDefinitions } from "ui-framework/menu";
+import { createUiThemeModule, installThemeComponentDefinitions } from "ui-framework/theme";
 import {
   createWindowFocusServiceProxy,
   createWindowWorkspaceContentId,
@@ -148,7 +151,10 @@ export function installUiFrameworkFixture(
   });
   installEditorStateObserverComponentDefinitions(componentRegistry);
   installWindowComponentDefinitions(componentRegistry);
-  installUiComponentDefinitions(componentRegistry);
+  installActorUiComponentDefinitions(componentRegistry);
+  installControlComponentDefinitions(componentRegistry);
+  installMenuComponentDefinitions(componentRegistry);
+  installThemeComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
   installComponentDefinition(componentRegistry, genericFixtureViewComponentDefinition);
 

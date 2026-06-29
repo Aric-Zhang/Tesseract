@@ -1,17 +1,7 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-system/core";
-import {
-  fullscreenableViewComponentType,
-  renderViewportComponentType,
-  uiElementComponentType,
-  uiLayoutHostComponentType,
-  uiLayoutItemComponentType,
-  type FullscreenableViewComponent,
-  type FullscreenableViewIntentSink,
-  type RenderViewportComponent,
-  type RenderViewportResizeObserverFactory,
-  type RenderViewportTarget,
-  type WindowContentRegistrationPort
-} from "ui-framework";
+import { fullscreenableViewComponentType, renderViewportComponentType, type FullscreenableViewComponent, type FullscreenableViewIntentSink, type RenderViewportComponent, type RenderViewportResizeObserverFactory, type RenderViewportTarget } from "ui-framework/controls";
+import { uiElementComponentType, uiLayoutHostComponentType, uiLayoutItemComponentType } from "ui-framework/actor-ui";
+import { type WindowContentRegistrationPort } from "ui-framework/window";
 import {
   sceneViewContentComponentType,
   type SceneViewContentComponent

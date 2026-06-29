@@ -10,7 +10,8 @@ import {
   type FloatingWindowPresentation
 } from "./floating-window-component";
 import { installWindowComponentDefinitions } from "./install-component-definitions";
-import { uiLayoutPath, uiVec2, type FloatingWindowParameterPaths } from "ui-framework";
+import { uiLayoutPath, uiVec2 } from "ui-framework/actor-ui";
+import { type FloatingWindowParameterPaths } from "ui-framework/window";
 import type { WindowFramePort } from "./window-frame-port";
 import { WindowFramePortRegistry } from "./window-frame-port-registry";
 import { WindowViewFactoryRegistry } from "./window-view-factory-registry";

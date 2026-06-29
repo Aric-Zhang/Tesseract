@@ -117,7 +117,6 @@ ui-framework/controls
 ui-framework/menu
 ui-framework/theme
 ui-framework/window
-ui-framework/css
 ```
 
 Source can stay close to current directories where that avoids churn, but public
@@ -131,7 +130,6 @@ exports should make ownership clear:
 - `theme`: token definitions, theme parser/creator/validator, `UiThemeComponent`.
 - `window`: app shell, window frame, docking, layout persistence, lifecycle,
   presentation stack, and window-specific services.
-- `css`: package CSS entry points that apps can import through package exports.
 
 Do not move `editor`, `wallpaper-runtime`, Scene/Tesseract/Camera3 product
 logic, or app composition into `ui-framework`.
@@ -146,6 +144,9 @@ ui-framework/ui/ui-framework-controls.css
 If Project Canopy replaces them with a cleaner entry such as
 `ui-framework/css`, the old CSS exports must be deleted in the same gate and all
 callers must be updated. Do not keep compatibility CSS paths.
+Gate 2 does not introduce `ui-framework/css`; it keeps the current CSS paths and
+only tightens TypeScript submodule entry points. A CSS path rename requires a
+separate reviewed cleanup.
 
 ### Runtime Packages
 
@@ -375,8 +376,16 @@ Stop conditions:
 
 ## Gate 2: Tighten UI Framework Submodule Boundaries
 
+Status: completed as of 2026-06-29.
+
 Goal: keep `ui-framework` as one reusable UI/window package while making its
 public entry points clearer and reducing accidental root-barrel coupling.
+
+Detailed execution plan:
+
+```text
+docs/project-canopy-gate-2-ui-framework-submodule-boundaries-plan.md
+```
 
 Steps:
 
@@ -396,6 +405,11 @@ symmetry if a clear export layer solves the consumer problem.
 
 3. Update `packages/ui-framework/package.json` exports for the submodules and
    CSS entries.
+   - Do not export the old aggregate `installUiComponentDefinitions` from
+     `actor-ui`.
+   - Split definition installers by owner:
+     `installActorUiComponentDefinitions`, `installControlComponentDefinitions`,
+     `installMenuComponentDefinitions`, and `installThemeComponentDefinitions`.
 4. Tighten the `ui-framework` root barrel:
    - production imports added or touched by this gate should use explicit
      submodules such as `ui-framework/menu`, `ui-framework/theme`,
@@ -405,15 +419,17 @@ symmetry if a clear export layer solves the consumer problem.
      already-stable broad UI framework symbols;
    - do not add new app/editor imports from the root barrel when a submodule
      exists.
+   The default Gate 2 exit is stronger: no production root imports and no
+   package `"."` export. If that is impossible, a reviewed allowlist with exact
+   symbol/caller/reason is required.
 5. Update app/editor imports when a submodule import makes ownership clearer.
    Avoid churn only when the root export is intentionally broad, documented,
    and covered by an allowlist.
-6. Decide the CSS export shape and make it one truth:
+6. Keep the current CSS export shape as one truth:
    - keep `ui-framework/ui/theme.css` and
-     `ui-framework/ui/ui-framework-controls.css` as the stable current paths; or
-   - replace them with a new path such as `ui-framework/css` and delete the old
-     CSS exports in the same gate.
-   Do not keep both old and new CSS paths as compatibility aliases.
+     `ui-framework/ui/ui-framework-controls.css` as the stable current paths;
+   - do not add `ui-framework/css` or any other CSS compatibility alias in
+     Gate 2.
 7. Delete stale internal barrels that only exist as historical convenience
    aliases.
 8. Strengthen boundary tests:
@@ -427,6 +443,8 @@ symmetry if a clear export layer solves the consumer problem.
   unless they are in a small documented allowlist.
 - CSS package exports are singular: tests should fail if both old and new CSS
   paths are exported after the migration decision.
+- `ui-framework` submodule zones must support multiple source prefixes and must
+  fail on overlapping or unclassified production source files.
 
 Validation:
 
@@ -467,9 +485,25 @@ Stop conditions:
 
 ## Gate 3: Root Script And Workspace Simplification
 
+Status: completed as of 2026-06-29.
+
 Goal: make workspace commands reflect the consolidated package shape.
 
-Steps:
+Detailed execution plan:
+
+```text
+docs/project-canopy-gate-3-root-script-workspace-simplification-plan.md
+```
+
+Preferred approach:
+
+- replace repeated root `test`, `typecheck`, `build`, and
+  `prism:smoke:prepare` chains with one small explicit workspace sequence
+  runner;
+- keep package order easy to inspect and locked by boundary tests;
+- do not add compatibility scripts or a second package graph solver.
+
+Summary steps:
 
 1. Simplify root `test`, `typecheck`, `build`, and `prism:smoke:prepare` scripts
    after Gate 1 removes three small packages.

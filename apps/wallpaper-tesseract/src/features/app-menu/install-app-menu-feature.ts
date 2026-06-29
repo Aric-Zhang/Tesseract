@@ -1,14 +1,7 @@
 import { createRegisteredActor } from "../../actor-runtime";
-import {
-  menuBarComponentType,
-  menuBarItemComponentType,
-  menuItemComponentType,
-  popupMenuComponentType,
-  uiElementComponentType,
-  uiLayoutHostComponentType,
-  uiLayoutItemComponentType,
-  WINDOW_TOP_DOCKED_CHROME_LAYER
-} from "ui-framework";
+import { menuBarComponentType, menuBarItemComponentType, menuItemComponentType, popupMenuComponentType } from "ui-framework/menu";
+import { uiElementComponentType, uiLayoutHostComponentType, uiLayoutItemComponentType } from "ui-framework/actor-ui";
+import { WINDOW_TOP_DOCKED_CHROME_LAYER } from "ui-framework/window";
 import type {
   UiActorContext,
   WindowFrameIntentSink,

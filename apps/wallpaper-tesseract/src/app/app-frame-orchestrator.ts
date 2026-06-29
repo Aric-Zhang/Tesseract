@@ -1,5 +1,5 @@
 import type { RuntimeFrame } from "runtime-core";
-import type { UiFrame } from "ui-framework";
+import { type UiFrame } from "ui-framework/actor-ui";
 
 export interface AppFrameOrchestratorOptions {
   readonly updateRuntimeWork: (frame: RuntimeFrame) => void;

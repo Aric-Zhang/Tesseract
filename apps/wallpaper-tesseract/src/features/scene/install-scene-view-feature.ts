@@ -12,11 +12,7 @@ import {
   type RegisteredSceneViewActor
 } from "editor";
 import type { AppStateParameterStore } from "editor";
-import type {
-  FullscreenableViewIntent,
-  FullscreenableViewIntentSink,
-  RenderViewportResizeObserverFactory
-} from "ui-framework";
+import { type FullscreenableViewIntent, type FullscreenableViewIntentSink, type RenderViewportResizeObserverFactory } from "ui-framework/controls";
 import type {
   WindowViewFactoryRegistry,
   WindowViewLocationSource

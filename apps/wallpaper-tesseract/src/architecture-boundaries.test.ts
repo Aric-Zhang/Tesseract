@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { uiThemeTokenDefinitions } from "ui-framework";
+import { uiThemeTokenDefinitions } from "ui-framework/theme";
+import { SEQUENCES, WORKSPACE_ORDER } from "../../../scripts/workspace-sequence-config.mjs";
 import {
   collectWorkspaceSourceFiles,
   createSourceZoneMap,
@@ -30,6 +31,8 @@ import {
   defineSubmoduleZone,
   evaluatePackageDependencyRules,
   evaluateSubmoduleDependencyRules,
+  findSubmoduleZoneOverlaps,
+  findUnclassifiedSubmoduleFiles,
   findPackageDependencyCycles,
   findUndeclaredWorkspaceImports,
   isProductionSourceFile,
@@ -182,6 +185,61 @@ describe("architecture boundaries", () => {
     for (const descriptor of workspacePackageDescriptors) {
       expect(readWorkspacePackageManifest(descriptor).name).toBe(descriptor.name);
     }
+  });
+
+  it("keeps root workspace scripts delegated to the Canopy sequence runner", () => {
+    const rootPackageJson = JSON.parse(readWorkspaceSourceFile("package.json")) as {
+      scripts: Record<string, string>;
+    };
+
+    expect(rootPackageJson.scripts.test).toBe("node scripts/run-workspace-sequence.mjs test");
+    expect(rootPackageJson.scripts.typecheck).toBe("node scripts/run-workspace-sequence.mjs typecheck");
+    expect(rootPackageJson.scripts.build).toBe("node scripts/run-workspace-sequence.mjs build");
+    expect(rootPackageJson.scripts["prism:smoke:prepare"])
+      .toBe("node scripts/run-workspace-sequence.mjs prism:smoke:prepare");
+    for (const script of Object.values(rootPackageJson.scripts)) {
+      expect(script).not.toMatch(/\b(?:actor-core|actor-input|gizmo-core)\b/);
+    }
+  });
+
+  it("keeps Canopy workspace sequence order explicit and current", () => {
+    expect(WORKSPACE_ORDER).toEqual([
+      "actor-system",
+      "ui-framework",
+      "runtime-core",
+      "four-rotation",
+      "four-camera",
+      "four-camera-three",
+      "runtime-three",
+      "wallpaper-runtime",
+      "editor",
+      "wallpaper-tesseract"
+    ]);
+  });
+
+  it("keeps Canopy workspace sequence commands aligned with root script semantics", () => {
+    const dependencyWorkspaces = WORKSPACE_ORDER.slice(0, -1);
+    const command = (workspace: string, script: string) => ({ workspace, script });
+
+    expect(SEQUENCES.test).toEqual([
+      ...dependencyWorkspaces.flatMap((workspace) => [
+        command(workspace, "build"),
+        command(workspace, "test")
+      ]),
+      command("wallpaper-tesseract", "test")
+    ]);
+    expect(SEQUENCES.typecheck).toEqual([
+      ...dependencyWorkspaces.flatMap((workspace) => [
+        command(workspace, "typecheck"),
+        command(workspace, "build")
+      ]),
+      command("wallpaper-tesseract", "typecheck")
+    ]);
+    expect(SEQUENCES.build).toEqual(WORKSPACE_ORDER.map((workspace) => command(workspace, "build")));
+    expect(SEQUENCES["prism:smoke:prepare"])
+      .toEqual(dependencyWorkspaces.map((workspace) => command(workspace, "build")));
+    expect(SEQUENCES["prism:smoke:prepare"].some(({ workspace }) => workspace === "wallpaper-tesseract"))
+      .toBe(false);
   });
 
   it("uses one production source filter for Canopy package graph checks", () => {
@@ -430,6 +488,226 @@ describe("architecture boundaries", () => {
         sourceZone: "actor-system/input",
         target: "ui-framework",
         specifier: "../../../ui-framework/src/index"
+      }
+    ]);
+  });
+
+  it("keeps ui-framework public package exports explicit and non-compatible", () => {
+    const uiFrameworkDescriptor = workspacePackageDescriptors.find((descriptor) => descriptor.name === "ui-framework");
+    expect(uiFrameworkDescriptor).toBeDefined();
+    const manifest = readWorkspacePackageManifest(uiFrameworkDescriptor!);
+
+    expect(Object.keys(manifest.exports ?? {}).sort()).toEqual([
+      "./actor-ui",
+      "./controls",
+      "./menu",
+      "./theme",
+      "./ui/theme.css",
+      "./ui/ui-framework-controls.css",
+      "./window"
+    ]);
+    expect(Object.hasOwn(manifest.exports ?? {}, ".")).toBe(false);
+    expect(Object.hasOwn(manifest.exports ?? {}, "./css")).toBe(false);
+    expect(Object.hasOwn(manifest.exports ?? {}, "./theme.css")).toBe(false);
+    expect(Object.hasOwn(manifest.exports ?? {}, "./style.css")).toBe(false);
+    expect(Object.hasOwn(manifest, "types")).toBe(false);
+  });
+
+  it("keeps production callers off the ui-framework root barrel", () => {
+    const rootUiFrameworkImports = listModuleEdges(collectProductionWorkspaceSources())
+      .filter((edge) => edge.specifier === "ui-framework")
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+
+    expect(rootUiFrameworkImports).toEqual([]);
+  });
+
+  it("keeps ui-framework internal submodule zones classified and directional", () => {
+    const uiFrameworkDescriptor = workspacePackageDescriptors.find((descriptor) => descriptor.name === "ui-framework");
+    expect(uiFrameworkDescriptor).toBeDefined();
+    const uiFrameworkProductionSources = collectProductionWorkspaceSources([uiFrameworkDescriptor!]);
+    const zones = [
+      defineSubmoduleZone("ui-framework/actor-ui", [
+        "packages/ui-framework/src/actor-ui/",
+        "packages/ui-framework/src/ui/element/",
+        "packages/ui-framework/src/ui/layout/",
+        "packages/ui-framework/src/ports/ui-"
+      ]),
+      defineSubmoduleZone("ui-framework/controls", [
+        "packages/ui-framework/src/controls/",
+        "packages/ui-framework/src/ui/collection/",
+        "packages/ui-framework/src/ui/scroll/",
+        "packages/ui-framework/src/ui/viewport/"
+      ]),
+      defineSubmoduleZone("ui-framework/menu", [
+        "packages/ui-framework/src/menu/",
+        "packages/ui-framework/src/ui/menu/"
+      ]),
+      defineSubmoduleZone("ui-framework/theme", [
+        "packages/ui-framework/src/theme/",
+        "packages/ui-framework/src/ui/theme/"
+      ]),
+      defineSubmoduleZone("ui-framework/window", [
+        "packages/ui-framework/src/window/",
+        "packages/ui-framework/src/chrome/",
+        "packages/ui-framework/src/model/",
+        "packages/ui-framework/src/ports/dock-target-region-source.ts",
+        "packages/ui-framework/src/ports/window-",
+        "packages/ui-framework/src/services/window-"
+      ])
+    ];
+    const rules = [
+      {
+        sourceZone: "ui-framework/actor-ui",
+        forbiddenTargetZones: [
+          "ui-framework/controls",
+          "ui-framework/menu",
+          "ui-framework/theme",
+          "ui-framework/window"
+        ],
+        forbiddenRootPackages: [
+          "runtime-core",
+          "runtime-three",
+          "wallpaper-runtime",
+          "editor",
+          "wallpaper-tesseract"
+        ]
+      },
+      {
+        sourceZone: "ui-framework/controls",
+        forbiddenTargetZones: [
+          "ui-framework/menu",
+          "ui-framework/theme",
+          "ui-framework/window"
+        ],
+        forbiddenRootPackages: [
+          "runtime-core",
+          "runtime-three",
+          "wallpaper-runtime",
+          "editor",
+          "wallpaper-tesseract"
+        ]
+      },
+      {
+        sourceZone: "ui-framework/menu",
+        forbiddenTargetZones: [
+          "ui-framework/theme",
+          "ui-framework/window"
+        ],
+        forbiddenRootPackages: [
+          "runtime-core",
+          "runtime-three",
+          "wallpaper-runtime",
+          "editor",
+          "wallpaper-tesseract"
+        ]
+      },
+      {
+        sourceZone: "ui-framework/theme",
+        forbiddenTargetZones: [
+          "ui-framework/controls",
+          "ui-framework/menu",
+          "ui-framework/window"
+        ],
+        forbiddenRootPackages: [
+          "runtime-core",
+          "runtime-three",
+          "wallpaper-runtime",
+          "editor",
+          "wallpaper-tesseract"
+        ]
+      },
+      {
+        sourceZone: "ui-framework/window",
+        forbiddenTargetZones: [
+          "ui-framework/menu",
+          "ui-framework/theme"
+        ],
+        forbiddenRootPackages: [
+          "runtime-core",
+          "runtime-three",
+          "wallpaper-runtime",
+          "editor",
+          "wallpaper-tesseract"
+        ]
+      }
+    ];
+
+    expect(findSubmoduleZoneOverlaps(Object.keys(uiFrameworkProductionSources), zones)).toEqual([]);
+    expect(findUnclassifiedSubmoduleFiles(Object.keys(uiFrameworkProductionSources), zones, {
+      rootPrefix: "packages/ui-framework/src/"
+    })).toEqual([]);
+    expect(evaluateSubmoduleDependencyRules(uiFrameworkProductionSources, zones, rules)).toEqual([]);
+  });
+
+  it("proves ui-framework submodule rules catch relative and root bypass imports", () => {
+    const zones = [
+      defineSubmoduleZone("ui-framework/menu", [
+        "packages/ui-framework/src/menu/",
+        "packages/ui-framework/src/ui/menu/"
+      ]),
+      defineSubmoduleZone("ui-framework/theme", [
+        "packages/ui-framework/src/theme/",
+        "packages/ui-framework/src/ui/theme/"
+      ]),
+      defineSubmoduleZone("ui-framework/window", [
+        "packages/ui-framework/src/window/",
+        "packages/ui-framework/src/model/"
+      ]),
+      defineSubmoduleZone("app-theme", "apps/wallpaper-tesseract/src/features/theme/"),
+      defineSubmoduleZone("editor-scene", "packages/editor/src/scene/")
+    ];
+    const rules = [
+      {
+        sourceZone: "ui-framework/menu",
+        forbiddenTargetZones: ["ui-framework/window"],
+        forbiddenRootPackages: ["ui-framework"]
+      },
+      {
+        sourceZone: "ui-framework/theme",
+        forbiddenTargetZones: ["app-theme"],
+        forbiddenRootPackages: ["ui-framework"]
+      },
+      {
+        sourceZone: "ui-framework/window",
+        forbiddenTargetZones: ["editor-scene"],
+        forbiddenRootPackages: ["ui-framework"]
+      }
+    ];
+    const files = {
+      "packages/ui-framework/src/ui/menu/window.ts": 'import { graph } from "../../model/window-workspace-graph";',
+      "packages/ui-framework/src/ui/theme/app.ts": 'import { theme } from "../../../../../apps/wallpaper-tesseract/src/features/theme/theme-controller";',
+      "packages/ui-framework/src/window/scene.ts": 'import { scene } from "../../../editor/src/scene/scene-window-state";',
+      "packages/ui-framework/src/ui/menu/root.ts": 'import { everything } from "ui-framework";',
+      "packages/ui-framework/src/model/window-workspace-graph.ts": "export const graph = 1;",
+      "apps/wallpaper-tesseract/src/features/theme/theme-controller.ts": "export const theme = 1;",
+      "packages/editor/src/scene/scene-window-state.ts": "export const scene = 1;"
+    };
+
+    expect(evaluateSubmoduleDependencyRules(files, zones, rules)).toEqual([
+      {
+        fromFile: "packages/ui-framework/src/ui/menu/root.ts",
+        sourceZone: "ui-framework/menu",
+        target: "ui-framework",
+        specifier: "ui-framework"
+      },
+      {
+        fromFile: "packages/ui-framework/src/ui/menu/window.ts",
+        sourceZone: "ui-framework/menu",
+        target: "ui-framework/window",
+        specifier: "../../model/window-workspace-graph"
+      },
+      {
+        fromFile: "packages/ui-framework/src/ui/theme/app.ts",
+        sourceZone: "ui-framework/theme",
+        target: "app-theme",
+        specifier: "../../../../../apps/wallpaper-tesseract/src/features/theme/theme-controller"
+      },
+      {
+        fromFile: "packages/ui-framework/src/window/scene.ts",
+        sourceZone: "ui-framework/window",
+        target: "editor-scene",
+        specifier: "../../../editor/src/scene/scene-window-state"
       }
     ]);
   });
@@ -1563,7 +1841,11 @@ describe("architecture boundaries", () => {
     expect(sourceFiles["./features/app-menu/app-menu-bar-definition.ts"]).toBeUndefined();
     expect(sourceFiles["./features/app-menu/app-menu-bar-actor-factory.ts"]).toBeUndefined();
     expect(appSource).toMatch(/\binstallAppMenuFeature\b/);
-    expect(appSource).toMatch(/\binstallUiComponentDefinitions\b/);
+    expect(appSource).toMatch(/\binstallActorUiComponentDefinitions\b/);
+    expect(appSource).toMatch(/\binstallControlComponentDefinitions\b/);
+    expect(appSource).toMatch(/\binstallMenuComponentDefinitions\b/);
+    expect(appSource).toMatch(/\binstallThemeComponentDefinitions\b/);
+    expect(appSource).not.toMatch(/\binstallUiComponentDefinitions\b/);
     expect(appSource).not.toMatch(/\bcreateAppMenuBarActor\b/);
     expect(installSource).toMatch(/\bhostElement\b/);
     expect(installSource).not.toMatch(/\bparent:\s*HTMLElement\b/);

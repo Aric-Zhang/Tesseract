@@ -9,11 +9,11 @@
   ],
   "scripts": {
     "dev": "npm run dev -w wallpaper-tesseract",
-    "test": "npm run build -w actor-system && npm run test -w actor-system && npm run build -w ui-framework && npm run test -w ui-framework && npm run build -w runtime-core && npm run test -w runtime-core && npm run build -w four-rotation && npm run test -w four-rotation && npm run build -w four-camera && npm run test -w four-camera && npm run build -w four-camera-three && npm run test -w four-camera-three && npm run build -w runtime-three && npm run test -w runtime-three && npm run build -w wallpaper-runtime && npm run test -w wallpaper-runtime && npm run build -w editor && npm run test -w editor && npm run test -w wallpaper-tesseract",
-    "typecheck": "npm run typecheck -w actor-system && npm run build -w actor-system && npm run typecheck -w ui-framework && npm run build -w ui-framework && npm run typecheck -w runtime-core && npm run build -w runtime-core && npm run typecheck -w four-rotation && npm run build -w four-rotation && npm run typecheck -w four-camera && npm run build -w four-camera && npm run typecheck -w four-camera-three && npm run build -w four-camera-three && npm run typecheck -w runtime-three && npm run build -w runtime-three && npm run typecheck -w wallpaper-runtime && npm run build -w wallpaper-runtime && npm run typecheck -w editor && npm run build -w editor && npm run typecheck -w wallpaper-tesseract",
-    "build": "npm run build -w actor-system && npm run build -w ui-framework && npm run build -w runtime-core && npm run build -w four-rotation && npm run build -w four-camera && npm run build -w four-camera-three && npm run build -w runtime-three && npm run build -w wallpaper-runtime && npm run build -w editor && npm run build -w wallpaper-tesseract",
+    "test": "node scripts/run-workspace-sequence.mjs test",
+    "typecheck": "node scripts/run-workspace-sequence.mjs typecheck",
+    "build": "node scripts/run-workspace-sequence.mjs build",
     "build:wallpaper": "npm run build -w wallpaper-tesseract",
-    "prism:smoke:prepare": "npm run build -w actor-system && npm run build -w ui-framework && npm run build -w runtime-core && npm run build -w four-rotation && npm run build -w four-camera && npm run build -w four-camera-three && npm run build -w runtime-three && npm run build -w wallpaper-runtime && npm run build -w editor",
+    "prism:smoke:prepare": "node scripts/run-workspace-sequence.mjs prism:smoke:prepare",
     "prism:phase0:report": "node scripts/generate-project-prism-phase0-report.mjs"
   },
   "devDependencies": {

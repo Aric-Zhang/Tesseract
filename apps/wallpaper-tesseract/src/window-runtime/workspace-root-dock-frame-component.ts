@@ -17,22 +17,12 @@ import type {
 } from "./window-frame-port";
 import type { RegisteredWindowFramePort, WindowFramePortRegistry } from "./window-frame-port-registry";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
-import { readWindowTabDragSource } from "ui-framework";
+import { readWindowTabDragSource } from "ui-framework/window";
 import { handleWindowFrameTabInputEnd } from "./window-frame-tab-input";
-import {
-  WINDOW_FRAME_TAB_ACTION_PART_ID,
-  WINDOW_FRAME_TAB_PART_ID
-} from "ui-framework";
-import { rectFromDomRect, type WindowDockRect } from "ui-framework";
-import type {
-  WindowFrameSurfaceComponent,
-  WindowFrameSurfaceHost,
-  WindowFrameSurfaceSnapshot,
-  WindowRegisteredContent,
-  WindowWorkspaceGraphContentActiveState,
-  WindowWorkspaceGraphContentPlacement,
-  WindowWorkspaceSurfaceGeometryProjection
-} from "ui-framework";
+import { WINDOW_FRAME_TAB_ACTION_PART_ID, WINDOW_FRAME_TAB_PART_ID } from "ui-framework/window";
+import { rectFromDomRect } from "ui-framework/window";
+import { type WindowDockRect } from "ui-framework/window";
+import { type WindowFrameSurfaceComponent, type WindowFrameSurfaceHost, type WindowFrameSurfaceSnapshot, type WindowRegisteredContent, type WindowWorkspaceGraphContentActiveState, type WindowWorkspaceGraphContentPlacement, type WindowWorkspaceSurfaceGeometryProjection } from "ui-framework/window";
 
 export const workspaceRootDockFrameComponentType =
   "workspace-root-dock-frame-component" as ComponentType<WorkspaceRootDockFrameComponent>;

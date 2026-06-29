@@ -1,1 +1,1 @@
-export * from "ui-framework";
+export * from "ui-framework/window";

@@ -2,15 +2,13 @@ import { describe, expect, it } from "vitest";
 import { installActorInputComponentDefinitions } from "actor-system/input";
 import { ActorSystem, ComponentRegistry } from "../../actor-runtime";
 import { installEditorStateObserverComponentDefinitions } from "editor";
-import {
-  installUiComponentDefinitions,
-  menuBarComponentType,
-  menuBarItemComponentType,
-  menuItemComponentType,
-  popupMenuComponentType,
-  uiElementComponentType,
-  WINDOW_TOP_DOCKED_CHROME_LAYER
-} from "ui-framework";
+import { installActorUiComponentDefinitions } from "ui-framework/actor-ui";
+import { installControlComponentDefinitions } from "ui-framework/controls";
+import { installMenuComponentDefinitions } from "ui-framework/menu";
+import { installThemeComponentDefinitions } from "ui-framework/theme";
+import { menuBarComponentType, menuBarItemComponentType, menuItemComponentType, popupMenuComponentType } from "ui-framework/menu";
+import { uiElementComponentType } from "ui-framework/actor-ui";
+import { WINDOW_TOP_DOCKED_CHROME_LAYER } from "ui-framework/window";
 import {
   createSingletonWindowViewIdentity,
   windowViewKey,
@@ -126,7 +124,10 @@ function createSubject(entries: WindowWorkspaceViewEntry[] = [
   const componentRegistry = new ComponentRegistry({ actorSystem });
   installActorInputComponentDefinitions(componentRegistry);
   installEditorStateObserverComponentDefinitions(componentRegistry);
-  installUiComponentDefinitions(componentRegistry);
+  installActorUiComponentDefinitions(componentRegistry);
+  installControlComponentDefinitions(componentRegistry);
+  installMenuComponentDefinitions(componentRegistry);
+  installThemeComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
   const document = new FakeDocument();
   const hostElement = document.createElement("div");

@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry } from "actor-system/core";
 import { installActorInputComponentDefinitions } from "actor-system/input";
-import {
-  installUiComponentDefinitions,
-  treeViewComponentType,
-  treeViewItemComponentType,
-  uiElementComponentType,
-  type TreeViewActivation
-} from "..";
+import { installActorUiComponentDefinitions } from "../../actor-ui";
+import { installControlComponentDefinitions } from "../../controls";
+import { installMenuComponentDefinitions } from "../../menu";
+import { installThemeComponentDefinitions } from "../../theme";
+import { treeViewComponentType, treeViewItemComponentType, type TreeViewActivation } from "./index";
+import { uiElementComponentType } from "../element";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -208,7 +207,10 @@ function createFixture(): {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
   installActorInputComponentDefinitions(componentRegistry);
-  installUiComponentDefinitions(componentRegistry);
+  installActorUiComponentDefinitions(componentRegistry);
+  installControlComponentDefinitions(componentRegistry);
+  installMenuComponentDefinitions(componentRegistry);
+  installThemeComponentDefinitions(componentRegistry);
   const document = new FakeDocument();
   let rootActor: ReturnType<ActorSystem["createActor"]> | null = null;
   return {

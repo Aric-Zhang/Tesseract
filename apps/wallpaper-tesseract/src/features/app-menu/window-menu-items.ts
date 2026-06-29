@@ -1,4 +1,4 @@
-import type { MenuItemDescriptor } from "ui-framework";
+import { type MenuItemDescriptor } from "ui-framework/menu";
 import type {
   WindowViewIdentity,
   WindowViewTypeKey,

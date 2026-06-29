@@ -6,7 +6,7 @@ import {
   createSingletonWindowViewIdentity,
   createWindowWorkspaceFrameLayout,
   WindowFramePortRegistry
-} from "../index";
+} from "../window";
 import type {
   WindowRegisteredContent,
   WindowContentLayoutCommitRegistration,
@@ -21,7 +21,7 @@ import type {
   WindowWorkspaceGraphContentPlacement,
   WindowWorkspaceGraphReconcilerSurface,
   WindowWorkspaceSurfaceGeometryProjection
-} from "../index";
+} from "../window";
 import { WindowViewFactoryRegistry } from "../ports/window-view-factory-registry";
 
 function createFocusRecorder(calls: string[]): WindowFocusCommandPort {

@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, ComponentRegistry } from "actor-system/core";
-import {
-  installUiComponentDefinitions,
-  scrollViewComponentType,
-  uiElementComponentType
-} from "..";
+import { installActorUiComponentDefinitions } from "../../actor-ui";
+import { installControlComponentDefinitions } from "../../controls";
+import { installMenuComponentDefinitions } from "../../menu";
+import { installThemeComponentDefinitions } from "../../theme";
+import { scrollViewComponentType } from "./index";
+import { uiElementComponentType } from "../element";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -198,7 +199,10 @@ function createFixture(): {
 } {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
-  installUiComponentDefinitions(componentRegistry);
+  installActorUiComponentDefinitions(componentRegistry);
+  installControlComponentDefinitions(componentRegistry);
+  installMenuComponentDefinitions(componentRegistry);
+  installThemeComponentDefinitions(componentRegistry);
   return {
     actorSystem,
     componentRegistry,

@@ -1,8 +1,5 @@
-import {
-  uiLayoutPath,
-  type FloatingWindowParameterPaths,
-  type UiVec2
-} from "ui-framework";
+import { uiLayoutPath, type UiVec2 } from "ui-framework/actor-ui";
+import { type FloatingWindowParameterPaths } from "ui-framework/window";
 
 export const editorWindowLayoutPaths = {
   debugWindow: createFloatingWindowPaths("debugWindow"),

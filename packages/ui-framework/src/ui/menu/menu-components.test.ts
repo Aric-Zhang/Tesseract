@@ -5,15 +5,12 @@ import {
   getActorInputScopeRoutePriority,
   installActorInputComponentDefinitions
 } from "actor-system/input";
-import {
-  installUiComponentDefinitions,
-  menuBarComponentType,
-  menuBarItemComponentType,
-  menuItemComponentType,
-  popupMenuComponentType,
-  uiElementComponentType,
-  type MenuCommand
-} from "..";
+import { installActorUiComponentDefinitions } from "../../actor-ui";
+import { installControlComponentDefinitions } from "../../controls";
+import { installMenuComponentDefinitions } from "../../menu";
+import { installThemeComponentDefinitions } from "../../theme";
+import { menuBarComponentType, menuBarItemComponentType, menuItemComponentType, popupMenuComponentType, type MenuCommand } from "./index";
+import { uiElementComponentType } from "../element";
 
 class FakeDocument {
   elementsAtPoint: FakeElement[] = [];
@@ -137,7 +134,10 @@ function createRegistry(): {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
   installActorInputComponentDefinitions(componentRegistry);
-  installUiComponentDefinitions(componentRegistry);
+  installActorUiComponentDefinitions(componentRegistry);
+  installControlComponentDefinitions(componentRegistry);
+  installMenuComponentDefinitions(componentRegistry);
+  installThemeComponentDefinitions(componentRegistry);
   return {
     actorSystem,
     componentRegistry,

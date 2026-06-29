@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  createUiThemeModule,
-  getUiThemeDefaultTokens,
-  type UiThemeModuleInput
-} from "ui-framework";
+import { createUiThemeModule, getUiThemeDefaultTokens, type UiThemeModuleInput } from "ui-framework/theme";
 import { createAppThemeController } from "./theme-controller";
 
 class FakeThemeComponent {

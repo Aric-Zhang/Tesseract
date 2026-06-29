@@ -28,10 +28,12 @@ import { RuntimeFrameClock } from "runtime-core";
 import { ActiveInputCancellationRuntime, GizmoControllerAttachmentRuntime } from "../gizmo-runtime";
 import {
   FrameUpdateAttachmentRuntime,
-  installUiComponentDefinitions,
-  uiElementComponentType,
-  uiThemeComponentType
-} from "ui-framework";
+  installActorUiComponentDefinitions,
+  uiElementComponentType
+} from "ui-framework/actor-ui";
+import { installControlComponentDefinitions } from "ui-framework/controls";
+import { installMenuComponentDefinitions } from "ui-framework/menu";
+import { installThemeComponentDefinitions, uiThemeComponentType } from "ui-framework/theme";
 import type { StateObserverRegistry } from "editor";
 import {
   createWindowFocusServiceProxy,
@@ -154,7 +156,10 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   installWindowComponentDefinitions(componentRegistry, {
     commandSink: createEditorBackedUiLayoutCommandSink(frameStateBridge)
   });
-  installUiComponentDefinitions(componentRegistry);
+  installActorUiComponentDefinitions(componentRegistry);
+  installControlComponentDefinitions(componentRegistry);
+  installMenuComponentDefinitions(componentRegistry);
+  installThemeComponentDefinitions(componentRegistry);
   installAppMenuComponentDefinitions(componentRegistry);
   installEditorComponentDefinitions(componentRegistry, {
     commandSink: createEditorBackedWorkspaceCommandSink(frameStateBridge)

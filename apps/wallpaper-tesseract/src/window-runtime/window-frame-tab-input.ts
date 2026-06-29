@@ -1,13 +1,10 @@
 import type { ActorInputEndEvent } from "../gizmo-runtime";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
-import { readWindowTabDragSource } from "ui-framework";
+import { readWindowTabDragSource } from "ui-framework/window";
 import type { WindowDockCommitIntent, WindowDockCommitResult, WindowFrameIntentSink } from "./window-frame-lifecycle";
-import {
-  WINDOW_FRAME_TAB_ACTION_PART_ID,
-  WINDOW_FRAME_TAB_PART_ID
-} from "ui-framework";
-import type { WindowTabDragSessionEndResult } from "ui-framework";
-import { isWindowTabAction } from "ui-framework";
+import { WINDOW_FRAME_TAB_ACTION_PART_ID, WINDOW_FRAME_TAB_PART_ID } from "ui-framework/window";
+import { type WindowTabDragSessionEndResult } from "ui-framework/window";
+import { isWindowTabAction } from "ui-framework/window";
 
 export interface WindowFrameTabInputEndOptions {
   readonly event: ActorInputEndEvent;

@@ -7,10 +7,7 @@ import {
   createActorInputStartEvent
 } from "../test-support/actor-input-events";
 import type { ActorInputCancelEvent, ActorInputHit } from "../gizmo-runtime";
-import {
-  WINDOW_FRAME_TAB_PART_ID,
-  type WindowFrameSurfaceComponent
-} from "ui-framework";
+import { WINDOW_FRAME_TAB_PART_ID, type WindowFrameSurfaceComponent } from "ui-framework/window";
 import type { WindowDockCommitIntent, WindowFrameIntentSink } from "./window-frame-lifecycle";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
 import { WorkspaceRootDockFrameComponent } from "./workspace-root-dock-frame-component";

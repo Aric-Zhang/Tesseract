@@ -1,15 +1,6 @@
 import type { AppStateParameterStore } from "../app-state-store";
-import {
-  addUiVec2,
-  assertUiVec2,
-  cloneUiVec2,
-  DEFAULT_FLOATING_WINDOW_MIN_SIZE,
-  equalsUiVec2,
-  type FloatingWindowParameterPaths,
-  type FloatingWindowState,
-  type UiLayoutPath,
-  type UiVec2
-} from "ui-framework";
+import { addUiVec2, assertUiVec2, cloneUiVec2, equalsUiVec2, type UiLayoutPath, type UiVec2 } from "ui-framework/actor-ui";
+import { DEFAULT_FLOATING_WINDOW_MIN_SIZE, type FloatingWindowParameterPaths, type FloatingWindowState } from "ui-framework/window";
 import type { AppStatePath } from "../app-state";
 
 export interface RegisterFloatingWindowParametersOptions {

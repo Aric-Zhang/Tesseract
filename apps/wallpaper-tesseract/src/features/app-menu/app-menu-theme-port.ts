@@ -1,4 +1,4 @@
-import type { UiThemeDiagnostic, UiThemeModule } from "ui-framework";
+import { type UiThemeDiagnostic, type UiThemeModule } from "ui-framework/theme";
 
 export interface AppMenuThemeDescriptor {
   readonly id: string;

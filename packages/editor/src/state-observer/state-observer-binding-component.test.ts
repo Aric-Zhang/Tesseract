@@ -12,11 +12,7 @@ import {
 } from "actor-system/core";
 import { gizmoEventBindingComponentDefinition } from "actor-system/input";
 import type { AppStateChangedEvent, AppStateObserver } from "../app-state";
-import {
-  FrameUpdateAttachmentRuntime,
-  frameUpdateAttachment,
-  type FrameUpdateParticipant
-} from "ui-framework";
+import { FrameUpdateAttachmentRuntime, frameUpdateAttachment, type FrameUpdateParticipant } from "ui-framework/actor-ui";
 import { installEditorStateObserverComponentDefinitions } from "./install-component-definitions";
 import {
   stateObserverBindingComponentType

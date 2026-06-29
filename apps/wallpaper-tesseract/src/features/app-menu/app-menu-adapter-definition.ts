@@ -1,6 +1,6 @@
 import type { ComponentDefinition } from "../../actor-runtime";
 import { stateObserverBindingComponentType } from "editor";
-import { frameUpdateAttachment } from "ui-framework";
+import { frameUpdateAttachment } from "ui-framework/actor-ui";
 import {
   AppMenuAdapterComponent,
   appMenuAdapterComponentType,

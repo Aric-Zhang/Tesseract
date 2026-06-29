@@ -20,11 +20,8 @@ import {
 import type { AppStateParameterStore } from "../app-state-store";
 import { editorWindowLayoutPaths } from "../window-layout-state";
 import type { ActorCreationContext } from "actor-system/core";
-import {
-  createWindowWorkspaceContentId,
-  uiVec2,
-  type WindowViewFactoryRegistry
-} from "ui-framework";
+import { createWindowWorkspaceContentId, type WindowViewFactoryRegistry } from "ui-framework/window";
+import { uiVec2 } from "ui-framework/actor-ui";
 import type {
   EditorWindowWorkspaceDefaultOpenView,
   EditorWindowWorkspaceFloatingFramePolicy

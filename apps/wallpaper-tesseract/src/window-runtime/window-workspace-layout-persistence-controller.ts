@@ -1,9 +1,4 @@
-import {
-  loadPersistedWindowWorkspaceFrameLayout as loadPersistedWindowWorkspaceFrameLayoutWithKey,
-  WindowWorkspaceFrameLayoutPersistenceController as BaseWindowWorkspaceFrameLayoutPersistenceController,
-  type WindowWorkspaceFrameLayoutPersistenceControllerOptions,
-  type WindowWorkspaceFrameLayoutStorage
-} from "ui-framework";
+import { loadPersistedWindowWorkspaceFrameLayout as loadPersistedWindowWorkspaceFrameLayoutWithKey, WindowWorkspaceFrameLayoutPersistenceController as BaseWindowWorkspaceFrameLayoutPersistenceController, type WindowWorkspaceFrameLayoutPersistenceControllerOptions, type WindowWorkspaceFrameLayoutStorage } from "ui-framework/window";
 
 export const WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY =
   "wallpaper-tesseract.windowWorkspaceFrameLayout.v1";

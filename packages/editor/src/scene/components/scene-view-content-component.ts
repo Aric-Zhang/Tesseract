@@ -1,11 +1,6 @@
 import type { Actor, Component, ComponentType } from "actor-system/core";
-import type {
-  WindowContentLayoutCommit,
-  WindowContentLayoutCommitRegistration,
-  WindowContentRegistrationPort,
-  WindowRegisteredContent
-} from "ui-framework";
-import type { UiElementComponent } from "ui-framework";
+import { type WindowContentLayoutCommit, type WindowContentLayoutCommitRegistration, type WindowContentRegistrationPort, type WindowRegisteredContent } from "ui-framework/window";
+import { type UiElementComponent } from "ui-framework/actor-ui";
 
 export const sceneViewContentComponentType =
   "scene-view-content-component" as ComponentType<SceneViewContentComponent>;

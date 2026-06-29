@@ -163,7 +163,7 @@ describe("UiLayoutHostComponent", () => {
     expect(wrapper(fixture.hostRoot, "overlay").style).toMatchObject({
       position: "absolute",
       inset: "0",
-      pointerEvents: "auto",
+      pointerEvents: "none",
       minWidth: "10px",
       minHeight: "11px",
       width: "20px",
@@ -215,7 +215,7 @@ describe("UiLayoutHostComponent", () => {
       inset: "0",
       width: "100%",
       height: "100%",
-      pointerEvents: "auto"
+      pointerEvents: "none"
     });
     expect(child.element.style).toEqual({});
   });

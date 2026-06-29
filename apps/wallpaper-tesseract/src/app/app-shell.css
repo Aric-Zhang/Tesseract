@@ -9,7 +9,7 @@
     "status";
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   overflow: hidden;
-  background: #07090d;
+  background: var(--ui-color-app-bg);
 }
 
 .app-shell__menu {

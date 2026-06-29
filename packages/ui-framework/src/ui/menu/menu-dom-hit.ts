@@ -1,4 +1,4 @@
-import type { ScreenPoint } from "gizmo-core";
+import type { ScreenPoint } from "actor-input";
 
 export function isElementExposedAtPoint(element: HTMLElement, point: ScreenPoint): boolean {
   const elementsFromPoint = element.ownerDocument?.elementsFromPoint?.bind(element.ownerDocument);

@@ -5,6 +5,7 @@ import { installEditorStateObserverComponentDefinitions } from "editor";
 import {
   installUiComponentDefinitions,
   menuBarComponentType,
+  menuBarItemComponentType,
   menuItemComponentType,
   popupMenuComponentType,
   uiElementComponentType,
@@ -20,6 +21,7 @@ import {
 import { appMenuAdapterComponentType } from "./app-menu-adapter-component";
 import { installAppMenuComponentDefinitions } from "./install-component-definitions";
 import { installAppMenuFeature } from "./install-app-menu-feature";
+import { themeMenuAdapterComponentType } from "./theme-menu-adapter-component";
 import type { WindowMenuPayload } from "./window-menu-items";
 
 class FakeDocument {
@@ -129,6 +131,25 @@ function createSubject(entries: WindowWorkspaceViewEntry[] = [
   const document = new FakeDocument();
   const hostElement = document.createElement("div");
   const intents: string[] = [];
+  const themeSelections: string[] = [];
+  let selectedThemeId = "default-dark";
+  const themeController = {
+    listThemes: () => [
+      { id: "default-dark", label: "Default Dark", diagnostics: [] },
+      { id: "graphite-blue", label: "Graphite Blue", diagnostics: [] }
+    ],
+    getSelectedThemeId: () => selectedThemeId,
+    getSelectedThemeDiagnostics: () => [],
+    setTheme(themeId: string) {
+      selectedThemeId = themeId;
+      themeSelections.push(themeId);
+      return {
+        id: themeId,
+        label: themeId,
+        tokens: {} as never
+      };
+    }
+  };
   const windowCatalog: WindowWorkspaceViewCatalog = {
     listViewEntries: () => entries.map((entry) => ({ ...entry })),
     getViewEntryByIdentity: () => null,
@@ -156,6 +177,7 @@ function createSubject(entries: WindowWorkspaceViewEntry[] = [
     hostElement: hostElement as unknown as HTMLElement,
     windowCatalog,
     windowFrameIntents,
+    themeController,
     workspaceModePath: "workspace.mode"
   });
   const adapter = actorSystem.getActor("app-menu-host")?.getComponent(appMenuAdapterComponentType);
@@ -166,6 +188,8 @@ function createSubject(entries: WindowWorkspaceViewEntry[] = [
     hostElement,
     entries,
     intents,
+    themeSelections,
+    themeController,
     adapter
   };
 }
@@ -176,10 +200,14 @@ describe("installAppMenuFeature", () => {
     const hostActor = actorSystem.getActor("app-menu-host");
     const menuBarActor = actorSystem.getActor("app-menu:bar");
     const popupActor = actorSystem.getActor("app-menu-window-popup");
+    const editPopupActor = actorSystem.getActor("app-menu-edit-popup");
+    const themePopupActor = actorSystem.getActor("app-menu-edit-theme-popup");
 
     expect(hostActor).not.toBeNull();
     expect(menuBarActor && actorSystem.getParentId(menuBarActor)).toBe("app-menu-host");
     expect(popupActor && actorSystem.getParentId(popupActor)).toBe("app-menu-window");
+    expect(editPopupActor && actorSystem.getParentId(editPopupActor)).toBe("app-menu-edit");
+    expect(themePopupActor && actorSystem.getParentId(themePopupActor)).toBe("app-menu-edit-theme");
     expect(hostActor?.getComponent(uiElementComponentType)?.element).toBe(hostElement);
     expect(hostElement.children.length).toBe(1);
   });
@@ -188,9 +216,55 @@ describe("installAppMenuFeature", () => {
     const { actorSystem } = createSubject();
     const menuBar = actorSystem.getActor("app-menu:bar")?.getComponent(menuBarComponentType);
     const popup = actorSystem.getActor("app-menu-window-popup")?.getComponent(popupMenuComponentType);
+    const editPopup = actorSystem.getActor("app-menu-edit-popup")?.getComponent(popupMenuComponentType);
+    const themePopup = actorSystem.getActor("app-menu-edit-theme-popup")?.getComponent(popupMenuComponentType);
 
     expect(menuBar?.inputStackPriority).toBe(WINDOW_TOP_DOCKED_CHROME_LAYER);
     expect(popup?.inputStackPriority).toBe(WINDOW_TOP_DOCKED_CHROME_LAYER);
+    expect(editPopup?.inputStackPriority).toBe(WINDOW_TOP_DOCKED_CHROME_LAYER);
+    expect(themePopup?.inputStackPriority).toBe(WINDOW_TOP_DOCKED_CHROME_LAYER);
+  });
+
+  it("installs Edit -> Theme as a generic submenu actor chain", () => {
+    const { actorSystem } = createSubject();
+    const editItem = actorSystem.getActor("app-menu-edit")?.getComponent(menuBarItemComponentType);
+    const themeItem = actorSystem.getActor("app-menu-edit-theme")?.getComponent(menuItemComponentType);
+    const themePopup = actorSystem.getActor("app-menu-edit-theme-popup")?.getComponent(popupMenuComponentType);
+    const defaultThemeItem = actorSystem.getActor("app-menu:theme-item:theme:default-dark")
+      ?.getComponent(menuItemComponentType);
+    const graphiteThemeItem = actorSystem.getActor("app-menu:theme-item:theme:graphite-blue")
+      ?.getComponent(menuItemComponentType);
+
+    expect(actorSystem.getActor("app-menu-edit")).not.toBeNull();
+    expect(editItem?.descriptor.id).toBe("edit");
+    expect(themeItem?.descriptor.role).toBe("submenu");
+    expect(themePopup).not.toBeNull();
+    expect(defaultThemeItem?.descriptor.checked).toBe(true);
+    expect(graphiteThemeItem?.descriptor.checked).toBe(false);
+  });
+
+  it("routes theme menu activation to the app theme controller once", () => {
+    const { actorSystem, themeSelections } = createSubject();
+    const adapter = actorSystem.getActor("app-menu-host")?.getComponent(themeMenuAdapterComponentType);
+    const graphiteThemeItem = actorSystem.getActor("app-menu:theme-item:theme:graphite-blue")
+      ?.getComponent(menuItemComponentType);
+    if (!adapter || !graphiteThemeItem) throw new Error("Expected theme menu adapter and item.");
+
+    adapter.activateMenuItem({
+      itemActorId: "app-menu:theme-item:theme:graphite-blue",
+      itemId: graphiteThemeItem.itemId,
+      payload: graphiteThemeItem.payload as never
+    });
+
+    expect(themeSelections).toEqual(["graphite-blue"]);
+    expect(
+      actorSystem.getActor("app-menu:theme-item:theme:graphite-blue")
+        ?.getComponent(menuItemComponentType)?.descriptor.checked
+    ).toBe(true);
+    expect(
+      actorSystem.getActor("app-menu:theme-item:theme:default-dark")
+        ?.getComponent(menuItemComponentType)?.descriptor.checked
+    ).toBe(false);
   });
 
   it("diffs window menu item actors without duplicating them", () => {

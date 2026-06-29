@@ -1,4 +1,4 @@
-export type MenuItemRole = "command" | "checkbox" | "separator";
+export type MenuItemRole = "command" | "checkbox" | "separator" | "submenu";
 
 export type MenuLeadingAccessory =
   | { readonly kind: "none" }

@@ -40,6 +40,7 @@ export const projectPrismSourceZones = [
   definePathZone("app-composition", "Wallpaper app bootstrap and composition layer.", [
     /^\.\/app\/(?!app-shell\.ts$)[^/]+\.ts$/,
     /^\.\/features\/scene-run-mode-command\.ts$/,
+    /^\.\/features\/theme\//,
     /^\.\/demo\.ts$/
   ])
 ] as const satisfies readonly SourceZoneDefinition[];

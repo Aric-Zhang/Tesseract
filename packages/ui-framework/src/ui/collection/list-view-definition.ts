@@ -1,5 +1,4 @@
 import type { ComponentDefinition } from "actor-core";
-import { frameUpdateAttachment } from "../../ports/ui-frame-update-attachment-runtime";
 import { uiElementComponentType } from "../element";
 import {
   ListViewComponent,
@@ -11,7 +10,6 @@ export const listViewComponentDefinition:
   ComponentDefinition<ListViewComponent, ListViewComponentOptions> = {
     type: listViewComponentType,
     singleton: true,
-    attachments: [frameUpdateAttachment],
     requires: [{
       type: uiElementComponentType,
       autoAdd: false,

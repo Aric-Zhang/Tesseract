@@ -160,18 +160,51 @@ Next architecture plan:
   pointer-generated Debug logs exceed the visible capacity, bottom anchoring
   stays at end, non-bottom scroll is preserved, Debug close/reopen works
   through UI actions, and Debug log item actors do not leak into Hierarchy.
-  Gate 7C.5 is now the active pre-Gate-7D cleanup:
+  Gate 7C.5 is complete:
   `docs/project-arbor-gate-7c-5-debug-virtual-list-performance-plan.md`.
-  It addresses the confirmed Debug performance issue caused by frame-attached
-  actor-backed ListView refresh and per-log actor reconciliation. Gate 7C.5
-  should add a reusable fixed-row-height data-backed
-  `VirtualListViewComponent`, make actor-backed `ListViewComponent`
-  owner-driven, migrate Debug off per-log actors, keep Debug refresh batched
-  through an O(1) dirty frame check, and refresh performance smoke evidence.
-  The Debug virtual-list data source must be owned by the Debug view factory and
-  injected into both Debug content and the virtual list. Gate 7D remains next
-  after Gate 7C.5: Inspector/window theme adoption and user-facing theme
-  switching.
+  It closed the confirmed Debug performance regression by making actor-backed
+  `ListViewComponent` owner-driven, adding a reusable fixed-row-height
+  data-backed `VirtualListViewComponent`, and migrating Debug Log off per-log
+  actors. `DebugLogDataSource` is a fixed-capacity ring buffer created by the
+  Debug view factory and injected into both `DebugLogContentComponent` and
+  `VirtualListViewComponent`; Debug append work now only advances the data
+  source and marks a dirty flag, while the frame attachment does an O(1)
+  clean-frame check. The old
+  `DebugLogEntryActorReconciler`, `isDebugLogEntryActorId`, Debug
+  `ListViewComponent` usage, and Debug log actor filtering were deleted. Gate
+  7C.5 validation passed: `npm run test -w ui-framework -- scroll list virtual collection`,
+  `npm run typecheck:test -w ui-framework`, `npm run build -w ui-framework`,
+  `npm run test -w editor -- debug`, `npm run typecheck -w editor`,
+  `npm run build -w editor`,
+  `npm run test -w wallpaper-tesseract -- architecture-boundaries`,
+  `npm run typecheck -w wallpaper-tesseract`, and
+  `npm run build -w wallpaper-tesseract`. Fresh performance browser evidence is
+  stored at `temp/project-arbor-gate-7c-5-debug-performance-data.json` and
+  `temp/project-arbor-gate-7c-5-debug-performance-report.md`; it proves 200 log
+  items render through a bounded virtual row pool, Debug open-idle produces zero
+  virtual-list DOM mutations or rebind batches over 500ms, append bursts do not
+  create/remove virtual rows and touch only the bounded row pool,
+  bottom/non-bottom scroll anchoring remains correct, Debug close/reopen works
+  through UI actions, and Debug log row data does not leak into Hierarchy. Gate
+  7D is complete:
+  `docs/project-arbor-gate-7d-editor-theme-adoption-plan.md`. It installed the
+  app-owned root `UiThemeComponent`, added an app-local in-memory theme
+  controller, added generic submenu support to `ui-framework` menus, exposed
+  `Edit -> Theme -> <theme>` through the real App Menu actor tree, tokenised
+  app shell, window chrome, Inspector, Scene surface, Camera3 chrome text, and
+  generic editor-panel styling, and kept Camera3 axis colors out of
+  `ui-framework` core tokens. Gate 7D also tightened generic layout/menu
+  behavior discovered by smoke: overlay layout wrappers no longer intercept
+  blank overlay space, and submenu popups flip away from viewport edges instead
+  of relying on app-specific menu placement. Gate 7D review closure removed
+  direct `gizmo-core` imports from `ui-framework` source by re-exporting the
+  actor-input screen point type from `actor-input`, declared the missing
+  `runtime-three -> four-camera` workspace dependency, tokenised dock preview
+  and window splitter raw styles, and added a data-backed raw-style allowlist
+  for the remaining Camera3 product-renderer shadows. Fresh Gate 7D browser evidence is
+  stored at `temp/project-arbor-gate-7-theme-smoke-data.json` and
+  `temp/project-arbor-gate-7-theme-smoke-report.md`; it validates with
+  `$env:PROJECT_ARBOR_GATE_7_THEME_SMOKE_EVIDENCE="temp/project-arbor-gate-7-theme-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-arbor-gate-7-theme-smoke-contract`.
 - `docs/project-arbor-step-1-ui-element-ownership-plan.md` is the detailed
   execution record for Arbor Step 1. It added only `UiElementComponent`
   ownership semantics inside `ui-framework` and explicitly excluded layout,

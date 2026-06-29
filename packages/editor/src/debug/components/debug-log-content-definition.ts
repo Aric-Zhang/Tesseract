@@ -1,9 +1,9 @@
 import type { ComponentDefinition } from "actor-core";
 import {
   frameUpdateAttachment,
-  listViewComponentType,
   scrollViewComponentType,
-  uiElementComponentType
+  uiElementComponentType,
+  virtualListViewComponentType
 } from "ui-framework";
 import {
   DebugLogContentComponent,
@@ -28,7 +28,7 @@ export const debugLogContentComponentDefinition:
         reuseExisting: true
       },
       {
-        type: listViewComponentType,
+        type: virtualListViewComponentType,
         autoAdd: false,
         reuseExisting: true
       }
@@ -40,15 +40,15 @@ export const debugLogContentComponentDefinition:
       if (!options?.contentRegistration || !options.contentId) {
         throw new Error("DebugLogContentComponent requires content registration options.");
       }
-      if (!options.itemReconciler) {
-        throw new Error("DebugLogContentComponent requires itemReconciler option.");
+      if (!options.source) {
+        throw new Error("DebugLogContentComponent requires a Debug log data source.");
       }
       const uiElement = context.componentRegistry.getComponent(actor, uiElementComponentType);
       const scrollView = context.componentRegistry.getComponent(actor, scrollViewComponentType);
-      const listView = context.componentRegistry.getComponent(actor, listViewComponentType);
-      if (!uiElement || !scrollView || !listView) {
-        throw new Error("DebugLogContentComponent requires UI element, scroll view, and list view components.");
+      const virtualList = context.componentRegistry.getComponent(actor, virtualListViewComponentType);
+      if (!uiElement || !scrollView || !virtualList) {
+        throw new Error("DebugLogContentComponent requires UI element, scroll view, and virtual list components.");
       }
-      return new DebugLogContentComponent(actor, uiElement, scrollView, listView, options);
+      return new DebugLogContentComponent(actor, uiElement, scrollView, virtualList, options);
     }
   };

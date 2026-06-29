@@ -43,3 +43,4 @@ export type {
 } from "./actor-input-participant";
 export { isActorInputParticipant } from "./actor-input-participant";
 export { ActorInputRouter } from "./actor-input-router";
+export type { ScreenPoint } from "gizmo-core";

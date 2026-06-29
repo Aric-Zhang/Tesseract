@@ -28,7 +28,9 @@ import { RuntimeFrameClock } from "runtime-core";
 import { ActiveInputCancellationRuntime, GizmoControllerAttachmentRuntime } from "../gizmo-runtime";
 import {
   FrameUpdateAttachmentRuntime,
-  installUiComponentDefinitions
+  installUiComponentDefinitions,
+  uiElementComponentType,
+  uiThemeComponentType
 } from "ui-framework";
 import type { StateObserverRegistry } from "editor";
 import {
@@ -46,6 +48,7 @@ import {
   installAppMenuComponentDefinitions,
   installAppMenuFeature
 } from "../features/app-menu";
+import { createAppThemeController } from "../features/theme";
 import {
   installSceneViewFeature,
   installSceneWorkspacePolicy
@@ -159,6 +162,19 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   installWallpaperRuntimeComponentDefinitions(componentRegistry);
   installSceneIntegrationComponentDefinitions(componentRegistry);
 
+  const appThemeActor = actorSystem.createActor({
+    id: "app-theme-root",
+    name: "App Theme Root"
+  });
+  componentRegistry.addComponent(appThemeActor, uiElementComponentType, {
+    element: appShell.root,
+    ownership: "borrowed"
+  });
+  const rootTheme = componentRegistry.addComponent(appThemeActor, uiThemeComponentType, {
+    theme: { id: "default-dark", label: "Default Dark" }
+  });
+  const themeController = createAppThemeController({ rootTheme });
+
   const layoutStorage = createBrowserWindowWorkspaceFrameLayoutStorage(window, {
     resetKeys: shouldResetWindowWorkspaceLayout(window)
       ? [WINDOW_WORKSPACE_FRAME_LAYOUT_STORAGE_KEY]
@@ -200,7 +216,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     hostElement: appShell.menuSlot,
     windowCatalog: windowWorkspace.catalog,
     windowFrameIntents: windowWorkspace.frameIntents,
-    workspaceModePath: editorStatePaths.workspace.mode
+    workspaceModePath: editorStatePaths.workspace.mode,
+    themeController
   });
   const sceneRunMode = installSceneRunModeCommand({
     stateStore: appStateStore,

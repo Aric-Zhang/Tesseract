@@ -13,7 +13,8 @@ import {
   listViewComponentDefinition,
   listViewItemComponentDefinition,
   treeViewComponentDefinition,
-  treeViewItemComponentDefinition
+  treeViewItemComponentDefinition,
+  virtualListViewComponentDefinition
 } from "./collection";
 import {
   uiLayoutHostComponentDefinition,
@@ -34,6 +35,7 @@ export function installUiComponentDefinitions(componentRegistry: ComponentRegist
   installComponentDefinition(componentRegistry, scrollViewComponentDefinition);
   installComponentDefinition(componentRegistry, listViewItemComponentDefinition);
   installComponentDefinition(componentRegistry, listViewComponentDefinition);
+  installComponentDefinition(componentRegistry, virtualListViewComponentDefinition);
   installComponentDefinition(componentRegistry, treeViewItemComponentDefinition);
   installComponentDefinition(componentRegistry, treeViewComponentDefinition);
   installComponentDefinition(componentRegistry, menuBarComponentDefinition);

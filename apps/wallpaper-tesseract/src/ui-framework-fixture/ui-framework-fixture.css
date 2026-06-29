@@ -3,8 +3,8 @@
   inset: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  background: #0b1016;
-  color: #d7e3ef;
+  background: var(--ui-color-app-bg);
+  color: var(--ui-color-text);
   overflow: hidden;
 }
 
@@ -12,8 +12,8 @@
   position: relative;
   z-index: var(--window-top-docked-chrome-layer, 1000);
   min-height: 28px;
-  background: #161d25;
-  border-bottom: 1px solid #2b3746;
+  background: var(--ui-window-titlebar-bg);
+  border-bottom: var(--ui-border-width) solid var(--ui-window-border);
 }
 
 .ui-framework-fixture__root-frame {
@@ -43,8 +43,8 @@
   min-height: 0;
   padding: 16px;
   overflow: auto;
-  color: #dfe9f4;
-  background: #0d1218;
+  color: var(--ui-color-text);
+  background: var(--ui-color-content-bg);
 }
 
 .ui-fixture-view__title {
@@ -55,7 +55,7 @@
 
 .ui-fixture-view__body {
   margin: 0;
-  color: #9fb0c3;
+  color: var(--ui-color-text-muted);
   font-size: 13px;
   line-height: 1.45;
 }

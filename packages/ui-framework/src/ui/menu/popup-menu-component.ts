@@ -1,4 +1,4 @@
-import type { ScreenPoint } from "gizmo-core";
+import type { ScreenPoint } from "actor-input";
 import type {
   Actor,
   ActorSystemView,
@@ -49,8 +49,10 @@ implements Component, ActorInputParticipant {
   readonly #commandSink?: MenuCommandSink<TPayload>;
   readonly #localRoutePriority: number;
   #requestCloseMenu: (() => void) | null = null;
+  #documentOutsideCloseEnabled = true;
   #open = false;
   #highlightedItemActorId: string | null = null;
+  #openSubmenuItemActorId: string | null = null;
   #disposed = false;
 
   constructor(
@@ -89,6 +91,10 @@ implements Component, ActorInputParticipant {
     this.#requestCloseMenu = handler;
   }
 
+  setDocumentOutsideCloseEnabled(enabled: boolean): void {
+    this.#documentOutsideCloseEnabled = enabled;
+  }
+
   setOpen(open: boolean, options: { readonly activateFirstItem?: boolean } = {}): void {
     if (this.#disposed) return;
     this.#open = open && this.enabled;
@@ -101,19 +107,32 @@ implements Component, ActorInputParticipant {
     this.refreshItems();
     if (options.activateFirstItem) {
       this.setHighlightedItemActorId(this.listEnabledItems()[0]?.actor.id ?? null);
+    } else {
+      this.syncOpenSubmenu();
     }
   }
 
   refreshItems(): void {
     const items = this.listItems();
     const itemActorIds = new Set(items.map((item) => item.actor.id));
-    for (const { item } of items) {
+    for (const { actor, item } of items) {
       this.element.append(item.element);
+      const submenu = this.findSubmenuPopupForItem(actor);
+      if (submenu) {
+        submenu.setRequestCloseMenu(() => this.requestClose());
+        submenu.setDocumentOutsideCloseEnabled(false);
+        item.element.append(submenu.element);
+      }
     }
     if (this.#highlightedItemActorId && !itemActorIds.has(this.#highlightedItemActorId)) {
       this.setHighlightedItemActorId(null);
     } else {
       this.applyHighlight();
+    }
+    if (this.#openSubmenuItemActorId && !itemActorIds.has(this.#openSubmenuItemActorId)) {
+      this.setOpenSubmenuItemActorId(null);
+    } else {
+      this.syncOpenSubmenu();
     }
   }
 
@@ -194,6 +213,11 @@ implements Component, ActorInputParticipant {
   private activateItemActorId(itemActorId: string): void {
     const entry = this.listItems().find((candidate) => candidate.actor.id === itemActorId);
     if (!entry?.item.itemEnabled) return;
+    if (entry.item.itemRole === "submenu") {
+      this.setHighlightedItemActorId(entry.actor.id);
+      this.setOpenSubmenuItemActorId(entry.actor.id);
+      return;
+    }
     this.#commandSink?.activateMenuItem({
       itemActorId: entry.actor.id,
       itemId: entry.item.itemId,
@@ -213,6 +237,14 @@ implements Component, ActorInputParticipant {
   private setHighlightedItemActorId(actorId: string | null): void {
     this.#highlightedItemActorId = actorId;
     this.applyHighlight();
+    const entry = actorId
+      ? this.listItems().find((candidate) => candidate.actor.id === actorId)
+      : null;
+    if (entry?.item.itemRole === "submenu") {
+      this.setOpenSubmenuItemActorId(entry.actor.id);
+    } else if (!this.isActorInsideOpenSubmenu(actorId)) {
+      this.setOpenSubmenuItemActorId(null);
+    }
   }
 
   private applyHighlight(): void {
@@ -220,6 +252,51 @@ implements Component, ActorInputParticipant {
       item.setHighlighted(this.#open && actor.id === this.#highlightedItemActorId);
     }
     this.element.dataset.uiMenuHighlightedItemActorId = this.#highlightedItemActorId ?? "";
+  }
+
+  private setOpenSubmenuItemActorId(actorId: string | null): void {
+    this.#openSubmenuItemActorId = actorId;
+    this.syncOpenSubmenu();
+  }
+
+  private syncOpenSubmenu(): void {
+    for (const { actor, item } of this.listItems()) {
+      const submenu = this.findSubmenuPopupForItem(actor);
+      const open = this.#open && actor.id === this.#openSubmenuItemActorId && item.itemRole === "submenu";
+      item.setSubmenuOpen(open);
+      submenu?.setOpen(open);
+      if (open && submenu) {
+        positionSubmenuPopup(item.element, submenu.element);
+      }
+    }
+    this.element.dataset.uiMenuOpenSubmenuItemActorId = this.#openSubmenuItemActorId ?? "";
+  }
+
+  private findSubmenuPopupForItem(itemActor: Actor): PopupMenuComponent<TPayload> | null {
+    for (const child of this.#actorSystem.listChildren(itemActor)) {
+      const popup = this.#componentRegistry.getComponent(child, popupMenuComponentType) as
+        PopupMenuComponent<TPayload> | null;
+      if (popup?.enabled) return popup;
+    }
+    return null;
+  }
+
+  private isActorInsideOpenSubmenu(actorId: string | null): boolean {
+    if (!actorId || !this.#openSubmenuItemActorId) return false;
+    const openEntry = this.listItems().find((entry) => entry.actor.id === this.#openSubmenuItemActorId);
+    if (!openEntry) return false;
+    const submenu = this.findSubmenuPopupForItem(openEntry.actor);
+    if (!submenu) return false;
+    return submenu.listItems().some((entry) => entry.actor.id === actorId);
+  }
+
+  private isTargetInsideMenuChain(target: EventTarget | null): boolean {
+    if (isNodeInsideElement(target, this.element)) return true;
+    for (const { actor } of this.listItems()) {
+      const submenu = this.findSubmenuPopupForItem(actor);
+      if (submenu?.open && submenu.isTargetInsideMenuChain(target)) return true;
+    }
+    return false;
   }
 
   private createHit(partId: string, hitPriority: number, data?: unknown): ActorInputHit {
@@ -269,8 +346,8 @@ implements Component, ActorInputParticipant {
   };
 
   private readonly handleDocumentPointerDown = (event: PointerEvent): void => {
-    if (!this.#open || this.#disposed) return;
-    if (isNodeInsideElement(event.target, this.element)) return;
+    if (!this.#open || this.#disposed || !this.#documentOutsideCloseEnabled) return;
+    if (this.isTargetInsideMenuChain(event.target)) return;
     this.requestClose();
   };
 
@@ -293,7 +370,57 @@ function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {
 }
 
 function isNodeInsideElement(target: EventTarget | null, element: HTMLElement): boolean {
-  return typeof Node !== "undefined" &&
+  if (!target) return false;
+  if (
+    typeof Node !== "undefined" &&
     target instanceof Node &&
-    element.contains(target);
+    element.contains(target)
+  ) {
+    return true;
+  }
+  let current = target as { readonly parentElement?: unknown } | null;
+  while (current) {
+    if (current === element) return true;
+    const parent = current.parentElement;
+    current = typeof parent === "object" && parent !== null
+      ? parent as { readonly parentElement?: unknown }
+      : null;
+  }
+  return false;
+}
+
+function positionSubmenuPopup(itemElement: HTMLElement, popupElement: HTMLElement): void {
+  const itemRect = itemElement.getBoundingClientRect();
+  const popupRect = popupElement.getBoundingClientRect();
+  const viewport = readViewportSize(itemElement.ownerDocument);
+  const offset = 4;
+  const wouldOverflowRight = itemRect.right + offset + popupRect.width > viewport.width;
+  const fitsLeft = itemRect.left - offset - popupRect.width >= 0;
+  if (wouldOverflowRight && fitsLeft) {
+    popupElement.style.left = "auto";
+    popupElement.style.right = `calc(100% + ${offset}px)`;
+  } else {
+    popupElement.style.left = `calc(100% + ${offset}px)`;
+    popupElement.style.right = "auto";
+  }
+
+  const wouldOverflowBottom = itemRect.top + popupRect.height > viewport.height - offset;
+  const top = wouldOverflowBottom
+    ? Math.max(offset - itemRect.top, viewport.height - popupRect.height - itemRect.top - offset)
+    : 0;
+  popupElement.style.top = `${top}px`;
+}
+
+function readViewportSize(documentRef: Document): { readonly width: number; readonly height: number } {
+  const documentWithView = documentRef as Document & {
+    readonly defaultView?: Pick<Window, "innerWidth" | "innerHeight"> | null;
+  };
+  return {
+    width: documentWithView.defaultView?.innerWidth
+      ?? documentRef.documentElement?.clientWidth
+      ?? Number.POSITIVE_INFINITY,
+    height: documentWithView.defaultView?.innerHeight
+      ?? documentRef.documentElement?.clientHeight
+      ?? Number.POSITIVE_INFINITY
+  };
 }

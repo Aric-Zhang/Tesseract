@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { uiThemeTokenDefinitions } from "ui-framework";
 import {
   collectWorkspaceSourceFiles,
   createSourceZoneMap,
@@ -122,6 +123,126 @@ describe("architecture boundaries", () => {
 
   it("reports dynamic imports instead of silently ignoring them in boundary scans", () => {
     expect(listDynamicImports(sourceFiles)).toEqual([]);
+  });
+
+  it("keeps Arbor CSS token references backed by ui-framework theme definitions", () => {
+    const knownThemeTokens = new Set(uiThemeTokenDefinitions.map((definition) => definition.name));
+    const nonThemeUiVariables = new Set([
+      "--ui-menu-offset-x",
+      "--ui-menu-offset-y"
+    ]);
+    const cssFiles = [
+      "apps/wallpaper-tesseract/src/style.css",
+      "apps/wallpaper-tesseract/src/app/app-shell.css",
+      "apps/wallpaper-tesseract/src/window-runtime/floating-window.css",
+      "apps/wallpaper-tesseract/src/window-runtime/window-frame-tab-chrome.css",
+      "apps/wallpaper-tesseract/src/window-runtime/workspace-root-dock-frame.css",
+      "apps/wallpaper-tesseract/src/ui-framework-fixture/ui-framework-fixture.css",
+      "packages/editor/src/inspector/inspector.css",
+      "packages/editor/src/scene/scene-window.css",
+      "packages/editor/src/camera3/camera3-gizmo.css",
+      "packages/ui-framework/src/ui/ui-framework-controls.css"
+    ];
+    const missing = cssFiles.flatMap((file) => {
+      const source = readWorkspaceSourceFile(file);
+      return [...source.matchAll(/--ui-[a-z0-9-]+/g)]
+        .map((match) => match[0])
+        .filter((token) => !knownThemeTokens.has(token) && !nonThemeUiVariables.has(token))
+        .map((token) => `${file}: ${token}`);
+    }).sort();
+
+    expect(missing).toEqual([]);
+  });
+
+  it("keeps workspace package production imports declared in package manifests", () => {
+    const packageDirs = [
+      "packages/actor-core",
+      "packages/actor-input",
+      "packages/ui-framework",
+      "packages/runtime-core",
+      "packages/runtime-three",
+      "packages/wallpaper-runtime",
+      "packages/editor",
+      "packages/four-rotation",
+      "packages/four-camera",
+      "packages/four-camera-three",
+      "packages/gizmo-core"
+    ];
+    const packageManifests = packageDirs.map((directory) => {
+      const manifest = JSON.parse(readWorkspaceSourceFile(`${directory}/package.json`)) as {
+        readonly name: string;
+        readonly dependencies?: Record<string, string>;
+        readonly peerDependencies?: Record<string, string>;
+      };
+      return { directory, manifest };
+    });
+    const packageNames = new Set(packageManifests.map(({ manifest }) => manifest.name));
+    const productionPackageSources = Object.fromEntries(
+      Object.entries(collectWorkspaceSourceFiles("packages"))
+        .filter(([file]) => file.includes("/src/"))
+        .filter(([file]) => !file.endsWith(".test.ts") && !file.includes("/tests/"))
+    );
+    const missing = listModuleEdges(productionPackageSources)
+      .map((edge) => {
+        const owner = packageManifests.find(({ directory }) => edge.fromFile.startsWith(`${directory}/`));
+        if (!owner) return null;
+        const importedPackage = barePackageName(edge.specifier);
+        if (!packageNames.has(importedPackage) || importedPackage === owner.manifest.name) return null;
+        const declared = {
+          ...owner.manifest.dependencies,
+          ...owner.manifest.peerDependencies
+        };
+        return declared[importedPackage] === undefined
+          ? `${owner.manifest.name}: ${edge.fromFile} imports undeclared ${importedPackage}`
+          : null;
+      })
+      .filter((entry): entry is string => entry !== null)
+      .sort();
+
+    expect(missing).toEqual([]);
+  });
+
+  it("keeps Gate 7 theme CSS raw style debt tokenized or explicitly allowlisted", () => {
+    const rawStyleAllowlist = [
+      {
+        file: "packages/editor/src/camera3/camera3-gizmo.css",
+        value: "rgba(0, 0, 0, 0.42)",
+        owner: "Camera3 gizmo renderer",
+        reason: "Canvas affordance drop-shadow is product visual depth, not generic UI chrome."
+      },
+      {
+        file: "packages/editor/src/camera3/camera3-gizmo.css",
+        value: "rgba(0, 0, 0, 0.85)",
+        owner: "Camera3 gizmo renderer",
+        reason: "Mode label text-shadow is product overlay readability over a 3D viewport."
+      }
+    ];
+    const allowlistKeys = new Set(rawStyleAllowlist.map((entry) => `${entry.file}: ${entry.value}`));
+    for (const entry of rawStyleAllowlist) {
+      expect(entry.owner.length).toBeGreaterThan(5);
+      expect(entry.reason.length).toBeGreaterThan(20);
+    }
+    const cssFiles = [
+      "apps/wallpaper-tesseract/src/style.css",
+      "apps/wallpaper-tesseract/src/app/app-shell.css",
+      "apps/wallpaper-tesseract/src/window-runtime/floating-window.css",
+      "apps/wallpaper-tesseract/src/window-runtime/window-frame-tab-chrome.css",
+      "apps/wallpaper-tesseract/src/window-runtime/workspace-root-dock-frame.css",
+      "apps/wallpaper-tesseract/src/ui-framework-fixture/ui-framework-fixture.css",
+      "packages/editor/src/inspector/inspector.css",
+      "packages/editor/src/scene/scene-window.css",
+      "packages/editor/src/camera3/camera3-gizmo.css",
+      "packages/ui-framework/src/ui/ui-framework-controls.css"
+    ];
+    const uncovered = cssFiles.flatMap((file) => {
+      const source = readWorkspaceSourceFile(file);
+      return [...source.matchAll(/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)/g)]
+        .map((match) => match[0])
+        .filter((value) => !allowlistKeys.has(`${file}: ${value}`))
+        .map((value) => `${file}: ${value}`);
+    }).sort();
+
+    expect(uncovered).toEqual([]);
   });
 
   it("keeps Project Prism actor-core candidate free of scene, gizmo, window, and DOM dependencies", () => {
@@ -655,7 +776,7 @@ describe("architecture boundaries", () => {
     expect(fullWindowFactoryViolations).toEqual([]);
   });
 
-  it("keeps Debug Log on generic ListView instead of monolithic pre text rendering", () => {
+  it("keeps Debug Log on generic VirtualListView instead of monolithic or per-log actor rendering", () => {
     const debugContentSource =
       editorPackageSources["packages/editor/src/debug/components/debug-log-content-component.ts"] ?? "";
     const debugDefinitionSource =
@@ -666,23 +787,35 @@ describe("architecture boundaries", () => {
     const appStylesSource = sourceFiles["./app/styles.ts"] ?? "";
     const listViewSource =
       uiFrameworkPackageSources["packages/ui-framework/src/ui/collection/list-view-component.ts"] ?? "";
+    const listViewDefinitionSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/ui/collection/list-view-definition.ts"] ?? "";
+    const virtualListSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/ui/collection/virtual-list-view-component.ts"] ?? "";
     const toolWindowInstallerSource =
       editorPackageSources["packages/editor/src/tool-windows/install-tool-window-features.ts"] ?? "";
 
     expect(debugContentSource).not.toMatch(/createElement\s*\(\s*["']pre["']/);
     expect(debugContentSource).not.toMatch(/textContent\s*=\s*.*\.join\s*\(/);
-    expect(debugContentSource).toMatch(/\bListViewComponent\b/);
+    expect(debugContentSource).not.toMatch(/\bListViewComponent\b/);
+    expect(debugContentSource).toMatch(/\bVirtualListViewComponent\b/);
     expect(debugContentSource).toMatch(/\bScrollViewComponent\b/);
+    expect(debugContentSource).not.toMatch(/\bDebugLogEntryActorReconciler\b/);
     expect(debugDefinitionSource).toMatch(/\buiElementComponentType\b/);
     expect(debugDefinitionSource).toMatch(/\bscrollViewComponentType\b/);
-    expect(debugDefinitionSource).toMatch(/\blistViewComponentType\b/);
+    expect(debugDefinitionSource).toMatch(/\bvirtualListViewComponentType\b/);
+    expect(debugDefinitionSource).not.toMatch(/\blistViewComponentType\b/);
     expect(debugFactorySource).toMatch(/\buiElementComponentType\b/);
     expect(debugFactorySource).toMatch(/\bscrollViewComponentType\b/);
-    expect(debugFactorySource).toMatch(/\blistViewComponentType\b/);
+    expect(debugFactorySource).toMatch(/\bvirtualListViewComponentType\b/);
+    expect(debugFactorySource).toMatch(/\bDebugLogDataSource\b/);
+    expect(debugFactorySource).not.toMatch(/\blistViewComponentType\b/);
     expect(debugPackageJson).not.toMatch(/debug\/debug-log\.css/);
     expect(appStylesSource).not.toMatch(/editor\/debug\/debug-log\.css/);
     expect(listViewSource).not.toMatch(/actor-input|ActorInputParticipant|hitTestInput|onInputEnd/);
-    expect(toolWindowInstallerSource).toMatch(/\bisDebugLogEntryActorId\b/);
+    expect(listViewSource).not.toMatch(/FrameUpdateParticipant|updateFrame/);
+    expect(listViewDefinitionSource).not.toMatch(/frameUpdateAttachment|attachments/);
+    expect(virtualListSource).not.toMatch(/Debug|Hierarchy|WindowWorkspace|Scene|Camera3|Tesseract|wallpaper/);
+    expect(toolWindowInstallerSource).not.toMatch(/\bisDebugLogEntryActorId\b/);
   });
 
   it("keeps hierarchy pointer selection on generic TreeView actor input instead of local row mutation", () => {
@@ -1886,4 +2019,11 @@ describe("architecture boundaries", () => {
     ], allowedFiles)).toEqual([]);
   });
 });
+
+function barePackageName(specifier: string): string {
+  if (specifier.startsWith("@")) {
+    return specifier.split("/").slice(0, 2).join("/");
+  }
+  return specifier.split("/")[0] ?? specifier;
+}
 

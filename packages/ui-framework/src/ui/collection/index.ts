@@ -4,7 +4,9 @@ export type {
   TreeViewActivation,
   TreeViewActivationSink,
   TreeViewItemDescriptor,
-  TreeViewItemUpdate
+  TreeViewItemUpdate,
+  VirtualListDataSource,
+  VirtualListItemSnapshot
 } from "./collection-types";
 export {
   ListViewComponent,
@@ -22,6 +24,16 @@ export {
 } from "./list-view-item-component";
 export type { ListViewItemComponentOptions } from "./list-view-item-component";
 export { listViewItemComponentDefinition } from "./list-view-item-definition";
+export {
+  VirtualListViewComponent,
+  virtualListViewComponentType
+} from "./virtual-list-view-component";
+export type {
+  VirtualListTextOverflow,
+  VirtualListTextStyle,
+  VirtualListViewComponentOptions
+} from "./virtual-list-view-component";
+export { virtualListViewComponentDefinition } from "./virtual-list-view-definition";
 export {
   TreeViewComponent,
   treeViewComponentType

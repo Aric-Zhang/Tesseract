@@ -17,6 +17,15 @@ import {
 
 class FakeDocument {
   elementsAtPoint: FakeElement[] = [];
+  readonly defaultView = {
+    innerWidth: 1280,
+    innerHeight: 720
+  };
+  readonly documentElement = {
+    clientWidth: 1280,
+    clientHeight: 720
+  };
+  readonly #listeners = new Map<string, Set<(event: never) => void>>();
 
   createElement(tagName: string): FakeElement {
     return new FakeElement(this, tagName);
@@ -24,6 +33,23 @@ class FakeDocument {
 
   elementsFromPoint(): FakeElement[] {
     return this.elementsAtPoint;
+  }
+
+  addEventListener(type: string, listener: (event: never) => void): void {
+    this.#listeners.set(type, new Set([
+      ...(this.#listeners.get(type) ?? []),
+      listener
+    ]));
+  }
+
+  removeEventListener(type: string, listener: (event: never) => void): void {
+    this.#listeners.get(type)?.delete(listener);
+  }
+
+  dispatch(type: string, event: unknown): void {
+    for (const listener of this.#listeners.get(type) ?? []) {
+      listener(event as never);
+    }
   }
 }
 
@@ -49,6 +75,7 @@ class FakeElement {
 
   append(...children: FakeElement[]): void {
     for (const child of children) {
+      child.remove();
       child.parentElement = this;
       this.children.push(child);
     }
@@ -260,6 +287,169 @@ describe("generic menu components", () => {
 
     expect(popup.highlightedItemActorId).toBeNull();
     expect(debug.highlighted).toBe(false);
+  });
+
+  it("opens submenu actor chains without treating child popup clicks as outside", () => {
+    const { actorSystem, componentRegistry, document } = createRegistry();
+    const activated: Array<MenuCommand<{ readonly themeId: string }>> = [];
+    const editPopupActor = actorSystem.createActor({ id: "edit-popup" });
+    const themeItemActor = actorSystem.createActor({ id: "theme-item", parent: editPopupActor });
+    const themePopupActor = actorSystem.createActor({ id: "theme-popup", parent: themeItemActor });
+    const darkThemeActor = actorSystem.createActor({ id: "theme-dark", parent: themePopupActor });
+    const editPopupElement = addElement(componentRegistry, editPopupActor, document, {
+      rect: createRect(0, 0, 180, 80)
+    });
+    const themeItemElement = addElement(componentRegistry, themeItemActor, document, {
+      tagName: "button",
+      rect: createRect(0, 0, 180, 24)
+    });
+    const themePopupElement = addElement(componentRegistry, themePopupActor, document, {
+      rect: createRect(180, 0, 180, 80)
+    });
+    const darkThemeElement = addElement(componentRegistry, darkThemeActor, document, {
+      tagName: "button",
+      rect: createRect(184, 4, 172, 24)
+    });
+    const editPopup = componentRegistry.addComponent(editPopupActor, popupMenuComponentType, {
+      commandSink: {
+        activateMenuItem(command: MenuCommand<{ readonly themeId: string }>) {
+          activated.push(command);
+        }
+      }
+    });
+    const themeItem = componentRegistry.addComponent(themeItemActor, menuItemComponentType, {
+      descriptor: {
+        id: "theme",
+        label: "Theme",
+        role: "submenu"
+      }
+    });
+    const themePopup = componentRegistry.addComponent(themePopupActor, popupMenuComponentType, {
+      commandSink: {
+        activateMenuItem(command: MenuCommand<{ readonly themeId: string }>) {
+          activated.push(command);
+        }
+      }
+    });
+    componentRegistry.addComponent(darkThemeActor, menuItemComponentType, {
+      descriptor: {
+        id: "default-dark",
+        label: "Default Dark",
+        payload: { themeId: "default-dark" }
+      }
+    });
+
+    editPopup.setOpen(true);
+
+    const submenuHit = editPopup.hitTestInput({ x: 10, y: 10 });
+    expect(submenuHit?.partId).toBe("menu-item");
+    editPopup.onInputEnd({
+      hit: submenuHit!,
+      wasClick: true,
+      buttons: 0,
+      point: { x: 10, y: 10 },
+      startPoint: { x: 10, y: 10 },
+      pointerId: 1,
+      pointerType: "mouse",
+      totalDelta: { dx: 0, dy: 0 },
+      gizmo: null as never,
+      timeStamp: 1
+    });
+
+    expect(activated).toEqual([]);
+    expect(editPopup.open).toBe(true);
+    expect(themePopup.open).toBe(true);
+    expect(themeItem.element.dataset.uiMenuSubmenuOpen).toBe("true");
+    expect(themeItem.element.getAttribute("aria-expanded")).toBe("true");
+    expect(themePopupElement.parentElement).toBe(themeItemElement);
+    expect(darkThemeElement.parentElement).toBe(themePopupElement);
+
+    document.dispatch("pointerdown", { target: darkThemeElement });
+    expect(editPopup.open).toBe(true);
+    expect(themePopup.open).toBe(true);
+
+    const leafHit = themePopup.hitTestInput({ x: 190, y: 10 });
+    expect(leafHit?.partId).toBe("menu-item");
+    themePopup.onInputEnd({
+      hit: leafHit!,
+      wasClick: true,
+      buttons: 0,
+      point: { x: 190, y: 10 },
+      startPoint: { x: 190, y: 10 },
+      pointerId: 1,
+      pointerType: "mouse",
+      totalDelta: { dx: 0, dy: 0 },
+      gizmo: null as never,
+      timeStamp: 2
+    });
+
+    expect(activated).toEqual([{
+      itemActorId: "theme-dark",
+      itemId: "default-dark",
+      payload: { themeId: "default-dark" }
+    }]);
+    expect(editPopup.open).toBe(false);
+    expect(themePopup.open).toBe(false);
+    expect(editPopupElement.dataset.uiMenuOpenSubmenuItemActorId).toBe("");
+  });
+
+  it("flips submenu popups away from the viewport edge", () => {
+    const { actorSystem, componentRegistry, document } = createRegistry();
+    document.defaultView.innerWidth = 320;
+    document.documentElement.clientWidth = 320;
+    const editPopupActor = actorSystem.createActor({ id: "edit-popup" });
+    const themeItemActor = actorSystem.createActor({ id: "theme-item", parent: editPopupActor });
+    const themePopupActor = actorSystem.createActor({ id: "theme-popup", parent: themeItemActor });
+    addElement(componentRegistry, editPopupActor, document, {
+      rect: createRect(0, 0, 180, 80)
+    });
+    const themeItemElement = addElement(componentRegistry, themeItemActor, document, {
+      tagName: "button",
+      rect: createRect(220, 10, 92, 24)
+    });
+    const themePopupElement = addElement(componentRegistry, themePopupActor, document, {
+      rect: createRect(316, 10, 158, 80)
+    });
+    const editPopup = componentRegistry.addComponent(editPopupActor, popupMenuComponentType, {});
+    componentRegistry.addComponent(themeItemActor, menuItemComponentType, {
+      descriptor: {
+        id: "theme",
+        label: "Theme",
+        role: "submenu"
+      }
+    });
+    const themePopup = componentRegistry.addComponent(themePopupActor, popupMenuComponentType, {});
+
+    editPopup.setOpen(true);
+    editPopup.onInputEnd({
+      hit: {
+        componentId: editPopup.id,
+        partId: "menu-item",
+        kind: "chrome",
+        region: "actor-overlay",
+        localRoutePriority: 0,
+        hitPriority: 100,
+        path: [],
+        data: {
+          itemActorId: themeItemActor.id,
+          itemId: "theme"
+        }
+      },
+      wasClick: true,
+      buttons: 0,
+      point: { x: 230, y: 20 },
+      startPoint: { x: 230, y: 20 },
+      pointerId: 1,
+      pointerType: "mouse",
+      totalDelta: { dx: 0, dy: 0 },
+      gizmo: null as never,
+      timeStamp: 1
+    });
+
+    expect(themePopup.open).toBe(true);
+    expect(themePopupElement.parentElement).toBe(themeItemElement);
+    expect(themePopupElement.style.left).toBe("auto");
+    expect(themePopupElement.style.right).toBe("calc(100% + 4px)");
   });
 
   it("does not hit menu bar items covered by another DOM element", () => {

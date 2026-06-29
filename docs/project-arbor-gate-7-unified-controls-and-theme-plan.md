@@ -1,6 +1,6 @@
 # Project Arbor Gates 7A-7D: Unified Controls And Theme System
 
-Status: Gates 7A-7C complete; Gate 7C.5 planned before Gate 7D
+Status: Gates 7A-7D complete
 Created: 2026-06-29
 Amended: 2026-06-29 after review
 Scope: primarily `packages/ui-framework`; `packages/editor` adopts the new UI
@@ -31,10 +31,13 @@ acceptance evidence:
     owner-driven instead of frame-refreshed.
   - Plan:
     `docs/project-arbor-gate-7c-5-debug-virtual-list-performance-plan.md`.
-  - Status: planned and must run before Gate 7D.
+  - Status: complete.
 - **Gate 7D: Editor Theme Adoption, Window Chrome Tokens, And Theme Menu**
   - Apply tokens to app/window/editor chrome, audit Inspector, add Edit -> Theme
     submenu and theme switching.
+  - Plan:
+    `docs/project-arbor-gate-7d-editor-theme-adoption-plan.md`.
+  - Status: complete.
 
 Do not start a later gate by leaving the previous gate's old implementation
 alive. Each gate must close with the relevant old path deleted or explicitly
@@ -58,11 +61,11 @@ converted into a follow-up defect/plan item.
   `UiElementComponent` as window content, stable log item actors are reconciled
   by the editor owner, and the old `<pre>` / joined `textContent` renderer and
   `debug-log.css` path are gone.
-- Gate 7C.5 is required before Gate 7D because the current actor-backed
-  Debug ListView has a confirmed performance flaw: `ListViewComponent` is
-  frame-attached and refreshes rows every frame, while Debug log changes also
-  reconcile per-log actors. The target is a reusable data-backed virtual list
-  and deletion of the Debug per-log actor path.
+- Gate 7C.5 is complete. `ListViewComponent` is owner-driven instead of
+  frame-attached, Debug Log now uses a Debug-owned fixed-height ring-buffer data
+  source with generic `VirtualListViewComponent`, and the per-log
+  actor/reconciler/filtering path was deleted. Fresh performance evidence lives at
+  `temp/project-arbor-gate-7c-5-debug-performance-data.json`.
 - There is no generic `TableViewComponent`; Gate 7C intentionally avoided
   adding one because Debug Log only needed a flat passive list.
 - Inspector and remaining editor panels still use local CSS with hard-coded
@@ -1033,153 +1036,45 @@ npm run build -w wallpaper-tesseract
 
 ## Gate 7D: Editor Theme Adoption, Window Chrome Tokens, And Theme Menu
 
-### Goal
-
-Wire real Editor/app theme selection, apply tokens to window/editor chrome, and
-provide manual acceptance through the menu bar.
-
-### Root Theme Owner
-
-- App shell/root actor owns the root `UiThemeComponent`.
-- `app/styles.ts` imports `ui-framework/ui/theme.css` and existing
-  `ui-framework/ui/ui-framework-controls.css`.
-- Theme modules are discovered/loaded by Editor/app code. `ui-framework` never
-  knows the path.
-- The selected theme id may be persisted by Editor/app state, not by
-  `ui-framework`.
-
-### Theme Module Loading And Creation
-
-Editor/app should own a small theme registry:
-
-- built-in default dark theme produced by `createUiThemeModule({ id: "default-dark" })`;
-- optional additional theme modules from an app/editor-owned path or static
-  import list;
-- save/export helper can call `createUiThemeModule(partial)` to create a full
-  module with defaults filled in.
-
-Unknown/obsolete properties use the policy selected by the caller:
-
-- during normal load: `warn`;
-- during cleanup/export: `strip`/clear;
-- during tests or strict validation: `strict`.
-
-### Menu Requirement
-
-Add manual theme switching:
+Detailed execution plan:
 
 ```text
-Window
-Edit
-  Theme
-    Default Dark
-    <Other available themes>
+docs/project-arbor-gate-7d-editor-theme-adoption-plan.md
 ```
 
-If generic submenu support does not exist:
+Gate 7D is complete. It implemented:
 
-1. Add submenu support to `ui-framework` generic menu components.
-2. Extend the generic menu model with product-agnostic submenu descriptors, for
-   example `children` or an explicit submenu role. Do not add an app-local
-   `ThemeMenu` special case.
-3. Define submenu popup ownership:
-   - submenu popup actor is owned by the parent menu item actor;
-   - submenu item actors are children of that popup actor;
-   - open/highlight state is still controlled by generic menu components.
-4. Define close/hover behavior before the App Menu adapter changes:
-   - hover may open a submenu after the generic component decides it;
-   - pointer leaving the menu/submenu chain closes deterministically;
-   - keyboard escape/left/right behavior is either implemented generically or
-     explicitly recorded as a follow-up, not faked in app-local code.
-5. Update App Menu adapter to map Editor theme descriptors to generic submenu
-   descriptors.
-6. Do not reintroduce app-local row/highlight rendering.
+- install one app-owned root `UiThemeComponent` on the App Shell root;
+- keep app/editor-owned theme discovery outside `ui-framework`, with in-memory
+  selection by default and any persistence limited to an app-local storage port;
+- add generic submenu support to `ui-framework` menu controls;
+- expose `Edit -> Theme -> <theme>` through the real App Menu actor tree;
+- tokenise app shell, window chrome, Inspector, Scene surface, and generic
+  editor panel styling;
+- keep Camera3 axis colors out of `ui-framework` core tokens unless a separate
+  editor-owned theme extension is designed;
+- add style-audit and smoke evidence that proves theme switching visibly
+  changes the real app and does not break menu/window/dock/Scene/Debug paths.
 
-### Styling Adoption
-
-Apply tokens to:
-
-- app shell background and top-docked chrome;
-- root/floating window chrome;
-- tabs and tab close buttons;
-- splitters and dock previews;
-- generic menus;
-- generic scroll/tree/list controls;
-- Hierarchy, Debug, Inspector panel surfaces;
-- Camera3 chrome if feasible without a complex CSS-to-canvas bridge.
-
-For Camera3 axis colors, do not add `--ui-axis-*` to `ui-framework`.
-Choose one:
-
-- editor-owned extension: define editor/product theme extension tokens such as
-  `--editor-camera3-axis-x` outside the `ui-framework` core token registry and
-  pass them through the Camera3 owner; or
-- explicit follow-up: leave axis colors as product semantic constants and record
-  the reason in `known-defects-and-todos.md`.
-
-Do not add partial theme mutation APIs to individual components.
-
-### Inspector Audit
-
-- If Inspector is simple/static content, migrate it to ScrollView/theme tokens.
-- If Inspector needs a future `PropertyGridComponent`, record that as a next
-  gate instead of adding ad hoc local form controls.
-
-### Exit Gate
-
-- Manual menu switching changes at least:
-  - app background;
-  - window border/titlebar;
-  - active tab background;
-  - menu background/highlight;
-  - Hierarchy selected row;
-  - Debug scroll/list appearance;
-  - scrollbar thumb.
-- Theme switching produces no console errors.
-- Menu submenu hover/activation does not break tab drag, dock preview, tab
-  close, or Scene fullscreen controls.
-- No editor panel owns local generic scrollbar styling.
-- Hard-coded style cleanup is enforced by an allowlist/test script. Raw color,
-  border, radius, font, and scrollbar constants outside theme defaults are
-  allowed only when listed with an owner and reason; the allowlist should shrink
-  during Gate 7D rather than become a compatibility escape hatch.
-- No repeated hard-coded generic window/editor chrome colors remain outside
-  theme defaults or the explicit allowlist.
-
-Browser smoke evidence:
+Fresh Gate 7D browser smoke evidence is stored at:
 
 ```text
 temp/project-arbor-gate-7-theme-smoke-data.json
 temp/project-arbor-gate-7-theme-smoke-report.md
 ```
 
-Smoke must include:
-
-- Hierarchy with enough nodes to scroll;
-- Hierarchy selection after refresh/reopen;
-- Debug log while at bottom and while scrolled away from bottom;
-- Edit -> Theme submenu open and theme selection;
-- Window/Menu/Hierarchy/Debug visual token changes;
-- App Menu, Scene fullscreen, Camera3 gizmo, tab drag, dock preview, tab close;
-- console errors = 0.
-
-Validation:
+It validates with:
 
 ```powershell
-npm run prism:smoke:prepare
-npm run test -w ui-framework
-npm run typecheck:test -w ui-framework
-npm run build -w ui-framework
-npm run test -w editor
-npm run typecheck -w editor
-npm run build -w editor
-npm run test -w wallpaper-tesseract -- architecture-boundaries
-npm run typecheck -w wallpaper-tesseract
-npm run build -w wallpaper-tesseract
-npm run test
-npm run typecheck
-npm run build
+$env:PROJECT_ARBOR_GATE_7_THEME_SMOKE_EVIDENCE="temp/project-arbor-gate-7-theme-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-arbor-gate-7-theme-smoke-contract
 ```
+
+The smoke proves the app starts with `default-dark`, switches to
+`graphite-blue` through `Edit -> Theme`, keeps the submenu leaf topmost and
+mobile-reachable, keeps Window menu and Scene fullscreen interactions working,
+and records visible token-driven style changes across app shell, App Menu,
+active tabs, Hierarchy rows, Debug virtual-list rows, Inspector, and scrollbar
+styling.
 
 ## Completion Criteria For The Whole Gate 7 Series
 

@@ -16,7 +16,7 @@ import {
   GizmoControllerAttachmentRuntime
 } from "../gizmo-runtime";
 import { installEditorStateObserverComponentDefinitions } from "editor";
-import { installUiComponentDefinitions } from "ui-framework";
+import { createUiThemeModule, installUiComponentDefinitions } from "ui-framework";
 import {
   createWindowFocusServiceProxy,
   createWindowWorkspaceContentId,
@@ -185,6 +185,7 @@ export function installUiFrameworkFixture(
     hostElement: menuSlot,
     windowCatalog: workspace.catalog,
     windowFrameIntents: workspace.frameIntents,
+    themeController: createFixtureThemeController(),
     workspaceModePath: FIXTURE_WORKSPACE_MODE_PATH
   });
   if (options.autoTick ?? true) {
@@ -217,6 +218,25 @@ export function installUiFrameworkFixture(
       scheduler.dispose();
       actorSystem.dispose();
       root.remove();
+    }
+  };
+}
+
+function createFixtureThemeController() {
+  const themes = [
+    { id: "default-dark", label: "Default Dark", diagnostics: [] },
+    { id: "fixture-blue", label: "Fixture Blue", diagnostics: [] }
+  ];
+  let selectedThemeId = themes[0].id;
+  return {
+    listThemes: () => themes,
+    getSelectedThemeId: () => selectedThemeId,
+    getSelectedThemeDiagnostics: () => [],
+    setTheme(themeId: string) {
+      selectedThemeId = themes.some((theme) => theme.id === themeId)
+        ? themeId
+        : "default-dark";
+      return createUiThemeModule({ id: selectedThemeId });
     }
   };
 }

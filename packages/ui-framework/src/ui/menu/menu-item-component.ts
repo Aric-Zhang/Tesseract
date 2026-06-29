@@ -23,6 +23,7 @@ export class MenuItemComponent<TPayload = unknown> implements Component {
 
   #descriptor: ReturnType<typeof normalizeMenuItemDescriptor<TPayload>>;
   #highlighted = false;
+  #submenuOpen = false;
   #disposed = false;
 
   constructor(
@@ -57,6 +58,10 @@ export class MenuItemComponent<TPayload = unknown> implements Component {
     return this.enabled && this.#descriptor.enabled && this.#descriptor.role !== "separator";
   }
 
+  get itemRole(): ReturnType<typeof normalizeMenuItemDescriptor<TPayload>>["role"] {
+    return this.#descriptor.role;
+  }
+
   setDescriptor(descriptor: MenuItemDescriptor<TPayload>): void {
     if (this.#disposed) return;
     this.#descriptor = normalizeMenuItemDescriptor(descriptor);
@@ -70,6 +75,18 @@ export class MenuItemComponent<TPayload = unknown> implements Component {
     if (this.#disposed) return;
     this.#highlighted = highlighted && this.itemEnabled;
     this.element.dataset.uiMenuHighlighted = String(this.#highlighted);
+  }
+
+  setSubmenuOpen(open: boolean): void {
+    if (this.#disposed) return;
+    this.#submenuOpen = open && this.itemEnabled && this.#descriptor.role === "submenu";
+    if (this.#descriptor.role === "submenu") {
+      this.element.dataset.uiMenuSubmenuOpen = String(this.#submenuOpen);
+      this.element.setAttribute("aria-expanded", String(this.#submenuOpen));
+    } else {
+      delete this.element.dataset.uiMenuSubmenuOpen;
+      this.element.removeAttribute("aria-expanded");
+    }
   }
 
   dispose(): void {
@@ -92,6 +109,16 @@ export class MenuItemComponent<TPayload = unknown> implements Component {
     } else {
       this.element.removeAttribute("aria-checked");
     }
+    if (descriptor.role === "submenu") {
+      this.element.setAttribute("aria-haspopup", "menu");
+      this.element.setAttribute("aria-expanded", String(this.#submenuOpen));
+      this.element.dataset.uiMenuSubmenuOpen = String(this.#submenuOpen);
+    } else {
+      this.element.removeAttribute("aria-haspopup");
+      this.element.removeAttribute("aria-expanded");
+      delete this.element.dataset.uiMenuSubmenuOpen;
+      this.#submenuOpen = false;
+    }
     if (isButtonElement(this.element)) {
       this.element.type = "button";
       this.element.disabled = !descriptor.enabled;
@@ -99,7 +126,11 @@ export class MenuItemComponent<TPayload = unknown> implements Component {
     this.element.replaceChildren(
       createLeadingElement(this.element.ownerDocument, descriptor.leading, descriptor.checked),
       createTextElement(this.element.ownerDocument, "ui-menu-item__label", descriptor.label),
-      createTextElement(this.element.ownerDocument, "ui-menu-item__shortcut", descriptor.shortcutLabel ?? "")
+      createTextElement(
+        this.element.ownerDocument,
+        "ui-menu-item__shortcut",
+        descriptor.role === "submenu" ? ">" : descriptor.shortcutLabel ?? ""
+      )
     );
   }
 }

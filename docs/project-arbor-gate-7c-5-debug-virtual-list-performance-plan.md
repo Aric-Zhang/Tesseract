@@ -1,9 +1,34 @@
 # Project Arbor Gate 7C.5: Virtual List And Debug Performance Closure
 
-Status: planned, must run before Gate 7D
+Status: complete
 Created: 2026-06-29
 Scope: `packages/ui-framework` collection controls and
 `packages/editor/src/debug`; app code changes only for boundary/smoke support.
+
+## Closure Summary
+
+Completed on 2026-06-29.
+
+- `ListViewComponent` is now owner-driven. Its frame attachment and
+  `updateFrame()` path were deleted, with a small explicit-refresh no-op guard
+  for unchanged actor-backed descriptors.
+- `VirtualListViewComponent` was added as a product-agnostic fixed-height,
+  data-backed collection control. It shares the same-actor
+  `ScrollViewComponent`, owns only a spacer and bounded private row pool, and
+  refreshes scroll diagnostics on user scroll.
+- Debug Log now uses a Debug-owned fixed-capacity ring-buffer
+  `DebugLogDataSource` injected into both `DebugLogContentComponent` and
+  `VirtualListViewComponent`. Debug append advances the source revision and
+  marks dirty; clean frames return after an O(1) dirty check.
+- The old per-log actor path was deleted:
+  `DebugLogEntryActorReconciler`, `isDebugLogEntryActorId`, Debug
+  `ListViewComponent` usage, and ToolWindow filtering for Debug log item actors
+  are gone.
+- Fresh browser performance evidence:
+  `temp/project-arbor-gate-7c-5-debug-performance-data.json` and
+  `temp/project-arbor-gate-7c-5-debug-performance-report.md`. The refreshed
+  probe records idle rebind batches, append-burst childList mutations, and
+  touched virtual-row element count without adding production counters.
 
 ## Reason
 

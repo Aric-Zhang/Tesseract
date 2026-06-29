@@ -13,7 +13,6 @@ import {
 } from "ui-framework";
 import { installDebugLogComponentDefinitions } from "../install-component-definitions";
 import { createDebugLogViewActor } from "./debug-log-window-actor-factory";
-import { isDebugLogEntryActorId } from "./debug-log-entry-actor-reconciler";
 
 class FakeDocument {
   createElement(tagName: string): FakeElement {
@@ -28,6 +27,7 @@ class FakeElement {
   readonly style: Record<string, string> & { setProperty: (name: string, value: string) => void };
   readonly children: FakeElement[] = [];
   readonly attributes = new Map<string, string>();
+  readonly #listeners = new Map<string, Set<() => void>>();
   parentElement: FakeElement | null = null;
   className = "";
   textContent = "";
@@ -38,6 +38,7 @@ class FakeElement {
   clientHeight = 40;
   scrollWidth = 100;
   scrollHeight = 40;
+  appendCallCount = 0;
 
   constructor(ownerDocument: FakeDocument, tagName: string) {
     this.ownerDocument = ownerDocument;
@@ -50,6 +51,7 @@ class FakeElement {
   }
 
   append(...children: FakeElement[]): void {
+    this.appendCallCount += 1;
     for (const child of children) {
       child.remove();
       child.parentElement = this;
@@ -68,8 +70,22 @@ class FakeElement {
     this.attributes.set(name, value);
   }
 
+  removeAttribute(name: string): void {
+    this.attributes.delete(name);
+  }
+
   getAttribute(name: string): string | null {
     return this.attributes.get(name) ?? null;
+  }
+
+  addEventListener(type: string, listener: () => void): void {
+    const listeners = this.#listeners.get(type) ?? new Set();
+    listeners.add(listener);
+    this.#listeners.set(type, listeners);
+  }
+
+  removeEventListener(type: string, listener: () => void): void {
+    this.#listeners.get(type)?.delete(listener);
   }
 }
 
@@ -96,49 +112,59 @@ class FakeWindowContentRegistry implements WindowContentRegistrationPort {
 }
 
 describe("createDebugLogViewActor", () => {
-  it("registers the same actor UI element as content and reconciles log item actors", () => {
+  it("registers the same actor UI element as content and renders logs through a virtual row pool", () => {
     const fixture = createFixture();
     const handle = fixture.createDebugView({ maxLines: 2 });
 
     expect(fixture.contentRegistration.registered?.element).toBe(handle.component.element);
-    expect(handle.component.element.children.map((child) => child.dataset.uiListItemId))
+    expect(virtualRows(handle.component.element).map((child) => child.dataset.uiVirtualListKey))
       .toEqual(["debug-log-placeholder"]);
 
     handle.component.append({ type: "move", message: "first", timeStamp: 1 });
     handle.component.append({ type: "move", message: "second", timeStamp: 2 });
+    expect(virtualRows(handle.component.element).map((child) => child.textContent))
+      .toEqual(["Gizmo debug log enabled"]);
     handle.component.updateFrame({} as never);
-    const retainedEntryActorId = fixture.actorSystem.listChildren(handle.actor)
-      .find((actor) => actor.id.endsWith(":log-entry:2"))?.id;
 
     handle.component.append({ type: "move", message: "third", timeStamp: 3 });
     handle.component.updateFrame({} as never);
 
-    expect(handle.component.element.children.map((child) => child.textContent)).toEqual([
+    expect(virtualRows(handle.component.element).map((child) => child.textContent)).toEqual([
       "    2 second",
       "    3 third"
     ]);
-    expect(fixture.actorSystem.listChildren(handle.actor)
-      .filter((actor) => isDebugLogEntryActorId(actor.id))).toHaveLength(2);
-    expect(retainedEntryActorId).toBeDefined();
-    expect(fixture.actorSystem.getActor(retainedEntryActorId!)).not.toBeNull();
+    expect(fixture.actorSystem.listChildren(handle.actor)).toEqual([]);
   });
 
-  it("destroys log item actors on dispose", () => {
+  it("does not rebind virtual rows on idle update frames", () => {
     const fixture = createFixture();
     const handle = fixture.createDebugView();
     handle.component.append({ type: "move", message: "entry", timeStamp: 1 });
     handle.component.updateFrame({} as never);
-    const itemActorIds = fixture.actorSystem.listChildren(handle.actor)
-      .filter((actor) => isDebugLogEntryActorId(actor.id))
-      .map((actor) => actor.id);
+    const spacer = handle.component.element.children[0]!;
+    const appendCallCount = spacer.appendCallCount;
+
+    handle.component.updateFrame({} as never);
+
+    expect(spacer.appendCallCount).toBe(appendCallCount);
+  });
+
+  it("removes virtual rows and content registration on dispose", () => {
+    const fixture = createFixture();
+    const handle = fixture.createDebugView();
+    handle.component.append({ type: "move", message: "entry", timeStamp: 1 });
+    handle.component.updateFrame({} as never);
 
     handle.dispose();
 
-    expect(itemActorIds).toHaveLength(1);
-    expect(itemActorIds.every((actorId) => fixture.actorSystem.getActor(actorId) === null)).toBe(true);
     expect(fixture.contentRegistration.registered).toBeNull();
   });
 });
+
+function virtualRows(element: HTMLElement): FakeElement[] {
+  const spacer = (element as unknown as FakeElement).children[0];
+  return spacer?.children ?? [];
+}
 
 function createFixture(): {
   readonly actorSystem: ActorSystem;

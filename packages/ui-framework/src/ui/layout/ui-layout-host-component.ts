@@ -335,7 +335,7 @@ function applyWrapperDescriptor(
   if (descriptor.slot === "overlay") {
     wrapper.style.position = "absolute";
     wrapper.style.inset = "0";
-    wrapper.style.pointerEvents = "auto";
+    wrapper.style.pointerEvents = "none";
   } else {
     wrapper.style.position = "";
     wrapper.style.inset = "";

@@ -10,7 +10,7 @@
   position: relative;
   z-index: 10;
   width: 132px;
-  color: #d6dde5;
+  color: var(--ui-color-text);
   user-select: none;
   pointer-events: auto;
 }
@@ -35,10 +35,10 @@
   padding: 0;
   background: transparent;
   height: 18px;
-  color: rgba(211, 219, 228, 0.82);
+  color: var(--ui-color-text-muted);
   cursor: pointer;
-  font-family: Arial, sans-serif;
-  font-size: 14px;
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-font-size);
   line-height: 18px;
   text-align: center;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);

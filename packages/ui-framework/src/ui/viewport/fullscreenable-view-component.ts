@@ -1,4 +1,4 @@
-import type { ScreenPoint } from "gizmo-core";
+import type { ScreenPoint } from "actor-input";
 import type { Actor, Component, ComponentType } from "actor-core";
 import {
   type ActorInputEndEvent,

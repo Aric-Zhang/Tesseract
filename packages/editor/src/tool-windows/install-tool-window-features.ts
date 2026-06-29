@@ -3,7 +3,6 @@ import {
   createDefaultDebugWindowState,
   DEBUG_WINDOW_MIN_HEIGHT,
   DEBUG_WINDOW_MIN_WIDTH,
-  isDebugLogEntryActorId,
   registerDebugWindowParameters,
   type DebugLogContentComponent,
   type DebugWindowState
@@ -109,7 +108,6 @@ export function installToolWindowFeatures(options: InstallToolWindowFeaturesOpti
     includeActor: (actor) => (
       actor.id !== HIERARCHY_PANEL_ACTOR_ID &&
       actor.id !== HIERARCHY_PANEL_VIEW_ACTOR_ID &&
-      !isDebugLogEntryActorId(actor.id) &&
       !isHierarchyTreeItemActorId(actor.id)
     )
   });

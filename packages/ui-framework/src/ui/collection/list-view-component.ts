@@ -5,8 +5,6 @@ import type {
   ComponentRegistryView,
   ComponentType
 } from "actor-core";
-import type { FrameUpdateParticipant } from "../../ports/ui-frame-update-attachment-runtime";
-import type { UiFrame } from "../../ports/ui-scheduler";
 import type { UiElementComponent } from "../element";
 import type { ListViewItemDescriptor } from "./collection-types";
 import {
@@ -52,7 +50,7 @@ interface ListViewAppliedState {
   readonly uiListTextWrap: string | undefined;
 }
 
-export class ListViewComponent implements Component, FrameUpdateParticipant {
+export class ListViewComponent implements Component {
   readonly type = listViewComponentType;
   readonly actor: Actor;
   readonly id: string;
@@ -63,6 +61,7 @@ export class ListViewComponent implements Component, FrameUpdateParticipant {
   readonly #componentRegistry: ComponentRegistryView;
   readonly #rows = new Map<string, ListViewRowRecord>();
   readonly #appliedState: ListViewAppliedState;
+  #lastSignature: string | null = null;
   #disposed = false;
 
   constructor(
@@ -87,6 +86,9 @@ export class ListViewComponent implements Component, FrameUpdateParticipant {
   refreshItems(): void {
     if (this.#disposed) return;
     const entries = this.listItemEntries();
+    const signature = createEntriesSignature(entries);
+    if (signature === this.#lastSignature) return;
+    this.#lastSignature = signature;
     const activeActorIds = new Set(entries.map((entry) => entry.actor.id));
     for (const actorId of [...this.#rows.keys()]) {
       if (!activeActorIds.has(actorId)) {
@@ -101,10 +103,6 @@ export class ListViewComponent implements Component, FrameUpdateParticipant {
     this.element.dataset.uiListRowCount = String(entries.length);
   }
 
-  updateFrame(_frame: UiFrame): void {
-    this.refreshItems();
-  }
-
   dispose(): void {
     if (this.#disposed) return;
     this.#disposed = true;
@@ -112,6 +110,7 @@ export class ListViewComponent implements Component, FrameUpdateParticipant {
     for (const actorId of [...this.#rows.keys()]) {
       this.removeRow(actorId);
     }
+    this.#lastSignature = null;
     restoreAppliedState(this.element, this.#appliedState);
   }
 
@@ -174,6 +173,19 @@ function compareEntries(a: ListViewItemEntry, b: ListViewItemEntry): number {
 
 function compareNumber(a: number, b: number): number {
   return a === b ? 0 : a < b ? -1 : 1;
+}
+
+function createEntriesSignature(entries: readonly ListViewItemEntry[]): string {
+  return JSON.stringify(entries.map((entry) => [
+    entry.actor.id,
+    entry.descriptor.itemId,
+    entry.descriptor.text,
+    entry.descriptor.order ?? 0,
+    entry.descriptor.selected === true,
+    entry.descriptor.enabled !== false,
+    entry.descriptor.muted === true,
+    entry.treeOrder
+  ]));
 }
 
 function normalizeTextStyle(textStyle: unknown): ListViewTextStyle {

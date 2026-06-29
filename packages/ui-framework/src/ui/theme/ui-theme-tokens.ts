@@ -66,6 +66,19 @@ export const uiThemeTokenDefinitions = [
   token("--ui-window-tab-bg", "window", "color", "#1a2f40", "Window tab background."),
   token("--ui-window-tab-active-bg", "window", "color", "#25445c", "Active window tab background."),
   token("--ui-window-splitter-bg", "window", "color", "#26323d", "Window splitter background."),
+  token("--ui-window-splitter-line", "window", "color", "rgba(160, 215, 255, 0.28)", "Window splitter line color."),
+  token("--ui-window-resize-grip", "window", "color", "rgba(180, 222, 255, 0.45)", "Floating window resize grip color."),
+  token("--ui-dock-preview-border", "window", "color", "rgba(120, 190, 255, 0.78)", "Dock preview border color."),
+  token("--ui-dock-preview-bg", "window", "color", "rgba(52, 132, 224, 0.24)", "Dock preview background."),
+  token("--ui-dock-preview-shadow", "shadow", "shadow", "inset 0 0 0 1px rgba(230, 246, 255, 0.18), 0 8px 22px rgba(0, 0, 0, 0.28)", "Dock preview shadow."),
+  token("--ui-dock-preview-merge-border", "window", "color", "rgba(165, 216, 255, 0.92)", "Dock preview merge border color."),
+  token("--ui-dock-preview-merge-bg", "window", "color", "rgba(95, 156, 232, 0.34)", "Dock preview merge background."),
+  token("--ui-dock-preview-merge-shadow", "shadow", "shadow", "inset 0 -2px 0 rgba(215, 241, 255, 0.68), 0 8px 22px rgba(0, 0, 0, 0.28)", "Dock preview merge shadow."),
+  token("--ui-dock-preview-split-bg", "window", "color", "rgba(52, 132, 224, 0.18)", "Dock preview split background."),
+  token("--ui-dock-preview-marker-bg", "window", "color", "rgba(214, 241, 255, 0.86)", "Dock preview split marker background."),
+  token("--ui-dock-preview-floating-border", "window", "color", "rgba(210, 220, 232, 0.62)", "Dock preview floating border color."),
+  token("--ui-dock-preview-floating-bg", "window", "color", "rgba(190, 207, 225, 0.10)", "Dock preview floating background."),
+  token("--ui-dock-preview-floating-shadow", "shadow", "shadow", "inset 0 0 0 1px rgba(230, 246, 255, 0.10)", "Dock preview floating shadow."),
 
   token("--ui-shadow-elevated", "shadow", "shadow", "0 8px 24px rgba(0, 0, 0, 0.32)", "Default elevated popup shadow.")
 ] as const satisfies readonly UiThemeTokenDefinition[];

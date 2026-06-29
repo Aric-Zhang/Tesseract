@@ -23,6 +23,7 @@ class FakeElement {
   parentElement: FakeElement | null = null;
   className = "";
   textContent = "";
+  appendCallCount = 0;
 
   constructor(ownerDocument: FakeDocument, tagName: string) {
     this.ownerDocument = ownerDocument;
@@ -30,6 +31,7 @@ class FakeElement {
   }
 
   append(...children: FakeElement[]): void {
+    this.appendCallCount += 1;
     for (const child of children) {
       child.remove();
       child.parentElement = this;
@@ -87,6 +89,18 @@ describe("ListViewComponent", () => {
     expect(fixture.actorSystem.listActors().map((actor) => actor.id)).toEqual(["list", "two"]);
   });
 
+  it("skips DOM work when explicit refresh sees an unchanged signature", () => {
+    const fixture = createFixture();
+    const root = fixture.createListRoot();
+    fixture.addItem("one", { itemId: "one", text: "One" });
+    root.list.refreshItems();
+    const appendCallCount = root.element.appendCallCount;
+
+    root.list.refreshItems();
+
+    expect(root.element.appendCallCount).toBe(appendCallCount);
+  });
+
   it("restores list state it applied on dispose", () => {
     const fixture = createFixture();
     const root = fixture.createListRoot((element) => {
@@ -137,11 +151,14 @@ describe("ListViewComponent", () => {
 
   it("does not import actor-input or implement participant hooks", () => {
     const source = readFileSync(new URL("./list-view-component.ts", import.meta.url), "utf8");
+    const definitionSource = readFileSync(new URL("./list-view-definition.ts", import.meta.url), "utf8");
 
     expect(source).not.toMatch(/actor-input/);
     expect(source).not.toMatch(/ActorInputParticipant/);
     expect(source).not.toMatch(/hitTestInput/);
     expect(source).not.toMatch(/onInputEnd/);
+    expect(source).not.toMatch(/FrameUpdateParticipant|updateFrame/);
+    expect(definitionSource).not.toMatch(/frameUpdateAttachment|attachments/);
   });
 });
 

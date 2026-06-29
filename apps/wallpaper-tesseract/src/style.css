@@ -9,7 +9,7 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: #07090d;
+  background: var(--ui-color-app-bg);
 }
 
 #app {

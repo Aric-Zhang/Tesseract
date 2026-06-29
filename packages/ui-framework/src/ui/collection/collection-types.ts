@@ -30,3 +30,17 @@ export interface ListViewItemDescriptor {
 }
 
 export type ListViewItemUpdate = Partial<ListViewItemDescriptor>;
+
+export interface VirtualListItemSnapshot {
+  readonly key: string;
+  readonly text: string;
+  readonly selected?: boolean;
+  readonly enabled?: boolean;
+  readonly muted?: boolean;
+}
+
+export interface VirtualListDataSource {
+  readonly revision: number;
+  getItemCount(): number;
+  getItem(index: number): VirtualListItemSnapshot;
+}

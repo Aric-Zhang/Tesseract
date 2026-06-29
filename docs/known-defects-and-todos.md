@@ -71,14 +71,14 @@ Verification target:
   no duplicate item ids, no visible Hierarchy item actor recursion, and no
   stale test actors after cleanup.
 
-### ARB-002: Debug Log actor-backed ListView causes frame-time regression
+### ARB-002: Debug Log actor-backed ListView caused frame-time regression
 
-Status: `open`
+Status: `closed`
 
 Area: `packages/ui-framework/src/ui/collection`,
 `packages/editor/src/debug`
 
-Evidence:
+Original evidence:
 
 - Gate 7C moved Debug Log to `ScrollViewComponent` / `ListViewComponent` and
   stable log item actors.
@@ -91,31 +91,37 @@ Evidence:
   open; closing Debug drops that work to zero and restores smoother frame
   cadence.
 
+Closure:
+
+- Gate 7C.5 removed `ListViewComponent`'s frame attachment and replaced Debug's
+  per-log actor path with a Debug-owned fixed-height ring-buffer data source
+  consumed by `VirtualListViewComponent`.
+- `DebugLogEntryActorReconciler` and `isDebugLogEntryActorId` were deleted, and
+  ToolWindow Hierarchy no longer needs Debug log actor filtering because log
+  rows are private virtual-list DOM, not actors.
+- Fresh browser evidence in
+  `temp/project-arbor-gate-7c-5-debug-performance-data.json` records
+  `itemCount: 200`, a bounded virtual row pool, zero Debug virtual-list DOM
+  mutations or rebind batches during a 500ms open-idle probe, append bursts
+  creating/removing zero virtual rows while touching only the bounded row pool,
+  successful bottom/non-bottom scroll anchoring, Debug close/reopen, and zero
+  Debug log row leakage into Hierarchy.
+
 Impact:
 
-- Debug Window noticeably slows interaction when open.
-- The issue would become more expensive as list-like controls grow if
-  frame-attached full refresh remains the default collection pattern.
+- Retained for handoff context. The original regression is fixed and should not
+  block Gate 7D.
 
-Next action:
+Follow-up:
 
-- Execute
-  `docs/project-arbor-gate-7c-5-debug-virtual-list-performance-plan.md`
-  before Gate 7D.
-- Make actor-backed `ListViewComponent` owner-driven, add a reusable
-  fixed-row-height data-backed `VirtualListViewComponent`, and migrate Debug
-  Log away from per-log actors.
-- Create the Debug virtual-list data source in the Debug view factory, inject it
-  into both Debug content and `VirtualListViewComponent`, and keep Debug refresh
-  batched through a cheap dirty-frame check rather than synchronous per-append
-  DOM updates.
+- If a future log view needs wrapped/variable-height rows, design a separate
+  variable-height virtualization contract instead of weakening the fixed-height
+  `VirtualListViewComponent`.
 
-Verification target:
+Verification:
 
-- Fresh Gate 7C.5 browser evidence proves Debug open idle state does not
-  continuously rewrite list rows, log bursts update only a bounded visible row
-  pool, Debug close/reopen still works, and no Debug log row data leaks into
-  Hierarchy.
+- Targeted unit, typecheck, build, architecture-boundary, and fresh Gate 7C.5
+  browser smoke validation passed during closure.
 
 ### DCK-001: Dock commit failures are silent
 

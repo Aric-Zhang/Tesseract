@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem, ComponentRegistry } from "actor-core";
-import { installActorInputComponentDefinitions } from "actor-input";
+import { ActorSystem, ComponentRegistry } from "actor-system/core";
+import { installActorInputComponentDefinitions } from "actor-system/input";
 import {
   installUiComponentDefinitions,
   treeViewComponentType,

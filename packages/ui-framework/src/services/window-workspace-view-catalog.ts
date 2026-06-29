@@ -1,4 +1,4 @@
-import type { Actor, ActorSystemView } from "actor-core";
+import type { Actor, ActorSystemView } from "actor-system/core";
 import type { WindowViewIdentity } from "../model/window-view-identity";
 import type { WindowViewKey } from "../model/window-view-key";
 import type { WindowViewFactoryRegistry } from "../ports/window-view-factory-registry";

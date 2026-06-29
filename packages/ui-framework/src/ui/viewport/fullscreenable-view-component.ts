@@ -1,10 +1,10 @@
-import type { ScreenPoint } from "actor-input";
-import type { Actor, Component, ComponentType } from "actor-core";
+import type { ScreenPoint } from "actor-system/input";
+import type { Actor, Component, ComponentType } from "actor-system/core";
 import {
   type ActorInputEndEvent,
   type ActorInputHit,
   type ActorInputParticipant
-} from "actor-input";
+} from "actor-system/input";
 import type { UiElementComponent } from "../element";
 
 export const fullscreenableViewComponentType =
@@ -16,7 +16,7 @@ export interface FullscreenableViewIntent {
   readonly kind: FullscreenableViewIntentKind;
   readonly sourceActorId: string;
   readonly componentId: string;
-  readonly reason: "actor-input";
+  readonly reason: "actor-system/input";
   readonly timeStamp: number;
 }
 
@@ -107,7 +107,7 @@ export class FullscreenableViewComponent implements Component, ActorInputPartici
       kind: this.#fullscreen ? "restore" : "enter",
       sourceActorId: this.actor.id,
       componentId: this.id,
-      reason: "actor-input",
+      reason: "actor-system/input",
       timeStamp: event.timeStamp
     });
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Actor, Component, ComponentDefinition } from "actor-core";
-import { ActorSystem, ComponentRegistry, componentType } from "actor-core";
+import type { Actor, Component, ComponentDefinition } from "actor-system/core";
+import { ActorSystem, ComponentRegistry, componentType } from "actor-system/core";
 import type { UiFrame } from "./ui-scheduler";
 import {
   FrameUpdateAttachmentRuntime,

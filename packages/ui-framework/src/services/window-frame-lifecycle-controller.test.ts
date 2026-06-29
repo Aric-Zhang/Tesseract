@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "actor-core";
+import { ActorSystem } from "actor-system/core";
 import type { WindowFocusCommandPort } from "./window-focus-command-port";
 import { DefaultWindowFrameLifecycleController } from "./window-frame-lifecycle-controller";
 import {

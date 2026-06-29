@@ -1,5 +1,5 @@
-import type { ComponentDefinition } from "actor-core";
-import { gizmoEventBindingComponentType } from "actor-input";
+import type { ComponentDefinition } from "actor-system/core";
+import { gizmoEventBindingComponentType } from "actor-system/input";
 import { frameUpdateAttachment } from "../../ports/ui-frame-update-attachment-runtime";
 import { uiElementComponentType } from "../element";
 import {

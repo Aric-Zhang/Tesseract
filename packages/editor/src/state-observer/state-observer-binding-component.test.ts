@@ -9,8 +9,8 @@ import {
   type ComponentAttachmentRegistration,
   type ComponentAttachmentRuntime,
   type ComponentDefinition
-} from "actor-core";
-import { gizmoEventBindingComponentDefinition } from "actor-input";
+} from "actor-system/core";
+import { gizmoEventBindingComponentDefinition } from "actor-system/input";
 import type { AppStateChangedEvent, AppStateObserver } from "../app-state";
 import {
   FrameUpdateAttachmentRuntime,

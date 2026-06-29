@@ -1,4 +1,4 @@
-import type { Actor, Component, ComponentType } from "actor-core";
+import type { Actor, Component, ComponentType } from "actor-system/core";
 import type { ScrollViewComponent } from "../scroll";
 import type { UiElementComponent } from "../element";
 import type { VirtualListDataSource, VirtualListItemSnapshot } from "./collection-types";

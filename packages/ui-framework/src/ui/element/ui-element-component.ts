@@ -1,4 +1,4 @@
-import type { Actor, Component, ComponentType } from "actor-core";
+import type { Actor, Component, ComponentType } from "actor-system/core";
 
 export const uiElementComponentType =
   "ui-element-component" as ComponentType<UiElementComponent>;

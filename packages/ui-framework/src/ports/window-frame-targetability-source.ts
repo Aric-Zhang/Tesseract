@@ -1,4 +1,4 @@
-import type { ActorSystemView } from "actor-core";
+import type { ActorSystemView } from "actor-system/core";
 import type { WindowFramePortRegistryView } from "./window-frame-port-registry";
 
 export interface WindowFrameTargetability {

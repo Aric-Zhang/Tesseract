@@ -1,4 +1,4 @@
-import type { ActorInputHit } from "actor-input";
+import type { ActorInputHit } from "actor-system/input";
 import type { WindowFrameTab } from "../model/window-frame-tab";
 import type { WindowTabDragSource } from "../model/window-tab-drag-session";
 

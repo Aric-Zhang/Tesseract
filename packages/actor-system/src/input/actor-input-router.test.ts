@@ -4,8 +4,8 @@ import type {
   GizmoHit,
   GizmoMoveEvent,
   GizmoStartEvent
-} from "gizmo-core";
-import { componentType, type Actor, type Component } from "actor-core";
+} from "../gizmo";
+import { componentType, type Actor, type Component } from "../core";
 import type { ActorInputHit } from "./actor-input-hit";
 import { isActorInputParticipant, type ActorInputParticipant } from "./actor-input-participant";
 import { ActorInputRouter } from "./actor-input-router";

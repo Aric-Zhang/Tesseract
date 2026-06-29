@@ -1,12 +1,12 @@
-import type { GizmoController } from "gizmo-core";
+import type { GizmoController } from "../gizmo";
 import type {
   Actor,
   Component,
   ComponentAttachmentDescriptor,
   ComponentAttachmentRegistration,
   ComponentAttachmentRuntime
-} from "actor-core";
-import { componentAttachmentKind } from "actor-core";
+} from "../core";
+import { componentAttachmentKind } from "../core";
 import type { GizmoControllerRegistry } from "./gizmo-controller-registry";
 
 export const gizmoControllerAttachmentKind = componentAttachmentKind("gizmo-controller-binding");

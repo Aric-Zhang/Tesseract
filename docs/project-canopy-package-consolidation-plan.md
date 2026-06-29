@@ -258,6 +258,8 @@ Stop conditions:
 
 ## Gate 1: Merge Actor Core, Actor Input, And Gizmo Core
 
+Status: `completed` on 2026-06-29.
+
 Detailed execution plan:
 
 ```text

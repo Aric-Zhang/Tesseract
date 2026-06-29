@@ -1,6 +1,6 @@
-import type { Actor } from "actor-core";
+import type { Actor } from "actor-system/core";
 import type { WindowFocusCommandPort, WindowFocusReason } from "./window-focus-command-port";
-import { ActorSystem } from "actor-core";
+import { ActorSystem } from "actor-system/core";
 import type {
   WindowDockCommitIntent,
   WindowDockCommitResult,

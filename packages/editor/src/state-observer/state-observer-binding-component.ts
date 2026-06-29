@@ -1,4 +1,4 @@
-import type { Actor, Component, ComponentType } from "actor-core";
+import type { Actor, Component, ComponentType } from "actor-system/core";
 import type { AppStateChangedEvent, AppStateObserver } from "../app-state";
 import { isStateObserverResponder } from "./state-observer-responder";
 

@@ -1,5 +1,5 @@
 {
-  "name": "actor-input",
+  "name": "actor-system",
   "version": "0.1.0",
   "type": "module",
   "sideEffects": false,
@@ -10,19 +10,22 @@
     "dist/**/*.d.ts.map"
   ],
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./input": {
+      "types": "./dist/input/index.d.ts",
+      "import": "./dist/input/index.js"
+    },
+    "./gizmo": {
+      "types": "./dist/gizmo/index.d.ts",
+      "import": "./dist/gizmo/index.js"
     }
   },
-  "types": "./dist/index.d.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests src",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc -p tsconfig.json"
-  },
-  "dependencies": {
-    "actor-core": "0.1.0",
-    "gizmo-core": "0.1.0"
   }
 }

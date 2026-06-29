@@ -3,7 +3,7 @@ import {
   gizmoEventBindingComponentDefinition,
   gizmoEventBindingComponentType,
   installActorInputComponentDefinitions
-} from "actor-input";
+} from "actor-system/input";
 import {
   debugLogContentComponentType,
   hierarchyPanelComponentType,

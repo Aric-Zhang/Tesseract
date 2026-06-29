@@ -1,4 +1,4 @@
-import type { GizmoController } from "gizmo-core";
+import type { GizmoController } from "../gizmo";
 
 export interface GizmoControllerRegistration {
   dispose(): void;

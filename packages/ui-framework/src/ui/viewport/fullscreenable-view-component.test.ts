@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem, ComponentRegistry } from "actor-core";
+import { ActorSystem, ComponentRegistry } from "actor-system/core";
 import {
   actorInputScopeRoutePriority,
   getActorInputScopeRoutePriority,
   installActorInputComponentDefinitions
-} from "actor-input";
+} from "actor-system/input";
 import { installUiComponentDefinitions } from "../install-ui-component-definitions";
 import { uiElementComponentType } from "../element";
 import {
@@ -88,14 +88,14 @@ describe("FullscreenableViewComponent", () => {
         kind: "enter",
         sourceActorId: "view",
         componentId: "ui-fullscreenable-view",
-        reason: "actor-input",
+        reason: "actor-system/input",
         timeStamp: 12
       },
       {
         kind: "restore",
         sourceActorId: "view",
         componentId: "ui-fullscreenable-view",
-        reason: "actor-input",
+        reason: "actor-system/input",
         timeStamp: 13
       }
     ]);

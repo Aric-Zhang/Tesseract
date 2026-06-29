@@ -1,5 +1,5 @@
-import type { Actor, ActorSystemView } from "actor-core";
-import type { ActorInputStackPrioritySource } from "actor-input";
+import type { Actor, ActorSystemView } from "actor-system/core";
+import type { ActorInputStackPrioritySource } from "actor-system/input";
 import type { UiFrame, UiScheduledService } from "../ports/ui-scheduler";
 import type { WindowFocusCommandPort, WindowFocusReason } from "./window-focus-command-port";
 import type {

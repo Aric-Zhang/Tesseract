@@ -1,4 +1,4 @@
-import type { ComponentDefinition } from "actor-core";
+import type { ComponentDefinition } from "actor-system/core";
 import {
   WindowFrameSurfaceComponent,
   windowFrameSurfaceComponentType,

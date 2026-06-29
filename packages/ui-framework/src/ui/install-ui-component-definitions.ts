@@ -1,7 +1,7 @@
 import {
   installComponentDefinition,
   type ComponentRegistry
-} from "actor-core";
+} from "actor-system/core";
 import { uiElementComponentDefinition } from "./element";
 import {
   menuBarComponentDefinition,

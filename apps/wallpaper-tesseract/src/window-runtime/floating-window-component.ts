@@ -1,6 +1,6 @@
 import type {
   ScreenPoint
-} from "gizmo-core";
+} from "actor-system/gizmo";
 import { type Actor, type Component, type ComponentType } from "../actor-runtime";
 import { actorInputScopeRoutePriority } from "../gizmo-runtime";
 import type {

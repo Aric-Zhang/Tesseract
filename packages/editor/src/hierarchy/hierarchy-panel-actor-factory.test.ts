@@ -3,8 +3,8 @@ import {
   ActorSystem,
   ComponentRegistry,
   createActorCreationScope
-} from "actor-core";
-import { installActorInputComponentDefinitions } from "actor-input";
+} from "actor-system/core";
+import { installActorInputComponentDefinitions } from "actor-system/input";
 import {
   installUiComponentDefinitions,
   type WindowContentLayoutCommit,

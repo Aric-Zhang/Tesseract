@@ -6,13 +6,27 @@
     "composite": true,
     "tsBuildInfoFile": "node_modules/.cache/tsconfig.tsbuildinfo"
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"],
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ],
   "references": [
-    { "path": "../actor-core" },
-    { "path": "../four-rotation" },
-    { "path": "../four-camera" },
-    { "path": "../runtime-core" },
-    { "path": "../runtime-three" }
+    {
+      "path": "../actor-system"
+    },
+    {
+      "path": "../four-rotation"
+    },
+    {
+      "path": "../four-camera"
+    },
+    {
+      "path": "../runtime-core"
+    },
+    {
+      "path": "../runtime-three"
+    }
   ]
 }

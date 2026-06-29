@@ -1,4 +1,4 @@
-import type { Actor, ComponentDefinition } from "actor-core";
+import type { Actor, ComponentDefinition } from "../core";
 import type { ActorInputStackPrioritySource } from "./actor-input-stack-priority-source";
 import { activeInputCancellationAttachment } from "./active-input-cancellation-runtime";
 import { gizmoControllerAttachment } from "./gizmo-controller-attachment-runtime";

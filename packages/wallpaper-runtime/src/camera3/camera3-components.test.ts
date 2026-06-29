@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import { ActorSystem, ComponentRegistry, installComponentDefinition } from "actor-core";
+import { ActorSystem, ComponentRegistry, installComponentDefinition } from "actor-system/core";
 import {
   ProductionRuntimeSchedulerService,
   RuntimeWorkAttachmentRuntime

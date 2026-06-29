@@ -32,13 +32,16 @@ Historical plans, reports, smoke artifacts, and temporary logs live under
 Project Prism favors a clean, coherent architecture over preserving
 transitional code. New work should move the codebase toward these boundaries:
 
-- `actor-core` is minimal and framework-agnostic: actor system, actor tree,
-  component definitions, component registry, lifecycle, parent/effective active
-  state, and generic ports only. No DOM, Three.js, gizmo-core, scene runtime,
-  window runtime, or app runtime dependencies.
-- Actor input is separate from actor core. It may adapt actor participation to
-  input/gizmo semantics, but actor core must not know about editor UI,
-  rendering, docking, or app composition.
+- `actor-system/core` is minimal and framework-agnostic: actor system, actor
+  tree, component definitions, component registry, lifecycle, parent/effective
+  active state, and generic ports only. No DOM, Three.js, actor-system/gizmo,
+  scene runtime, window runtime, or app runtime dependencies.
+- `actor-system/input` is separate from actor-system/core. It may adapt actor
+  participation to input/gizmo semantics, but actor-system/core must not know
+  about editor UI, rendering, docking, or app composition.
+- `actor-system/gizmo` is framework-agnostic pointer/gizmo event machinery. It
+  must not depend on editor UI, runtime/rendering code, window/docking code, or
+  app composition.
 - UI/window framework code is product-agnostic: app shell, window frame, root
   workspace frame, tabs, docking, splitters, layout persistence, pointer
   surfaces, and frame lifecycle. It must not know about Scene rendering,
@@ -165,7 +168,7 @@ Preserve these standards:
   reintroduce checkbox-style close toggles for ordinary dockable windows.
 - Scene fullscreen is a presentation of a Scene view, not a persistent mutation
   of a mixed owner frame.
-- Inactive tabs and hidden split panes must not be actor-input interactable.
+- Inactive tabs and hidden split panes must not be actor input interactable.
   Frame stack priority controls cross-window priority; tab-local logic only
   chooses local route/hit behavior.
 
@@ -189,10 +192,10 @@ Keep these constraints:
 - Hierarchy selection, menu activation, tab actions, docking, and gizmo
   interactions should route through actor input or narrow intent ports, not
   through direct DOM mutation shortcuts.
-- `gizmo-core` must remain framework-agnostic. Runtime/rendering code must not
-  depend on editor UI input details.
+- `actor-system/gizmo` must remain framework-agnostic. Runtime/rendering code
+  must not depend on editor UI input details.
 
-Older actor-input plans remain useful context, but they are not automatically
+Older actor input plans remain useful context, but they are not automatically
 authoritative once implementation has moved on.
 
 ## Component Definition Installation
@@ -205,7 +208,7 @@ Keep component definition installation aligned with ownership:
 - Feature definitions such as app menu, scene, Camera3, Debug, Hierarchy,
   Inspector, and Tesseract should stay in feature-specific installers or
   grouped feature installation functions.
-- Do not put product-specific feature definitions into actor-core or the
+- Do not put product-specific feature definitions into actor-system/core or the
   reusable UI/window layer.
 
 ## Testing And Browser Verification

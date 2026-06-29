@@ -2,7 +2,7 @@ import type {
   ActorSystem,
   ComponentRegistry,
   RegisteredActor
-} from "actor-core";
+} from "actor-system/core";
 
 export interface UiActorContextRegistration {
   dispose(): void;

@@ -22,7 +22,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "actor-core": "0.1.0",
+    "actor-system": "0.1.0",
     "four-camera": "0.1.0",
     "four-rotation": "0.1.0",
     "runtime-core": "0.1.0",

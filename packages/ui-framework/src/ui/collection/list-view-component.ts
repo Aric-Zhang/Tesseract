@@ -4,7 +4,7 @@ import type {
   Component,
   ComponentRegistryView,
   ComponentType
-} from "actor-core";
+} from "actor-system/core";
 import type { UiElementComponent } from "../element";
 import type { ListViewItemDescriptor } from "./collection-types";
 import {

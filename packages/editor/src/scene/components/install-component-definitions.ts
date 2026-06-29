@@ -1,4 +1,4 @@
-import { installComponentDefinition, type ComponentRegistry } from "actor-core";
+import { installComponentDefinition, type ComponentRegistry } from "actor-system/core";
 import { sceneViewContentComponentDefinition } from "./scene-view-content-definition";
 
 export interface InstallSceneComponentDefinitionsOptions {}

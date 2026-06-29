@@ -1,5 +1,5 @@
-import type { GizmoDebugLogEntry } from "gizmo-core";
-import type { Actor, Component, ComponentType } from "actor-core";
+import type { GizmoDebugLogEntry } from "actor-system/gizmo";
+import type { Actor, Component, ComponentType } from "actor-system/core";
 import type { UiFrame } from "ui-framework";
 import type {
   ScrollViewComponent,

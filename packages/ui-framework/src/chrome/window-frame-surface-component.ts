@@ -1,5 +1,5 @@
-import { type Actor, type Component, type ComponentType } from "actor-core";
-import type { ActorInputMoveEvent } from "actor-input";
+import { type Actor, type Component, type ComponentType } from "actor-system/core";
+import type { ActorInputMoveEvent } from "actor-system/input";
 import {
   commitWindowRegisteredContentLayout,
   type WindowContentLayoutCommit,

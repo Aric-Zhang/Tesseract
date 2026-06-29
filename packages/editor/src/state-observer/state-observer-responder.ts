@@ -1,4 +1,4 @@
-import type { Component } from "actor-core";
+import type { Component } from "actor-system/core";
 import type { AppStateChangedEvent } from "../app-state";
 
 export interface StateObserverResponder extends Component {

@@ -3,7 +3,7 @@ import {
   ActorSystem,
   ComponentRegistry,
   createActorCreationScope
-} from "actor-core";
+} from "actor-system/core";
 import {
   installUiComponentDefinitions,
   type WindowContentLayoutCommit,

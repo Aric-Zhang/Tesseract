@@ -5,8 +5,8 @@ import type {
   GizmoMoveEvent,
   GizmoStartEvent,
   ScreenPoint
-} from "gizmo-core";
-import type { Actor, Component } from "actor-core";
+} from "../gizmo";
+import type { Actor, Component } from "../core";
 import { getActorInputScopeRoutePriority, type ActorInputHit, type ActorInputSelection } from "./actor-input-hit";
 import {
   isActorInputParticipant,

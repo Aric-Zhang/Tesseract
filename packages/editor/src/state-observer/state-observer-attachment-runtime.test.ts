@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem, componentAttachmentKind, type Component } from "actor-core";
+import { ActorSystem, componentAttachmentKind, type Component } from "actor-system/core";
 import {
   stateObserverAttachment,
   StateObserverAttachmentRuntime

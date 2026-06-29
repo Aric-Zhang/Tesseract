@@ -1,1 +1,1 @@
-export * from "actor-core";
+export * from "actor-system/core";

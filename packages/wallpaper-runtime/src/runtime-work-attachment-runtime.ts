@@ -5,8 +5,8 @@ import type {
   ComponentAttachmentDescriptor,
   ComponentAttachmentRegistration,
   ComponentAttachmentRuntime
-} from "actor-core";
-import { componentAttachmentKind } from "actor-core";
+} from "actor-system/core";
+import { componentAttachmentKind } from "actor-system/core";
 import type { RuntimeFrame, RuntimeWork } from "runtime-core";
 import type { ProductionRuntimeSchedulerService } from "./runtime-scheduler-service";
 

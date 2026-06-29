@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ActorSystem, ComponentRegistry } from "actor-core";
+import { ActorSystem, ComponentRegistry } from "actor-system/core";
 import {
   installUiComponentDefinitions,
   scrollViewComponentType,

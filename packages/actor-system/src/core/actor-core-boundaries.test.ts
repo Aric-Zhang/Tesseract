@@ -6,8 +6,8 @@ const sourceFiles = import.meta.glob("./**/*.ts", {
   import: "default"
 }) as Record<string, string>;
 
-describe("actor-core package boundaries", () => {
-  it("does not import app, scene, window, DOM, Three, or gizmo runtime facts", () => {
+describe("actor-system/core boundaries", () => {
+  it("does not import input, gizmo, app, scene, window, DOM, Three, or runtime facts", () => {
     const productionFiles = Object.entries(sourceFiles)
       .filter(([file]) => !file.endsWith(".test.ts"));
     const forbiddenImports = productionFiles
@@ -17,7 +17,11 @@ describe("actor-core package boundaries", () => {
       ))
       .filter(({ specifier }) => (
         specifier === "three" ||
-        specifier === "gizmo-core" ||
+        specifier === "actor-system" ||
+        specifier === "actor-system/input" ||
+        specifier === "actor-system/gizmo" ||
+        specifier.startsWith("../input") ||
+        specifier.startsWith("../gizmo") ||
         specifier.includes("scene-runtime") ||
         specifier.includes("window-runtime") ||
         specifier.includes("app-runtime") ||

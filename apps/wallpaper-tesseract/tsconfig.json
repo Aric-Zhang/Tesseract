@@ -2,20 +2,37 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["vite/client"],
+    "types": [
+      "vite/client"
+    ],
     "composite": true,
     "tsBuildInfoFile": "../../.cache/wallpaper-tesseract.tsbuildinfo"
   },
-  "include": ["src", "vite.config.ts"],
+  "include": [
+    "src",
+    "vite.config.ts"
+  ],
   "references": [
-    { "path": "../../packages/actor-core" },
-    { "path": "../../packages/gizmo-core" },
-    { "path": "../../packages/actor-input" },
-    { "path": "../../packages/ui-framework" },
-    { "path": "../../packages/runtime-core" },
-    { "path": "../../packages/editor" },
-    { "path": "../../packages/four-rotation" },
-    { "path": "../../packages/four-camera" },
-    { "path": "../../packages/four-camera-three" }
+    {
+      "path": "../../packages/actor-system"
+    },
+    {
+      "path": "../../packages/ui-framework"
+    },
+    {
+      "path": "../../packages/runtime-core"
+    },
+    {
+      "path": "../../packages/editor"
+    },
+    {
+      "path": "../../packages/four-rotation"
+    },
+    {
+      "path": "../../packages/four-camera"
+    },
+    {
+      "path": "../../packages/four-camera-three"
+    }
   ]
 }

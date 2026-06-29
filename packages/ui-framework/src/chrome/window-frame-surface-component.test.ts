@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "actor-core";
-import type { ActorInputHit, ActorInputMoveEvent } from "actor-input";
+import { ActorSystem } from "actor-system/core";
+import type { ActorInputHit, ActorInputMoveEvent } from "actor-system/input";
 import { WindowFrameSurfaceComponent, type WindowFrameSurfaceHost } from "./window-frame-surface-component";
 import {
   createSingletonWindowViewIdentity

@@ -1,4 +1,4 @@
-import type { Actor } from "actor-core";
+import type { Actor } from "actor-system/core";
 import type { WindowFramePort } from "./window-frame-port";
 
 export interface WindowFramePortRegistryEntry {

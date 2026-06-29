@@ -5,8 +5,8 @@ import type {
   ComponentAttachmentDescriptor,
   ComponentAttachmentRegistration,
   ComponentAttachmentRuntime
-} from "actor-core";
-import { componentAttachmentKind } from "actor-core";
+} from "actor-system/core";
+import { componentAttachmentKind } from "actor-system/core";
 import type { UiFrame } from "./ui-scheduler";
 
 export const frameUpdateAttachmentKind = componentAttachmentKind("frame-update");

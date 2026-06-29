@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "actor-core";
+import { ActorSystem } from "actor-system/core";
 import { createWindowFrameTargetabilitySource } from "./window-frame-targetability-source";
 import { WindowFramePortRegistry } from "./window-frame-port-registry";
 import type { WindowFramePort } from "./window-frame-port";

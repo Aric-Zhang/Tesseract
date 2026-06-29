@@ -1,4 +1,4 @@
-import type { ActorCreationContext } from "actor-core";
+import type { ActorCreationContext } from "actor-system/core";
 import {
   createWindowWorkspaceContentId,
   uiVec2,

@@ -1,4 +1,4 @@
-import type { GizmoDebugLogEntry } from "gizmo-core";
+import type { GizmoDebugLogEntry } from "actor-system/gizmo";
 import type { VirtualListDataSource, VirtualListItemSnapshot } from "ui-framework";
 
 const DEFAULT_DEBUG_LOG_MESSAGE = "Gizmo debug log enabled";

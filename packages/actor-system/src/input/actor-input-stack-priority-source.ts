@@ -1,4 +1,4 @@
-import type { Actor } from "actor-core";
+import type { Actor } from "../core";
 
 export interface ActorInputStackPrioritySource {
   getEffectiveStackPriorityForActor(actor: Actor): number | null;

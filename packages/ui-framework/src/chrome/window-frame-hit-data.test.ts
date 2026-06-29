@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ActorInputHit } from "actor-input";
+import type { ActorInputHit } from "actor-system/input";
 import {
   readFloatingWindowSplitterHitData,
   readWindowTabDragSource

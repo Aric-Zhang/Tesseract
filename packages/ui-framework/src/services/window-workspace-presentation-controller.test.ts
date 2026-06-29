@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Actor } from "actor-core";
+import type { Actor } from "actor-system/core";
 import type {
   WindowViewFullscreenSession,
   WindowViewPresentationCommandPort

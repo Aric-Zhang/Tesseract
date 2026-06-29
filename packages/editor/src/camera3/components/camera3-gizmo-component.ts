@@ -2,10 +2,10 @@ import type {
   GizmoCancelEvent,
   GizmoHit,
   ScreenPoint
-} from "gizmo-core";
-import type { Actor, ComponentType } from "actor-core";
+} from "actor-system/gizmo";
+import type { Actor, ComponentType } from "actor-system/core";
 import type { UiElementComponent } from "ui-framework";
-import { actorInputScopeRoutePriority } from "actor-input";
+import { actorInputScopeRoutePriority } from "actor-system/input";
 import type {
   ActorInputCancelEvent,
   ActorInputClickEvent,
@@ -14,7 +14,7 @@ import type {
   ActorInputMoveEvent,
   ActorInputParticipant,
   ActorInputStartEvent
-} from "actor-input";
+} from "actor-system/input";
 import { Camera3Gizmo, type Camera3GizmoOptions } from "../camera3-gizmo";
 import type { RuntimeCameraViewState } from "runtime-core";
 

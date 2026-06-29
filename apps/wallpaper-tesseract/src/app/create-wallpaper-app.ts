@@ -1,12 +1,12 @@
-import { GizmoEventSystem } from "gizmo-core";
+import { GizmoEventSystem } from "actor-system/gizmo";
 import {
   ActorSystem,
   ComponentRegistry,
   CompositeComponentAttachmentRuntime,
   createActorCreationScope,
   type Component
-} from "actor-core";
-import { installActorInputComponentDefinitions } from "actor-input";
+} from "actor-system/core";
+import { installActorInputComponentDefinitions } from "actor-system/input";
 import {
   AppFrameStateController,
   installInspectorFeature,

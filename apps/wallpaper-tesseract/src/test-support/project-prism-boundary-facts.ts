@@ -54,8 +54,8 @@ export interface ProjectPrismDebtBlocker {
 
 export interface ProjectPrismPackageTarget {
   readonly id:
-    | "actor-core"
-    | "actor-input"
+    | "actor-system/core"
+    | "actor-system/input"
     | "ui-framework"
     | "runtime-core-contracts"
     | "runtime-production-ownership"
@@ -182,7 +182,7 @@ export const projectPrismZoneDependencyRules = [
 
 export const projectPrismPackageTargets = [
   {
-    id: "actor-core",
+    id: "actor-system/core",
     cleanCandidateZones: ["actor-core-candidate"],
     debtZones: [],
     blockedBy: [],
@@ -190,7 +190,7 @@ export const projectPrismPackageTargets = [
     extractionStatus: "allowed"
   },
   {
-    id: "actor-input",
+    id: "actor-system/input",
     cleanCandidateZones: ["actor-input-candidate"],
     debtZones: [],
     blockedBy: [],

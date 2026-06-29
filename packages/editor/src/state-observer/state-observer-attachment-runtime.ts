@@ -4,8 +4,8 @@ import type {
   ComponentAttachmentDescriptor,
   ComponentAttachmentRegistration,
   ComponentAttachmentRuntime
-} from "actor-core";
-import { componentAttachmentKind } from "actor-core";
+} from "actor-system/core";
+import { componentAttachmentKind } from "actor-system/core";
 import type { StateObserverRegistry } from "./state-observer-registry";
 
 export const stateObserverAttachmentKind = componentAttachmentKind("state-observer-binding");

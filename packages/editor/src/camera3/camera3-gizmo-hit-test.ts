@@ -1,4 +1,4 @@
-import type { GizmoHit, ScreenPoint } from "gizmo-core";
+import type { GizmoHit, ScreenPoint } from "actor-system/gizmo";
 import type { RuntimeCameraAxis } from "runtime-core";
 import type { Camera3GizmoState } from "./camera3-gizmo-state";
 

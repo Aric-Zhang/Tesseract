@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { installActorInputComponentDefinitions } from "actor-input";
+import { installActorInputComponentDefinitions } from "actor-system/input";
 import { ActorSystem, type Actor } from "../actor-runtime";
 import { installEditorStateObserverComponentDefinitions } from "editor";
 import { createTestComponentRegistry } from "../test-support";

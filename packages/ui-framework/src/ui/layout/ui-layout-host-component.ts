@@ -4,7 +4,7 @@ import type {
   Component,
   ComponentRegistryView,
   ComponentType
-} from "actor-core";
+} from "actor-system/core";
 import type { FrameUpdateParticipant } from "../../ports/ui-frame-update-attachment-runtime";
 import type { UiFrame } from "../../ports/ui-scheduler";
 import type { UiElementComponent } from "../element";

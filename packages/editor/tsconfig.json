@@ -6,12 +6,21 @@
     "composite": true,
     "tsBuildInfoFile": "node_modules/.cache/tsconfig.tsbuildinfo"
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"],
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ],
   "references": [
-    { "path": "../actor-core" },
-    { "path": "../actor-input" },
-    { "path": "../runtime-core" },
-    { "path": "../ui-framework" }
+    {
+      "path": "../actor-system"
+    },
+    {
+      "path": "../runtime-core"
+    },
+    {
+      "path": "../ui-framework"
+    }
   ]
 }

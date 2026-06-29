@@ -41,7 +41,7 @@ import {
 } from "./test-support/package-graph-boundaries";
 
 describe("architecture boundaries", () => {
-  const actorInputPackageSources = collectWorkspaceSourceFiles("packages/actor-input/src");
+  const actorSystemInputSources = collectWorkspaceSourceFiles("packages/actor-system/src/input");
   const uiFrameworkPackageSources = collectWorkspaceSourceFiles("packages/ui-framework/src");
   const runtimeCorePackageSources = collectWorkspaceSourceFiles("packages/runtime-core/src");
   const runtimeThreePackageSources = collectWorkspaceSourceFiles("packages/runtime-three/src");
@@ -185,8 +185,8 @@ describe("architecture boundaries", () => {
   });
 
   it("uses one production source filter for Canopy package graph checks", () => {
-    expect(isProductionSourceFile("packages/actor-core/src/index.ts")).toBe(true);
-    expect(isProductionSourceFile("packages/actor-core/src/index.test.ts")).toBe(false);
+    expect(isProductionSourceFile("packages/actor-system/src/core/index.ts")).toBe(true);
+    expect(isProductionSourceFile("packages/actor-system/src/core/index.test.ts")).toBe(false);
     expect(isProductionSourceFile("apps/wallpaper-tesseract/src/test-support/package-graph-boundaries.ts"))
       .toBe(false);
     expect(Object.keys(collectProductionWorkspaceSources()).every(isProductionSourceFile)).toBe(true);
@@ -194,39 +194,31 @@ describe("architecture boundaries", () => {
 
   it("detects undeclared workspace imports from package graph fixtures", () => {
     const descriptors = workspacePackageDescriptors.filter((descriptor) => (
-      descriptor.name === "actor-core" || descriptor.name === "actor-input"
+      descriptor.name === "actor-system" || descriptor.name === "ui-framework"
     ));
     const manifests = new Map<string, WorkspacePackageManifest>([
-      ["actor-core", { name: "actor-core" }],
-      ["actor-input", { name: "actor-input", dependencies: { "actor-core": "0.1.0" } }]
+      ["actor-system", { name: "actor-system" }],
+      ["ui-framework", { name: "ui-framework" }]
     ]);
     const edges = [
       {
-        fromFile: "packages/actor-input/src/index.ts",
-        specifier: "actor-core",
+        fromFile: "packages/actor-system/src/core/index.ts",
+        specifier: "ui-framework",
         resolvedFile: null,
         kind: "import" as const,
         typeOnly: false,
         sideEffectOnly: false
       },
       {
-        fromFile: "packages/actor-core/src/index.ts",
-        specifier: "actor-input",
+        fromFile: "packages/actor-system/src/core/self.ts",
+        specifier: "actor-system/input",
         resolvedFile: null,
         kind: "import" as const,
         typeOnly: false,
         sideEffectOnly: false
       },
       {
-        fromFile: "packages/actor-core/src/self.ts",
-        specifier: "actor-core",
-        resolvedFile: null,
-        kind: "import" as const,
-        typeOnly: false,
-        sideEffectOnly: false
-      },
-      {
-        fromFile: "packages/actor-core/src/external.ts",
+        fromFile: "packages/ui-framework/src/external.ts",
         specifier: "three",
         resolvedFile: null,
         kind: "import" as const,
@@ -236,7 +228,7 @@ describe("architecture boundaries", () => {
     ];
 
     expect(findUndeclaredWorkspaceImports(descriptors, edges, manifests)).toEqual([
-      "actor-core: packages/actor-core/src/index.ts imports undeclared actor-input"
+      "actor-system: packages/actor-system/src/core/index.ts imports undeclared ui-framework"
     ]);
   });
 
@@ -288,11 +280,11 @@ describe("architecture boundaries", () => {
 
   it("detects forbidden package-zone imports from bare and resolved relative edges", () => {
     const descriptors = workspacePackageDescriptors.filter((descriptor) => (
-      descriptor.name === "actor-core" || descriptor.name === "ui-framework"
+      descriptor.name === "actor-system" || descriptor.name === "ui-framework"
     ));
     const edges = [
       {
-        fromFile: "packages/actor-core/src/bare.ts",
+        fromFile: "packages/actor-system/src/core/bare.ts",
         specifier: "ui-framework",
         resolvedFile: null,
         kind: "import" as const,
@@ -300,7 +292,7 @@ describe("architecture boundaries", () => {
         sideEffectOnly: false
       },
       {
-        fromFile: "packages/actor-core/src/relative.ts",
+        fromFile: "packages/actor-system/src/core/relative.ts",
         specifier: "../../ui-framework/src/index",
         resolvedFile: "packages/ui-framework/src/index.ts",
         kind: "import" as const,
@@ -310,21 +302,50 @@ describe("architecture boundaries", () => {
     ];
 
     expect(evaluatePackageDependencyRules(descriptors, [
-      { sourcePackage: "actor-core", forbiddenPackages: ["ui-framework"] }
+      { sourcePackage: "actor-system", forbiddenPackages: ["ui-framework"] }
     ], edges)).toEqual([
       {
-        sourcePackage: "actor-core",
-        fromFile: "packages/actor-core/src/bare.ts",
+        sourcePackage: "actor-system",
+        fromFile: "packages/actor-system/src/core/bare.ts",
         targetPackage: "ui-framework",
         specifier: "ui-framework"
       },
       {
-        sourcePackage: "actor-core",
-        fromFile: "packages/actor-core/src/relative.ts",
+        sourcePackage: "actor-system",
+        fromFile: "packages/actor-system/src/core/relative.ts",
         targetPackage: "ui-framework",
         specifier: "../../ui-framework/src/index"
       }
     ]);
+  });
+
+  it("keeps real actor-system submodules inside their allowed dependency direction", () => {
+    const actorSystemSources = collectProductionWorkspaceSources(
+      workspacePackageDescriptors.filter((descriptor) => descriptor.name === "actor-system")
+    );
+    const zones = [
+      defineSubmoduleZone("actor-system/core", "packages/actor-system/src/core/"),
+      defineSubmoduleZone("actor-system/input", "packages/actor-system/src/input/"),
+      defineSubmoduleZone("actor-system/gizmo", "packages/actor-system/src/gizmo/")
+    ];
+    const rules = [
+      {
+        sourceZone: "actor-system/core",
+        forbiddenTargetZones: ["actor-system/input", "actor-system/gizmo"],
+        forbiddenRootPackages: ["actor-system"]
+      },
+      {
+        sourceZone: "actor-system/input",
+        forbiddenRootPackages: ["actor-system"]
+      },
+      {
+        sourceZone: "actor-system/gizmo",
+        forbiddenTargetZones: ["actor-system/core", "actor-system/input"],
+        forbiddenRootPackages: ["actor-system"]
+      }
+    ];
+
+    expect(evaluateSubmoduleDependencyRules(actorSystemSources, zones, rules)).toEqual([]);
   });
 
   it("proves future actor-system submodule rules catch root and relative bypass imports", () => {
@@ -466,7 +487,7 @@ describe("architecture boundaries", () => {
     const forbiddenEdges = listModuleEdges(sourceFiles)
       .filter((edge) => actorCoreCandidateFiles.has(edge.fromFile))
       .filter((edge) => (
-        edge.specifier === "gizmo-core" ||
+        edge.specifier === "actor-system/gizmo" ||
         edge.specifier === "three" ||
         edge.specifier.includes("scene-runtime") ||
         edge.specifier.includes("window-runtime") ||
@@ -509,7 +530,7 @@ describe("architecture boundaries", () => {
         file.startsWith("packages/four-camera/src/")
       ))
       .filter(([, source]) => (
-        /from\s+["'](?:three|gizmo-core)["']/.test(source) ||
+        /from\s+["'](?:three|actor-system\/gizmo)["']/.test(source) ||
         /\b(?:HTMLElement|Document|window)\b/.test(source)
       ))
       .map(([file]) => file)
@@ -517,7 +538,7 @@ describe("architecture boundaries", () => {
     const runtimeThreeViolations = Object.entries(productionPackageSources)
       .filter(([file]) => file.startsWith("packages/four-camera-three/src/"))
       .filter(([, source]) => (
-        /from\s+["'](?:gizmo-core)["']/.test(source) ||
+        /from\s+["'](?:actor-system\/gizmo)["']/.test(source) ||
         /wallpaper-tesseract|window-runtime|features\/|gizmos/.test(source)
       ))
       .map(([file]) => file)
@@ -533,8 +554,8 @@ describe("architecture boundaries", () => {
     const forbiddenImports = runtimeCorePackageEdges
       .filter((edge) => (
         edge.specifier === "three" ||
-        edge.specifier === "gizmo-core" ||
-        edge.specifier === "actor-input" ||
+        edge.specifier === "actor-system/gizmo" ||
+        edge.specifier === "actor-system/input" ||
         edge.specifier === "ui-framework" ||
         edge.specifier === "editor" ||
         edge.specifier.includes("wallpaper-tesseract") ||
@@ -695,8 +716,8 @@ describe("architecture boundaries", () => {
     const runtimeThreePackageEdges = listModuleEdges(runtimeThreePackageSources);
     const forbiddenImports = runtimeThreePackageEdges
       .filter((edge) => (
-        edge.specifier === "gizmo-core" ||
-        edge.specifier === "actor-input" ||
+        edge.specifier === "actor-system/gizmo" ||
+        edge.specifier === "actor-system/input" ||
         edge.specifier === "ui-framework" ||
         edge.specifier === "editor" ||
         edge.specifier.includes("wallpaper-tesseract") ||
@@ -802,7 +823,7 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps Project Prism legacy locks paired with replacement contracts", () => {
-    const actorInputRouterSource = actorInputPackageSources["packages/actor-input/src/actor-input-router.ts"] ?? "";
+    const actorInputRouterSource = actorSystemInputSources["packages/actor-system/src/input/actor-input-router.ts"] ?? "";
     const renderableSceneViewSource =
       wallpaperRuntimePackageSources["packages/wallpaper-runtime/src/scene/runtime-scene-frame-source.ts"] ?? "";
     const dockTargetRegionSource =
@@ -1442,9 +1463,9 @@ describe("architecture boundaries", () => {
     expect(sceneRunModeSource).not.toMatch(/\bvisiblePath\b|\brestoreVisiblePath\b/);
   });
 
-  it("keeps actor-local input route scores out of gizmo-core hit priority", () => {
-    const bindingSource = actorInputPackageSources["packages/actor-input/src/gizmo-event-binding-component.ts"] ?? "";
-    const routerSource = actorInputPackageSources["packages/actor-input/src/actor-input-router.ts"] ?? "";
+  it("keeps actor-local input route scores out of actor-system/gizmo hit priority", () => {
+    const bindingSource = actorSystemInputSources["packages/actor-system/src/input/gizmo-event-binding-component.ts"] ?? "";
+    const routerSource = actorSystemInputSources["packages/actor-system/src/input/actor-input-router.ts"] ?? "";
 
     expect(bindingSource).not.toMatch(/priority:\s*selection\.routeScore\b/);
     expect(bindingSource).toMatch(/priority:\s*selection\.scopeRouteScore\b/);
@@ -1452,7 +1473,7 @@ describe("architecture boundaries", () => {
     expect(routerSource).toMatch(/\bgetActorInputScopeRoutePriority\b/);
   });
 
-  it("keeps pointer active interaction policy in gizmo-core instead of app-level fallbacks", () => {
+  it("keeps pointer active interaction policy in actor-system/gizmo instead of app-level fallbacks", () => {
     const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
 
     expect(appSource).not.toMatch(/\bbuttonsReleasedFallback\b/);
@@ -1900,7 +1921,7 @@ describe("architecture boundaries", () => {
       .filter(([file]) => pureWindowLayoutFiles.has(file))
       .filter(([, source]) => (
         /\b(?:HTMLElement|HTMLDivElement|Document|Element|getBoundingClientRect|querySelector)\b/.test(source) ||
-        /from\s+["'](?:gizmo-core|three)["']/.test(source)
+        /from\s+["'](?:actor-system\/gizmo|three)["']/.test(source)
       ))
       .map(([file]) => file)
       .sort();
@@ -2099,8 +2120,8 @@ describe("architecture boundaries", () => {
   });
 
   it("keeps active input cancellation behind an explicit attachment descriptor", () => {
-    const activeCancellationSource = actorInputPackageSources["packages/actor-input/src/active-input-cancellation-runtime.ts"] ?? "";
-    const gizmoDefinitionSource = actorInputPackageSources["packages/actor-input/src/gizmo-event-binding-definition.ts"] ?? "";
+    const activeCancellationSource = actorSystemInputSources["packages/actor-system/src/input/active-input-cancellation-runtime.ts"] ?? "";
+    const gizmoDefinitionSource = actorSystemInputSources["packages/actor-system/src/input/gizmo-event-binding-definition.ts"] ?? "";
 
     expect(activeCancellationSource).toMatch(/\bactiveInputCancellationAttachmentKind\b/);
     expect(activeCancellationSource).toMatch(/\battachments\.some\b/);

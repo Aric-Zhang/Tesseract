@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem } from "actor-core";
-import type { Component } from "actor-core";
+import { ActorSystem } from "../core";
+import type { Component } from "../core";
 import {
   activeInputCancellationAttachment,
   ActiveInputCancellationRuntime

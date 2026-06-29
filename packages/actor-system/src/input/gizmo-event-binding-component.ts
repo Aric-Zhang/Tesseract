@@ -7,13 +7,13 @@ import type {
   GizmoMoveEvent,
   GizmoStartEvent,
   ScreenPoint
-} from "gizmo-core";
+} from "../gizmo";
 import type {
   Actor,
   Component,
   ComponentLifecycleObserver,
   ComponentType
-} from "actor-core";
+} from "../core";
 import type { ActorInputSelection } from "./actor-input-hit";
 import type { ActorInputStackPrioritySource } from "./actor-input-stack-priority-source";
 import { ActorInputRouter } from "./actor-input-router";

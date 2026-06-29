@@ -1,16 +1,16 @@
-import type { ScreenPoint } from "actor-input";
+import type { ScreenPoint } from "actor-system/input";
 import type {
   Actor,
   ActorSystemView,
   Component,
   ComponentRegistryView,
   ComponentType
-} from "actor-core";
+} from "actor-system/core";
 import {
   type ActorInputEndEvent,
   type ActorInputHit,
   type ActorInputParticipant
-} from "actor-input";
+} from "actor-system/input";
 import type { UiElementComponent } from "../element";
 import {
   MenuBarItemComponent,

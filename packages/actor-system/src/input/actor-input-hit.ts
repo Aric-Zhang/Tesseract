@@ -1,4 +1,4 @@
-import type { Component } from "actor-core";
+import type { Component } from "../core";
 import type { ActorInputParticipant } from "./actor-input-participant";
 
 export type ActorInputHitKind = "chrome" | "content" | "control" | "scrollbar" | "overlay" | "custom";

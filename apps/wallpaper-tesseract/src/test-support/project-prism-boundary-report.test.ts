@@ -31,12 +31,12 @@ describe("Project Prism boundary report", () => {
     const summary = createProjectPrismBoundarySummary(sourceFiles);
     const targetsById = new Map(summary.packageTargets.map((target) => [target.id, target]));
 
-    expect(targetsById.get("actor-core")).toMatchObject({
+    expect(targetsById.get("actor-system/core")).toMatchObject({
       status: "allowed",
       cleanCandidateZones: ["actor-core-candidate"],
       blockedBy: []
     });
-    expect(targetsById.get("actor-input")).toMatchObject({
+    expect(targetsById.get("actor-system/input")).toMatchObject({
       status: "allowed",
       cleanCandidateZones: ["actor-input-candidate"],
       blockedBy: []

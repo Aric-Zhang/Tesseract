@@ -61,9 +61,7 @@ export interface SubmoduleDependencyViolation {
 }
 
 export const workspacePackageDescriptors = [
-  descriptor("actor-core", "packages/actor-core", "actor"),
-  descriptor("actor-input", "packages/actor-input", "actor"),
-  descriptor("gizmo-core", "packages/gizmo-core", "actor"),
+  descriptor("actor-system", "packages/actor-system", "actor"),
   descriptor("ui-framework", "packages/ui-framework", "ui"),
   descriptor("runtime-core", "packages/runtime-core", "runtime"),
   descriptor("runtime-three", "packages/runtime-three", "runtime"),
@@ -76,33 +74,16 @@ export const workspacePackageDescriptors = [
 ] as const satisfies readonly WorkspacePackageDescriptor[];
 
 export const currentPackageDependencyRules = [
-  rule("actor-core", [
-    "actor-input",
-    "gizmo-core",
+  rule("actor-system", [
     "ui-framework",
     "runtime-core",
     "runtime-three",
     "wallpaper-runtime",
     "editor",
-    "wallpaper-tesseract"
-  ]),
-  rule("gizmo-core", [
-    "actor-core",
-    "actor-input",
-    "ui-framework",
-    "runtime-core",
-    "runtime-three",
-    "wallpaper-runtime",
-    "editor",
-    "wallpaper-tesseract"
-  ]),
-  rule("actor-input", [
-    "ui-framework",
-    "runtime-core",
-    "runtime-three",
-    "wallpaper-runtime",
-    "editor",
-    "wallpaper-tesseract"
+    "wallpaper-tesseract",
+    "four-rotation",
+    "four-camera",
+    "four-camera-three"
   ]),
   rule("ui-framework", [
     "runtime-core",
@@ -112,8 +93,7 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("runtime-core", [
-    "actor-input",
-    "gizmo-core",
+    "actor-system",
     "ui-framework",
     "runtime-three",
     "wallpaper-runtime",
@@ -121,17 +101,13 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("runtime-three", [
-    "actor-core",
-    "actor-input",
-    "gizmo-core",
+    "actor-system",
     "ui-framework",
     "wallpaper-runtime",
     "editor",
     "wallpaper-tesseract"
   ]),
   rule("wallpaper-runtime", [
-    "actor-input",
-    "gizmo-core",
     "ui-framework",
     "editor",
     "wallpaper-tesseract"
@@ -142,9 +118,7 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("four-rotation", [
-    "actor-core",
-    "actor-input",
-    "gizmo-core",
+    "actor-system",
     "ui-framework",
     "runtime-core",
     "runtime-three",
@@ -153,9 +127,7 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("four-camera", [
-    "actor-core",
-    "actor-input",
-    "gizmo-core",
+    "actor-system",
     "ui-framework",
     "runtime-core",
     "runtime-three",
@@ -164,9 +136,7 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("four-camera-three", [
-    "actor-core",
-    "actor-input",
-    "gizmo-core",
+    "actor-system",
     "ui-framework",
     "runtime-core",
     "runtime-three",

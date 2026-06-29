@@ -10,7 +10,7 @@ import type {
   GizmoMoveEvent,
   GizmoStartEvent,
   ScreenPoint
-} from "gizmo-core";
+} from "actor-system/gizmo";
 import type { RuntimeCameraAxis, RuntimeCameraCommandSink, RuntimeCameraViewState } from "runtime-core";
 
 const projectionModePartId = "projection-mode";

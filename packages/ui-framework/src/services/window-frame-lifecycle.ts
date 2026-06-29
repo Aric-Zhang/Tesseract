@@ -1,4 +1,4 @@
-import type { Actor } from "actor-core";
+import type { Actor } from "actor-system/core";
 import type { WindowDockPreviewOperation, WindowDockRect, WindowDockSplitPlacement } from "../model/window-dock-targets";
 import type { WindowTabDragSource } from "../model/window-tab-drag-session";
 import type { WindowFramePresentation, WindowFrameTab } from "../model/window-frame-tab";

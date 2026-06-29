@@ -1,4 +1,4 @@
-import type { ComponentDefinition } from "actor-core";
+import type { ComponentDefinition } from "actor-system/core";
 import { noopEditorCommandSink, type EditorCommandSink } from "../editor-state";
 import { stateObserverBindingComponentType } from "../state-observer/state-observer-binding-component";
 import {

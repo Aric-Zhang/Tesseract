@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { GizmoController, GizmoHit, ScreenPoint } from "gizmo-core";
-import { ActorSystem } from "actor-core";
-import type { Component } from "actor-core";
-import { componentAttachmentKind } from "actor-core";
+import type { GizmoController, GizmoHit, ScreenPoint } from "../gizmo";
+import { ActorSystem } from "../core";
+import type { Component } from "../core";
+import { componentAttachmentKind } from "../core";
 import {
   gizmoControllerAttachment,
   GizmoControllerAttachmentRuntime

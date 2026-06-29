@@ -1,4 +1,4 @@
-import type { ComponentRegistry } from "actor-core";
+import type { ComponentRegistry } from "actor-system/core";
 import type { EditorCommandSink } from "./editor-state";
 import { installCamera3ComponentDefinitions } from "./camera3";
 import { installDebugLogComponentDefinitions } from "./debug";

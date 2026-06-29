@@ -1,4 +1,4 @@
-import { installComponentDefinition, type ComponentRegistry } from "actor-core";
+import { installComponentDefinition, type ComponentRegistry } from "actor-system/core";
 import { tesseract4ComponentDefinition } from "./tesseract4-definition";
 
 export function installTesseract4ComponentDefinitions(componentRegistry: ComponentRegistry): void {

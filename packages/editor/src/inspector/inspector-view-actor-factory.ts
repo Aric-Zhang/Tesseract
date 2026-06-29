@@ -1,4 +1,4 @@
-import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-core";
+import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-system/core";
 import type { WindowContentRegistrationPort } from "ui-framework";
 import {
   inspectorContentComponentType,

@@ -1,7 +1,7 @@
 import {
   installComponentDefinition,
   type ComponentRegistry
-} from "actor-core";
+} from "../core";
 import {
   createGizmoEventBindingComponentDefinition,
   gizmoEventBindingComponentDefinition,

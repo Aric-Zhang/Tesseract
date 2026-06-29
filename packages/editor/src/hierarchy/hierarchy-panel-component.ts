@@ -1,4 +1,4 @@
-import type { Actor, Component, ComponentType } from "actor-core";
+import type { Actor, Component, ComponentType } from "actor-system/core";
 import { editorStatePaths, type EditorCommandSink } from "../editor-state";
 import type { AppStateChangedEvent } from "../app-state";
 import type { StateObserverResponder } from "../state-observer/state-observer-responder";

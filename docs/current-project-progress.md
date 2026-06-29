@@ -22,9 +22,10 @@ supporting actor, UI, runtime, 4D, and gizmo libraries.
 
 Current workspace packages:
 
-- `packages/actor-core`: extracted actor/component core package.
-- `packages/actor-input`: extracted actor-input package built on actor-core and
-  gizmo-core.
+- `packages/actor-system`: consolidated actor package with explicit
+  `actor-system/core`, `actor-system/input`, and `actor-system/gizmo`
+  submodule exports. It owns actor/component core, actor input participation,
+  and framework-agnostic gizmo event machinery without a root production export.
 - `packages/ui-framework`: extracted product-agnostic app shell, window, tab,
   dock, menu, layout, chrome, port, and service contracts.
 - `packages/runtime-core`: extracted renderer-agnostic runtime contracts for
@@ -43,7 +44,6 @@ Current workspace packages:
 - `packages/four-rotation`: 4D rotation math.
 - `packages/four-camera`: 4D camera/projection model.
 - `packages/four-camera-three`: Three.js bridge for the 4D camera stack.
-- `packages/gizmo-core`: framework-agnostic pointer/gizmo event system.
 - `apps/wallpaper-tesseract`: Vite + Three.js Wallpaper Engine app and the
   remaining staging area for app/editor/runtime integration work.
 
@@ -134,24 +134,25 @@ browser fixture. It does not block the accepted Arbor architecture baseline.
   manifest cycle detection, undeclared workspace import checks, current package
   zone dependency rules, rule coverage checks for every non-app workspace
   package, and future `actor-system/core|input|gizmo` submodule boundary
-  fixtures before any package files moved. The next executable slice is
-  `docs/project-canopy-gate-1-actor-system-package-plan.md`.
+  fixtures before any package files moved.
+- Canopy Gate 1, `docs/project-canopy-gate-1-actor-system-package-plan.md`, is
+  complete. It merged the former actor foundation packages into
+  `packages/actor-system`, deleted the old package folders, and keeps internal
+  `core/input/gizmo` direction enforced by boundary tests.
 
 Current package graph baseline:
 
 ```text
-actor-core -> []
-gizmo-core -> []
-actor-input -> [actor-core, gizmo-core]
-ui-framework -> [actor-core, actor-input]
+actor-system -> []
+ui-framework -> [actor-system]
 runtime-core -> []
 runtime-three -> [four-camera, four-camera-three, runtime-core]
-wallpaper-runtime -> [actor-core, four-camera, four-rotation, runtime-core, runtime-three]
-editor -> [actor-core, actor-input, gizmo-core, runtime-core, ui-framework]
+wallpaper-runtime -> [actor-system, four-camera, four-rotation, runtime-core, runtime-three]
+editor -> [actor-system, runtime-core, ui-framework]
 four-rotation -> []
 four-camera -> [four-rotation]
 four-camera-three -> [four-camera]
-wallpaper-tesseract -> [actor-core, actor-input, editor, gizmo-core, runtime-core, runtime-three, ui-framework, wallpaper-runtime]
+wallpaper-tesseract -> [actor-system, editor, runtime-core, runtime-three, ui-framework, wallpaper-runtime]
 ```
 
 Gate 1 must reuse the Gate 0 helpers instead of writing a second import scanner.
@@ -169,7 +170,7 @@ Accepted or completed phases:
 - Phase 1 extracted shared spine concepts, attachment metadata/runtime paths,
   explicit update frame/state/UI ports, and removed old capability adapter
   paths from accepted ownership.
-- Phase 2 extracted `actor-core` and `actor-input` package targets.
+- Phase 2 extracted `actor-system/core` and `actor-system/input` package targets.
 - Phase 3 extracted `ui-framework` and accepted root/floating dock surface
   semantics.
 - Phase 4 extracted `runtime-core` contracts and removed the earlier runtime
@@ -210,7 +211,7 @@ Completed phase record:
 - Phase 8 execution has completed Steps 0-7. It deleted the app-local
   `features/install-wallpaper-component-definitions.ts` and
   `gizmo-runtime/install-component-definitions.ts` installers, moved
-  actor-input component definition installation into `packages/actor-input`,
+  actor-system/input component definition installation into `packages/actor-system/src/input`,
   moved renderable Scene frame-source ownership into runtime staging, and
   narrowed the old workspace mode module to product run-fullscreen command
   orchestration.
@@ -298,7 +299,7 @@ Completed phase record:
   The app-local `src/editor` directory has been deleted rather than preserved
   as a compatibility barrel.
 - The former app-local `FeatureActorContext` has been deleted from
-  `runtime/ports`. Actor factories now depend on `actor-core`'s
+  `runtime/ports`. Actor factories now depend on `actor-system/core`'s
   `ActorCreationContext`, so feature actor creation no longer pulls editor
   extraction back through app runtime glue.
 - The old app-local `state-runtime`, `update-runtime`, and production
@@ -323,7 +324,7 @@ Completed phase record:
   dock-root source types from `window-frame-tab.ts`, and tightened boundary
   tests so those old facts cannot return.
 - The pre-Phase 6 final gate added structured smoke evidence for graph snapshots, DOM
-  content parentage, active/interactable parity, actor-input target evidence,
+  content parentage, active/interactable parity, actor-system/input target evidence,
   persistence descriptors, and required scenario coverage. The reproducible
   validator is `$env:PROJECT_PRISM_SMOKE_EVIDENCE="temp/project-prism-phase-6-entry-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-prism-smoke-evidence-file`.
 - The Phase 6 extraction gate regenerated browser smoke evidence at
@@ -349,7 +350,7 @@ Important app source areas:
   definition facts.
 - `apps/wallpaper-tesseract/src/actor-runtime`: app-local actor runtime
   staging/candidate code that should stay aligned with the extracted
-  `actor-core` package.
+  `actor-system/core` package.
 - `apps/wallpaper-tesseract/src/window-runtime`: app-local integration and
   staging code for frames, tabs, dock, split, lifecycle, layout, and view
   identity. Generic contracts have moved or should continue moving toward
@@ -397,7 +398,7 @@ Important app source areas:
   app-local `camera3-control` directory and `runtime/camera3-runtime-camera.ts`
   are deleted.
 - `apps/wallpaper-tesseract/src/gizmo-runtime`: component-side binding between
-  actors and `gizmo-core`.
+  actors and `actor-system/gizmo`.
 - `packages/wallpaper-runtime/src`: production Wallpaper runtime owner. It owns
   runtime scheduler service, runtime-work attachment, runtime Scene
   content/frame-source/view registry, Camera3 motion component ownership, and
@@ -405,8 +406,8 @@ Important app source areas:
   package and must not become an app-local compatibility barrel.
 - `packages/editor`: extracted editor state, window-layout default paths,
   editor state adapters, Debug, Hierarchy, Inspector, and tool-window
-  installer ownership. Keep it on package contracts (`actor-core`,
-  `actor-input`, `runtime-core`, and `ui-framework`) and do not let it import
+  installer ownership. Keep it on package contracts (`actor-system/core`,
+  `actor-system/input`, `runtime-core`, and `ui-framework`) and do not let it import
   app-local `runtime/ports`, `window-runtime`, `app-runtime`, or feature
   runtime owners.
 - `apps/wallpaper-tesseract/src/test-support`: boundary facts, Prism maps, and
@@ -460,7 +461,7 @@ Accepted runtime pieces:
 - `runtime-three` contains Three camera, scene, renderer, scene render output,
   frame source, WebGL renderer, and line renderable backends.
 - `wallpaper-runtime` contains product runtime implementation over
-  `actor-core`, `runtime-core`, `runtime-three`, `four-camera`, and
+  `actor-system/core`, `runtime-core`, `runtime-three`, `four-camera`, and
   `four-rotation`: scheduler/work attachment, runtime Scene content,
   frame-source registration, runtime Scene view registry, Camera3 motion
   component definitions, Tesseract4 actor binding, and Tesseract runtime
@@ -485,7 +486,7 @@ Remaining runtime ownership debt:
 - Camera3 runtime camera state is now the single camera truth. The old
   `Camera3Rig` / `Camera3ProjectionModeController` model and rig component were
   deleted instead of moved into editor presentation. Camera3 gizmo presentation,
-  hit testing, actor-input component, styles, and tests now live under
+  hit testing, actor-system/input component, styles, and tests now live under
   `packages/editor/src/camera3`. Camera3 motion runtime ownership now lives
   under `packages/wallpaper-runtime`.
 
@@ -720,8 +721,7 @@ npm run build -w wallpaper-tesseract
 Shared package checks:
 
 ```text
-npm run test -w actor-core
-npm run test -w actor-input
+npm run test -w actor-system
 npm run test -w ui-framework
 npm run typecheck:test -w ui-framework
 npm run test -w editor
@@ -729,7 +729,6 @@ npm run typecheck -w editor
 npm run build -w editor
 npm run test -w runtime-core
 npm run test -w runtime-three
-npm run test -w gizmo-core
 npm run test -w four-rotation
 npm run test -w four-camera
 npm run test -w four-camera-three
@@ -758,7 +757,7 @@ npm run build -w wallpaper-tesseract
 Useful runtime ownership checks during Phase 7:
 
 ```text
-npm run test -w actor-core
+npm run test -w actor-system
 npm run test -w wallpaper-tesseract -- runtime-scene-session runtime-work-attachment-runtime camera3-components tesseract4 install-scene-view-feature component-definitions scene-run-mode-command architecture-boundaries project-prism-boundary-report project-prism-state-domain-map project-prism-frame-update-lane-map
 npm run test -w runtime-core
 npm run test -w runtime-three
@@ -816,7 +815,7 @@ Then verify at least:
 
 For Phase 5.5 render ownership work, smoke data should record frame source id,
 Scene View actor id, renderer/backend id or equivalent runtime output id,
-canvas/overlay rects, actor-input hit for Camera3 interactions, projection mode
+canvas/overlay rects, actor-system/input hit for Camera3 interactions, projection mode
 before/after, and camera state before/after.
 
 For the completed pre-Phase 6 window-workspace gate, final browser smoke records

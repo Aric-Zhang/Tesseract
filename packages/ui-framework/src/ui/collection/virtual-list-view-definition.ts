@@ -1,4 +1,4 @@
-import type { ComponentDefinition } from "actor-core";
+import type { ComponentDefinition } from "actor-system/core";
 import { uiElementComponentType } from "../element";
 import { scrollViewComponentType } from "../scroll";
 import {

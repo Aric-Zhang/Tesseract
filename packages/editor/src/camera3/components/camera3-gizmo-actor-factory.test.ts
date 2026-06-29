@@ -8,7 +8,7 @@ import type {
   GizmoMoveEvent,
   GizmoStartEvent,
   ScreenPoint
-} from "gizmo-core";
+} from "actor-system/gizmo";
 import {
   ActorSystem,
   ComponentRegistry,
@@ -19,7 +19,7 @@ import {
   type ComponentAttachmentRegistration,
   type ComponentAttachmentRuntime,
   type RegisteredActor
-} from "actor-core";
+} from "actor-system/core";
 import {
   ActiveInputCancellationRuntime,
   actorInputScopeRoutePriority,
@@ -27,7 +27,7 @@ import {
   gizmoEventBindingComponentType,
   GizmoControllerAttachmentRuntime,
   isActorInputParticipant
-} from "actor-input";
+} from "actor-system/input";
 import { installUiComponentDefinitions, uiElementComponentType } from "ui-framework";
 import type {
   RuntimeCameraCommandSink,

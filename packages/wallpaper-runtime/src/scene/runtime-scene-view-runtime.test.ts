@@ -4,7 +4,7 @@ import {
   ComponentRegistry,
   CompositeComponentAttachmentRuntime,
   createActorCreationScope
-} from "actor-core";
+} from "actor-system/core";
 import type { RuntimeThreeSceneRenderer } from "runtime-three";
 import {
   installWallpaperRuntimeComponentDefinitions,

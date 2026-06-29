@@ -1,1 +1,1 @@
-export * from "actor-input";
+export * from "actor-system/input";

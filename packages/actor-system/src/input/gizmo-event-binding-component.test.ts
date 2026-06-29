@@ -7,8 +7,8 @@ import type {
   GizmoHit,
   GizmoStartEvent,
   ScreenPoint
-} from "gizmo-core";
-import { GizmoEventSystem as RuntimeGizmoEventSystem } from "gizmo-core";
+} from "../gizmo";
+import { GizmoEventSystem as RuntimeGizmoEventSystem } from "../gizmo";
 import {
   ActorSystem,
   ComponentRegistry,
@@ -17,7 +17,7 @@ import {
   type Component,
   type ComponentDefinition,
   type ComponentRegistryOptions
-} from "actor-core";
+} from "../core";
 import { actorInputScopeRoutePriority, type ActorInputHit, type ActorInputHitRegion } from "./actor-input-hit";
 import type { ActorInputParticipant } from "./actor-input-participant";
 import { GizmoControllerAttachmentRuntime } from "./gizmo-controller-attachment-runtime";

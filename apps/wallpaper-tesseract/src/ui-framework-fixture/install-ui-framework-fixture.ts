@@ -1,5 +1,5 @@
-import { GizmoEventSystem } from "gizmo-core";
-import { installActorInputComponentDefinitions } from "actor-input";
+import { GizmoEventSystem } from "actor-system/gizmo";
+import { installActorInputComponentDefinitions } from "actor-system/input";
 import {
   ActorSystem,
   ComponentRegistry,

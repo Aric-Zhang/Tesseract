@@ -1,6 +1,6 @@
 # Project Canopy Gate 1: Actor System Package Consolidation Plan
 
-Status: `planned`
+Status: `completed`
 
 Last updated: 2026-06-29
 
@@ -16,7 +16,7 @@ Preconditions:
 docs/project-canopy-gate-0-package-graph-baseline-plan.md
 ```
 
-Gate 1 may start only after:
+Gate 1 started only after:
 
 - Gate 0 is committed.
 - Gate 0 closure and this Gate 1 plan are committed as a separate checkpoint.
@@ -486,6 +486,44 @@ Stop and revise the plan if:
 - A root `actor-system` export becomes necessary for production code.
 - Package graph tests reveal a real dependency cycle after manifest updates.
 - The migration starts requiring unrelated UI/runtime/editor refactors.
+
+## Completion Record
+
+Completed on 2026-06-29.
+
+Implemented outcome:
+
+- `packages/actor-system` owns the former actor core, actor input, and gizmo
+  source under `src/core`, `src/input`, and `src/gizmo`.
+- The package exposes only explicit `./core`, `./input`, and `./gizmo`
+  submodule exports. It has no production root export.
+- `packages/actor-core`, `packages/actor-input`, and `packages/gizmo-core` were
+  deleted rather than retained as compatibility packages.
+- Workspace imports, package manifests, lockfile, root scripts, and tsconfig
+  references now use `actor-system`.
+- Boundary tests enforce both package graph rules and real actor-system
+  submodule direction.
+
+Validated with:
+
+```text
+npm run build -w actor-system
+npm run test -w actor-system
+npm run typecheck -w actor-system
+npm run test -w wallpaper-tesseract -- architecture-boundaries project-prism-boundary-report
+npm run test -w ui-framework
+npm run test -w editor
+npm run test -w wallpaper-runtime
+npm run typecheck:test -w ui-framework
+npm run test
+npm run typecheck
+npm run build
+npm run prism:smoke:prepare
+node apps/wallpaper-tesseract/scripts/run-project-arbor-gate-7-theme-smoke.mjs
+$env:PROJECT_ARBOR_GATE_7_THEME_SMOKE_EVIDENCE="temp/project-arbor-gate-7-theme-smoke-data.json"; npm run test -w wallpaper-tesseract -- project-arbor-gate-7-theme-smoke-contract
+```
+
+`npm run build` retains the existing Vite chunk size warning.
 
 ## Commit Boundary
 

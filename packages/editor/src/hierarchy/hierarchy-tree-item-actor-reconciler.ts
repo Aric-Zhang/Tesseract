@@ -1,4 +1,4 @@
-import type { Actor, ActorCreationContext } from "actor-core";
+import type { Actor, ActorCreationContext } from "actor-system/core";
 import {
   treeViewItemComponentType,
   type TreeViewItemDescriptor

@@ -6,7 +6,7 @@ const sourceFiles = import.meta.glob("./**/*.ts", {
   import: "default"
 }) as Record<string, string>;
 
-describe("actor-input package boundaries", () => {
+describe("actor-system/input boundaries", () => {
   it("does not import app, scene, window, state, or runtime ports", () => {
     const productionFiles = Object.entries(sourceFiles)
       .filter(([file]) => !file.endsWith(".test.ts"));
@@ -16,6 +16,7 @@ describe("actor-input package boundaries", () => {
           .map((match) => ({ file, specifier: match[1] ?? "" }))
       ))
       .filter(({ specifier }) => (
+        specifier === "actor-system" ||
         specifier.includes("app-runtime") ||
         specifier.includes("scene-runtime") ||
         specifier.includes("state-runtime") ||

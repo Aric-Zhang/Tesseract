@@ -4,7 +4,7 @@ import {
   ComponentRegistry,
   type Actor,
   type ComponentAttachmentRuntime
-} from "actor-core";
+} from "actor-system/core";
 import {
   FrameUpdateAttachmentRuntime
 } from "../../ports/ui-frame-update-attachment-runtime";

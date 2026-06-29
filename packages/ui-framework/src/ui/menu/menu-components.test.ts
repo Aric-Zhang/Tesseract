@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ActorSystem, ComponentRegistry } from "actor-core";
+import { ActorSystem, ComponentRegistry } from "actor-system/core";
 import {
   actorInputScopeRoutePriority,
   getActorInputScopeRoutePriority,
   installActorInputComponentDefinitions
-} from "actor-input";
+} from "actor-system/input";
 import {
   installUiComponentDefinitions,
   menuBarComponentType,

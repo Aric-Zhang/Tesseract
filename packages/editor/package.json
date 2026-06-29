@@ -28,9 +28,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "actor-core": "0.1.0",
-    "actor-input": "0.1.0",
-    "gizmo-core": "0.1.0",
+    "actor-system": "0.1.0",
     "runtime-core": "0.1.0",
     "three": "^0.181.2",
     "ui-framework": "0.1.0"

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { GizmoEventSystem } from "../src/gizmo-event-system";
-import type { GizmoController, GizmoHit, GizmoMoveEvent, ScreenPoint } from "../src/types";
+import { GizmoEventSystem } from "./gizmo-event-system";
+import type { GizmoController, GizmoHit, GizmoMoveEvent, ScreenPoint } from "./types";
 
 interface ListenerRecord {
   type: string;

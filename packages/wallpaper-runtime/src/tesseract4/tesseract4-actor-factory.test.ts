@@ -6,7 +6,7 @@ import {
   CompositeComponentAttachmentRuntime,
   createActorCreationScope,
   type ActorCreationScope
-} from "actor-core";
+} from "actor-system/core";
 import type { RuntimeFrame } from "runtime-core";
 import type {
   RuntimeSceneObjectHost,

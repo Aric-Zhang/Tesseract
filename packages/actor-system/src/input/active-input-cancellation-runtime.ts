@@ -1,12 +1,12 @@
-import type { GizmoCancelEvent } from "gizmo-core";
+import type { GizmoCancelEvent } from "../gizmo";
 import type {
   Actor,
   Component,
   ComponentAttachmentDescriptor,
   ComponentAttachmentRegistration,
   ComponentAttachmentRuntime
-} from "actor-core";
-import { componentAttachmentKind } from "actor-core";
+} from "../core";
+import { componentAttachmentKind } from "../core";
 
 export const activeInputCancellationAttachmentKind = componentAttachmentKind("active-input-cancellation");
 

@@ -132,8 +132,10 @@ browser fixture. It does not block the accepted Arbor architecture baseline.
   `docs/project-canopy-gate-0-package-graph-baseline-plan.md`, is complete. It
   added package graph descriptors, centralized production source filtering,
   manifest cycle detection, undeclared workspace import checks, current package
-  zone dependency rules, and future `actor-system/core|input|gizmo` submodule
-  boundary fixtures before any package files moved.
+  zone dependency rules, rule coverage checks for every non-app workspace
+  package, and future `actor-system/core|input|gizmo` submodule boundary
+  fixtures before any package files moved. The next executable slice is
+  `docs/project-canopy-gate-1-actor-system-package-plan.md`.
 
 Current package graph baseline:
 

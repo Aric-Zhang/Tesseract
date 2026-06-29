@@ -475,6 +475,8 @@ Locked checks:
 - manifest dependency cycles are a hard gate;
 - current package zone dependency rules cover bare imports and resolved relative
   imports;
+- every non-app workspace package is covered by a package dependency rule unless
+  explicitly exempted;
 - future `actor-system/core`, `actor-system/input`, and `actor-system/gizmo`
   submodule fixtures catch bare subpath imports, root import bypasses, and
   relative cross-submodule imports.

@@ -258,6 +258,12 @@ Stop conditions:
 
 ## Gate 1: Merge Actor Core, Actor Input, And Gizmo Core
 
+Detailed execution plan:
+
+```text
+docs/project-canopy-gate-1-actor-system-package-plan.md
+```
+
 Goal: make actor/component/input/gizmo functionality available as one coherent
 actor-system package while preserving internal submodule boundaries.
 
@@ -277,7 +283,6 @@ packages/gizmo-core/src   -> packages/actor-system/src/gizmo
 
 ```json
 {
-  ".": "./dist/index.js",
   "./core": "./dist/core/index.js",
   "./input": "./dist/input/index.js",
   "./gizmo": "./dist/gizmo/index.js"
@@ -285,18 +290,17 @@ packages/gizmo-core/src   -> packages/actor-system/src/gizmo
 ```
 
 Use the exact export shape required by the existing package build convention.
-The root export may be a curated convenience export, but production code should
-prefer explicit submodule imports when the ownership matters.
+Gate 1 must not create an `actor-system` root export. If a root export becomes
+necessary, stop and revise this plan with a reviewed allowlist. Production code
+must use explicit submodule imports.
 
 Root export rule:
 
-- The root export may expose only the smallest stable actor-system entry points
-  that are genuinely common to consumers.
-- Production code migrated in this gate should use `actor-system/core`,
-  `actor-system/input`, or `actor-system/gizmo` unless a root import is reviewed
-  and documented as intentionally broad.
-- Boundary tests should flag new production imports from `actor-system` root if
-  they bypass a clearer submodule.
+- Production code migrated in this gate must use `actor-system/core`,
+  `actor-system/input`, or `actor-system/gizmo`.
+- `actor-system/core`, `actor-system/input`, and `actor-system/gizmo` must not
+  import the `actor-system` root, even if a root export is designed later.
+- Boundary tests must flag production imports from `actor-system` root.
 
 4. Update imports in all packages and apps:
 

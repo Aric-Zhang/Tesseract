@@ -274,6 +274,18 @@ describe("architecture boundaries", () => {
     )).toEqual([]);
   });
 
+  it("keeps every non-app workspace package covered by a package dependency rule", () => {
+    const explicitExemptions = new Set(["wallpaper-tesseract"]);
+    const rulePackages = new Set(currentPackageDependencyRules.map((rule) => rule.sourcePackage));
+    const missingRules = workspacePackageDescriptors
+      .filter((descriptor) => !explicitExemptions.has(descriptor.name))
+      .map((descriptor) => descriptor.name)
+      .filter((packageName) => !rulePackages.has(packageName))
+      .sort();
+
+    expect(missingRules).toEqual([]);
+  });
+
   it("detects forbidden package-zone imports from bare and resolved relative edges", () => {
     const descriptors = workspacePackageDescriptors.filter((descriptor) => (
       descriptor.name === "actor-core" || descriptor.name === "ui-framework"

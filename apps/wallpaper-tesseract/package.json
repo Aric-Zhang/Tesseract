@@ -7,8 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "vite build && node ../../scripts/patch-wallpaper-build.mjs",
-    "smoke:arbor:final": "node scripts/run-project-arbor-final-smoke.mjs"
+    "build": "vite build && node ../../scripts/patch-wallpaper-build.mjs"
   },
   "dependencies": {
     "actor-core": "0.1.0",

@@ -46,8 +46,9 @@ Area: `packages/editor/src/hierarchy`, `apps/wallpaper-tesseract` smoke support
 Evidence:
 
 - Gate 7B migrated Hierarchy to actor-backed `ScrollViewComponent` /
-  `TreeViewComponent` and generated fresh default browser smoke evidence in
-  `temp/project-arbor-gate-7b-hierarchy-smoke-data.json`.
+  `TreeViewComponent` and generated fresh default browser smoke evidence during
+  the Arbor execution pass. The temporary smoke file was later removed during
+  Arbor work-trace cleanup.
 - The default product boot currently exposes 10 Hierarchy rows, which proves the
   new TreeView/ScrollView path and source-pollution guard, but does not prove
   large-node scrolling.
@@ -99,13 +100,13 @@ Closure:
 - `DebugLogEntryActorReconciler` and `isDebugLogEntryActorId` were deleted, and
   ToolWindow Hierarchy no longer needs Debug log actor filtering because log
   rows are private virtual-list DOM, not actors.
-- Fresh browser evidence in
-  `temp/project-arbor-gate-7c-5-debug-performance-data.json` records
-  `itemCount: 200`, a bounded virtual row pool, zero Debug virtual-list DOM
-  mutations or rebind batches during a 500ms open-idle probe, append bursts
-  creating/removing zero virtual rows while touching only the bounded row pool,
-  successful bottom/non-bottom scroll anchoring, Debug close/reopen, and zero
-  Debug log row leakage into Hierarchy.
+- Fresh browser evidence collected during Gate 7C.5 recorded `itemCount: 200`,
+  a bounded virtual row pool, zero Debug virtual-list DOM mutations or rebind
+  batches during a 500ms open-idle probe, append bursts creating/removing zero
+  virtual rows while touching only the bounded row pool, successful
+  bottom/non-bottom scroll anchoring, Debug close/reopen, and zero Debug log row
+  leakage into Hierarchy. The temporary evidence file was later removed during
+  Arbor work-trace cleanup.
 
 Impact:
 

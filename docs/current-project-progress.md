@@ -251,9 +251,26 @@ temp/editor-gate-3-inspector-follow-smoke-data.json
 temp/editor-gate-3-inspector-follow-smoke-report.md
 ```
 
-Inspector property rows, component-specific inspectors, multi-selection property
-merging, range/Ctrl selection UX, persistent pinned Inspector state, and scene
-object picking remain ordinary follow-ups, not active architecture blockers.
+Inspector property rows and component-specific inspectors are now planned in:
+
+```text
+docs/editor-inspector-component-details-plan.md
+```
+
+That plan makes the shared interaction/update contract an explicit prerequisite:
+Actor Input -> Editor-owned interaction controller -> `frameUpdateAttachment`
+refresh. It does not add actor-system UI/OnGUI semantics, and it keeps the
+generic frame-command batching extraction deferred until real duplication
+beyond the first Inspector property-edit slice proves the need. Multi-selection
+property merging, range/Ctrl selection UX, persistent pinned Inspector state,
+and scene object picking remain ordinary follow-ups unless that plan promotes
+them to an active gate.
+
+The first executable slice is:
+
+```text
+docs/editor-inspector-component-details-gate-0-interaction-contract-plan.md
+```
 
 ## Editor Toolbar / Inspector Lock Plan
 

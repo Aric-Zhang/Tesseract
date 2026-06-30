@@ -1,6 +1,6 @@
 # Known Defects And Todos
 
-Last updated: 2026-06-30
+Last updated: 2026-07-01
 
 This document is the permanent defect and follow-up ledger for the repository.
 Use it for known bugs, reproducible investigation findings, and non-plan
@@ -255,6 +255,67 @@ Verification:
 
 - `npm run build` must continue to pass. Any future fix should compare bundle
   output before and after and avoid weakening package boundaries.
+
+### ARCH-001: Interaction controllers have repeated frame-command batching patterns
+
+Status: `watch`
+
+Area: `packages/editor/src/app-state-controller.ts`,
+`packages/runtime-three/src/runtime-three-camera-motion-controller.ts`,
+`packages/ui-framework/src/services`, future Inspector property editing
+
+Evidence:
+
+- `AppFrameStateController` already batches commands per frame, groups by
+  target path, resolves priority/order, commits through `AppStateParameterStore`,
+  and notifies observers.
+- `RuntimeThreeCameraMotionController` independently queues camera commands and
+  applies them during `updateFrame()`, while also owning camera-specific drag
+  session state.
+- Docking/window interactions use session and graph transaction owners
+  (`WindowTabDragSession`, dock preview, lifecycle commit) rather than the
+  app/editor state controller. This is appropriate today, but it is another
+  interaction-control shape future agents may try to merge incorrectly.
+- The next real pressure point is editable Inspector component properties:
+  property controls should submit commands to an owner that merges a frame's
+  edits, applies descriptor-owned mutation, and notifies controls on the next
+  frame instead of each control directly mutating components.
+
+Impact:
+
+- The architecture is not currently blocked, but future editable Inspector,
+  profiler, timeline, or high-frequency control work could duplicate batching,
+  priority, commit, and notification code.
+- A too-broad unification could damage ownership boundaries by forcing dock
+  transactions, runtime camera sessions, and editor property editing into one
+  service.
+
+Next action:
+
+- When a second real editable-property or high-frequency interaction controller
+  appears, evaluate extracting a small reusable frame-command batching primitive
+  that owns only queue/group/priority/order/commit notification mechanics.
+  Domain owners must still provide target keys, validation, merge, apply, and
+  change-event semantics.
+- Do not migrate dock graph transactions by default. Docking should stay with
+  the window lifecycle/graph owner unless evidence shows duplicated frame
+  batching logic, not merely a shared word like "commit".
+- If an OnGUI-like update hook is pursued, keep UI-specific semantics out of
+  `actor-system/core`. Prefer a generic component lifecycle/attachment
+  capability in actor-system only if it is framework-agnostic, with
+  ui-framework/editor owning any `FrameUpdateParticipant`, Inspector repaint,
+  property binding, or DOM/control-specific behavior.
+
+Verification target:
+
+- Boundary tests prevent `actor-system/core` from importing UI/editor/runtime
+  update concepts.
+- A future shared batching primitive has targeted tests for priority, stable
+  command order, grouped target commits, no-op commit suppression, disposal,
+  and observer notification.
+- Inspector property editing proves that multiple controls editing the same
+  component property in one frame are merged once and that UI controls refresh
+  from the committed value on the next frame.
 
 ### DCK-004: Dock node id derivation still lives outside the graph reducer
 

@@ -4,19 +4,22 @@ import {
   ComponentRegistry,
   CompositeComponentAttachmentRuntime,
   createActorCreationScope,
+  type ActorSelectionSnapshot,
   type Component
 } from "actor-system/core";
 import { installActorInputComponentDefinitions } from "actor-system/input";
 import {
   AppFrameStateController,
+  installEditorSelectionProvider,
   installInspectorFeature,
   installInspectorWorkspacePolicy,
   installToolWindowFeatures,
   installToolWindowWorkspacePolicy,
+  registerEditorSelectionParameters,
   StateObserverAttachmentRuntime,
-  type AppStateObserver,
-  type DebugLogContentComponent
+  type AppStateObserver
 } from "editor";
+import { DiagnosticHub, installDiagnosticProvider } from "foundation/diagnostics";
 import { AppStateParameterStore } from "editor";
 import type { AppStateCommandSink } from "editor";
 import { editorStatePaths } from "editor";
@@ -78,11 +81,31 @@ export interface WallpaperApp {
 
 export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   const appShell = createWallpaperAppShell(mount);
+  const diagnostics = new DiagnosticHub();
+  const diagnosticProviderRegistration = installDiagnosticProvider(diagnostics);
+  try {
+    return createWallpaperAppRuntime(appShell, diagnostics, diagnosticProviderRegistration);
+  } catch (error) {
+    diagnosticProviderRegistration.dispose();
+    appShell.dispose();
+    throw error;
+  }
+}
+
+function createWallpaperAppRuntime(
+  appShell: ReturnType<typeof createWallpaperAppShell>,
+  diagnostics: DiagnosticHub,
+  diagnosticProviderRegistration: ReturnType<typeof installDiagnosticProvider>
+): WallpaperApp {
   const floatingFrameParent = appShell.floatingOverlaySlot;
 
   const frameClock = new RuntimeFrameClock();
   const uiFrameScheduler = new UiFrameScheduler();
   const appStateStore = new AppStateParameterStore();
+  registerEditorSelectionParameters(appStateStore);
+  const editorSelectionSnapshotSource = {
+    getSelectionSnapshot: () => appStateStore.get<ActorSelectionSnapshot>(editorStatePaths.selection.snapshot)
+  };
   const scenePolicy = installSceneWorkspacePolicy(appStateStore);
   const inspectorPolicy = installInspectorWorkspacePolicy();
   const toolWindowPolicy = installToolWindowWorkspacePolicy(appStateStore);
@@ -97,6 +120,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     ...toolWindowPolicy.defaultOpenViews
   ];
 
+  let selectionProviderRegistration: ReturnType<typeof installEditorSelectionProvider> | null = null;
+  try {
   let isUpdatingFrame = false;
   const immediateUpdates = new ImmediateUpdateScheduler({
     update,
@@ -117,12 +142,17 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     }
   };
 
-  let debugLogTarget: DebugLogContentComponent | null = null;
   const windowFocus = createWindowFocusServiceProxy();
   const gizmoEventSystem = new GizmoEventSystem({
     debug: true,
     debugConsole: true,
-    onDebugLog: (entry) => debugLogTarget?.append(entry)
+    onDebugLog: (entry) => diagnostics.emit({
+      level: "log",
+      message: entry.message,
+      data: entry,
+      source: "actor-system/gizmo",
+      tags: ["gizmo", entry.type]
+    })
   });
   const actorSystem = new ActorSystem();
   const runtimeScheduler = new ProductionRuntimeSchedulerService();
@@ -146,6 +176,11 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     ])
   });
   const actorCreationScope = createActorCreationScope({ actorSystem, componentRegistry });
+  selectionProviderRegistration = installEditorSelectionProvider({
+    actorSystem,
+    state: appStateStore,
+    commandSink: frameStateBridge
+  });
 
   installActorInputComponentDefinitions(componentRegistry, {
     gizmoEventBinding: {
@@ -207,14 +242,13 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   });
   installInspectorFeature({
     context: actorCreationScope,
-    viewFactories: windowWorkspace.viewFactories
+    viewFactories: windowWorkspace.viewFactories,
+    selectionSource: editorSelectionSnapshotSource
   });
   installToolWindowFeatures({
     context: actorCreationScope,
     viewFactories: windowWorkspace.viewFactories,
-    onDebugLogContentChanged: (component) => {
-      debugLogTarget = component;
-    }
+    diagnostics
   });
   installAppMenuFeature({
     context: actorCreationScope,
@@ -308,6 +342,8 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
     runtimeScheduler.dispose();
     frameUpdateRuntime.dispose();
     gizmoEventSystem.dispose();
+    selectionProviderRegistration?.dispose();
+    diagnosticProviderRegistration.dispose();
     frameStateBridge.dispose();
     appShell.dispose();
   }
@@ -318,6 +354,10 @@ export function createWallpaperApp(mount: HTMLElement): WallpaperApp {
   document.addEventListener("keydown", handleKeyDown);
 
   return { dispose };
+  } catch (error) {
+    selectionProviderRegistration?.dispose();
+    throw error;
+  }
 }
 
 function createEditorBackedUiLayoutCommandSink(commandSink: AppStateCommandSink): UiLayoutCommandSink {

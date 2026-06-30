@@ -1,18 +1,23 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-system/core";
+import { uiElementComponentType } from "ui-framework/actor-ui";
 import { type WindowContentRegistrationPort } from "ui-framework/window";
+import { createActorSystemInspectorActorDisplaySource } from "./inspector-actor-display-source";
 import {
   inspectorContentComponentType,
   type InspectorContentComponent
 } from "./inspector-content-component";
+import type { InspectorSelectionSnapshotSource } from "./inspector-selection-source";
 
 export interface InspectorViewActorOptions {
   readonly actorId: string;
   readonly actorName: string;
   readonly parentActor: Actor;
-  readonly label: string;
   readonly document?: Pick<Document, "createElement">;
   readonly contentId: string;
   readonly contentRegistration: WindowContentRegistrationPort;
+  readonly selectionSource: InspectorSelectionSnapshotSource;
+  readonly initialLocked?: boolean;
+  readonly initialInspectedActorId?: string | null;
 }
 
 export interface RegisteredInspectorViewActor extends RegisteredActor<InspectorContentComponent> {
@@ -29,12 +34,18 @@ export function createInspectorViewActor(
     parent: options.parentActor
   });
   try {
+    context.componentRegistry.addComponent(actor, uiElementComponentType, {
+      className: "inspector-window__content",
+      document: options.document
+    });
     const component = context.componentRegistry.addComponent(actor, inspectorContentComponentType, {
       id: "inspector-content",
-      label: options.label,
-      document: options.document,
       contentId: options.contentId,
-      contentRegistration: options.contentRegistration
+      contentRegistration: options.contentRegistration,
+      actorDisplaySource: createActorSystemInspectorActorDisplaySource(context.actorSystem),
+      selectionSource: options.selectionSource,
+      initialLocked: options.initialLocked,
+      initialInspectedActorId: options.initialInspectedActorId
     });
     let untrack: ReturnType<ActorCreationContext["trackRegisteredActor"]> | null = null;
     const baseHandle = createRegisteredActor({

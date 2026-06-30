@@ -14,6 +14,15 @@ export {
 export type {
   InspectorContentComponentOptions
 } from "./inspector-content-component";
+export {
+  createActorSystemInspectorActorDisplaySource
+} from "./inspector-actor-display-source";
+export type {
+  InspectorActorDisplaySource
+} from "./inspector-actor-display-source";
+export type {
+  InspectorSelectionSnapshotSource
+} from "./inspector-selection-source";
 export { inspectorContentComponentDefinition } from "./inspector-content-definition";
 export { createInspectorViewActor } from "./inspector-view-actor-factory";
 export type {

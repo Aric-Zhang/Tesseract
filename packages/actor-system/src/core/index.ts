@@ -38,3 +38,4 @@ export { createRegisteredActor } from "./registered-actor";
 export type { CreateRegisteredActorOptions, RegisteredActor } from "./registered-actor";
 export { createActorCreationScope } from "./actor-creation-scope";
 export type { ActorCreationScope, ActorCreationScopeOptions } from "./actor-creation-scope";
+export * from "./selection";

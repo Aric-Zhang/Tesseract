@@ -1,4 +1,5 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-system/core";
+import type { DiagnosticSource } from "foundation/diagnostics";
 import { scrollViewComponentType, virtualListViewComponentType } from "ui-framework/controls";
 import { uiElementComponentType } from "ui-framework/actor-ui";
 import { type WindowContentRegistrationPort } from "ui-framework/window";
@@ -12,7 +13,7 @@ export interface DebugLogViewActorOptions {
   actorId?: string;
   actorName?: string;
   parentActor: Actor;
-  maxLines?: number;
+  diagnostics: DiagnosticSource;
   document?: Pick<Document, "createElement">;
   contentId: string;
   contentRegistration: WindowContentRegistrationPort;
@@ -39,7 +40,7 @@ export function createDebugLogViewActor(
     context.componentRegistry.addComponent(actor, scrollViewComponentType, {
       orientation: "vertical"
     });
-    const source = new DebugLogDataSource(options.maxLines);
+    const source = new DebugLogDataSource(options.diagnostics);
     context.componentRegistry.addComponent(actor, virtualListViewComponentType, {
       source,
       rowHeightPx: 18,

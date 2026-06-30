@@ -17,6 +17,9 @@
       "path": "../../packages/actor-system"
     },
     {
+      "path": "../../packages/foundation"
+    },
+    {
       "path": "../../packages/ui-framework"
     },
     {

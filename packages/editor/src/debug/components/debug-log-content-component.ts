@@ -1,4 +1,3 @@
-import type { GizmoDebugLogEntry } from "actor-system/gizmo";
 import type { Actor, Component, ComponentType } from "actor-system/core";
 import { type UiFrame } from "ui-framework/actor-ui";
 import { type ScrollViewComponent, type VirtualListViewComponent } from "ui-framework/controls";
@@ -29,7 +28,7 @@ export class DebugLogContentComponent implements Component, WindowRegisteredCont
   readonly #virtualList: VirtualListViewComponent;
   readonly #source: DebugLogDataSource;
   #registration: WindowRegisteredContent;
-  #logDirty = true;
+  #lastRenderedRevision = Number.NEGATIVE_INFINITY;
 
   constructor(
     actor: Actor,
@@ -73,23 +72,19 @@ export class DebugLogContentComponent implements Component, WindowRegisteredCont
     return this.#registration.subscribeLayoutCommit(callback);
   }
 
-  append(entry: GizmoDebugLogEntry): void {
-    this.#source.append(entry);
-    this.#logDirty = true;
-  }
-
   updateFrame(_frame: UiFrame): void {
-    if (!this.#logDirty) return;
-    this.#logDirty = false;
+    if (this.#lastRenderedRevision === this.#source.revision) return;
     this.renderLogItems();
   }
 
   dispose(): void {
     this.enabled = false;
+    this.#source.dispose();
     this.#registration.dispose();
   }
 
   private renderLogItems(): void {
+    this.#lastRenderedRevision = this.#source.revision;
     this.#virtualList.refreshItemsPreservingEnd();
     this.#scrollView.refreshScrollDiagnostics();
   }

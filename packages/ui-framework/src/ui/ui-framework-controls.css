@@ -240,7 +240,10 @@
 
 .ui-tree-view__row {
   box-sizing: border-box;
-  display: block;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 2px;
+  align-items: center;
   width: 100%;
   min-height: 22px;
   padding: 2px 8px;
@@ -252,6 +255,28 @@
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ui-tree-view__disclosure {
+  display: grid;
+  width: 16px;
+  min-width: 16px;
+  height: 18px;
+  place-items: center;
+  color: var(--ui-color-text-muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.ui-tree-view__row[data-ui-tree-expandable="true"] .ui-tree-view__disclosure {
+  color: inherit;
+}
+
+.ui-tree-view__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 .ui-tree-view__row[data-ui-tree-enabled="false"],

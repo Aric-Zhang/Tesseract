@@ -17,6 +17,9 @@
       "path": "../actor-system"
     },
     {
+      "path": "../foundation"
+    },
+    {
       "path": "../runtime-core"
     },
     {

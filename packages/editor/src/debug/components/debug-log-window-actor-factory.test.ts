@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DiagnosticHub, type DiagnosticEvent, type DiagnosticEventListener, type DiagnosticSource } from "foundation/diagnostics";
 import {
   ActorSystem,
   ComponentRegistry,
@@ -109,27 +110,48 @@ class FakeWindowContentRegistry implements WindowContentRegistrationPort {
   }
 }
 
+class CountingDiagnosticSource implements DiagnosticSource {
+  activeSubscriptions = 0;
+
+  constructor(readonly hub: DiagnosticHub) {}
+
+  snapshot(): readonly DiagnosticEvent[] {
+    return this.hub.snapshot();
+  }
+
+  subscribe(listener: DiagnosticEventListener): { dispose(): void } {
+    this.activeSubscriptions += 1;
+    const registration = this.hub.subscribe(listener);
+    let disposed = false;
+    return {
+      dispose: () => {
+        if (disposed) return;
+        disposed = true;
+        this.activeSubscriptions -= 1;
+        registration.dispose();
+      }
+    };
+  }
+}
+
 describe("createDebugLogViewActor", () => {
   it("registers the same actor UI element as content and renders logs through a virtual row pool", () => {
     const fixture = createFixture();
-    const handle = fixture.createDebugView({ maxLines: 2 });
+    fixture.diagnostics.emit({ level: "log", message: "first", source: "test", tags: ["debug"] });
+    const handle = fixture.createDebugView();
 
     expect(fixture.contentRegistration.registered?.element).toBe(handle.component.element);
     expect(virtualRows(handle.component.element).map((child) => child.dataset.uiVirtualListKey))
-      .toEqual(["debug-log-placeholder"]);
-
-    handle.component.append({ type: "move", message: "first", timeStamp: 1 });
-    handle.component.append({ type: "move", message: "second", timeStamp: 2 });
+      .toEqual(["diagnostic:1"]);
     expect(virtualRows(handle.component.element).map((child) => child.textContent))
-      .toEqual(["Gizmo debug log enabled"]);
-    handle.component.updateFrame({} as never);
+      .toEqual(["    0 LOG test [debug] first"]);
 
-    handle.component.append({ type: "move", message: "third", timeStamp: 3 });
+    fixture.diagnostics.emit({ level: "warn", message: "second" });
     handle.component.updateFrame({} as never);
 
     expect(virtualRows(handle.component.element).map((child) => child.textContent)).toEqual([
-      "    2 second",
-      "    3 third"
+      "    0 LOG test [debug] first",
+      "    0 WARN second"
     ]);
     expect(fixture.actorSystem.listChildren(handle.actor)).toEqual([]);
   });
@@ -137,7 +159,7 @@ describe("createDebugLogViewActor", () => {
   it("does not rebind virtual rows on idle update frames", () => {
     const fixture = createFixture();
     const handle = fixture.createDebugView();
-    handle.component.append({ type: "move", message: "entry", timeStamp: 1 });
+    fixture.diagnostics.emit({ level: "log", message: "entry" });
     handle.component.updateFrame({} as never);
     const spacer = handle.component.element.children[0]!;
     const appendCallCount = spacer.appendCallCount;
@@ -150,12 +172,22 @@ describe("createDebugLogViewActor", () => {
   it("removes virtual rows and content registration on dispose", () => {
     const fixture = createFixture();
     const handle = fixture.createDebugView();
-    handle.component.append({ type: "move", message: "entry", timeStamp: 1 });
+    fixture.diagnostics.emit({ level: "log", message: "entry" });
     handle.component.updateFrame({} as never);
 
     handle.dispose();
 
     expect(fixture.contentRegistration.registered).toBeNull();
+  });
+
+  it("unsubscribes diagnostics when the view is disposed", () => {
+    const fixture = createFixture();
+    const handle = fixture.createDebugView();
+    expect(fixture.diagnosticSource.activeSubscriptions).toBe(1);
+
+    handle.dispose();
+
+    expect(fixture.diagnosticSource.activeSubscriptions).toBe(0);
   });
 });
 
@@ -168,8 +200,10 @@ function createFixture(): {
   readonly actorSystem: ActorSystem;
   readonly componentRegistry: ComponentRegistry;
   readonly document: FakeDocument;
+  readonly diagnostics: DiagnosticHub;
+  readonly diagnosticSource: CountingDiagnosticSource;
   readonly contentRegistration: FakeWindowContentRegistry;
-  readonly createDebugView: (options?: { readonly maxLines?: number }) => ReturnType<typeof createDebugLogViewActor>;
+  readonly createDebugView: () => ReturnType<typeof createDebugLogViewActor>;
 } {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
@@ -181,17 +215,21 @@ function createFixture(): {
   const context = createActorCreationScope({ actorSystem, componentRegistry });
   const parent = actorSystem.createActor({ id: "frame" });
   const document = new FakeDocument();
+  const diagnostics = new DiagnosticHub({ now: () => 0 });
+  const diagnosticSource = new CountingDiagnosticSource(diagnostics);
   const contentRegistration = new FakeWindowContentRegistry();
   return {
     actorSystem,
     componentRegistry,
     document,
+    diagnostics,
+    diagnosticSource,
     contentRegistration,
-    createDebugView(options) {
+    createDebugView() {
       return createDebugLogViewActor(context, {
         actorId: "debug:view",
         parentActor: parent,
-        maxLines: options?.maxLines,
+        diagnostics: diagnosticSource,
         document: document as unknown as Document,
         contentId: "content:debug",
         contentRegistration

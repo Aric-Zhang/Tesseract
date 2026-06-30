@@ -37,7 +37,7 @@ export const debugLogContentComponentDefinition:
         throw new Error("DebugLogContentComponent requires content registration options.");
       }
       if (!options.source) {
-        throw new Error("DebugLogContentComponent requires a Debug log data source.");
+        throw new Error("DebugLogContentComponent requires a diagnostic view data source.");
       }
       const uiElement = context.componentRegistry.getComponent(actor, uiElementComponentType);
       const scrollView = context.componentRegistry.getComponent(actor, scrollViewComponentType);

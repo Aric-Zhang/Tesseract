@@ -4,6 +4,7 @@ import type {
   AppStateCommandSink,
   AppStatePath
 } from "./app-state";
+import type { ActorSelectionSnapshot } from "actor-system/core";
 
 export type EditorStatePath<TValue = unknown> = AppStatePath<TValue> & {
   readonly __editorStateValue?: TValue;
@@ -36,7 +37,7 @@ export type EditorWorkspaceMode = "run" | "develop";
 
 export const editorStatePaths = {
   selection: {
-    activeObject: editorStatePath<string | null>("selection.activeObject")
+    snapshot: editorStatePath<ActorSelectionSnapshot>("selection.snapshot")
   },
   workspace: {
     mode: editorStatePath<EditorWorkspaceMode>("workspace.mode")

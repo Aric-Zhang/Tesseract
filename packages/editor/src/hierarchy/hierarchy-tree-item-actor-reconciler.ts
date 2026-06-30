@@ -1,4 +1,4 @@
-import type { Actor, ActorCreationContext } from "actor-system/core";
+import type { Actor, ActorCreationContext, ActorSelectionSnapshot } from "actor-system/core";
 import { treeViewItemComponentType, type TreeViewItemDescriptor } from "ui-framework/controls";
 import type { HierarchyObjectItem } from "./hierarchy-object-source";
 
@@ -14,8 +14,9 @@ export class HierarchyTreeItemActorReconciler {
     this.#parentActor = parentActor;
   }
 
-  reconcile(items: readonly HierarchyObjectItem[], activeObjectId: string | null): void {
+  reconcile(items: readonly HierarchyObjectItem[], selection: ActorSelectionSnapshot): void {
     const nextObjectIds = new Set(items.map((item) => item.id));
+    const selectedActorIds = new Set(selection.selectedActorIds);
     for (const [objectId, actorId] of [...this.#actorIdsByObjectId]) {
       if (nextObjectIds.has(objectId)) continue;
       const actor = this.#context.actorSystem.getActor(actorId);
@@ -28,7 +29,7 @@ export class HierarchyTreeItemActorReconciler {
     for (const item of items) {
       const actorId = this.actorIdForObjectId(item.id);
       const actor = this.getOrCreateActor(actorId, item);
-      const descriptor = descriptorForItem(item, activeObjectId);
+      const descriptor = descriptorForItem(item, selectedActorIds);
       const component = this.#context.componentRegistry.getComponent(actor, treeViewItemComponentType);
       if (component) {
         component.setDescriptor(descriptor);
@@ -79,7 +80,7 @@ export function isHierarchyTreeItemActorId(actorId: string): boolean {
 
 function descriptorForItem(
   item: HierarchyObjectItem,
-  activeObjectId: string | null
+  selectedActorIds: ReadonlySet<string>
 ): TreeViewItemDescriptor {
   const activeSelf = item.activeSelf ?? true;
   const activeInHierarchy = item.activeInHierarchy ?? activeSelf;
@@ -87,7 +88,7 @@ function descriptorForItem(
     itemId: item.id,
     label: item.label,
     parentItemId: item.parentId,
-    selected: item.id === activeObjectId,
+    selected: selectedActorIds.has(item.id),
     muted: !activeInHierarchy,
     enabled: true
   };

@@ -12,6 +12,7 @@
   "dependencies": {
     "actor-system": "0.1.0",
     "editor": "0.1.0",
+    "foundation": "0.1.0",
     "runtime-core": "0.1.0",
     "runtime-three": "0.1.0",
     "ui-framework": "0.1.0",

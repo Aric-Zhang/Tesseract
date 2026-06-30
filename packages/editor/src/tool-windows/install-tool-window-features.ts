@@ -4,9 +4,9 @@ import {
   DEBUG_WINDOW_MIN_HEIGHT,
   DEBUG_WINDOW_MIN_WIDTH,
   registerDebugWindowParameters,
-  type DebugLogContentComponent,
   type DebugWindowState
 } from "../debug";
+import type { DiagnosticSource } from "foundation/diagnostics";
 import {
   createDefaultHierarchyPanelState,
   createActorHierarchyObjectSource,
@@ -40,7 +40,7 @@ const HIERARCHY_PANEL_VIEW_ACTOR_NAME = `${HIERARCHY_PANEL_ACTOR_NAME} View`;
 export interface InstallToolWindowFeaturesOptions {
   readonly context: ActorCreationContext;
   readonly viewFactories: WindowViewFactoryRegistry;
-  readonly onDebugLogContentChanged?: (component: DebugLogContentComponent | null) => void;
+  readonly diagnostics: DiagnosticSource;
 }
 
 function createToolWindowWorkspaceFloatingFramePolicies(options: {
@@ -117,16 +117,15 @@ export function installToolWindowFeatures(options: InstallToolWindowFeaturesOpti
         actorId: DEBUG_LOG_VIEW_ACTOR_ID,
         actorName: DEBUG_LOG_VIEW_ACTOR_NAME,
         parentActor: createOptions.parentFrameActor,
+        diagnostics: options.diagnostics,
         contentId: createWindowWorkspaceContentId(createOptions.identity),
         contentRegistration: createOptions.contentRegistration
       });
-      options.onDebugLogContentChanged?.(handle.component);
       return {
         viewActor: handle.component.actor,
         content: handle.component,
         title: "Debug Log",
         disposeViewRuntime: () => {
-          options.onDebugLogContentChanged?.(null);
           handle.disposeRuntimeTracking?.();
         }
       };

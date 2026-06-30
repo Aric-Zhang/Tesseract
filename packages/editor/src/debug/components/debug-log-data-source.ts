@@ -1,52 +1,48 @@
-import type { GizmoDebugLogEntry } from "actor-system/gizmo";
+import type {
+  DiagnosticEvent,
+  DiagnosticSource
+} from "foundation/diagnostics";
 import { type VirtualListDataSource, type VirtualListItemSnapshot } from "ui-framework/controls";
 
-const DEFAULT_DEBUG_LOG_MESSAGE = "Gizmo debug log enabled";
+const DEFAULT_DEBUG_LOG_MESSAGE = "Diagnostics enabled";
 
-interface DebugLogLine {
-  readonly id: number;
-  readonly text: string;
+interface DebugLogSubscription {
+  dispose(): void;
 }
 
 export class DebugLogDataSource implements VirtualListDataSource {
-  readonly #lines: Array<DebugLogLine | undefined>;
-  readonly #maxLines: number;
-  #start = 0;
-  #count = 0;
-  #nextLineId = 1;
+  readonly #diagnostics: DiagnosticSource;
+  readonly #registration: DebugLogSubscription;
+  #events: readonly DiagnosticEvent[];
   #revision = 0;
+  #disposed = false;
 
-  constructor(maxLines = 200) {
-    this.#maxLines = normalizeMaxLines(maxLines);
-    this.#lines = new Array(this.#maxLines);
+  constructor(diagnostics: DiagnosticSource) {
+    this.#diagnostics = diagnostics;
+    this.#events = diagnostics.snapshot();
+    this.#registration = diagnostics.subscribe(() => {
+      if (this.#disposed) return;
+      this.#events = this.#diagnostics.snapshot();
+      this.#revision += 1;
+    });
   }
 
   get revision(): number {
     return this.#revision;
   }
 
-  append(entry: GizmoDebugLogEntry): void {
-    const time = entry.timeStamp === undefined ? "----" : entry.timeStamp.toFixed(0).padStart(5, " ");
-    const writeIndex = (this.#start + this.#count) % this.#maxLines;
-    this.#lines[writeIndex] = {
-      id: this.#nextLineId,
-      text: `${time} ${entry.message}`
-    };
-    this.#nextLineId += 1;
-    if (this.#count < this.#maxLines) {
-      this.#count += 1;
-    } else {
-      this.#start = (this.#start + 1) % this.#maxLines;
-    }
-    this.#revision += 1;
+  dispose(): void {
+    if (this.#disposed) return;
+    this.#disposed = true;
+    this.#registration.dispose();
   }
 
   getItemCount(): number {
-    return Math.max(1, this.#count);
+    return Math.max(1, this.#events.length);
   }
 
   getItem(index: number): VirtualListItemSnapshot {
-    if (this.#count === 0) {
+    if (this.#events.length === 0) {
       if (index !== 0) throw new Error(`Debug log placeholder index out of range: ${index}`);
       return {
         key: "debug-log-placeholder",
@@ -54,21 +50,21 @@ export class DebugLogDataSource implements VirtualListDataSource {
         muted: true
       };
     }
-    if (!Number.isInteger(index) || index < 0 || index >= this.#count) {
+    if (!Number.isInteger(index) || index < 0 || index >= this.#events.length) {
       throw new Error(`Debug log index out of range: ${index}`);
     }
-    const line = this.#lines[(this.#start + index) % this.#maxLines];
-    if (!line) throw new Error(`Debug log index out of range: ${index}`);
+    const event = this.#events[index];
+    if (!event) throw new Error(`Debug log index out of range: ${index}`);
     return {
-      key: `debug-log-entry:${line.id}`,
-      text: line.text
+      key: `diagnostic:${event.id}`,
+      text: formatDiagnosticEvent(event)
     };
   }
 }
 
-function normalizeMaxLines(maxLines: number): number {
-  if (!Number.isInteger(maxLines) || maxLines <= 0) {
-    throw new Error(`Invalid Debug log maxLines: ${String(maxLines)}`);
-  }
-  return maxLines;
+function formatDiagnosticEvent(event: DiagnosticEvent): string {
+  const time = event.timestampMs.toFixed(0).padStart(5, " ");
+  const source = event.source ? ` ${event.source}` : "";
+  const tags = event.tags && event.tags.length > 0 ? ` [${event.tags.join(",")}]` : "";
+  return `${time} ${event.level.toUpperCase()}${source}${tags} ${event.message}`;
 }

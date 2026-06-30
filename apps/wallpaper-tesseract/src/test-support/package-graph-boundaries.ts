@@ -9,7 +9,7 @@ import {
   type ModuleEdge
 } from "./architecture-boundaries";
 
-export type WorkspacePackageZone = "actor" | "ui" | "runtime" | "editor" | "app" | "math";
+export type WorkspacePackageZone = "foundation" | "actor" | "ui" | "runtime" | "editor" | "app" | "math";
 
 export interface WorkspacePackageDescriptor {
   readonly name: string;
@@ -67,6 +67,7 @@ export interface SubmoduleZoneOverlap {
 }
 
 export const workspacePackageDescriptors = [
+  descriptor("foundation", "packages/foundation", "foundation"),
   descriptor("actor-system", "packages/actor-system", "actor"),
   descriptor("ui-framework", "packages/ui-framework", "ui"),
   descriptor("runtime-core", "packages/runtime-core", "runtime"),
@@ -80,7 +81,20 @@ export const workspacePackageDescriptors = [
 ] as const satisfies readonly WorkspacePackageDescriptor[];
 
 export const currentPackageDependencyRules = [
+  rule("foundation", [
+    "actor-system",
+    "ui-framework",
+    "runtime-core",
+    "runtime-three",
+    "wallpaper-runtime",
+    "editor",
+    "wallpaper-tesseract",
+    "four-rotation",
+    "four-camera",
+    "four-camera-three"
+  ]),
   rule("actor-system", [
+    "foundation",
     "ui-framework",
     "runtime-core",
     "runtime-three",
@@ -92,6 +106,7 @@ export const currentPackageDependencyRules = [
     "four-camera-three"
   ]),
   rule("ui-framework", [
+    "foundation",
     "runtime-core",
     "runtime-three",
     "wallpaper-runtime",
@@ -99,6 +114,7 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("runtime-core", [
+    "foundation",
     "actor-system",
     "ui-framework",
     "runtime-three",
@@ -107,6 +123,7 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("runtime-three", [
+    "foundation",
     "actor-system",
     "ui-framework",
     "wallpaper-runtime",
@@ -114,6 +131,7 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("wallpaper-runtime", [
+    "foundation",
     "ui-framework",
     "editor",
     "wallpaper-tesseract"
@@ -124,6 +142,7 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("four-rotation", [
+    "foundation",
     "actor-system",
     "ui-framework",
     "runtime-core",
@@ -133,6 +152,7 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("four-camera", [
+    "foundation",
     "actor-system",
     "ui-framework",
     "runtime-core",
@@ -142,6 +162,7 @@ export const currentPackageDependencyRules = [
     "wallpaper-tesseract"
   ]),
   rule("four-camera-three", [
+    "foundation",
     "actor-system",
     "ui-framework",
     "runtime-core",

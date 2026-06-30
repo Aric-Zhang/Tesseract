@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { uiThemeTokenDefinitions } from "ui-framework/theme";
 import { SEQUENCES, WORKSPACE_ORDER } from "../../../scripts/workspace-sequence-config.mjs";
 import {
+  barePackageName,
   collectWorkspaceSourceFiles,
   createSourceZoneMap,
   evaluateZoneDependencyMatrix,
@@ -44,6 +45,7 @@ import {
 } from "./test-support/package-graph-boundaries";
 
 describe("architecture boundaries", () => {
+  const foundationPackageSources = collectWorkspaceSourceFiles("packages/foundation/src");
   const actorSystemInputSources = collectWorkspaceSourceFiles("packages/actor-system/src/input");
   const uiFrameworkPackageSources = collectWorkspaceSourceFiles("packages/ui-framework/src");
   const runtimeCorePackageSources = collectWorkspaceSourceFiles("packages/runtime-core/src");
@@ -204,6 +206,7 @@ describe("architecture boundaries", () => {
 
   it("keeps Canopy workspace sequence order explicit and current", () => {
     expect(WORKSPACE_ORDER).toEqual([
+      "foundation",
       "actor-system",
       "ui-framework",
       "runtime-core",
@@ -511,6 +514,140 @@ describe("architecture boundaries", () => {
     expect(Object.hasOwn(manifest.exports ?? {}, "./theme.css")).toBe(false);
     expect(Object.hasOwn(manifest.exports ?? {}, "./style.css")).toBe(false);
     expect(Object.hasOwn(manifest, "types")).toBe(false);
+  });
+
+  it("keeps foundation exports narrow and diagnostics-owned", () => {
+    const foundationDescriptor = workspacePackageDescriptors.find((descriptor) => descriptor.name === "foundation");
+    expect(foundationDescriptor).toBeDefined();
+    const manifest = readWorkspacePackageManifest(foundationDescriptor!);
+
+    expect(Object.keys(manifest.exports ?? {}).sort()).toEqual([
+      "./diagnostics",
+      "./facade"
+    ]);
+    expect(Object.hasOwn(manifest.exports ?? {}, ".")).toBe(false);
+    expect(Object.hasOwn(manifest.exports ?? {}, "./profiling")).toBe(false);
+    expect(manifest.dependencies ?? {}).toEqual({});
+    expect(manifest.peerDependencies).toBeUndefined();
+  });
+
+  it("keeps foundation package independent from workspace packages", () => {
+    const edges = listModuleEdges(foundationPackageSources);
+    const workspacePackageNames = new Set(workspacePackageDescriptors.map((descriptor) => descriptor.name));
+    const violations = edges
+      .map((edge) => {
+        const importedPackage = barePackageName(edge.specifier);
+        return workspacePackageNames.has(importedPackage)
+          ? `${edge.fromFile}: ${edge.specifier}`
+          : null;
+      })
+      .filter((entry): entry is string => entry !== null)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps facade slot creation limited to foundation diagnostics and editor selection", () => {
+    const productionSources = collectProductionWorkspaceSources();
+    const allowedFacadeFiles = new Set([
+      "packages/editor/src/selection/selection-facade.ts"
+    ]);
+    const facadeImports = listModuleEdges(productionSources)
+      .filter((edge) => edge.specifier === "foundation/facade")
+      .filter((edge) => !edge.fromFile.startsWith("packages/foundation/src/diagnostics/"))
+      .filter((edge) => !allowedFacadeFiles.has(edge.fromFile))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+    const slotCalls = Object.entries(productionSources)
+      .filter(([file]) => !file.startsWith("packages/foundation/src/"))
+      .filter(([file]) => !allowedFacadeFiles.has(file))
+      .filter(([, source]) => /\bcreateFacadeSlot\s*\(/.test(source))
+      .map(([file]) => file)
+      .sort();
+
+    expect(facadeImports).toEqual([]);
+    expect(slotCalls).toEqual([]);
+  });
+
+  it("keeps profiling deferred during foundation Gate 0", () => {
+    const profilingImports = listModuleEdges(collectProductionWorkspaceSources())
+      .filter((edge) => edge.specifier === "foundation/profiling" || edge.specifier.startsWith("foundation/profiling/"))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+
+    expect(foundationPackageSources["packages/foundation/src/profiling/index.ts"]).toBeUndefined();
+    expect(profilingImports).toEqual([]);
+  });
+
+  it("keeps pure actor selection and math packages free of foundation convenience APIs", () => {
+    const productionSources = collectProductionWorkspaceSources();
+    const forbiddenPrefixes = [
+      "packages/actor-system/src/core/",
+      "packages/four-rotation/src/",
+      "packages/four-camera/src/",
+      "packages/four-camera-three/src/"
+    ];
+    const violations = listModuleEdges(productionSources)
+      .filter((edge) => forbiddenPrefixes.some((prefix) => edge.fromFile.startsWith(prefix)))
+      .filter((edge) => edge.specifier === "foundation/diagnostics" || edge.specifier === "foundation/facade")
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps actor selection model pure and editor-owned selection facade scoped", () => {
+    const productionSources = collectProductionWorkspaceSources();
+    const actorSelectionSources = Object.fromEntries(
+      Object.entries(productionSources)
+        .filter(([file]) => file.startsWith("packages/actor-system/src/core/selection/"))
+    );
+    const actorSelectionForbiddenEdges = listModuleEdges(actorSelectionSources)
+      .filter((edge) => {
+        const target = edge.resolvedFile ?? edge.specifier;
+        return edge.specifier === "foundation" ||
+          edge.specifier.startsWith("foundation/") ||
+          edge.specifier === "editor" ||
+          edge.specifier.startsWith("editor/") ||
+          edge.specifier === "ui-framework" ||
+          edge.specifier.startsWith("ui-framework/") ||
+          edge.specifier === "runtime-core" ||
+          edge.specifier.startsWith("runtime-core/") ||
+          edge.specifier === "runtime-three" ||
+          edge.specifier.startsWith("runtime-three/") ||
+          edge.specifier === "wallpaper-runtime" ||
+          edge.specifier.startsWith("wallpaper-runtime/") ||
+          edge.specifier === "wallpaper-tesseract" ||
+          edge.specifier.startsWith("wallpaper-tesseract/") ||
+          target.startsWith("packages/actor-system/src/input/") ||
+          target.startsWith("packages/actor-system/src/gizmo/") ||
+          target.startsWith("apps/wallpaper-tesseract/src/");
+      })
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+    const uiSelectionImports = listModuleEdges(collectProductionWorkspaceSources([
+      workspacePackageDescriptors.find((descriptor) => descriptor.name === "ui-framework")!
+    ]))
+      .filter((edge) => edge.specifier === "editor" ||
+        edge.specifier.startsWith("editor/") ||
+        edge.specifier.includes("selection"))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+    const selectionProviderInstallCalls = Object.entries(productionSources)
+      .filter(([file]) => file !== "packages/editor/src/selection/selection-facade.ts")
+      .filter(([, source]) => /\binstallEditorSelectionProvider\s*\(/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const oldSelectionStateHits = Object.entries(productionSources)
+      .filter(([file]) => file.startsWith("packages/editor/src/") || file.startsWith("apps/wallpaper-tesseract/src/"))
+      .filter(([, source]) => /selection\.activeObject|\bactiveObject\b/.test(source))
+      .map(([file]) => file)
+      .sort();
+
+    expect(actorSelectionForbiddenEdges).toEqual([]);
+    expect(uiSelectionImports).toEqual([]);
+    expect(selectionProviderInstallCalls).toEqual(["apps/wallpaper-tesseract/src/app/create-wallpaper-app.ts"]);
+    expect(oldSelectionStateHits).toEqual([]);
   });
 
   it("keeps production callers off the ui-framework root barrel", () => {
@@ -1293,7 +1430,10 @@ describe("architecture boundaries", () => {
       editorPackageSources["packages/editor/src/debug/components/debug-log-content-definition.ts"] ?? "";
     const debugFactorySource =
       editorPackageSources["packages/editor/src/debug/components/debug-log-window-actor-factory.ts"] ?? "";
+    const debugDataSource =
+      editorPackageSources["packages/editor/src/debug/components/debug-log-data-source.ts"] ?? "";
     const debugPackageJson = readWorkspaceSourceFile("packages/editor/package.json");
+    const appSource = sourceFiles["./app/create-wallpaper-app.ts"] ?? "";
     const appStylesSource = sourceFiles["./app/styles.ts"] ?? "";
     const listViewSource =
       uiFrameworkPackageSources["packages/ui-framework/src/ui/collection/list-view-component.ts"] ?? "";
@@ -1310,22 +1450,43 @@ describe("architecture boundaries", () => {
     expect(debugContentSource).toMatch(/\bVirtualListViewComponent\b/);
     expect(debugContentSource).toMatch(/\bScrollViewComponent\b/);
     expect(debugContentSource).not.toMatch(/\bDebugLogEntryActorReconciler\b/);
+    expect(debugContentSource).not.toMatch(/\bGizmoDebugLogEntry\b/);
+    expect(debugContentSource).not.toMatch(/\bappend\s*\(/);
     expect(debugDefinitionSource).toMatch(/\buiElementComponentType\b/);
     expect(debugDefinitionSource).toMatch(/\bscrollViewComponentType\b/);
     expect(debugDefinitionSource).toMatch(/\bvirtualListViewComponentType\b/);
     expect(debugDefinitionSource).not.toMatch(/\blistViewComponentType\b/);
+    expect(debugDefinitionSource).not.toMatch(/\bGizmoDebugLogEntry\b/);
     expect(debugFactorySource).toMatch(/\buiElementComponentType\b/);
     expect(debugFactorySource).toMatch(/\bscrollViewComponentType\b/);
     expect(debugFactorySource).toMatch(/\bvirtualListViewComponentType\b/);
     expect(debugFactorySource).toMatch(/\bDebugLogDataSource\b/);
+    expect(debugFactorySource).toMatch(/\bDiagnosticSource\b/);
     expect(debugFactorySource).not.toMatch(/\blistViewComponentType\b/);
+    expect(debugFactorySource).not.toMatch(/\bGizmoDebugLogEntry\b/);
+    expect(debugFactorySource).not.toMatch(/\bmaxLines\b/);
+    expect(debugDataSource).toMatch(/\bDiagnosticSource\b/);
+    expect(debugDataSource).not.toMatch(/\bGizmoDebugLogEntry\b/);
+    expect(debugDataSource).not.toMatch(/\bappend\s*\(/);
+    expect(debugDataSource).not.toMatch(/\b(?:#maxLines|#nextLineId)\b/);
+    expect(debugDataSource).not.toMatch(/\bevent\.data(?:\.|\[)/);
+    expect(debugDataSource).not.toMatch(/\bevent\.rawMessage(?:\.|\[)/);
     expect(debugPackageJson).not.toMatch(/debug\/debug-log\.css/);
+    expect(debugPackageJson).toMatch(/"foundation":\s*"0\.1\.0"/);
+    expect(appSource).toMatch(/\bDiagnosticHub\b/);
+    expect(appSource).toMatch(/\binstallDiagnosticProvider\b/);
+    expect(appSource).toMatch(/\bdiagnosticProviderRegistration\.dispose\s*\(/);
+    expect(appSource).not.toMatch(/\bdebugLogTarget\b/);
+    expect(appSource).not.toMatch(/\bonDebugLogContentChanged\b/);
+    expect(appSource).not.toMatch(/\bDebugLogContentComponent\b/);
     expect(appStylesSource).not.toMatch(/editor\/debug\/debug-log\.css/);
     expect(listViewSource).not.toMatch(/actor-input|ActorInputParticipant|hitTestInput|onInputEnd/);
     expect(listViewSource).not.toMatch(/FrameUpdateParticipant|updateFrame/);
     expect(listViewDefinitionSource).not.toMatch(/frameUpdateAttachment|attachments/);
     expect(virtualListSource).not.toMatch(/Debug|Hierarchy|WindowWorkspace|Scene|Camera3|Tesseract|wallpaper/);
     expect(toolWindowInstallerSource).not.toMatch(/\bisDebugLogEntryActorId\b/);
+    expect(toolWindowInstallerSource).toMatch(/\bDiagnosticSource\b/);
+    expect(toolWindowInstallerSource).not.toMatch(/\bonDebugLogContentChanged\b/);
   });
 
   it("keeps hierarchy pointer selection on generic TreeView actor input instead of local row mutation", () => {
@@ -2491,6 +2652,54 @@ describe("architecture boundaries", () => {
     expect(source).not.toMatch(/\bhitTestGizmo\b/);
     expect(source).not.toMatch(/\bgizmoPriority\b/);
     expect(source).not.toMatch(/^\s*onGizmo(?:Start|Move|End|Cancel|Click|DoubleClick)\b/m);
+  });
+
+  it("keeps Inspector follow state on UiElement and editor selection snapshot", () => {
+    const inspectorSources = collectWorkspaceSourceFiles("packages/editor/src/inspector");
+    const productionInspectorSources = Object.fromEntries(
+      Object.entries(inspectorSources)
+        .filter(([file]) => isProductionSourceFile(file))
+    );
+    const contentSource =
+      productionInspectorSources["packages/editor/src/inspector/inspector-content-component.ts"] ?? "";
+    const definitionSource =
+      productionInspectorSources["packages/editor/src/inspector/inspector-content-definition.ts"] ?? "";
+    const factorySource =
+      productionInspectorSources["packages/editor/src/inspector/inspector-view-actor-factory.ts"] ?? "";
+    const featureSource =
+      productionInspectorSources["packages/editor/src/inspector/install-inspector-feature.ts"] ?? "";
+    const hierarchyImports = listModuleEdges(productionInspectorSources)
+      .filter((edge) => edge.resolvedFile?.startsWith("packages/editor/src/hierarchy/") ||
+        edge.specifier.includes("hierarchy"))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+    const clickShortcuts = Object.entries(productionInspectorSources)
+      .filter(([, source]) => /addEventListener\s*\(\s*["']click["']|\.onclick\s*=/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const createElementCalls = Object.entries(productionInspectorSources)
+      .filter(([, source]) => /\bcreateElement\s*\(/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const facadeUses = Object.entries(productionInspectorSources)
+      .filter(([, source]) => /import\s+\{[^}]*\bSelection\b|\bSelection\./.test(source))
+      .map(([file]) => file)
+      .sort();
+
+    expect(contentSource).toMatch(/\bUiElementComponent\b/);
+    expect(contentSource).toMatch(/\bStateObserverResponder\b/);
+    expect(contentSource).toMatch(/\beditorStatePaths\.selection\.snapshot\b/);
+    expect(contentSource).toMatch(/\bInspectorSelectionSnapshotSource\b/);
+    expect(contentSource).not.toMatch(/\bselection\.activeObject\b/);
+    expect(definitionSource).toMatch(/\buiElementComponentType\b/);
+    expect(definitionSource).toMatch(/\bstateObserverBindingComponentType\b/);
+    expect(factorySource).toMatch(/\buiElementComponentType\b/);
+    expect(factorySource).toMatch(/\bselectionSource\b/);
+    expect(featureSource).toMatch(/\bInspectorSelectionSnapshotSource\b/);
+    expect(hierarchyImports).toEqual([]);
+    expect(clickShortcuts).toEqual([]);
+    expect(createElementCalls).toEqual([]);
+    expect(facadeUses).toEqual([]);
   });
 
   it("keeps feature actor factories on the actor-core creation context", () => {

@@ -47,6 +47,14 @@ class FakeElement {
     }
   }
 
+  replaceChildren(...children: FakeElement[]): void {
+    for (const child of this.children) {
+      child.parentElement = null;
+    }
+    this.children.length = 0;
+    this.append(...children);
+  }
+
   remove(): void {
     if (!this.parentElement) return;
     const index = this.parentElement.children.indexOf(this);
@@ -64,6 +72,10 @@ class FakeElement {
 
   getAttribute(name: string): string | null {
     return this.attributes.get(name) ?? null;
+  }
+
+  removeAttribute(name: string): void {
+    this.attributes.delete(name);
   }
 
   addEventListener(type: string, listener: (event: KeyboardEvent) => void): void {
@@ -156,6 +168,103 @@ describe("TreeViewComponent", () => {
     ]);
   });
 
+  it("toggles expandable items without activating the row", () => {
+    const fixture = createFixture();
+    const activations: TreeViewActivation[] = [];
+    const root = fixture.createTreeRoot({
+      activateTreeItem(activation) {
+        activations.push(activation);
+      }
+    });
+    fixture.addItem("scene", { itemId: "scene", label: "Scene" });
+    fixture.addItem("camera", { itemId: "camera", label: "Camera", parentItemId: "scene" });
+    root.tree.refreshItems();
+    const sceneRow = root.element.children[0]!;
+    sceneRow.rect = createRect(0, 0, 180, 22);
+
+    const disclosureHit = root.tree.hitTestInput({ x: 8, y: 10 });
+    root.tree.onInputEnd({
+      hit: disclosureHit!,
+      wasClick: true,
+      buttons: 0,
+      point: { x: 8, y: 10 },
+      startPoint: { x: 8, y: 10 },
+      pointerId: 1,
+      pointerType: "mouse",
+      totalDelta: { dx: 0, dy: 0 },
+      gizmo: null as never,
+      timeStamp: 1
+    });
+
+    expect(disclosureHit?.partId).toBe("tree-disclosure");
+    expect(activations).toEqual([]);
+    expect(root.element.children.map((child) => child.dataset.uiTreeItemId)).toEqual(["scene"]);
+    expect(sceneRow.getAttribute("aria-expanded")).toBe("false");
+    expect(sceneRow.dataset.uiTreeExpanded).toBe("false");
+
+    root.tree.onInputEnd({
+      hit: disclosureHit!,
+      wasClick: true,
+      buttons: 0,
+      point: { x: 8, y: 10 },
+      startPoint: { x: 8, y: 10 },
+      pointerId: 1,
+      pointerType: "mouse",
+      totalDelta: { dx: 0, dy: 0 },
+      gizmo: null as never,
+      timeStamp: 2
+    });
+
+    expect(root.element.children.map((child) => child.dataset.uiTreeItemId)).toEqual(["scene", "camera"]);
+    expect(sceneRow.getAttribute("aria-expanded")).toBe("true");
+    expect(sceneRow.dataset.uiTreeExpanded).toBe("true");
+  });
+
+  it("keeps collapsed descendants hidden while tree data changes", () => {
+    const fixture = createFixture();
+    const root = fixture.createTreeRoot();
+    fixture.addItem("scene", { itemId: "scene", label: "Scene" });
+    fixture.addItem("camera", { itemId: "camera", label: "Camera", parentItemId: "scene" });
+    root.tree.refreshItems();
+    const sceneRow = root.element.children[0]!;
+
+    sceneRow.dispatchKey("ArrowLeft");
+    fixture.addItem("tesseract", { itemId: "tesseract", label: "Tesseract", parentItemId: "scene" });
+    root.tree.refreshItems();
+
+    expect(root.element.children.map((child) => child.dataset.uiTreeItemId)).toEqual(["scene"]);
+
+    sceneRow.dispatchKey("ArrowRight");
+
+    expect(root.element.children.map((child) => child.dataset.uiTreeItemId)).toEqual(["scene", "camera", "tesseract"]);
+  });
+
+  it("supports left and right arrow expansion without changing row activation", () => {
+    const fixture = createFixture();
+    const activations: TreeViewActivation[] = [];
+    const root = fixture.createTreeRoot({
+      activateTreeItem(activation) {
+        activations.push(activation);
+      }
+    });
+    fixture.addItem("scene", { itemId: "scene", label: "Scene" });
+    fixture.addItem("camera", { itemId: "camera", label: "Camera", parentItemId: "scene" });
+    root.tree.refreshItems();
+    const sceneRow = root.element.children[0]!;
+
+    sceneRow.dispatchKey("ArrowLeft");
+
+    expect(root.element.children.map((child) => child.dataset.uiTreeItemId)).toEqual(["scene"]);
+    expect(sceneRow.getAttribute("aria-expanded")).toBe("false");
+
+    sceneRow.dispatchKey("ArrowRight");
+    sceneRow.dispatchKey("Enter");
+
+    expect(root.element.children.map((child) => child.dataset.uiTreeItemId)).toEqual(["scene", "camera"]);
+    expect(sceneRow.getAttribute("aria-expanded")).toBe("true");
+    expect(activations).toEqual([{ itemActorId: "scene", itemId: "scene", inputKind: "keyboard" }]);
+  });
+
   it("removes stale private rows when item actors are destroyed", () => {
     const fixture = createFixture();
     const root = fixture.createTreeRoot();
@@ -168,6 +277,26 @@ describe("TreeViewComponent", () => {
 
     expect(root.element.children.map((child) => child.dataset.uiTreeItemId)).toEqual(["camera"]);
     expect(fixture.actorSystem.listActors().map((actor) => actor.id)).toEqual(["tree", "camera"]);
+  });
+
+  it("prunes collapsed state when an item disappears", () => {
+    const fixture = createFixture();
+    const root = fixture.createTreeRoot();
+    fixture.addItem("scene", { itemId: "scene", label: "Scene" });
+    fixture.addItem("camera", { itemId: "camera", label: "Camera", parentItemId: "scene" });
+    root.tree.refreshItems();
+    const sceneRow = root.element.children[0]!;
+
+    sceneRow.dispatchKey("ArrowLeft");
+    fixture.actorSystem.destroyActor(fixture.actorSystem.getActor("scene")!);
+    root.tree.refreshItems();
+
+    expect(root.element.children.map((child) => child.dataset.uiTreeItemId)).toEqual(["camera"]);
+
+    fixture.addItem("scene", { itemId: "scene", label: "Scene" });
+    root.tree.refreshItems();
+
+    expect(root.element.children.map((child) => child.dataset.uiTreeItemId)).toEqual(["scene", "camera"]);
   });
 
   it("keeps item descriptors immutable and rejects invalid scalar values", () => {

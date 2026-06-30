@@ -1,4 +1,5 @@
 export const WORKSPACE_ORDER = Object.freeze([
+  "foundation",
   "actor-system",
   "ui-framework",
   "runtime-core",

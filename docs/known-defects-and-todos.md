@@ -1,6 +1,6 @@
 # Known Defects And Todos
 
-Last updated: 2026-06-29
+Last updated: 2026-06-30
 
 This document is the permanent defect and follow-up ledger for the repository.
 Use it for known bugs, reproducible investigation findings, and non-plan
@@ -52,12 +52,16 @@ Evidence:
 - The default product boot currently exposes 10 Hierarchy rows, which proves the
   new TreeView/ScrollView path and source-pollution guard, but does not prove
   large-node scrolling.
+- TreeView now supports generic disclosure-driven collapse/expand and removes
+  collapsed descendant rows from the visible DOM projection. The component still
+  participates in the UI frame update path; large-tree smoke should measure
+  whether owner-driven dirty refresh is needed before changing that contract.
 
 Impact:
 
 - The UI architecture is not blocked, but future TreeView scrolling or
-  virtualization changes should have a reproducible high-row-count browser
-  fixture.
+  virtualization/dirty-refresh changes should have a reproducible high-row-count
+  browser fixture.
 
 Next action:
 

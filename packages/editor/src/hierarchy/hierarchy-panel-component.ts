@@ -1,7 +1,14 @@
-import type { Actor, Component, ComponentType } from "actor-system/core";
+import {
+  normalizeActorSelectionSnapshot,
+  type Actor,
+  type ActorSelectionSnapshot,
+  type Component,
+  type ComponentType
+} from "actor-system/core";
 import { editorStatePaths, type EditorCommandSink } from "../editor-state";
 import type { AppStateChangedEvent } from "../app-state";
 import type { StateObserverResponder } from "../state-observer/state-observer-responder";
+import { createReplaceSelectionSnapshotCommand } from "../selection";
 import { type TreeViewActivation, type TreeViewComponent } from "ui-framework/controls";
 import { type UiElementComponent } from "ui-framework/actor-ui";
 import { type WindowContentLayoutCommit, type WindowContentLayoutCommitRegistration, type WindowContentRegistrationPort, type WindowRegisteredContent } from "ui-framework/window";
@@ -38,7 +45,7 @@ export class HierarchyPanelComponent
   readonly #treeView: TreeViewComponent;
   readonly #itemReconciler: HierarchyTreeItemActorReconciler;
   #registration: WindowRegisteredContent;
-  #activeObject: string | null = null;
+  #selectionSnapshot: ActorSelectionSnapshot = normalizeActorSelectionSnapshot(null);
   #lastItemsSignature: string | null = null;
 
   constructor(
@@ -94,8 +101,8 @@ export class HierarchyPanelComponent
   onStateChanged(event: AppStateChangedEvent): void {
     let changed = false;
     for (const change of event.changes) {
-      if (change.path !== editorStatePaths.selection.activeObject) continue;
-      this.#activeObject = change.nextValue as string | null;
+      if (change.path !== editorStatePaths.selection.snapshot) continue;
+      this.#selectionSnapshot = normalizeActorSelectionSnapshot(change.nextValue as ActorSelectionSnapshot);
       changed = true;
     }
     if (changed) {
@@ -112,32 +119,35 @@ export class HierarchyPanelComponent
 
   private renderIfItemsChanged(): void {
     const items = this.#objectSource.listObjects();
-    const signature = createItemsSignature(items, this.#activeObject);
+    const signature = createItemsSignature(items, this.#selectionSnapshot);
     if (signature === this.#lastItemsSignature) {
       return;
     }
     this.#lastItemsSignature = signature;
-    this.#itemReconciler.reconcile(items, this.#activeObject);
+    this.#itemReconciler.reconcile(items, this.#selectionSnapshot);
     this.#treeView.refreshItems();
   }
 
   private activateTreeItem(activation: TreeViewActivation): void {
-    this.#commandSink.submit({
-      source: { id: this.id, kind: activation.inputKind },
-      target: editorStatePaths.selection.activeObject,
-      operation: "set",
-      value: activation.itemId
-    });
+    this.#commandSink.submit(createReplaceSelectionSnapshotCommand(
+      this.id,
+      activation.itemId,
+      activation.inputKind
+    ));
   }
 }
 
-function createItemsSignature(items: readonly { readonly id: string; readonly label: string; readonly parentId?: string | null; readonly activeSelf?: boolean; readonly activeInHierarchy?: boolean }[], activeObject: string | null): string {
+function createItemsSignature(
+  items: readonly { readonly id: string; readonly label: string; readonly parentId?: string | null; readonly activeSelf?: boolean; readonly activeInHierarchy?: boolean }[],
+  selection: ActorSelectionSnapshot
+): string {
+  const selectedActorIds = new Set(selection.selectedActorIds);
   return JSON.stringify(items.map((item) => [
     item.id,
     item.label,
     item.parentId ?? null,
     item.activeSelf ?? true,
     item.activeInHierarchy ?? item.activeSelf ?? true,
-    item.id === activeObject
+    selectedActorIds.has(item.id)
   ]));
 }

@@ -22,6 +22,9 @@ supporting actor, UI, runtime, 4D, and gizmo libraries.
 
 Current workspace packages:
 
+- `packages/foundation`: zero-dependency shared facade/diagnostics foundation.
+  It owns `foundation/facade` and `foundation/diagnostics`, has no root export,
+  no workspace dependencies, and no profiling implementation yet.
 - `packages/actor-system`: consolidated actor package with explicit
   `actor-system/core`, `actor-system/input`, and `actor-system/gizmo`
   submodule exports. It owns actor/component core, actor input participation,
@@ -171,19 +174,102 @@ browser fixture. It does not block the accepted Arbor architecture baseline.
 Project Canopy is complete as of 2026-06-30. Future package consolidation
 should start from a new reviewed plan, not by extending Canopy by default.
 
+## Next Editor Plan
+
+`docs/editor-selection-and-inspector-plan.md` is the active
+foundation/editor work item. Gate 0 is complete: `packages/foundation` now
+provides `foundation/facade` and `foundation/diagnostics`, `Debug` has a
+provider-backed diagnostics facade, profiling remains deferred, and architecture
+boundaries enforce `foundation -> []`. Gate 1 is complete: app composition owns
+one `DiagnosticHub`, installs it as the process-level `Debug` provider, passes a
+`DiagnosticSource` into the Debug window feature, and deleted the old
+app-to-Debug-window callback path. Debug Window is now only a diagnostics viewer;
+`DiagnosticHub` owns diagnostic ids, timestamps, capacity, and retained event
+history. Gate 2 is complete: `actor-system/core/selection` owns the pure
+actor-id selection model, `packages/editor/src/selection` owns editor selection
+state and the scoped `Selection` facade, app composition installs one selection
+provider, Hierarchy row activation writes `selection.snapshot`, and the old
+`selection.activeObject` path has been deleted. Gate 3 is complete: Inspector
+content now uses `UiElementComponent`, unlocked Inspectors follow
+`selection.snapshot.activeActorId`, component-local lock state keeps an
+Inspector on its inspected actor until unlocked, and browser smoke proves real
+Hierarchy selection updates visible Inspector text without reintroducing
+Hierarchy-owned selection state.
+
+The first executable slice is:
+
+```text
+docs/editor-selection-and-inspector-gate-0-foundation-diagnostics-plan.md
+```
+
+That slice is complete; keep it as the Gate 0 execution record.
+
+The second executable slice is:
+
+```text
+docs/editor-selection-and-inspector-gate-1-diagnostics-product-migration-plan.md
+```
+
+That slice is complete; keep it as the Gate 1 execution record. Its browser
+smoke evidence is:
+
+```text
+temp/editor-gate-1-diagnostics-smoke-data.json
+temp/editor-gate-1-diagnostics-smoke-report.md
+```
+
+The completed Gate 2 executable slice is:
+
+```text
+docs/editor-selection-and-inspector-gate-2-selection-model-editor-ownership-plan.md
+```
+
+Gate 2 introduced the pure actor-id selection model, moved editor selection
+state ownership out of Hierarchy, installed the scoped `Selection` facade
+provider, and deleted the old `selection.activeObject` path in the same cleanup.
+Its browser smoke evidence is:
+
+```text
+temp/editor-gate-2-selection-smoke-data.json
+temp/editor-gate-2-selection-smoke-report.md
+```
+
+The completed Gate 3 executable slice is:
+
+```text
+docs/editor-selection-and-inspector-gate-3-inspector-follow-lock-plan.md
+```
+
+Gate 3 made Inspector content use `UiElementComponent`, follow
+`selection.snapshot.activeActorId` when unlocked, keep its inspected actor when
+locked, and prove the visible Inspector text updates from real Hierarchy
+selection without reintroducing Hierarchy-owned selection state. Its browser
+smoke evidence is:
+
+```text
+temp/editor-gate-3-inspector-follow-smoke-data.json
+temp/editor-gate-3-inspector-follow-smoke-report.md
+```
+
+Visible lock UI, Inspector property rows, component-specific inspectors,
+multi-selection property merging, range/Ctrl selection UX, persistent pinned
+Inspector state, and scene object picking remain ordinary follow-ups, not active
+architecture blockers.
+
 Current package graph baseline:
 
 ```text
+foundation -> []
 actor-system -> []
 ui-framework -> [actor-system]
 runtime-core -> []
 runtime-three -> [four-camera, four-camera-three, runtime-core]
 wallpaper-runtime -> [actor-system, four-camera, four-rotation, runtime-core, runtime-three]
-editor -> [actor-system, runtime-core, ui-framework]
+editor -> [actor-system, foundation, runtime-core, ui-framework]
 four-rotation -> []
 four-camera -> [four-rotation]
 four-camera-three -> [four-camera]
-wallpaper-tesseract -> [actor-system, editor, runtime-core, runtime-three, ui-framework, wallpaper-runtime]
+wallpaper-tesseract -> [actor-system, editor, foundation, runtime-core, runtime-three, ui-framework, wallpaper-runtime]
 ```
 
 Gate 2 reuses the Gate 0 package graph and resolved import helpers for package
@@ -754,6 +840,9 @@ Shared package checks:
 
 ```text
 npm run test -w actor-system
+npm run test -w foundation
+npm run typecheck -w foundation
+npm run build -w foundation
 npm run test -w ui-framework
 npm run typecheck:test -w ui-framework
 npm run test -w editor

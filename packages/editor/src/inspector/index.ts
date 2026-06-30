@@ -8,13 +8,6 @@ export type {
   InstallInspectorFeatureOptions
 } from "./install-inspector-feature";
 export {
-  InspectorContentComponent,
-  inspectorContentComponentType
-} from "./inspector-content-component";
-export type {
-  InspectorContentComponentOptions
-} from "./inspector-content-component";
-export {
   createActorSystemInspectorActorDisplaySource
 } from "./inspector-actor-display-source";
 export type {
@@ -23,10 +16,3 @@ export type {
 export type {
   InspectorSelectionSnapshotSource
 } from "./inspector-selection-source";
-export { inspectorContentComponentDefinition } from "./inspector-content-definition";
-export { createInspectorViewActor } from "./inspector-view-actor-factory";
-export type {
-  InspectorViewActorOptions,
-  RegisteredInspectorViewActor
-} from "./inspector-view-actor-factory";
-export { installInspectorComponentDefinitions } from "./install-component-definitions";

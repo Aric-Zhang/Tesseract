@@ -1,49 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { ActorSystem, normalizeActorSelectionSnapshot, type ActorSelectionSnapshot } from "actor-system/core";
 import { type UiElementComponent } from "ui-framework/actor-ui";
-import type {
-  WindowContentLayoutCommit,
-  WindowContentLayoutCommitRegistration,
-  WindowContentRegistrationPort,
-  WindowRegisteredContent
-} from "ui-framework/window";
 
 import type { AppStateChangedEvent } from "../app-state";
 import { editorStatePaths } from "../editor-state";
 import { createActorSystemInspectorActorDisplaySource } from "./inspector-actor-display-source";
-import { InspectorContentComponent } from "./inspector-content-component";
+import { InspectorContentComponent, type InspectorLockStateSink } from "./inspector-content-component";
 import type { InspectorSelectionSnapshotSource } from "./inspector-selection-source";
 
-class FakeWindowContentRegistry implements WindowContentRegistrationPort {
-  registered: { readonly contentId: string; readonly element: HTMLElement } | null = null;
-
-  registerContent(request: { readonly contentId: string; readonly element: HTMLElement }): WindowRegisteredContent {
-    this.registered = request;
-    return {
-      contentId: request.contentId,
-      element: request.element,
-      interactable: true,
-      setInteractable() {},
-      subscribeLayoutCommit(_callback: (commit: WindowContentLayoutCommit) => void): WindowContentLayoutCommitRegistration {
-        return { dispose() {} };
-      },
-      dispose: () => {
-        if (this.registered?.contentId === request.contentId) {
-          this.registered = null;
-        }
-      }
-    };
-  }
-}
-
 describe("InspectorContentComponent", () => {
-  it("registers the UiElement root and renders the current active selection", () => {
+  it("renders the current active selection", () => {
     const fixture = createFixture({
       selectedActorIds: ["scene"],
       activeActorId: "scene"
     });
 
-    expect(fixture.contentRegistration.registered?.element).toBe(fixture.element);
     expect(fixture.element.textContent).toBe("Inspecting: Scene View");
     expect(fixture.element.dataset.inspectorState).toBe("inspecting");
     expect(fixture.element.dataset.inspectorActorId).toBe("scene");
@@ -109,13 +80,15 @@ describe("InspectorContentComponent", () => {
     expect(fixture.inspector.inspectedActorId).toBe("camera");
   });
 
-  it("locks local inspected actor state and catches up when unlocked", () => {
+  it("locks local inspected actor state, notifies lock sink, and catches up when unlocked", () => {
+    const sinkCalls: boolean[] = [];
     const locked = createFixture({
       selectedActorIds: ["scene"],
       activeActorId: "scene"
     }, {
       initialLocked: true,
-      initialInspectedActorId: "scene"
+      initialInspectedActorId: "scene",
+      lockStateSink: createLockSink(sinkCalls)
     });
     const unlocked = createFixture({
       selectedActorIds: ["scene"],
@@ -147,6 +120,19 @@ describe("InspectorContentComponent", () => {
     expect(locked.inspector.locked).toBe(false);
     expect(locked.inspector.inspectedActorId).toBe("camera");
     expect(locked.element.textContent).toBe("Inspecting: Camera3");
+    expect(sinkCalls).toEqual([false]);
+  });
+
+  it("notifies lock sink on direct setLocked calls", () => {
+    const sinkCalls: boolean[] = [];
+    const fixture = createFixture(undefined, {
+      lockStateSink: createLockSink(sinkCalls)
+    });
+
+    fixture.inspector.setLocked(true);
+    fixture.inspector.setLocked(false);
+
+    expect(sinkCalls).toEqual([true, false]);
   });
 
   it("keeps two real Inspector components divergent with one shared selection source", () => {
@@ -197,12 +183,15 @@ describe("InspectorContentComponent", () => {
     });
   });
 
-  it("disposes the window content registration", () => {
+  it("disposes without removing its UiElement body", () => {
     const fixture = createFixture();
+    const parent = createFakeElement();
+    parent.append(fixture.element);
+
     fixture.inspector.dispose();
 
     expect(fixture.inspector.enabled).toBe(false);
-    expect(fixture.contentRegistration.registered).toBeNull();
+    expect(fixture.element.parentElement).toBe(parent);
   });
 });
 
@@ -211,10 +200,10 @@ function createFixture(
   options: {
     readonly initialLocked?: boolean;
     readonly initialInspectedActorId?: string | null;
+    readonly lockStateSink?: InspectorLockStateSink;
   } = {}
 ): {
   readonly element: HTMLElement;
-  readonly contentRegistration: FakeWindowContentRegistry;
   readonly inspector: InspectorContentComponent;
   readonly source: MutableSelectionSource;
   updateSource(snapshot: ActorSelectionSnapshot): void;
@@ -252,22 +241,19 @@ function createInspector(
   options: {
     readonly initialLocked?: boolean;
     readonly initialInspectedActorId?: string | null;
+    readonly lockStateSink?: InspectorLockStateSink;
   } = {}
 ): {
   readonly element: HTMLElement;
-  readonly contentRegistration: FakeWindowContentRegistry;
   readonly inspector: InspectorContentComponent;
   readonly source: MutableSelectionSource;
 } {
   const actor = actorSystem.getActor(actorId) ?? actorSystem.createActor({ id: actorId });
   const element = createFakeElement();
-  const contentRegistration = new FakeWindowContentRegistry();
   const inspector = new InspectorContentComponent(
     actor,
     { element } as UiElementComponent,
     {
-      contentId: "content:inspector",
-      contentRegistration,
       actorDisplaySource,
       selectionSource: source,
       ...options
@@ -276,7 +262,6 @@ function createInspector(
 
   return {
     element,
-    contentRegistration,
     inspector,
     source
   };
@@ -307,9 +292,21 @@ function selectionChangedEvent(snapshot: ActorSelectionSnapshot): AppStateChange
   };
 }
 
+function createLockSink(calls: boolean[]): InspectorLockStateSink {
+  return {
+    inspectorLockStateChanged(locked) {
+      calls.push(locked);
+    }
+  };
+}
+
 function createFakeElement(): HTMLElement {
   return {
     dataset: {},
-    textContent: ""
+    textContent: "",
+    parentElement: null,
+    append(child: { parentElement: HTMLElement | null }) {
+      child.parentElement = this as unknown as HTMLElement;
+    }
   } as unknown as HTMLElement;
 }

@@ -3,7 +3,7 @@ import type { EditorCommandSink } from "./editor-state";
 import { installCamera3ComponentDefinitions } from "./camera3";
 import { installDebugLogComponentDefinitions } from "./debug";
 import { installHierarchyComponentDefinitions } from "./hierarchy";
-import { installInspectorComponentDefinitions } from "./inspector";
+import { installInspectorComponentDefinitions } from "./inspector/install-component-definitions";
 import { installSceneComponentDefinitions } from "./scene";
 import { installEditorStateObserverComponentDefinitions } from "./state-observer";
 

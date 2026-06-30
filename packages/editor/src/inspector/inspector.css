@@ -2,8 +2,18 @@
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  padding: 12px;
   color: var(--ui-color-text);
   background: var(--ui-color-panel-bg);
   font: var(--ui-font-size)/1.45 var(--ui-font-family);
+}
+
+.inspector-window__toolbar {
+  border-bottom: var(--ui-border-width) solid var(--ui-toolbar-border);
+}
+
+.inspector-window__body {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
 }

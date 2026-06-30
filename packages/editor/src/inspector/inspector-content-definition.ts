@@ -23,8 +23,8 @@ export const inspectorContentComponentDefinition:
     return options?.id ?? "inspector-content";
   },
   create(actor, context, options) {
-    if (!options?.contentRegistration || !options.contentId || !options.actorDisplaySource || !options.selectionSource) {
-      throw new Error("InspectorContentComponent requires content registration, display source, and selection source options.");
+    if (!options?.actorDisplaySource || !options.selectionSource) {
+      throw new Error("InspectorContentComponent requires display source and selection source options.");
     }
     const uiElement = context.componentRegistry.getComponent(actor, uiElementComponentType);
     if (!uiElement) {

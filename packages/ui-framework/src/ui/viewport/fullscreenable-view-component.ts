@@ -6,6 +6,12 @@ import {
   type ActorInputParticipant
 } from "actor-system/input";
 import type { UiElementComponent } from "../element";
+import {
+  UiButtonRenderer
+} from "../button/button-renderer";
+import {
+  type UiButtonDescriptor
+} from "../button/button-model";
 
 export const fullscreenableViewComponentType =
   "ui-fullscreenable-view-component" as ComponentType<FullscreenableViewComponent>;
@@ -30,7 +36,7 @@ export interface FullscreenableViewComponentOptions {
   readonly initialFullscreen?: boolean;
   readonly inputStackPriority?: number;
   readonly localRoutePriority?: number;
-  readonly document?: Pick<Document, "createElement">;
+  readonly document?: Pick<Document, "createElement" | "createElementNS">;
 }
 
 export class FullscreenableViewComponent implements Component, ActorInputParticipant {
@@ -45,6 +51,7 @@ export class FullscreenableViewComponent implements Component, ActorInputPartici
 
   readonly #intentSink: FullscreenableViewIntentSink;
   readonly #localRoutePriority: number;
+  readonly #buttonRenderer: UiButtonRenderer;
   #fullscreen: boolean;
   #disposed = false;
 
@@ -66,9 +73,16 @@ export class FullscreenableViewComponent implements Component, ActorInputPartici
     this.controlElement = documentRef.createElement("button");
     this.controlElement.type = "button";
     this.controlElement.tabIndex = 0;
-    this.controlElement.className = "ui-fullscreenable-view__control";
     this.controlElement.dataset.uiFullscreenControl = "true";
-    applyControlStyle(this.controlElement);
+    this.#buttonRenderer = new UiButtonRenderer(
+      this.controlElement,
+      createFullscreenButtonDescriptor(this.#fullscreen),
+      {
+        extraClassName: "ui-fullscreenable-view__control",
+        pressedMode: "toggle",
+        document: documentRef
+      }
+    );
     this.element.append(this.controlElement);
     this.applyFullscreenState();
   }
@@ -116,23 +130,35 @@ export class FullscreenableViewComponent implements Component, ActorInputPartici
     if (this.#disposed) return;
     this.#disposed = true;
     this.enabled = false;
+    this.#buttonRenderer.dispose();
     this.controlElement.remove();
   }
 
   private applyFullscreenState(): void {
-    this.controlElement.dataset.uiFullscreenState = this.#fullscreen ? "fullscreen" : "windowed";
-    this.controlElement.ariaLabel = this.#fullscreen ? "Restore view" : "Enter fullscreen";
-    this.controlElement.title = this.controlElement.ariaLabel;
+    this.#buttonRenderer.setDescriptor(createFullscreenButtonDescriptor(this.#fullscreen));
+    this.#buttonRenderer.setState({ pressed: this.#fullscreen });
   }
-}
-
-function applyControlStyle(element: HTMLElement): void {
-  element.style.position = "absolute";
-  element.style.right = "8px";
-  element.style.bottom = "8px";
-  element.style.zIndex = "10";
 }
 
 function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {
   return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
+}
+
+function createFullscreenButtonDescriptor(fullscreen: boolean): UiButtonDescriptor {
+  return {
+    id: "fullscreen-toggle",
+    accessibleLabel: fullscreen ? "Restore view" : "Enter fullscreen",
+    title: fullscreen ? "Restore view" : "Enter fullscreen",
+    icon: fullscreen
+      ? {
+          kind: "svg-path",
+          viewBox: "0 0 24 24",
+          path: "M8 4h12v9M20 4l-7 7M16 20H4v-9M4 20l7-7"
+        }
+      : {
+          kind: "svg-path",
+          viewBox: "0 0 24 24",
+          path: "M4 9V4h5M4 4l7 7M20 15v5h-5M20 20l-7-7"
+        }
+  };
 }

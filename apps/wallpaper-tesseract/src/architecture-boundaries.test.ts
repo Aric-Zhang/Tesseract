@@ -516,6 +516,14 @@ describe("architecture boundaries", () => {
     expect(Object.hasOwn(manifest, "types")).toBe(false);
   });
 
+  it("keeps ui-framework shared button renderer package-private", () => {
+    const controlsBarrel = readWorkspaceSourceFile("packages/ui-framework/src/controls/index.ts");
+    const buttonBarrel = readWorkspaceSourceFile("packages/ui-framework/src/ui/button/index.ts");
+
+    expect(controlsBarrel).not.toMatch(/\bUiButtonRenderer\b/);
+    expect(buttonBarrel).not.toMatch(/\bUiButtonRenderer\b/);
+  });
+
   it("keeps foundation exports narrow and diagnostics-owned", () => {
     const foundationDescriptor = workspacePackageDescriptors.find((descriptor) => descriptor.name === "foundation");
     expect(foundationDescriptor).toBeDefined();
@@ -672,8 +680,10 @@ describe("architecture boundaries", () => {
       ]),
       defineSubmoduleZone("ui-framework/controls", [
         "packages/ui-framework/src/controls/",
+        "packages/ui-framework/src/ui/button/",
         "packages/ui-framework/src/ui/collection/",
         "packages/ui-framework/src/ui/scroll/",
+        "packages/ui-framework/src/ui/toolbar/",
         "packages/ui-framework/src/ui/viewport/"
       ]),
       defineSubmoduleZone("ui-framework/menu", [
@@ -2668,6 +2678,15 @@ describe("architecture boundaries", () => {
       productionInspectorSources["packages/editor/src/inspector/inspector-view-actor-factory.ts"] ?? "";
     const featureSource =
       productionInspectorSources["packages/editor/src/inspector/install-inspector-feature.ts"] ?? "";
+    const rootContentSource =
+      productionInspectorSources["packages/editor/src/inspector/inspector-root-content-component.ts"] ?? "";
+    const indexSource =
+      productionInspectorSources["packages/editor/src/inspector/index.ts"] ?? "";
+    const nonRootRegistrationOwners = Object.entries(productionInspectorSources)
+      .filter(([file]) => file !== "packages/editor/src/inspector/inspector-root-content-component.ts")
+      .filter(([, source]) => /\bregisterContent\b|\bWindowRegisteredContent\b|\bWindowContentRegistrationPort\b/.test(source))
+      .map(([file]) => file)
+      .sort();
     const hierarchyImports = listModuleEdges(productionInspectorSources)
       .filter((edge) => edge.resolvedFile?.startsWith("packages/editor/src/hierarchy/") ||
         edge.specifier.includes("hierarchy"))
@@ -2690,12 +2709,27 @@ describe("architecture boundaries", () => {
     expect(contentSource).toMatch(/\bStateObserverResponder\b/);
     expect(contentSource).toMatch(/\beditorStatePaths\.selection\.snapshot\b/);
     expect(contentSource).toMatch(/\bInspectorSelectionSnapshotSource\b/);
+    expect(contentSource).toMatch(/\bInspectorLockStateSink\b/);
     expect(contentSource).not.toMatch(/\bselection\.activeObject\b/);
+    expect(contentSource).not.toMatch(/\bWindowRegisteredContent\b|\bWindowContentRegistrationPort\b|\bregisterContent\b/);
     expect(definitionSource).toMatch(/\buiElementComponentType\b/);
     expect(definitionSource).toMatch(/\bstateObserverBindingComponentType\b/);
     expect(factorySource).toMatch(/\buiElementComponentType\b/);
+    expect(factorySource).toMatch(/\buiLayoutHostComponentType\b/);
+    expect(factorySource).toMatch(/\btoolbarComponentType\b/);
+    expect(factorySource).toMatch(/\btoggleButtonComponentType\b/);
     expect(factorySource).toMatch(/\bselectionSource\b/);
+    expect(factorySource).not.toMatch(/\bregisterContent\b/);
+    expect(rootContentSource).toMatch(/\bWindowRegisteredContent\b/);
+    expect(rootContentSource).toMatch(/\bregisterContent\b/);
+    expect(indexSource).not.toMatch(/\bInspector(?:Root)?ContentComponent\b/);
+    expect(indexSource).not.toMatch(/\binspector(?:Root)?ContentComponent(?:Type|Definition)\b/);
+    expect(indexSource).not.toMatch(/\bcreateInspectorViewActor\b/);
+    expect(indexSource).not.toMatch(/\bRegisteredInspectorViewActor\b/);
+    expect(indexSource).not.toMatch(/\bInspectorViewActorOptions\b/);
+    expect(indexSource).not.toMatch(/\binstallInspectorComponentDefinitions\b/);
     expect(featureSource).toMatch(/\bInspectorSelectionSnapshotSource\b/);
+    expect(nonRootRegistrationOwners).toEqual([]);
     expect(hierarchyImports).toEqual([]);
     expect(clickShortcuts).toEqual([]);
     expect(createElementCalls).toEqual([]);

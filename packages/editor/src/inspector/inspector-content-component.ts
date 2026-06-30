@@ -6,7 +6,6 @@ import {
   type ComponentType
 } from "actor-system/core";
 import { type UiElementComponent } from "ui-framework/actor-ui";
-import { type WindowContentLayoutCommit, type WindowContentLayoutCommitRegistration, type WindowContentRegistrationPort, type WindowRegisteredContent } from "ui-framework/window";
 
 import type { AppStateChangedEvent } from "../app-state";
 import { editorStatePaths } from "../editor-state";
@@ -19,18 +18,21 @@ export const inspectorContentComponentType =
 
 export interface InspectorContentComponentOptions {
   readonly id?: string;
-  readonly contentId: string;
-  readonly contentRegistration: WindowContentRegistrationPort;
   readonly actorDisplaySource: InspectorActorDisplaySource;
   readonly selectionSource: InspectorSelectionSnapshotSource;
+  readonly lockStateSink?: InspectorLockStateSink;
   readonly initialLocked?: boolean;
   readonly initialInspectedActorId?: string | null;
+}
+
+export interface InspectorLockStateSink {
+  inspectorLockStateChanged(locked: boolean): void;
 }
 
 const DEFAULT_INSPECTOR_CONTENT_ID = "inspector-content";
 
 export class InspectorContentComponent
-  implements Component, StateObserverResponder, WindowRegisteredContent {
+  implements Component, StateObserverResponder {
   readonly type = inspectorContentComponentType;
   readonly id: string;
   readonly actor: Actor;
@@ -39,7 +41,7 @@ export class InspectorContentComponent
   readonly #element: HTMLElement;
   readonly #actorDisplaySource: InspectorActorDisplaySource;
   readonly #selectionSource: InspectorSelectionSnapshotSource;
-  #registration: WindowRegisteredContent;
+  readonly #lockStateSink?: InspectorLockStateSink;
   #inspectedActorId: string | null;
   #locked: boolean;
 
@@ -53,27 +55,16 @@ export class InspectorContentComponent
     this.#element = uiElement.element;
     this.#actorDisplaySource = options.actorDisplaySource;
     this.#selectionSource = options.selectionSource;
+    this.#lockStateSink = options.lockStateSink;
     this.#locked = options.initialLocked === true;
     this.#inspectedActorId = this.#locked && options.initialInspectedActorId !== undefined
       ? options.initialInspectedActorId
       : this.currentActiveActorId();
-    this.#registration = options.contentRegistration.registerContent({
-      contentId: options.contentId,
-      element: this.#element
-    });
     this.render();
-  }
-
-  get contentId(): string {
-    return this.#registration.contentId;
   }
 
   get element(): HTMLElement {
     return this.#element;
-  }
-
-  get interactable(): boolean {
-    return this.#registration.interactable;
   }
 
   get inspectedActorId(): string | null {
@@ -82,16 +73,6 @@ export class InspectorContentComponent
 
   get locked(): boolean {
     return this.#locked;
-  }
-
-  setInteractable(interactable: boolean): void {
-    this.#registration.setInteractable(interactable);
-  }
-
-  subscribeLayoutCommit(
-    callback: (commit: WindowContentLayoutCommit) => void
-  ): WindowContentLayoutCommitRegistration {
-    return this.#registration.subscribeLayoutCommit(callback);
   }
 
   onStateChanged(event: AppStateChangedEvent): void {
@@ -108,9 +89,11 @@ export class InspectorContentComponent
     this.#locked = locked;
     if (!this.#locked) {
       this.inspectActor(this.currentActiveActorId());
+      this.#lockStateSink?.inspectorLockStateChanged(this.#locked);
       return;
     }
     this.render();
+    this.#lockStateSink?.inspectorLockStateChanged(this.#locked);
   }
 
   inspectActor(actorId: string | null): void {
@@ -120,7 +103,6 @@ export class InspectorContentComponent
 
   dispose(): void {
     this.enabled = false;
-    this.#registration.dispose();
   }
 
   private currentActiveActorId(): string | null {

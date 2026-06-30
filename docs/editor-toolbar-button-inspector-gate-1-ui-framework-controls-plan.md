@@ -1,8 +1,8 @@
 # Editor Toolbar Gate 1: UI Framework Controls Plan
 
-Status: planned  
-Date: 2026-06-30  
-Parent plan: `docs/editor-toolbar-button-inspector-lock-plan.md`  
+Status: completed
+Date: 2026-06-30
+Parent plan: `docs/editor-toolbar-button-inspector-lock-plan.md`
 Scope: `packages/ui-framework` only, except boundary tests in
 `apps/wallpaper-tesseract/src/architecture-boundaries.test.ts`.
 
@@ -437,3 +437,20 @@ Expected:
 - No Inspector/product-specific implementation appears in `ui-framework`.
 - No compatibility exports, root `ui-framework` imports, or duplicate generic
   button styling systems are introduced.
+
+## Completion Notes
+
+Completed on 2026-06-30.
+
+Validation:
+
+```text
+npm run test -w ui-framework -- theme button toggle toolbar fullscreenable-view
+npm run typecheck:test -w ui-framework
+npm run build -w ui-framework
+npm run test -w wallpaper-tesseract -- architecture-boundaries
+npm run typecheck -w wallpaper-tesseract
+npm run build -w wallpaper-tesseract
+```
+
+`wallpaper-tesseract` build retained only the existing Vite chunk size warning.

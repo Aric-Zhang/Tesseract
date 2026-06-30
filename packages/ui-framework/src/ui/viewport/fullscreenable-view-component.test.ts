@@ -20,12 +20,17 @@ class FakeDocument {
   createElement(tagName: string): FakeElement {
     return new FakeElement(this, tagName);
   }
+
+  createElementNS(_namespace: string, tagName: string): FakeElement {
+    return new FakeElement(this, tagName);
+  }
 }
 
 class FakeElement {
   readonly ownerDocument: FakeDocument;
   readonly tagName: string;
   readonly dataset: Record<string, string | undefined> = {};
+  readonly attributes = new Map<string, string>();
   readonly style: Record<string, string | undefined> = {};
   readonly children: FakeElement[] = [];
   parentElement: FakeElement | null = null;
@@ -35,6 +40,8 @@ class FakeElement {
   tabIndex = 0;
   ariaLabel: string | null = null;
   title = "";
+  disabled = false;
+  textContent = "";
   rect = createRect(0, 0, 0, 0);
 
   constructor(ownerDocument: FakeDocument, tagName: string) {
@@ -57,6 +64,18 @@ class FakeElement {
       this.parentElement.children.splice(index, 1);
     }
     this.parentElement = null;
+  }
+
+  setAttribute(name: string, value: string): void {
+    this.attributes.set(name, value);
+  }
+
+  getAttribute(name: string): string | null {
+    return this.attributes.get(name) ?? null;
+  }
+
+  removeAttribute(name: string): void {
+    this.attributes.delete(name);
   }
 
   getBoundingClientRect(): DOMRectReadOnly {
@@ -146,14 +165,18 @@ describe("FullscreenableViewComponent", () => {
     });
     const button = component.controlElement as unknown as FakeElement;
 
-    expect(button.dataset.uiFullscreenState).toBe("fullscreen");
+    expect(button.dataset.uiButton).toBe("true");
+    expect(button.dataset.uiButtonPressed).toBe("true");
     expect(button.ariaLabel).toBe("Restore view");
+    expect(button.children[0].tagName).toBe("svg");
 
     component.setFullscreen(false);
+    expect(button.dataset.uiButtonPressed).toBe("false");
+    expect(button.ariaLabel).toBe("Enter fullscreen");
+
     component.dispose();
     component.dispose();
 
-    expect(button.dataset.uiFullscreenState).toBe("windowed");
     expect(fixture.host.children).toEqual([]);
     expect(component.enabled).toBe(false);
   });

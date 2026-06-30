@@ -1,7 +1,7 @@
 # Editor Toolbar, Button, And Inspector Lock Plan
 
-Status: planned  
-Date: 2026-06-30  
+Status: completed
+Date: 2026-06-30
 Scope: two implementation gates plus one closure checklist. Gate 1 builds
 generic `ui-framework` toolbar/button/toggle controls and collapses existing
 button-like duplication. Gate 2 adopts those controls in `packages/editor`
@@ -118,19 +118,21 @@ This plan should be executed in at most three gates:
    Deliver reusable `ButtonComponent`, `ToggleButtonComponent`,
    `ToolbarComponent`, shared button renderer/state behavior, generic theme/CSS
    support, public `ui-framework/controls` exports, and
-   `FullscreenableViewComponent` button-rendering convergence. This gate has a
-   dedicated executable plan:
+   `FullscreenableViewComponent` button-rendering convergence. This gate is
+   complete. Its dedicated executable plan is:
    `docs/editor-toolbar-button-inspector-gate-1-ui-framework-controls-plan.md`.
 2. **Gate 2: Inspector Toolbar Adoption.**  
    Refactor Inspector into a root layout/content-registration component plus
    toolbar/body child actors. Add the visible lock toggle as a normal toolbar
    child actor using Gate 1 controls. Delete the old Inspector root text
-   rendering path.
+   rendering path. Its executable plan is:
+   `docs/editor-toolbar-button-inspector-gate-2-inspector-toolbar-lock-plan.md`.
 3. **Gate 3: Closure And Validation.**  
    No new feature work. Run broad validation, delete stale selectors/tests/docs,
    confirm grep/boundary gates, and update progress/defect docs. If Gate 2
    finishes cleanly, Gate 3 can be performed as Gate 2's final checklist rather
-   than a separate implementation checkpoint.
+   than a separate implementation checkpoint. Its executable plan is:
+   `docs/editor-toolbar-button-inspector-gate-3-closure-plan.md`.
 
 ## Design Decisions
 

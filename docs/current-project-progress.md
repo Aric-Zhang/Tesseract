@@ -251,10 +251,73 @@ temp/editor-gate-3-inspector-follow-smoke-data.json
 temp/editor-gate-3-inspector-follow-smoke-report.md
 ```
 
-Visible lock UI, Inspector property rows, component-specific inspectors,
-multi-selection property merging, range/Ctrl selection UX, persistent pinned
-Inspector state, and scene object picking remain ordinary follow-ups, not active
-architecture blockers.
+Inspector property rows, component-specific inspectors, multi-selection property
+merging, range/Ctrl selection UX, persistent pinned Inspector state, and scene
+object picking remain ordinary follow-ups, not active architecture blockers.
+
+## Editor Toolbar / Inspector Lock Plan
+
+`docs/editor-toolbar-button-inspector-lock-plan.md` is complete. It added
+visible Inspector lock UI and reusable toolbar/button controls without leaving
+the old Inspector content-registration path alive.
+
+Gate 1 is complete. `ui-framework/controls` now exposes generic
+`ButtonComponent`, `ToggleButtonComponent`, and `ToolbarComponent`.
+Button/toggle pointer activation uses actor-input, keyboard activation is
+generic Enter/Space behavior, toolbar refresh uses frame update attachment plus
+a signature guard, and `FullscreenableViewComponent` now reuses the shared
+package-private button renderer/state helper instead of maintaining a separate
+fullscreen-only button renderer. Gate 1 closure fixed the command/toggle ARIA
+split: ordinary `ButtonComponent` no longer emits `aria-pressed`, while
+`ToggleButtonComponent` and fullscreen controls opt into toggle pressed mode.
+The shared renderer remains package-private and is not exported through
+`ui-framework/controls`.
+
+Gate 1 executable plan:
+
+```text
+docs/editor-toolbar-button-inspector-gate-1-ui-framework-controls-plan.md
+```
+
+Gate 2 is complete. Inspector is now an Arbor subtree with a root
+`InspectorRootContentComponent` owning `WindowRegisteredContent`, a toolbar
+child actor using `ToolbarComponent`, a lock button child actor using
+`ToggleButtonComponent`, and a body child actor using `InspectorContentComponent`
+for selection follow/lock display only. `InspectorContentComponent` no longer
+registers window content, and direct `setLocked(...)` calls synchronize the
+toolbar toggle pressed state, icon, label, and title through the lock-state
+sink.
+
+Gate 2 executable plan:
+
+```text
+docs/editor-toolbar-button-inspector-gate-2-inspector-toolbar-lock-plan.md
+```
+
+Gate 2 browser smoke evidence:
+
+```text
+temp/editor-toolbar-gate-2-inspector-lock-smoke-data.json
+temp/editor-toolbar-gate-2-inspector-lock-smoke-report.md
+```
+
+Gate 3 is complete. It narrowed the remaining Inspector public barrel surface,
+removed indirect public exports for the Inspector actor factory handle and
+component definition installer, verified stale old-path deletion, generated
+fresh Gate 3 smoke evidence, and ran the broad validation matrix.
+
+Gate 3 executable plan:
+
+```text
+docs/editor-toolbar-button-inspector-gate-3-closure-plan.md
+```
+
+Gate 3 browser smoke evidence:
+
+```text
+temp/editor-toolbar-gate-3-closure-smoke-data.json
+temp/editor-toolbar-gate-3-closure-smoke-report.md
+```
 
 Current package graph baseline:
 

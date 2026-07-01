@@ -443,17 +443,29 @@ npm run dev -w wallpaper-tesseract -- --host 127.0.0.1
 EDITOR_INSPECTOR_WINDOW_SCROLL_SMOKE_URL=http://127.0.0.1:<port>/?resetWorkspaceLayout=1 node apps/wallpaper-tesseract/scripts/run-editor-inspector-window-scroll-ownership-smoke.mjs
 ```
 
-The next executable slice is Gate 4 hardening:
+Gate 4 hardening is complete:
 
 ```text
 docs/editor-inspector-component-details-gate-4-hardening-plan.md
 ```
 
-Gate 4 should not add a new Inspector architecture. Its purpose is lifecycle and
-QA hardening for the existing component/property path: component attach/detach,
+Gate 4 did not add a new Inspector architecture. It hardened the existing
+component/property path with targeted tests for component attach/detach,
 destroyed Actor missing state, stale property control cleanup, multi-Inspector
-sync, editable FOV robustness, boundary/public-surface audit, and final browser
-smoke evidence.
+sync, editable FOV robustness, and boundary/public-surface regression rules.
+
+Gate 4 browser smoke evidence:
+
+```text
+temp/editor-inspector-gate-4-hardening-smoke-data.json
+temp/editor-inspector-gate-4-hardening-smoke-report.md
+```
+
+The Gate 4 smoke proves FOV convergence across two Inspectors, invalid FOV
+rejection in both Inspectors, lock/follow split behavior, Inspector close/reopen
+without property-control actor leaks, zero property-control presentation actors
+in Hierarchy, Debug diagnostics visibility, Window menu usability, and Edit ->
+Theme submenu reachability.
 
 ## Editor Toolbar / Inspector Lock Plan
 

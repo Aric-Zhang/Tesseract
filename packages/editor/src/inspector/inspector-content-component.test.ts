@@ -62,13 +62,16 @@ describe("InspectorContentComponent", () => {
     expect(empty.element.dataset.inspectorState).toBe("empty");
     expect(empty.element.dataset.inspectorComponentCount).toBe("0");
 
+    const reconciler = new FakePropertyControlReconciler();
     const missing = createFixture(undefined, {
       initialLocked: true,
-      initialInspectedActorId: "deleted"
+      initialInspectedActorId: "deleted",
+      propertyControlReconciler: reconciler
     });
     expect(textOf(missing.element)).toBe("Missing actor: deleted");
     expect(missing.element.dataset.inspectorState).toBe("missing");
     expect(missing.element.dataset.inspectorComponentCount).toBe("0");
+    expect(reconciler.lastSpecs).toEqual([]);
   });
 
   it("renders actors with no components deterministically", () => {
@@ -261,6 +264,127 @@ describe("InspectorContentComponent", () => {
     fixture.inspector.updateFrame({} as never);
 
     expect(fakeElement.replaceChildrenCount).toBe(replaceCount + 1);
+  });
+
+  it("tracks component attach and detach without changing selection", () => {
+    const { actorSystem, registry, descriptorRegistry } = createActorFixture();
+    const actor = actorSystem.createActor({ id: "inspector:view" });
+    const scene = actorSystem.createActor({ id: "scene", name: "Scene View" });
+    const source = new MutableSelectionSource({
+      selectedActorIds: ["scene"],
+      activeActorId: "scene"
+    });
+    const fixture = createInspector(
+      actorSystem,
+      actor.id,
+      source,
+      createActorSystemInspectorActorDetailsSource(actorSystem, { descriptorRegistry })
+    );
+
+    expect(componentSections(fixture.element)).toHaveLength(0);
+    expect(textOf(fixture.element)).toContain("No components");
+
+    const first = registry.addComponent(scene, testComponentType, { id: "same-type-a", label: "a" });
+    registry.addComponent(scene, testComponentType, { id: "same-type-b", label: "b" });
+    fixture.inspector.updateFrame({} as never);
+
+    expect(componentSections(fixture.element).map((section) => section.dataset.inspectorComponentId)).toEqual([
+      "same-type-a",
+      "same-type-b"
+    ]);
+    expect(componentSections(fixture.element).map((section) => section.dataset.inspectorComponentType)).toEqual([
+      "test-component",
+      "test-component"
+    ]);
+
+    registry.removeComponent(scene, first);
+    fixture.inspector.updateFrame({} as never);
+
+    expect(componentSections(fixture.element).map((section) => section.dataset.inspectorComponentId)).toEqual([
+      "same-type-b"
+    ]);
+    expect(fixture.source.getSelectionSnapshot().activeActorId).toBe("scene");
+  });
+
+  it("clears editable property control specs when a property disappears", () => {
+    const { actorSystem, registry, descriptorRegistry } = createActorFixture();
+    const actor = actorSystem.createActor({ id: "inspector:view" });
+    const scene = actorSystem.createActor({ id: "scene", name: "Scene View" });
+    const component = registry.addComponent(scene, testComponentType, { id: "scene-component", label: "visible" });
+    descriptorRegistry.register({
+      componentType: "test-component",
+      readProperties(readComponent) {
+        const label = (readComponent as TestComponent).label;
+        return label === "visible"
+          ? [{
+              id: "fov",
+              label: "FOV",
+              value: "45.00 deg",
+              kind: "number",
+              edit: {
+                control: "number",
+                value: 45,
+                min: 1,
+                max: 120,
+                step: 0.1
+              }
+            }]
+          : [];
+      }
+    });
+    const reconciler = new FakePropertyControlReconciler();
+    const fixture = createInspector(
+      actorSystem,
+      actor.id,
+      new MutableSelectionSource({
+        selectedActorIds: ["scene"],
+        activeActorId: "scene"
+      }),
+      createActorSystemInspectorActorDetailsSource(actorSystem, { descriptorRegistry }),
+      { propertyControlReconciler: reconciler }
+    );
+
+    expect(reconciler.lastSpecs.map((spec) => spec.property.id)).toEqual(["fov"]);
+
+    component.label = "hidden";
+    fixture.inspector.updateFrame({} as never);
+
+    expect(reconciler.lastSpecs).toEqual([]);
+    expect(textOf(fixture.element)).toContain("No visible properties");
+  });
+
+  it("keeps two Inspectors converged when they inspect the same dynamic property", () => {
+    const { actorSystem, registry, descriptorRegistry } = createActorFixture();
+    actorSystem.createActor({ id: "inspector:a" });
+    actorSystem.createActor({ id: "inspector:b" });
+    const scene = actorSystem.createActor({ id: "scene", name: "Scene View" });
+    const component = registry.addComponent(scene, testComponentType, { id: "scene-component", label: "before" });
+    descriptorRegistry.register({
+      componentType: "test-component",
+      readProperties(readComponent) {
+        return [{
+          id: "label",
+          label: "Label",
+          value: (readComponent as TestComponent).label,
+          kind: "text"
+        }];
+      }
+    });
+    const source = new MutableSelectionSource({
+      selectedActorIds: ["scene"],
+      activeActorId: "scene"
+    });
+    const detailsSource = createActorSystemInspectorActorDetailsSource(actorSystem, { descriptorRegistry });
+    const first = createInspector(actorSystem, "inspector:a", source, detailsSource);
+    const second = createInspector(actorSystem, "inspector:b", source, detailsSource);
+
+    component.label = "after";
+    first.inspector.updateFrame({} as never);
+    second.inspector.updateFrame({} as never);
+
+    expect(textOf(first.element)).toContain("after");
+    expect(textOf(second.element)).toContain("after");
+    expect(first.source).toBe(second.source);
   });
 
   it("rehosts editable property control elements supplied by the property control reconciler", () => {

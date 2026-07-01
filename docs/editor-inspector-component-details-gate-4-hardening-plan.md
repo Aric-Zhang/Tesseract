@@ -1,6 +1,6 @@
 # Editor Inspector Component Details Gate 4: Hardening Plan
 
-Status: planned
+Status: completed
 
 Last updated: 2026-07-01
 
@@ -75,6 +75,37 @@ Inspectors, and windows are created/destroyed/updated repeatedly.
   editor-owned source of selection truth.
 - `NumberFieldComponent` native input events remain inside the generic control;
   Inspector-specific DOM input/click/change shortcuts stay forbidden.
+
+## Completion Evidence
+
+Gate 4 was completed after checkpoint commit `ebb03fa4`.
+
+Targeted validation:
+
+```text
+npm run test -w editor -- inspector
+npm run test -w wallpaper-tesseract -- architecture-boundaries
+npm run test -w ui-framework -- field number controls
+npm run build -w ui-framework
+npm run typecheck -w editor
+npm run typecheck -w wallpaper-tesseract
+npm run build -w editor
+npm run build -w wallpaper-tesseract
+EDITOR_INSPECTOR_GATE_4_SMOKE_URL=http://127.0.0.1:5178/?resetWorkspaceLayout=1 node apps/wallpaper-tesseract/scripts/run-editor-inspector-gate-4-hardening-smoke.mjs
+```
+
+Browser evidence:
+
+```text
+temp/editor-inspector-gate-4-hardening-smoke-data.json
+temp/editor-inspector-gate-4-hardening-smoke-report.md
+```
+
+The smoke proves two Inspector convergence for FOV, invalid FOV rejection in
+both Inspectors, lock/follow split behavior, Inspector close/reopen without
+property-control actor leaks, zero property-control presentation actors in
+Hierarchy, Debug diagnostics visibility, Window menu usability, and Edit ->
+Theme submenu reachability.
 
 ## Entry Gates
 

@@ -1,8 +1,15 @@
 # Editor Inspector Component Details Plan
 
-Status: planned
+Status: initial slice complete
 
 Last updated: 2026-07-01
+
+Initial Inspector development is complete as an architecture and first-feature
+slice. The current chain supports selected Actor details, Component sections,
+read-only descriptor properties, editable Camera3 FOV through a generic
+NumberField, and Gate 4 lifecycle hardening. Future Inspector work should add
+new descriptors/property kinds on top of this architecture rather than changing
+the ownership model.
 
 ## Purpose
 
@@ -518,6 +525,8 @@ Exit:
 
 ## Gate 4: Hardening
 
+Status: complete
+
 Purpose: make the feature stable enough to extend.
 
 Detailed execution plan:
@@ -548,6 +557,13 @@ Work:
    - edit FOV;
    - verify Scene changes and Inspector displays committed value;
    - verify Debug diagnostics and dock/menu interactions still work.
+
+Completion evidence:
+
+```text
+temp/editor-inspector-gate-4-hardening-smoke-data.json
+temp/editor-inspector-gate-4-hardening-smoke-report.md
+```
 
 Exit:
 

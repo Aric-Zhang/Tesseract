@@ -100,6 +100,56 @@ describe("InspectorPropertyControlActorReconciler", () => {
     expect(fixture.actorSystem.listChildren(parent).filter(isInspectorPropertyControlActor)).toHaveLength(1);
     expect(numberField?.value).toBe(80);
   });
+
+  it("destroys stale control actors and prevents disposed controls from submitting edits", () => {
+    const fixture = createFixture();
+    const parent = fixture.actorSystem.createActor({ id: "inspector:body" });
+    const targetActor = fixture.actorSystem.createActor({ id: "camera" });
+    const target = fixture.componentRegistry.addComponent(targetActor, editableTestComponentType, {
+      id: "camera-motion",
+      value: 45
+    });
+    const controller = new InspectorPropertyEditController({
+      descriptorRegistry: fixture.descriptorRegistry,
+      targetSource: {
+        getEditableComponent(actorId, componentId) {
+          const actor = fixture.actorSystem.getActor(actorId);
+          const component = actor?.listComponents().find((candidate) => candidate.id === componentId) ?? null;
+          return component ? { component, componentType: component.type } : null;
+        }
+      }
+    });
+    fixture.descriptorRegistry.register({
+      componentType: editableTestComponentType,
+      applyEdit(component, request) {
+        (component as EditableTestComponent).value = request.value;
+        return { accepted: true };
+      }
+    });
+    const reconciler = new InspectorPropertyControlActorReconciler({
+      context: fixture.context,
+      parentActor: parent,
+      editController: controller,
+      document: fixture.document as unknown as Document
+    });
+
+    reconciler.reconcile([createEditableSpec(45)]);
+    const controlActor = fixture.actorSystem.listChildren(parent).find(isInspectorPropertyControlActor)!;
+    const numberField = fixture.componentRegistry.getComponent(controlActor, numberFieldComponentType)!;
+    const staleInput = numberField.inputElement as unknown as FakeInputElement;
+
+    reconciler.reconcile([]);
+    staleInput.value = "88";
+    staleInput.dispatch("input");
+    staleInput.dispatch("change", { timeStamp: 12 });
+    controller.updateFrame({} as never);
+
+    expect(fixture.actorSystem.listChildren(parent).filter(isInspectorPropertyControlActor)).toEqual([]);
+    expect(fixture.componentRegistry.getComponent(targetActor, editableTestComponentType)).toBe(target);
+    expect(target.value).toBe(45);
+    expect(controller.pendingCount).toBe(0);
+    expect(controller.lastApplied).toEqual([]);
+  });
 });
 
 function createFixture(): {

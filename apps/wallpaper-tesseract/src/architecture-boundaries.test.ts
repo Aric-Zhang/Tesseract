@@ -2893,6 +2893,14 @@ describe("architecture boundaries", () => {
       .filter(([, source]) => /\bInspectorActorDisplaySource\b|\bcreateActorSystemInspectorActorDisplaySource\b/.test(source))
       .map(([file]) => file)
       .sort();
+    const noOpDescriptorInstallerCompatibility = Object.entries(productionSources)
+      .filter(([, source]) => /\binstallEditorInspectorComponentDescriptors\b/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const activeObjectCompatibility = Object.entries(productionSources)
+      .filter(([, source]) => /\bselection\.activeObject\b/.test(source))
+      .map(([file]) => file)
+      .sort();
     const appProductionSources = Object.fromEntries(
       Object.entries(sourceFiles)
         .filter(([file]) => !file.endsWith(".test.ts"))
@@ -2914,6 +2922,8 @@ describe("architecture boundaries", () => {
     expect(propertyEditControllerForbiddenOccurrences).toEqual([]);
     expect(frameCommandBatchDefinitions).toEqual([]);
     expect(displaySourceCompatibility).toEqual([]);
+    expect(noOpDescriptorInstallerCompatibility).toEqual([]);
+    expect(activeObjectCompatibility).toEqual([]);
     expect(descriptorBridgeFiles).toEqual([
       "./features/inspector/install-wallpaper-inspector-descriptors.ts"
     ]);

@@ -37,6 +37,8 @@ import type {
 export const windowFrameSurfaceComponentType =
   "window-frame-surface-component" as ComponentType<WindowFrameSurfaceComponent>;
 
+const windowContentScrollViewportClassName = "ui-window-content-scroll-viewport";
+
 export interface WindowFrameSurfaceComponentOptions {
   readonly id?: string;
 }
@@ -74,6 +76,7 @@ export type WindowFrameSurfaceHitPart =
   | "tab"
   | "tab-action"
   | "splitter"
+  | "content-scrollbar"
   | "content";
 
 export interface WindowFrameSurfaceHit {
@@ -113,6 +116,7 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
   enabled = true;
 
   readonly #contentByContentId = new Map<WindowWorkspaceContentId, WindowRegisteredContent>();
+  readonly #contentViewportByContentId = new Map<WindowWorkspaceContentId, HTMLElement>();
   readonly #contentStateByContentId = new Map<WindowWorkspaceContentId, WindowFrameSurfaceContentState>();
   readonly #viewActorIdByContentId = new Map<WindowWorkspaceContentId, string>();
   readonly #contentIdByViewActorId = new Map<string, WindowWorkspaceContentId>();
@@ -208,6 +212,8 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
   removeContent(contentId: WindowWorkspaceContentId): void {
     const content = this.#contentByContentId.get(contentId);
     content?.setInteractable(false);
+    this.#contentViewportByContentId.get(contentId)?.remove();
+    this.#contentViewportByContentId.delete(contentId);
     content?.element.remove();
     this.#contentByContentId.delete(contentId);
     this.#contentStateByContentId.delete(contentId);
@@ -253,6 +259,7 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     }
     const splitter = this.findSplitterAtPoint(point);
     if (splitter) return { part: "splitter", hitPriority: 90, data: splitter };
+    if (this.findContentScrollbarAtPoint(point)) return { part: "content-scrollbar", hitPriority: 2 };
     if (this.hasInteractableContent()) return { part: "content", hitPriority: 1 };
     return null;
   }
@@ -411,20 +418,26 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
       interactable: explicitState?.interactable ?? snapshotState.interactable
     };
     const effectiveInteractable = this.isEffectiveVisible() && state.interactable;
+    const viewport = this.#contentViewportByContentId.get(contentId);
     content.setInteractable(effectiveInteractable);
-    content.element.hidden = !effectiveInteractable;
+    if (viewport) viewport.hidden = !effectiveInteractable;
     commitWindowRegisteredContentLayout(content, this.createLayoutCommit(state, content, effectiveInteractable));
   }
 
   private appendContentElement(contentId: WindowWorkspaceContentId, element: HTMLElement): void {
     const tabset = this.findTabsetContainingContentId(contentId);
     const target = tabset ? this.#tabsetTargetsById.get(tabset.id) : null;
+    const viewport = this.getOrCreateContentViewport(contentId);
     if (!target) {
-      element.hidden = true;
-      element.remove();
+      viewport.hidden = true;
+      viewport.remove();
       return;
     }
-    target.content.append(element);
+    viewport.hidden = false;
+    if (element.parentElement !== viewport) {
+      viewport.append(element);
+    }
+    target.content.append(viewport);
   }
 
   private placeContentElements(): void {
@@ -436,6 +449,28 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
   private isContentInteractable(contentId: WindowWorkspaceContentId): boolean {
     const content = this.#contentByContentId.get(contentId);
     return Boolean(content?.interactable && this.isEffectiveVisible());
+  }
+
+  private getOrCreateContentViewport(contentId: WindowWorkspaceContentId): HTMLElement {
+    const existing = this.#contentViewportByContentId.get(contentId);
+    if (existing) return existing;
+    const host = this.requireHost();
+    const viewport = host.document.createElement("div");
+    viewport.className = windowContentScrollViewportClassName;
+    viewport.dataset.uiWindowContentScrollViewport = "true";
+    viewport.dataset.uiWindowContentId = contentId;
+    viewport.style.overflowX = "auto";
+    viewport.style.overflowY = "auto";
+    this.#contentViewportByContentId.set(contentId, viewport);
+    return viewport;
+  }
+
+  private findContentScrollbarAtPoint(point: UiPoint): HTMLElement | null {
+    for (const [contentId, viewport] of this.#contentViewportByContentId) {
+      if (!this.isContentInteractable(contentId)) continue;
+      if (isPointInNativeScrollbarGutter(point, viewport)) return viewport;
+    }
+    return null;
   }
 
   private findTabAtPoint(point: UiPoint): WindowFrameTab | null {
@@ -557,9 +592,12 @@ export class WindowFrameSurfaceComponent implements Component, WindowWorkspaceGr
     interactable: boolean
   ): WindowContentLayoutCommit {
     const target = state.tabsetId ? this.#tabsetTargetsById.get(state.tabsetId) : null;
-    const contentRect = target
-      ? toLayoutCommitRect(target.content.getBoundingClientRect())
-      : toLayoutCommitRect(content.element.getBoundingClientRect());
+    const viewport = this.#contentViewportByContentId.get(state.contentId);
+    const contentRect = viewport
+      ? toLayoutCommitRect(viewport.getBoundingClientRect())
+      : target
+        ? toLayoutCommitRect(target.content.getBoundingClientRect())
+        : toLayoutCommitRect(content.element.getBoundingClientRect());
     return {
       surfaceId: this.id,
       contentId: state.contentId,
@@ -724,6 +762,24 @@ function isPointInsideRect(point: UiPoint, rect: DOMRectReadOnly): boolean {
     point.x <= rect.right &&
     point.y >= rect.top &&
     point.y <= rect.bottom;
+}
+
+function isPointInNativeScrollbarGutter(point: UiPoint, element: HTMLElement): boolean {
+  const rect = element.getBoundingClientRect();
+  if (!isPointInsideRect(point, rect)) return false;
+  const verticalGutterWidth = Math.max(0, element.offsetWidth - element.clientWidth);
+  const horizontalGutterHeight = Math.max(0, element.offsetHeight - element.clientHeight);
+  const hasVerticalOverflow = element.scrollHeight > element.clientHeight;
+  const hasHorizontalOverflow = element.scrollWidth > element.clientWidth;
+  const inVerticalGutter = hasVerticalOverflow &&
+    verticalGutterWidth > 0 &&
+    point.x >= rect.right - verticalGutterWidth &&
+    point.x <= rect.right;
+  const inHorizontalGutter = hasHorizontalOverflow &&
+    horizontalGutterHeight > 0 &&
+    point.y >= rect.bottom - horizontalGutterHeight &&
+    point.y <= rect.bottom;
+  return inVerticalGutter || inHorizontalGutter;
 }
 
 function removeElementChildren(element: HTMLElement): void {

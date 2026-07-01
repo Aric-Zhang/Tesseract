@@ -1,13 +1,14 @@
 import type * as THREE from "three";
-import type {
-  RuntimeCameraId,
-  RuntimeCameraCommandSink,
-  RuntimeCameraControlCommand,
-  RuntimeCameraProjectionMode,
-  RuntimeCameraState,
-  RuntimeCameraViewState,
-  RuntimeFrame,
-  RuntimeRegistration
+import {
+  runtimeCameraProjectionFovConstraints,
+  type RuntimeCameraId,
+  type RuntimeCameraCommandSink,
+  type RuntimeCameraControlCommand,
+  type RuntimeCameraProjectionMode,
+  type RuntimeCameraState,
+  type RuntimeCameraViewState,
+  type RuntimeFrame,
+  type RuntimeRegistration
 } from "runtime-core";
 import { RuntimeThreeOrbitCamera } from "./runtime-three-orbit-camera";
 
@@ -181,6 +182,9 @@ export class RuntimeThreeCameraMotionController implements RuntimeCameraCommandS
         this.activeOrbitDragSession = null;
         this.runtimeCamera.setProjectionMode(command.mode);
         return;
+      case "set-projection-fov":
+        this.runtimeCamera.setProjectionFov(command.fov);
+        return;
     }
   }
 
@@ -225,6 +229,9 @@ function validateCommand(command: RuntimeCameraControlCommand): void {
       return;
     case "set-projection-mode":
       return;
+    case "set-projection-fov":
+      assertProjectionFov(command.fov, "set-projection-fov.fov");
+      return;
   }
 }
 
@@ -237,6 +244,14 @@ function assertFinite(value: number, label: string): void {
 function assertNonEmptyString(value: string, label: string): void {
   if (value.length === 0) {
     throw new Error(`RuntimeThreeCameraMotionController ${label} must be non-empty.`);
+  }
+}
+
+function assertProjectionFov(value: number, label: string): void {
+  assertFinite(value, label);
+  const { min, max } = runtimeCameraProjectionFovConstraints;
+  if (value < min || value > max) {
+    throw new Error(`RuntimeThreeCameraMotionController ${label} must be between ${min} and ${max}.`);
   }
 }
 

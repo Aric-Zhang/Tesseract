@@ -261,31 +261,37 @@
   opacity: 1;
 }
 
-.ui-scroll-view {
+.ui-scroll-view,
+.ui-window-content-scroll-viewport {
   min-width: 0;
   min-height: 0;
   width: 100%;
   height: 100%;
   scrollbar-color: var(--ui-scrollbar-thumb) var(--ui-scrollbar-track);
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
 
-.ui-scroll-view::-webkit-scrollbar {
+.ui-scroll-view::-webkit-scrollbar,
+.ui-window-content-scroll-viewport::-webkit-scrollbar {
   width: var(--ui-scrollbar-size);
   height: var(--ui-scrollbar-size);
 }
 
-.ui-scroll-view::-webkit-scrollbar-track {
+.ui-scroll-view::-webkit-scrollbar-track,
+.ui-window-content-scroll-viewport::-webkit-scrollbar-track {
   background: var(--ui-scrollbar-track);
 }
 
-.ui-scroll-view::-webkit-scrollbar-thumb {
+.ui-scroll-view::-webkit-scrollbar-thumb,
+.ui-window-content-scroll-viewport::-webkit-scrollbar-thumb {
   border: 3px solid var(--ui-scrollbar-track);
   border-radius: var(--ui-radius-control);
   background: var(--ui-scrollbar-thumb);
 }
 
-.ui-scroll-view::-webkit-scrollbar-thumb:hover {
+.ui-scroll-view::-webkit-scrollbar-thumb:hover,
+.ui-window-content-scroll-viewport::-webkit-scrollbar-thumb:hover {
   background: var(--ui-scrollbar-thumb-hover);
 }
 
@@ -440,4 +446,39 @@
 .ui-virtual-list-view__row[data-ui-virtual-list-selected="true"] {
   background: var(--ui-color-selected-bg);
   color: var(--ui-color-text-selected);
+}
+
+.ui-number-field {
+  box-sizing: border-box;
+  display: block;
+  min-width: 0;
+  color: var(--ui-color-text);
+  font: var(--ui-font-size)/var(--ui-line-height) var(--ui-font-family);
+}
+
+.ui-number-field__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 22px;
+  padding: 2px 6px;
+  border: var(--ui-border-width) solid var(--ui-border-color);
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  font: inherit;
+}
+
+.ui-number-field__input:focus {
+  outline: var(--ui-border-width) solid var(--ui-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.ui-number-field[data-ui-number-field-invalid="true"] .ui-number-field__input {
+  border-color: var(--ui-color-accent);
+}
+
+.ui-number-field__input:disabled,
+.ui-number-field__input[readonly] {
+  color: var(--ui-color-text-muted);
 }

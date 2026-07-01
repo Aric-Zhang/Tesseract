@@ -100,6 +100,7 @@ type FloatingWindowPartId =
   | typeof WINDOW_FRAME_TAB_ACTION_PART_ID
   | "splitter"
   | "titlebar-empty"
+  | "window-content-scrollbar"
   | "window-content"
   | "close"
   | "resize-left"
@@ -121,6 +122,19 @@ type ResizeHandleClass =
   | "bottom-left"
   | "bottom-right";
 
+type FloatingWindowHitSemanticClass =
+  | "visible-content-control"
+  | "explicit-chrome-control"
+  | "resize-affordance"
+  | "chrome-background"
+  | "ordinary-content";
+
+interface FloatingWindowHitCandidate {
+  readonly semanticClass: FloatingWindowHitSemanticClass;
+  readonly hit: ActorInputHit;
+  readonly order: number;
+}
+
 interface FloatingWindowStateBinding {
   readonly kind: "persistent" | "runtime";
   readonly paths: FloatingWindowParameterPaths | null;
@@ -132,6 +146,14 @@ interface FloatingWindowStateBinding {
 }
 
 const FLOATING_WINDOW_SPLIT_MIN_PANE_SIZE = 80;
+
+const FLOATING_WINDOW_HIT_CLASS_PRIORITY: Record<FloatingWindowHitSemanticClass, number> = {
+  "visible-content-control": 500,
+  "explicit-chrome-control": 400,
+  "resize-affordance": 300,
+  "chrome-background": 200,
+  "ordinary-content": 100
+};
 
 export class FloatingWindowComponent
   implements Component, WindowFramePort, ActorInputParticipant, StateObserverResponder {
@@ -390,54 +412,68 @@ export class FloatingWindowComponent
   hitTestInput(point: ScreenPoint): ActorInputHit | null {
     if (!this.effectiveVisible) return null;
     if (this.#presentation === "fullscreen") return null;
-    if (!isPointInsideRect(point, this.#rootElement.getBoundingClientRect())) return null;
+    if (
+      !isPointInsideRect(point, this.#rootElement.getBoundingClientRect()) &&
+      !isPointInsideResizeHandles(point, this.#resizeHandles)
+    ) {
+      return null;
+    }
+    const candidates: FloatingWindowHitCandidate[] = [];
+    let order = 0;
+    const addCandidate = (semanticClass: FloatingWindowHitSemanticClass, hit: ActorInputHit): void => {
+      candidates.push({ semanticClass, hit, order });
+      order += 1;
+    };
     if (isPointInsideRect(point, this.#closeButton.getBoundingClientRect())) {
-      return this.createHit("close", 50);
-    }
-    if (isPointInsideRect(point, this.#resizeHandles["top-left"].getBoundingClientRect())) {
-      return this.createHit("resize-top-left", 40);
-    }
-    if (isPointInsideRect(point, this.#resizeHandles["top-right"].getBoundingClientRect())) {
-      return this.createHit("resize-top-right", 40);
-    }
-    if (isPointInsideRect(point, this.#resizeHandles["bottom-left"].getBoundingClientRect())) {
-      return this.createHit("resize-bottom-left", 40);
-    }
-    if (isPointInsideRect(point, this.#resizeHandles["bottom-right"].getBoundingClientRect())) {
-      return this.createHit("resize-bottom-right", 40);
-    }
-    if (isPointInsideRect(point, this.#resizeHandles.left.getBoundingClientRect())) {
-      return this.createHit("resize-left", 30);
-    }
-    if (isPointInsideRect(point, this.#resizeHandles.right.getBoundingClientRect())) {
-      return this.createHit("resize-right", 30);
-    }
-    if (isPointInsideRect(point, this.#resizeHandles.top.getBoundingClientRect())) {
-      return this.createHit("resize-top", 30);
-    }
-    if (isPointInsideRect(point, this.#resizeHandles.bottom.getBoundingClientRect())) {
-      return this.createHit("resize-bottom", 30);
+      addCandidate("explicit-chrome-control", this.createHit("close", 50));
     }
     const surfaceHit = this.#surface.hitTest(point);
+    if (surfaceHit?.part === "content-scrollbar") {
+      addCandidate("visible-content-control", this.createContentScrollbarHit());
+    }
+    if (isPointInsideRect(point, this.#resizeHandles["top-left"].getBoundingClientRect())) {
+      addCandidate("resize-affordance", this.createHit("resize-top-left", 40));
+    }
+    if (isPointInsideRect(point, this.#resizeHandles["top-right"].getBoundingClientRect())) {
+      addCandidate("resize-affordance", this.createHit("resize-top-right", 40));
+    }
+    if (isPointInsideRect(point, this.#resizeHandles["bottom-left"].getBoundingClientRect())) {
+      addCandidate("resize-affordance", this.createHit("resize-bottom-left", 40));
+    }
+    if (isPointInsideRect(point, this.#resizeHandles["bottom-right"].getBoundingClientRect())) {
+      addCandidate("resize-affordance", this.createHit("resize-bottom-right", 40));
+    }
+    if (isPointInsideRect(point, this.#resizeHandles.left.getBoundingClientRect())) {
+      addCandidate("resize-affordance", this.createHit("resize-left", 30));
+    }
+    if (isPointInsideRect(point, this.#resizeHandles.right.getBoundingClientRect())) {
+      addCandidate("resize-affordance", this.createHit("resize-right", 30));
+    }
+    if (isPointInsideRect(point, this.#resizeHandles.top.getBoundingClientRect())) {
+      addCandidate("resize-affordance", this.createHit("resize-top", 30));
+    }
+    if (isPointInsideRect(point, this.#resizeHandles.bottom.getBoundingClientRect())) {
+      addCandidate("resize-affordance", this.createHit("resize-bottom", 30));
+    }
     if (surfaceHit?.part === "tab-action") {
-      return this.createHit(WINDOW_FRAME_TAB_ACTION_PART_ID, 25, surfaceHit.data);
+      addCandidate("explicit-chrome-control", this.createHit(WINDOW_FRAME_TAB_ACTION_PART_ID, 25, surfaceHit.data));
     }
     if (surfaceHit?.part === "tab") {
-      return this.createHit(WINDOW_FRAME_TAB_PART_ID, 20, surfaceHit.data);
+      addCandidate("explicit-chrome-control", this.createHit(WINDOW_FRAME_TAB_PART_ID, 20, surfaceHit.data));
     }
     if (isPointInsideRect(point, this.#titlebar.getBoundingClientRect())) {
-      return this.createHit("titlebar-empty", 20);
+      addCandidate("chrome-background", this.createHit("titlebar-empty", 20));
     }
     if (surfaceHit?.part === "splitter") {
-      return this.createHit("splitter", 15, surfaceHit.data);
+      addCandidate("explicit-chrome-control", this.createHit("splitter", 15, surfaceHit.data));
     }
     if (
       isPointInsideRect(point, this.#contentSlot.getBoundingClientRect()) &&
       surfaceHit?.part === "content"
     ) {
-      return this.createContentHit();
+      addCandidate("ordinary-content", this.createContentHit());
     }
-    return null;
+    return chooseFloatingWindowHit(candidates);
   }
 
   onInputStart(_event: ActorInputStartEvent): void {
@@ -608,6 +644,23 @@ export class FloatingWindowComponent
     };
   }
 
+  private createContentScrollbarHit(): ActorInputHit {
+    return {
+      componentId: this.id,
+      partId: "window-content-scrollbar",
+      kind: "control",
+      region: "content-control",
+      scopeRoutePriority: actorInputScopeRoutePriority.contentControl,
+      localRoutePriority: 100,
+      hitPriority: 2,
+      path: [{
+        componentId: this.id,
+        role: "surface",
+        partId: "window-content-scrollbar"
+      }]
+    };
+  }
+
   private applyEffectivePriority(): void {
     this.#rootElement.style.zIndex = String(this.#effectivePriority);
   }
@@ -752,6 +805,35 @@ function isPointInsideRect(point: ScreenPoint, rect: DOMRectReadOnly): boolean {
   return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
 }
 
+function isPointInsideResizeHandles(
+  point: ScreenPoint,
+  handles: Readonly<Record<ResizeHandleClass, HTMLElement>>
+): boolean {
+  return Object.values(handles).some((handle) => isPointInsideRect(point, handle.getBoundingClientRect()));
+}
+
+function chooseFloatingWindowHit(candidates: readonly FloatingWindowHitCandidate[]): ActorInputHit | null {
+  let winner: FloatingWindowHitCandidate | null = null;
+  for (const candidate of candidates) {
+    if (!winner || compareFloatingWindowHitCandidate(candidate, winner) > 0) {
+      winner = candidate;
+    }
+  }
+  return winner?.hit ?? null;
+}
+
+function compareFloatingWindowHitCandidate(
+  candidate: FloatingWindowHitCandidate,
+  current: FloatingWindowHitCandidate
+): number {
+  const classDelta = FLOATING_WINDOW_HIT_CLASS_PRIORITY[candidate.semanticClass] -
+    FLOATING_WINDOW_HIT_CLASS_PRIORITY[current.semanticClass];
+  if (classDelta !== 0) return classDelta;
+  const hitPriorityDelta = (candidate.hit.hitPriority ?? 0) - (current.hit.hitPriority ?? 0);
+  if (hitPriorityDelta !== 0) return hitPriorityDelta;
+  return current.order - candidate.order;
+}
+
 function isResizePart(partId: FloatingWindowPartId): partId is Exclude<
   FloatingWindowPartId,
   typeof WINDOW_FRAME_TAB_PART_ID |
@@ -759,6 +841,7 @@ function isResizePart(partId: FloatingWindowPartId): partId is Exclude<
   "splitter" |
   "titlebar-empty" |
   "close" |
+  "window-content-scrollbar" |
   "window-content"
 > {
   return partId.startsWith("resize-");

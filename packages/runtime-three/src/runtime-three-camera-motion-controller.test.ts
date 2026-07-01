@@ -78,6 +78,27 @@ describe("RuntimeThreeCameraMotionController", () => {
     expect(controller.cameraState.projection?.mode).toBe("perspective");
   });
 
+  it("sets projection FOV through commands with last queued value winning", () => {
+    const controller = createController();
+
+    controller.submit({ type: "set-projection-fov", source: "inspector", fov: 50 });
+    controller.submit({ type: "set-projection-fov", source: "inspector", fov: 70 });
+    const result = controller.update(frame);
+
+    expect(result).toEqual({ changed: true, commandCount: 2 });
+    expect(controller.cameraState.projection?.fov).toBe(70);
+    expect((controller.getRuntimeThreeCameraForRender() as THREE.PerspectiveCamera).fov).toBe(70);
+  });
+
+  it("rejects invalid projection FOV commands at submit time", () => {
+    const controller = createController();
+
+    expect(() => controller.submit({ type: "set-projection-fov", source: "inspector", fov: 0 }))
+      .toThrow(/between 1 and 120/);
+    expect(() => controller.submit({ type: "set-projection-fov", source: "inspector", fov: Number.NaN }))
+      .toThrow(/finite/);
+  });
+
   it("resizes projection through runtime camera state", () => {
     const controller = createController();
 
@@ -88,6 +109,17 @@ describe("RuntimeThreeCameraMotionController", () => {
     expect(controller.cameraState.projection?.viewport).toEqual({ width: 640, height: 320 });
     expect(controller.cameraState.projection?.orthographicHeight).toBeGreaterThan(0);
     expect(controller.getRuntimeThreeCameraForRender()).toBeInstanceOf(THREE.OrthographicCamera);
+  });
+
+  it("recomputes orthographic height when FOV changes after resize", () => {
+    const controller = createController();
+
+    controller.resizeProjection(640, 320);
+    const before = controller.cameraState.projection?.orthographicHeight ?? 0;
+    controller.submit({ type: "set-projection-fov", source: "inspector", fov: 70 });
+    controller.update(frame);
+
+    expect(controller.cameraState.projection?.orthographicHeight).toBeGreaterThan(before);
   });
 
   it("snaps to axis targets with stable yaw and pitch semantics", () => {

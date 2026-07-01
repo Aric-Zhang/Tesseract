@@ -381,6 +381,38 @@ describe("GizmoEventSystem active interaction lifecycle", () => {
     system.dispose();
   });
 
+  it("does not prevent default browser focus for actor-input content-control hits", () => {
+    const target = new FakeEventTarget();
+    const system = new GizmoEventSystem({ target: target as unknown as EventTarget });
+    const onGizmoStart = vi.fn();
+    system.register({
+      ...createGizmo("a", {
+        hit: {
+          ...createHit("a", "number-field"),
+          data: {
+            actorInputHit: {
+              componentId: "number-field",
+              partId: "number-field",
+              kind: "control",
+              region: "content-control",
+              localRoutePriority: 0,
+              path: []
+            }
+          }
+        }
+      }),
+      onGizmoStart
+    });
+    const down = createPointerEvent({ clientX: 20, clientY: 30, timeStamp: 10 });
+
+    target.dispatchPointer("pointerdown", down);
+
+    expect(onGizmoStart).toHaveBeenCalledOnce();
+    expect(down.defaultPrevented).toBe(false);
+
+    system.dispose();
+  });
+
   it("dispatches start, move, and end from the mouse fallback path", () => {
     const target = new FakeEventTarget();
     const system = new GizmoEventSystem({

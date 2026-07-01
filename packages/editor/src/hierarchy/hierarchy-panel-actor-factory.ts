@@ -1,5 +1,5 @@
 import { createRegisteredActor, type Actor, type ActorCreationContext, type RegisteredActor } from "actor-system/core";
-import { scrollViewComponentType, treeViewComponentType } from "ui-framework/controls";
+import { treeViewComponentType } from "ui-framework/controls";
 import { uiElementComponentType } from "ui-framework/actor-ui";
 import { type WindowContentRegistrationPort } from "ui-framework/window";
 import {
@@ -36,9 +36,6 @@ export function createHierarchyPanelViewActor(
     context.componentRegistry.addComponent(actor, uiElementComponentType, {
       className: "hierarchy-panel",
       document: options.document
-    });
-    context.componentRegistry.addComponent(actor, scrollViewComponentType, {
-      orientation: "vertical"
     });
     context.componentRegistry.addComponent(actor, treeViewComponentType);
     const component = context.componentRegistry.addComponent(actor, hierarchyPanelComponentType, {

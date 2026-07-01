@@ -41,6 +41,9 @@ export type {
   RuntimeCameraOrbitState,
   RuntimeCameraState
 } from "./runtime-camera";
+export {
+  runtimeCameraProjectionFovConstraints
+} from "./runtime-camera-control";
 export type {
   RuntimeCameraCommandSink,
   RuntimeCameraControlCommand,
@@ -49,6 +52,7 @@ export type {
   RuntimeCameraOrbitDragEndCommand,
   RuntimeCameraOrbitDragEndReason,
   RuntimeCameraOrbitDragStartCommand,
+  RuntimeCameraSetProjectionFovCommand,
   RuntimeCameraSetProjectionModeCommand,
   RuntimeCameraSnapAxisCommand,
   RuntimeCameraToggleProjectionCommand,

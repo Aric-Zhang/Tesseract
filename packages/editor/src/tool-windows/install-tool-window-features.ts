@@ -17,6 +17,7 @@ import {
   registerHierarchyPanelParameters,
   type HierarchyPanelInitialState
 } from "../hierarchy";
+import { isInspectorPropertyControlActorId } from "../inspector/inspector-property-control-actor-reconciler";
 import type { AppStateParameterStore } from "../app-state-store";
 import { editorWindowLayoutPaths } from "../window-layout-state";
 import type { ActorCreationContext } from "actor-system/core";
@@ -105,7 +106,8 @@ export function installToolWindowFeatures(options: InstallToolWindowFeaturesOpti
     includeActor: (actor) => (
       actor.id !== HIERARCHY_PANEL_ACTOR_ID &&
       actor.id !== HIERARCHY_PANEL_VIEW_ACTOR_ID &&
-      !isHierarchyTreeItemActorId(actor.id)
+      !isHierarchyTreeItemActorId(actor.id) &&
+      !isInspectorPropertyControlActorId(actor.id)
     )
   });
   options.viewFactories.register({

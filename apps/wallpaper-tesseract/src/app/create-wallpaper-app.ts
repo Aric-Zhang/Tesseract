@@ -10,6 +10,9 @@ import {
 import { installActorInputComponentDefinitions } from "actor-system/input";
 import {
   AppFrameStateController,
+  createActorSystemInspectorPropertyEditTargetSource,
+  createInspectorComponentDescriptorRegistry,
+  InspectorPropertyEditController,
   installEditorSelectionProvider,
   installInspectorFeature,
   installInspectorWorkspacePolicy,
@@ -62,6 +65,7 @@ import {
   installSceneRunModeCommand,
   installSceneRunModeState
 } from "../features/scene-run-mode-command";
+import { installWallpaperInspectorDescriptors } from "../features/inspector/install-wallpaper-inspector-descriptors";
 import { installSceneIntegrationComponentDefinitions } from "../features/scene/components";
 import { createWallpaperAppShell } from "./app-shell";
 import { ImmediateUpdateScheduler } from "./immediate-update-scheduler";
@@ -108,6 +112,8 @@ function createWallpaperAppRuntime(
   };
   const scenePolicy = installSceneWorkspacePolicy(appStateStore);
   const inspectorPolicy = installInspectorWorkspacePolicy();
+  const inspectorDescriptorRegistry = createInspectorComponentDescriptorRegistry();
+  installWallpaperInspectorDescriptors(inspectorDescriptorRegistry);
   const toolWindowPolicy = installToolWindowWorkspacePolicy(appStateStore);
   installSceneRunModeState(appStateStore);
   const floatingFramePolicies = new Map([
@@ -121,6 +127,8 @@ function createWallpaperAppRuntime(
   ];
 
   let selectionProviderRegistration: ReturnType<typeof installEditorSelectionProvider> | null = null;
+  let inspectorPropertyEditController: InspectorPropertyEditController | null = null;
+  let inspectorPropertyEditRegistration: { dispose(): void } | null = null;
   try {
   let isUpdatingFrame = false;
   const immediateUpdates = new ImmediateUpdateScheduler({
@@ -155,6 +163,10 @@ function createWallpaperAppRuntime(
     })
   });
   const actorSystem = new ActorSystem();
+  inspectorPropertyEditController = new InspectorPropertyEditController({
+    descriptorRegistry: inspectorDescriptorRegistry,
+    targetSource: createActorSystemInspectorPropertyEditTargetSource(actorSystem)
+  });
   const runtimeScheduler = new ProductionRuntimeSchedulerService();
   const runtimeSceneViews = new RuntimeSceneViewRuntimeRegistry();
   const frameUpdateRuntime = new FrameUpdateAttachmentRuntime({ actorSystem });
@@ -232,6 +244,7 @@ function createWallpaperAppRuntime(
     layoutStorage,
     registerUiScheduledService: (service) => uiFrameScheduler.register(service)
   });
+  inspectorPropertyEditRegistration = uiFrameScheduler.register(inspectorPropertyEditController);
   installSceneViewFeature({
     context: actorCreationScope,
     mount: floatingFrameParent,
@@ -242,6 +255,8 @@ function createWallpaperAppRuntime(
   });
   installInspectorFeature({
     context: actorCreationScope,
+    descriptorRegistry: inspectorDescriptorRegistry,
+    propertyEditController: inspectorPropertyEditController,
     viewFactories: windowWorkspace.viewFactories,
     selectionSource: editorSelectionSnapshotSource
   });
@@ -333,6 +348,8 @@ function createWallpaperAppRuntime(
     renderLoop.dispose();
     immediateUpdates.dispose();
     sceneRunMode.dispose();
+    inspectorPropertyEditRegistration?.dispose();
+    inspectorPropertyEditController?.dispose();
     closeLiveWindowFrames(windowWorkspace.lifecycle);
     windowWorkspace.dispose();
     uiFrameScheduler.dispose();
@@ -355,6 +372,8 @@ function createWallpaperAppRuntime(
 
   return { dispose };
   } catch (error) {
+    inspectorPropertyEditRegistration?.dispose();
+    inspectorPropertyEditController?.dispose();
     selectionProviderRegistration?.dispose();
     throw error;
   }

@@ -10,7 +10,8 @@ import {
   type ToggleButtonActivation,
   type ToggleButtonComponent
 } from "ui-framework/controls";
-import { createActorSystemInspectorActorDisplaySource } from "./inspector-actor-display-source";
+import { createActorSystemInspectorActorDetailsSource } from "./inspector-actor-details-source";
+import type { InspectorComponentDescriptorRegistry } from "./inspector-component-descriptor-registry";
 import {
   inspectorContentComponentType,
   type InspectorContentComponent,
@@ -20,6 +21,8 @@ import {
   inspectorLockedIcon,
   inspectorUnlockedIcon
 } from "./inspector-lock-icons";
+import { InspectorPropertyControlActorReconciler } from "./inspector-property-control-actor-reconciler";
+import type { InspectorPropertyEditController } from "./inspector-property-edit-controller";
 import {
   inspectorRootContentComponentType,
   type InspectorRootContentComponent,
@@ -34,6 +37,8 @@ export interface InspectorViewActorOptions {
   readonly document?: Pick<Document, "createElement">;
   readonly contentId: string;
   readonly contentRegistration: InspectorRootContentComponentOptions["contentRegistration"];
+  readonly descriptorRegistry: InspectorComponentDescriptorRegistry;
+  readonly propertyEditController: InspectorPropertyEditController;
   readonly selectionSource: InspectorSelectionSnapshotSource;
   readonly initialLocked?: boolean;
   readonly initialInspectedActorId?: string | null;
@@ -96,10 +101,19 @@ export function createInspectorViewActor(
     });
 
     let lockToggle: ToggleButtonComponent | null = null;
+    const propertyControlReconciler = new InspectorPropertyControlActorReconciler({
+      context,
+      parentActor: bodyActor,
+      editController: options.propertyEditController,
+      document: options.document
+    });
     const inspectorContent = context.componentRegistry.addComponent(bodyActor, inspectorContentComponentType, {
       id: "inspector-content",
-      actorDisplaySource: createActorSystemInspectorActorDisplaySource(context.actorSystem),
+      actorDetailsSource: createActorSystemInspectorActorDetailsSource(context.actorSystem, {
+        descriptorRegistry: options.descriptorRegistry
+      }),
       selectionSource: options.selectionSource,
+      propertyControlReconciler,
       lockStateSink: {
         inspectorLockStateChanged(locked) {
           syncLockToggle(lockToggle, locked);

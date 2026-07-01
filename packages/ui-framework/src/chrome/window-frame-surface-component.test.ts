@@ -61,6 +61,7 @@ describe("WindowFrameSurfaceComponent", () => {
     });
 
     const paneContents = findChildrenByClass(content, "pane-content");
+    const viewports = findChildrenByClass(content, "ui-window-content-scroll-viewport");
     const paneTabs = findChildrenByClass(content, "pane-tabs");
     const splitters = findChildrenByClass(content, "splitter");
     paneTabs[0]!.rect = createRect(10, 20, 120, 24);
@@ -91,8 +92,13 @@ describe("WindowFrameSurfaceComponent", () => {
       issues: []
     });
     expect(paneContents).toHaveLength(2);
-    expect(debugContent.element.parentElement).toBe(paneContents[0]);
-    expect(sceneContent.element.parentElement).toBe(paneContents[1]);
+    expect(viewports).toHaveLength(2);
+    expect(viewports[0]!.parentElement).toBe(paneContents[0]);
+    expect(viewports[0]!.dataset.uiWindowContentScrollViewport).toBe("true");
+    expect(viewports[0]!.style.overflowY).toBe("auto");
+    expect(viewports[0]!.style.overflowX).toBe("auto");
+    expect(debugContent.element.parentElement).toBe(viewports[0]);
+    expect(sceneContent.element.parentElement).toBe(viewports[1]);
     expect(debugContent.interactable).toBe(true);
     expect(sceneContent.interactable).toBe(true);
   });
@@ -138,14 +144,20 @@ describe("WindowFrameSurfaceComponent", () => {
     });
 
     surface.setContentActive({ contentId: sceneContentId, active: false, interactable: false });
+    const sceneViewport = findChildrenByClass(host.primaryContent as unknown as FakeElement, "ui-window-content-scroll-viewport")
+      .find((element) => element.dataset.uiWindowContentId === sceneContentId);
 
     expect(sceneContent.interactable).toBe(false);
-    expect(sceneContent.element.hidden).toBe(true);
+    expect(sceneViewport?.hidden).toBe(true);
+    expect(sceneContent.element.hidden).toBe(false);
 
     setEffectiveVisible(false);
+    const debugViewport = findChildrenByClass(host.primaryContent as unknown as FakeElement, "ui-window-content-scroll-viewport")
+      .find((element) => element.dataset.uiWindowContentId === debugContentId);
 
     expect(debugContent.interactable).toBe(false);
-    expect(debugContent.element.hidden).toBe(true);
+    expect(debugViewport?.hidden).toBe(true);
+    expect(debugContent.element.hidden).toBe(false);
 
     setEffectiveVisible(true);
     surface.removeContent(sceneContentId);
@@ -198,6 +210,59 @@ describe("WindowFrameSurfaceComponent", () => {
     expect(resize?.ratio).toBeGreaterThan(0.5);
   });
 
+  it("routes native content scrollbar gutters as content-control surface hits", () => {
+    const { content, document, host, surface } = createSubject();
+    const debugContentId = windowWorkspaceContentId("content:debug");
+    const sceneContentId = windowWorkspaceContentId("content:scene");
+    const debugTabsetId = windowWorkspaceTabsetId("tabset:debug");
+    const sceneTabsetId = windowWorkspaceTabsetId("tabset:scene");
+    const debugContent = createRegisteredContent(debugContentId, document.createElement("section"));
+    const snapshot = createSplitSnapshot({
+      debugContentId,
+      sceneContentId,
+      debugTabsetId,
+      sceneTabsetId
+    });
+
+    surface.attachHost(host);
+    surface.renderFrameSurface(snapshot);
+    surface.placeContent({
+      content: debugContent,
+      placement: {
+        contentId: debugContentId,
+        identity: createSingletonWindowViewIdentity("debug"),
+        frameId: snapshot.frameId,
+        tabsetId: debugTabsetId,
+        active: true,
+        interactable: true
+      }
+    });
+
+    const viewport = findChildrenByClass(content, "ui-window-content-scroll-viewport")[0];
+    if (!viewport) throw new Error("Expected content scroll viewport.");
+    viewport.rect = createRect(10, 20, 100, 120);
+    viewport.offsetWidth = 100;
+    viewport.clientWidth = 88;
+    viewport.offsetHeight = 120;
+    viewport.clientHeight = 108;
+    viewport.scrollWidth = 88;
+    viewport.scrollHeight = 240;
+
+    expect(surface.hitTest({ x: 104, y: 40 })?.part).toBe("content-scrollbar");
+    expect(surface.hitTest({ x: 40, y: 40 })?.part).toBe("content");
+
+    viewport.scrollHeight = 108;
+    expect(surface.hitTest({ x: 104, y: 40 })?.part).toBe("content");
+
+    viewport.scrollHeight = 240;
+    viewport.offsetWidth = 88;
+    expect(surface.hitTest({ x: 104, y: 40 })?.part).toBe("content");
+
+    viewport.offsetWidth = 100;
+    viewport.scrollWidth = 200;
+    expect(surface.hitTest({ x: 40, y: 134 })?.part).toBe("content-scrollbar");
+  });
+
   it("publishes generic layout commits from graph-owned content state", () => {
     const { content, document, host, surface } = createSubject();
     const debugContentId = windowWorkspaceContentId("content:debug");
@@ -243,6 +308,11 @@ describe("WindowFrameSurfaceComponent", () => {
         interactable: true
       }
     });
+    const sceneViewport = findChildrenByClass(content, "ui-window-content-scroll-viewport")
+      .find((element) => element.dataset.uiWindowContentId === sceneContentId);
+    if (!sceneViewport) throw new Error("Expected scene viewport.");
+    sceneViewport.rect = createRect(0, 146, 400, 118);
+    surface.refreshActiveContentState();
 
     expect(sceneContent.commits.at(-1)).toMatchObject({
       surfaceId: "surface:test",
@@ -451,8 +521,15 @@ class FakeElement {
   readonly style: Record<string, string> = {};
   readonly children: FakeElement[] = [];
   readonly attributes = new Map<string, string>();
+  readonly dataset: Record<string, string> = {};
   parentElement: FakeElement | null = null;
   rect: DOMRectReadOnly = createRect(0, 0, 0, 0);
+  clientWidth = 0;
+  clientHeight = 0;
+  offsetWidth = 0;
+  offsetHeight = 0;
+  scrollWidth = 0;
+  scrollHeight = 0;
 
   constructor(ownerDocument: FakeDocument, tagName: string) {
     this.ownerDocument = ownerDocument;

@@ -211,21 +211,21 @@
 .floating-gizmo-window__resize--left {
   top: 16px;
   bottom: 16px;
-  left: 0;
+  left: -9px;
   width: 9px;
   cursor: ew-resize;
 }
 
 .floating-gizmo-window__resize--right {
   top: 16px;
-  right: 0;
+  right: -9px;
   bottom: 16px;
   width: 9px;
   cursor: ew-resize;
 }
 
 .floating-gizmo-window__resize--top {
-  top: 0;
+  top: -9px;
   right: 16px;
   left: 16px;
   height: 9px;
@@ -234,7 +234,7 @@
 
 .floating-gizmo-window__resize--bottom {
   right: 16px;
-  bottom: 0;
+  bottom: -9px;
   left: 16px;
   height: 9px;
   cursor: ns-resize;
@@ -249,26 +249,26 @@
 }
 
 .floating-gizmo-window__resize--top-left {
-  top: 0;
-  left: 0;
+  top: -16px;
+  left: -16px;
   cursor: nwse-resize;
 }
 
 .floating-gizmo-window__resize--top-right {
-  top: 0;
-  right: 0;
+  top: -16px;
+  right: -16px;
   cursor: nesw-resize;
 }
 
 .floating-gizmo-window__resize--bottom-left {
-  bottom: 0;
-  left: 0;
+  bottom: -16px;
+  left: -16px;
   cursor: nesw-resize;
 }
 
 .floating-gizmo-window__resize--bottom-right {
-  bottom: 0;
-  right: 0;
+  right: -16px;
+  bottom: -16px;
   cursor: nwse-resize;
 }
 

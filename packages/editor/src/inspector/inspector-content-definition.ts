@@ -1,5 +1,5 @@
 import type { ComponentDefinition } from "actor-system/core";
-import { uiElementComponentType } from "ui-framework/actor-ui";
+import { frameUpdateAttachment, uiElementComponentType } from "ui-framework/actor-ui";
 import { stateObserverBindingComponentType } from "../state-observer/state-observer-binding-component";
 import {
   InspectorContentComponent,
@@ -11,6 +11,7 @@ export const inspectorContentComponentDefinition:
   ComponentDefinition<InspectorContentComponent, InspectorContentComponentOptions> = {
   type: inspectorContentComponentType,
   singleton: true,
+  attachments: [frameUpdateAttachment],
   requires: [
     {
       type: uiElementComponentType,
@@ -23,8 +24,10 @@ export const inspectorContentComponentDefinition:
     return options?.id ?? "inspector-content";
   },
   create(actor, context, options) {
-    if (!options?.actorDisplaySource || !options.selectionSource) {
-      throw new Error("InspectorContentComponent requires display source and selection source options.");
+    if (!options?.actorDetailsSource || !options.selectionSource || !options.propertyControlReconciler) {
+      throw new Error(
+        "InspectorContentComponent requires actor details source, selection source, and property control reconciler options."
+      );
     }
     const uiElement = context.componentRegistry.getComponent(actor, uiElementComponentType);
     if (!uiElement) {

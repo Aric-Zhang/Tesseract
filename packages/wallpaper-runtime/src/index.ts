@@ -9,8 +9,15 @@ export {
 } from "./runtime-work-attachment-runtime";
 export type { RuntimeWorkAttachmentRuntimeOptions } from "./runtime-work-attachment-runtime";
 export {
+  Camera3MotionComponent,
   camera3MotionComponentType
 } from "./camera3/camera3-motion-component";
+export type { Camera3MotionComponentOptions } from "./camera3/camera3-motion-component";
+export {
+  Tesseract4Component,
+  tesseract4ComponentType
+} from "./tesseract4/tesseract4-component";
+export type { Tesseract4ComponentOptions } from "./tesseract4/tesseract4-component";
 export { installWallpaperRuntimeComponentDefinitions } from "./install-component-definitions";
 export {
   RuntimeSceneViewRuntimeRegistry

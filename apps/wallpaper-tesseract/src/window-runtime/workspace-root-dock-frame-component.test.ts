@@ -6,7 +6,12 @@ import {
   createActorInputMoveEvent,
   createActorInputStartEvent
 } from "../test-support/actor-input-events";
-import type { ActorInputCancelEvent, ActorInputHit } from "../gizmo-runtime";
+import {
+  actorInputScopeRoutePriority,
+  getActorInputScopeRoutePriority,
+  type ActorInputCancelEvent,
+  type ActorInputHit
+} from "../gizmo-runtime";
 import { WINDOW_FRAME_TAB_PART_ID, type WindowFrameSurfaceComponent } from "ui-framework/window";
 import type { WindowDockCommitIntent, WindowFrameIntentSink } from "./window-frame-lifecycle";
 import type { WindowTabDragSink } from "./window-dock-preview-component";
@@ -165,6 +170,28 @@ describe("WorkspaceRootDockFrameComponent", () => {
     component.onInputCancel(createActorInputCancelEvent(contentHit));
 
     expect(tabDragSink.cancelTabDrag).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes root content scrollbars as content controls instead of ordinary content", () => {
+    const actorSystem = new ActorSystem();
+    const actor = actorSystem.createActor({ id: "workspace-root" });
+    const document = new FakeDocument();
+    const parent = document.createElement("div");
+    const surface = createSurface();
+    vi.mocked(surface.hitTest).mockReturnValue({ part: "content-scrollbar", hitPriority: 2 });
+    const component = new WorkspaceRootDockFrameComponent(actor, {
+      id: "workspace-root-frame",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document
+    }, {
+      surface
+    });
+
+    const hit = component.hitTestInput({ x: 1200, y: 400 });
+
+    expect(hit?.partId).toBe("root-content-scrollbar");
+    expect(hit?.region).toBe("content-control");
+    expect(getActorInputScopeRoutePriority(hit!)).toBe(actorInputScopeRoutePriority.contentControl);
   });
 });
 

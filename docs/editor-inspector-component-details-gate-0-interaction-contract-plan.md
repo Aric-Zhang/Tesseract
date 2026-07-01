@@ -1,6 +1,6 @@
 # Editor Inspector Component Details Gate 0: Interaction Contract Plan
 
-Status: planned
+Status: complete
 
 Last updated: 2026-07-01
 
@@ -295,6 +295,43 @@ Gate 0 does not change runtime or visible UI behavior.
 - `ARCH-001` remains a watch item for future simplification, not a current
   implementation dependency.
 - No production implementation behavior changes.
+
+## Completion Evidence
+
+Completed on 2026-07-01.
+
+Implemented boundary tests in:
+
+```text
+apps/wallpaper-tesseract/src/architecture-boundaries.test.ts
+```
+
+The completed guardrails lock:
+
+- `actor-system/core` production sources stay free of UI frame hook,
+  Inspector, DOM, and event-listener semantics.
+- `ui-framework` remains the owner of `FrameUpdateAttachmentRuntime` and
+  `updateFrame(...)` hook behavior.
+- `packages/editor` has neither production imports nor manifest dependencies on
+  `wallpaper-runtime`; wallpaper-runtime-specific descriptors must be
+  app-local contributions in later gates.
+- `InspectorContentComponent` cannot bypass the future actor-details source by
+  directly importing `ActorSystem`, app composition, or Hierarchy internals.
+- Inspector production code cannot introduce private DOM number/input controls,
+  including `tagName: "input"` or `setAttribute("type", "number")` shortcuts.
+- A future `InspectorPropertyEditController` definition must stay under
+  `packages/editor/src/inspector`; non-editor packages may not even reference
+  that controller name. No generic `FrameCommandBatch` was added.
+
+Validation:
+
+```powershell
+npm run test -w wallpaper-tesseract -- architecture-boundaries
+git diff --check
+```
+
+Gate 0 did not implement Component rows, descriptor registration, property
+display, editable fields, or runtime camera editing.
 
 ## Stop Conditions
 

@@ -49,6 +49,7 @@ type WorkspaceRootPartId =
   | typeof WINDOW_FRAME_TAB_PART_ID
   | typeof WINDOW_FRAME_TAB_ACTION_PART_ID
   | "root-splitter"
+  | "root-content-scrollbar"
   | "root-content";
 
 const WORKSPACE_ROOT_SPLIT_MIN_PANE_SIZE = 80;
@@ -216,6 +217,7 @@ export class WorkspaceRootDockFrameComponent
     if (surfaceHit?.part === "splitter") {
       return this.createHit("root-splitter", 90, surfaceHit.data);
     }
+    if (surfaceHit?.part === "content-scrollbar") return this.createHit("root-content-scrollbar", 2);
     if (surfaceHit?.part === "content") return this.createHit("root-content", 1);
     return null;
   }
@@ -284,14 +286,17 @@ export class WorkspaceRootDockFrameComponent
 
   private createHit(partId: WorkspaceRootPartId, hitPriority: number, data?: unknown): ActorInputHit {
     const isContent = partId === "root-content";
+    const isContentScrollbar = partId === "root-content-scrollbar";
     return {
       componentId: this.id,
       partId,
-      kind: isContent ? "content" : "chrome",
-      region: isContent ? "window-content" : "window-frame",
-      scopeRoutePriority: isContent
-        ? actorInputScopeRoutePriority.windowContent
-        : actorInputScopeRoutePriority.windowChrome,
+      kind: isContent ? "content" : isContentScrollbar ? "control" : "chrome",
+      region: isContent ? "window-content" : isContentScrollbar ? "content-control" : "window-frame",
+      scopeRoutePriority: isContentScrollbar
+        ? actorInputScopeRoutePriority.contentControl
+        : isContent
+          ? actorInputScopeRoutePriority.windowContent
+          : actorInputScopeRoutePriority.windowChrome,
       localRoutePriority: 100,
       hitPriority,
       path: [{

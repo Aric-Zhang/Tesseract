@@ -17,3 +17,106 @@
   height: 100%;
   padding: 12px;
 }
+
+.inspector-window__details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.inspector-window__state-message {
+  color: var(--ui-color-text-muted);
+}
+
+.inspector-window__actor-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: var(--ui-border-width) solid var(--ui-border-color);
+}
+
+.inspector-window__actor-title {
+  overflow: hidden;
+  color: var(--ui-color-text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspector-window__actor-meta,
+.inspector-window__component-meta,
+.inspector-window__component-empty {
+  overflow: hidden;
+  color: var(--ui-color-text-muted);
+  font-size: calc(var(--ui-font-size) * 0.88);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspector-window__component-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.inspector-window__component-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px;
+  border: var(--ui-border-width) solid var(--ui-border-color);
+  border-radius: var(--ui-radius-panel);
+  background: var(--ui-color-surface);
+}
+
+.inspector-window__component-title {
+  overflow: hidden;
+  color: var(--ui-color-text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspector-window__property-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.inspector-window__property-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.9fr) minmax(0, 1.1fr);
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 0;
+}
+
+.inspector-window__property-label,
+.inspector-window__property-value,
+.inspector-window__property-empty {
+  overflow: hidden;
+  font-size: calc(var(--ui-font-size) * 0.9);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspector-window__property-label,
+.inspector-window__property-empty {
+  color: var(--ui-color-text-muted);
+}
+
+.inspector-window__property-value {
+  color: var(--ui-color-text);
+}
+
+.inspector-window__property-control {
+  min-width: 0;
+  width: 100%;
+}

@@ -244,8 +244,8 @@ export class GizmoEventSystem {
     return Math.hypot(a.x - b.x, a.y - b.y) <= this.doubleClickDistance;
   }
 
-  private maybePreventDefaultInput(event: NormalizedPointerEvent): void {
-    if (this.preventDefaultOnHit) {
+  private maybePreventDefaultInput(event: NormalizedPointerEvent, hit: GizmoHit): void {
+    if (this.preventDefaultOnHit && shouldPreventDefaultForHit(hit)) {
       event.preventDefault();
     }
   }
@@ -454,7 +454,7 @@ export class GizmoEventSystem {
       return;
     }
 
-    this.maybePreventDefaultInput(pointerEvent);
+    this.maybePreventDefaultInput(pointerEvent, selected.hit);
     const captureElement = this.setPointerCapture(pointerEvent);
     this.log("hit", pointerEvent, {
       point,
@@ -493,7 +493,7 @@ export class GizmoEventSystem {
       return;
     }
 
-    this.maybePreventDefaultInput(pointerEvent);
+    this.maybePreventDefaultInput(pointerEvent, active.hit);
     if (active.gizmo.enabled === false) {
       this.cancelActive("gizmo-disabled", pointerEvent);
       return;
@@ -553,7 +553,7 @@ export class GizmoEventSystem {
       return;
     }
 
-    this.maybePreventDefaultInput(pointerEvent);
+    this.maybePreventDefaultInput(pointerEvent, active.hit);
     if (active.gizmo.enabled === false) {
       this.cancelActive("gizmo-disabled", pointerEvent);
       return;
@@ -597,7 +597,7 @@ export class GizmoEventSystem {
       return;
     }
 
-    this.maybePreventDefaultInput(pointerEvent);
+    this.maybePreventDefaultInput(pointerEvent, active.hit);
     this.cancelActive("pointercancel", pointerEvent);
   }
 
@@ -632,4 +632,20 @@ export class GizmoEventSystem {
     if (this.receivedPointerEvent) return;
     this.handlePointerUp(this.normalizePointerEvent(event, "mouse"));
   };
+}
+
+function shouldPreventDefaultForHit(hit: GizmoHit): boolean {
+  return getActorInputHitRegion(hit) !== "content-control";
+}
+
+function getActorInputHitRegion(hit: GizmoHit): string | null {
+  const data = hit.data;
+  if (!isRecord(data)) return null;
+  const actorInputHit = data.actorInputHit;
+  if (!isRecord(actorInputHit)) return null;
+  return typeof actorInputHit.region === "string" ? actorInputHit.region : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

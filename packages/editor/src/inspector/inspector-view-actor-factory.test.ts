@@ -25,7 +25,12 @@ import { editorStatePaths } from "../editor-state";
 import { installEditorStateObserverComponentDefinitions } from "../state-observer";
 import { stateObserverBindingComponentType } from "../state-observer/state-observer-binding-component";
 import { installInspectorComponentDefinitions } from "./install-component-definitions";
+import { createInspectorComponentDescriptorRegistry } from "./inspector-component-descriptor-registry";
 import { inspectorContentComponentType } from "./inspector-content-component";
+import {
+  createActorSystemInspectorPropertyEditTargetSource,
+  InspectorPropertyEditController
+} from "./inspector-property-edit-controller";
 import { createInspectorViewActor } from "./inspector-view-actor-factory";
 
 class FakeWindowContentRegistry implements WindowContentRegistrationPort {
@@ -64,6 +69,8 @@ describe("createInspectorViewActor", () => {
       document: fixture.document as unknown as Document,
       contentId: "content:inspector",
       contentRegistration: fixture.contentRegistration,
+      descriptorRegistry: fixture.descriptorRegistry,
+      propertyEditController: fixture.propertyEditController,
       selectionSource: {
         getSelectionSnapshot: () => ({
           selectedActorIds: ["scene"],
@@ -79,7 +86,7 @@ describe("createInspectorViewActor", () => {
     expect(fixture.contentRegistration.registered?.element).toBe(handle.component.element);
     expect(handle.component.element.className).toBe("inspector-window__content");
     expect(handle.inspectorContent.element.className).toBe("inspector-window__body");
-    expect(handle.inspectorContent.element.textContent).toBe("Inspecting: Scene View");
+    expect(textOf(handle.inspectorContent.element)).toContain("Scene View");
     expect(toolbarActor).not.toBeNull();
     expect(bodyActor).not.toBeNull();
     expect(lockActor).not.toBeNull();
@@ -106,6 +113,8 @@ describe("createInspectorViewActor", () => {
       document: fixture.document as unknown as Document,
       contentId: "content:inspector",
       contentRegistration: fixture.contentRegistration,
+      descriptorRegistry: fixture.descriptorRegistry,
+      propertyEditController: fixture.propertyEditController,
       selectionSource: {
         getSelectionSnapshot: () => ({
           selectedActorIds: [activeActorId],
@@ -129,7 +138,7 @@ describe("createInspectorViewActor", () => {
     });
 
     expect(stateObserver).not.toBeNull();
-    expect(handle.inspectorContent.element.textContent).toBe("Inspecting: Camera3");
+    expect(textOf(handle.inspectorContent.element)).toContain("Camera3");
   });
 
   it("keeps toolbar toggle synchronized with direct body lock mutations and toggle activations", () => {
@@ -143,6 +152,8 @@ describe("createInspectorViewActor", () => {
       document: fixture.document as unknown as Document,
       contentId: "content:inspector",
       contentRegistration: fixture.contentRegistration,
+      descriptorRegistry: fixture.descriptorRegistry,
+      propertyEditController: fixture.propertyEditController,
       selectionSource: {
         getSelectionSnapshot: () => ({
           selectedActorIds: ["scene"],
@@ -186,6 +197,8 @@ describe("createInspectorViewActor", () => {
       document: fixture.document as unknown as Document,
       contentId: "content:inspector",
       contentRegistration: fixture.contentRegistration,
+      descriptorRegistry: fixture.descriptorRegistry,
+      propertyEditController: fixture.propertyEditController,
       selectionSource: {
         getSelectionSnapshot: () => null
       }
@@ -207,6 +220,8 @@ describe("createInspectorViewActor", () => {
       parentActor: fixture.parent,
       contentId: "content:inspector",
       contentRegistration: fixture.contentRegistration,
+      descriptorRegistry: fixture.descriptorRegistry,
+      propertyEditController: fixture.propertyEditController,
       selectionSource: {
         getSelectionSnapshot: () => null
       },
@@ -234,6 +249,8 @@ function createFixture(): {
   readonly parent: ReturnType<ActorSystem["createActor"]>;
   readonly document: FakeDocument;
   readonly contentRegistration: FakeWindowContentRegistry;
+  readonly descriptorRegistry: ReturnType<typeof createInspectorComponentDescriptorRegistry>;
+  readonly propertyEditController: InspectorPropertyEditController;
 } {
   const actorSystem = new ActorSystem();
   const componentRegistry = new ComponentRegistry({ actorSystem });
@@ -246,13 +263,20 @@ function createFixture(): {
   const parent = actorSystem.createActor({ id: "frame" });
   const document = new FakeDocument();
   const contentRegistration = new FakeWindowContentRegistry();
+  const descriptorRegistry = createInspectorComponentDescriptorRegistry();
+  const propertyEditController = new InspectorPropertyEditController({
+    descriptorRegistry,
+    targetSource: createActorSystemInspectorPropertyEditTargetSource(actorSystem)
+  });
   return {
     actorSystem,
     componentRegistry,
     context,
     parent,
     document,
-    contentRegistration
+    contentRegistration,
+    descriptorRegistry,
+    propertyEditController
   };
 }
 
@@ -296,6 +320,15 @@ class FakeElement {
     }
   }
 
+  replaceChildren(...children: FakeElement[]): void {
+    for (const child of this.children) {
+      child.parentElement = null;
+    }
+    this.children.length = 0;
+    this.textContent = "";
+    this.append(...children);
+  }
+
   remove(): void {
     if (!this.parentElement) return;
     const index = this.parentElement.children.indexOf(this);
@@ -319,4 +352,19 @@ class FakeElement {
   addEventListener(_type: string, _listener: (event: unknown) => void): void {}
 
   removeEventListener(_type: string, _listener: (event: unknown) => void): void {}
+
+  findByClass(className: string): FakeElement[] {
+    return [
+      ...(this.className === className ? [this] : []),
+      ...this.children.flatMap((child) => child.findByClass(className))
+    ];
+  }
+}
+
+function textOf(element: HTMLElement | FakeElement): string {
+  const fake = element as unknown as FakeElement;
+  if (fake.children.length === 0) return fake.textContent;
+  return [fake.textContent, ...fake.children.map((child) => textOf(child))]
+    .join("")
+    .trim();
 }

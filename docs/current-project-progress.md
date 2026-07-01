@@ -1,6 +1,6 @@
 # Current Project Progress
 
-Last updated: 2026-06-30
+Last updated: 2026-07-01
 
 This document is the mutable project-status companion to `AGENTS.md`. Keep
 phase status, package lists, source topology, active plans, and verification
@@ -271,6 +271,189 @@ The first executable slice is:
 ```text
 docs/editor-inspector-component-details-gate-0-interaction-contract-plan.md
 ```
+
+That slice is complete. It added executable architecture-boundary guardrails
+before implementing component rows or editable properties: `actor-system/core`
+must stay free of UI/OnGUI/Inspector hook semantics, `ui-framework` remains the
+frame-update hook owner, `packages/editor` cannot depend on
+`wallpaper-runtime` for descriptor types, Inspector cannot bypass the future
+actor-details source through Hierarchy/app internals, and editable numeric
+fields cannot be Inspector-private DOM shortcuts. Validation completed:
+
+```text
+npm run test -w wallpaper-tesseract -- architecture-boundaries
+git diff --check
+```
+
+The completed Gate 3 executable slice is:
+
+```text
+docs/editor-inspector-component-details-gate-1-component-sections-plan.md
+```
+
+Gate 1 is complete. It replaced the display-name-only Inspector source with
+`InspectorActorDetailsSource`, deleted the old display source/barrel exports,
+kept the ActorSystem details-source adapter package-internal, and renders a
+read-only Component section stack for the inspected Actor. Gate 1 does not add
+descriptor registry, property rows, editable fields, runtime commands, or
+frame-command batching.
+
+Gate 1 browser smoke evidence:
+
+```text
+temp/editor-inspector-component-sections-smoke-data.json
+temp/editor-inspector-component-sections-smoke-report.md
+```
+
+The smoke recorded console errors 0, Scene component count 5, Camera3 component
+count 4, Inspector lock/follow split behavior, and Debug diagnostics still
+visible.
+
+Regenerate this Inspector component-section regression with:
+
+```text
+npm run prism:smoke:prepare
+npm run dev -w wallpaper-tesseract
+node apps/wallpaper-tesseract/scripts/run-editor-inspector-component-sections-smoke.mjs
+```
+
+The next executable slice is:
+
+```text
+docs/editor-inspector-component-details-gate-2-read-only-properties-plan.md
+```
+
+Gate 2 is complete. It added an editor-owned
+`InspectorComponentDescriptorRegistry`, required registry wiring through app
+composition and Inspector feature setup, read-only property rows under
+Component sections, and guarded frame-update refresh for dynamic summaries.
+Wallpaper-runtime-specific descriptors are registered from app-local code in
+`apps/wallpaper-tesseract/src/features/inspector/install-wallpaper-inspector-descriptors.ts`:
+Camera3 Motion exposes projection mode, distance, yaw, pitch, and FOV from
+public runtime APIs; Tesseract4 exposes only component id/type summary. Gate 2
+does not add an empty editor descriptor installer, editable fields, runtime
+commands, Inspector-private input controls, descriptor ordering, or a property
+edit controller.
+
+Gate 2 browser smoke evidence:
+
+```text
+temp/editor-inspector-readonly-properties-smoke-data.json
+temp/editor-inspector-readonly-properties-smoke-report.md
+```
+
+Regenerate this Inspector read-only property regression with:
+
+```text
+npm run prism:smoke:prepare
+npm run dev -w wallpaper-tesseract
+node apps/wallpaper-tesseract/scripts/run-editor-inspector-readonly-properties-smoke.mjs
+```
+
+The next executable slice is:
+
+```text
+docs/editor-inspector-component-details-gate-3-editable-camera-fov-plan.md
+```
+
+Gate 3 is complete. It added a generic `NumberFieldComponent`, a runtime camera
+FOV command with runtime-owned validity constraints, one editor-owned
+`InspectorPropertyEditController`, stable Inspector property control actors,
+and app-local Camera3 FOV edit descriptor wiring. Inspector body still does not
+create private input DOM, `packages/editor` still does not depend on
+`wallpaper-runtime`, and no actor-system UI hook or generic frame-command batch
+primitive was introduced. The gizmo event system now preserves native browser
+default behavior for actor-input `content-control` hits so field controls can
+receive text-editing focus without bypassing actor-input routing.
+
+Gate 3 browser smoke evidence:
+
+```text
+temp/editor-inspector-editable-camera-fov-smoke-data.json
+temp/editor-inspector-editable-camera-fov-smoke-report.md
+```
+
+Regenerate this Inspector editable FOV regression with:
+
+```text
+npm run prism:smoke:prepare
+npm run dev -w wallpaper-tesseract -- --force
+node apps/wallpaper-tesseract/scripts/run-editor-inspector-editable-camera-fov-smoke.mjs
+```
+
+Before Gate 4 hardening, Gate 3.5 closed the scroll ownership issue:
+
+```text
+docs/editor-inspector-component-details-gate-3-5-window-scroll-ownership-plan.md
+```
+
+Gate 3.5 is complete. The lower Inspector scrollbar bug exposed a real
+window-scroll ownership split, so ordinary window content scrolling moved to
+`WindowFrameSurfaceComponent` / `ui-framework/window`. The window surface now
+wraps registered content in a window-owned scroll viewport, uses the shared
+`--ui-scrollbar-*` styling, routes native scrollbar gutter hits as actor-input
+`content-control`, and uses the wrapper as the only visual hidden owner.
+Inspector no longer has local `overflow: auto`; Hierarchy no longer installs
+`ScrollViewComponent` for whole-window scrolling; Debug keeps
+`ScrollViewComponent` only as the tested `VirtualListViewComponent` nested scroll
+source.
+
+Gate 3.5 browser smoke evidence:
+
+```text
+temp/editor-inspector-window-scroll-ownership-smoke-data.json
+temp/editor-inspector-window-scroll-ownership-smoke-report.md
+```
+
+Regenerate this window scroll ownership regression with:
+
+```text
+npm run prism:smoke:prepare
+npm run dev -w wallpaper-tesseract -- --force
+node apps/wallpaper-tesseract/scripts/run-editor-inspector-window-scroll-ownership-smoke.mjs
+```
+
+Gate 3.6 is complete. It closes the floating-window resize-hit follow-up:
+
+```text
+docs/editor-inspector-component-details-gate-3-6-floating-scrollbar-resize-hit-plan.md
+```
+
+Floating windows now choose input hits through local semantic candidate
+arbitration instead of source-order resize checks. Visible content controls win
+over parent frame resize affordances, content scrollbar hits use
+`content-control` scope, resize handles no longer cover the window-owned
+scrollbar gutter, and resize remains available outside the window frame. ARB-004
+is verified: browser smoke now proves a positive native gutter, scrollbar drag,
+bottom/right gutter not covered by resize, right-side resize, bottom-right
+corner resize, and unchanged frame rect during scrollbar drag.
+
+Gate 3.6 browser smoke evidence:
+
+```text
+temp/editor-inspector-window-scroll-ownership-smoke-data.json
+temp/editor-inspector-window-scroll-ownership-smoke-report.md
+```
+
+Regenerate this window scroll ownership / floating resize-hit regression with:
+
+```text
+npm run build -w ui-framework
+npm run dev -w wallpaper-tesseract -- --host 127.0.0.1
+EDITOR_INSPECTOR_WINDOW_SCROLL_SMOKE_URL=http://127.0.0.1:<port>/?resetWorkspaceLayout=1 node apps/wallpaper-tesseract/scripts/run-editor-inspector-window-scroll-ownership-smoke.mjs
+```
+
+The next executable slice is Gate 4 hardening:
+
+```text
+docs/editor-inspector-component-details-gate-4-hardening-plan.md
+```
+
+Gate 4 should not add a new Inspector architecture. Its purpose is lifecycle and
+QA hardening for the existing component/property path: component attach/detach,
+destroyed Actor missing state, stale property control cleanup, multi-Inspector
+sync, editable FOV robustness, boundary/public-surface audit, and final browser
+smoke evidence.
 
 ## Editor Toolbar / Inspector Lock Plan
 

@@ -12,7 +12,8 @@ export type RuntimeCameraControlCommand =
   | RuntimeCameraOrbitDragEndCommand
   | RuntimeCameraSnapAxisCommand
   | RuntimeCameraToggleProjectionCommand
-  | RuntimeCameraSetProjectionModeCommand;
+  | RuntimeCameraSetProjectionModeCommand
+  | RuntimeCameraSetProjectionFovCommand;
 
 export interface RuntimeCameraCommandSink {
   submit(command: RuntimeCameraControlCommand): void;
@@ -22,6 +23,12 @@ export interface RuntimeCameraViewState {
   readonly cameraState: RuntimeCameraState;
   readonly projectionMode: RuntimeCameraProjectionMode;
 }
+
+export const runtimeCameraProjectionFovConstraints = Object.freeze({
+  min: 1,
+  max: 120,
+  step: 0.1
+});
 
 export type RuntimeCameraOrbitDragEndReason = "pointerup" | "cancel";
 
@@ -61,4 +68,10 @@ export interface RuntimeCameraSetProjectionModeCommand {
   type: "set-projection-mode";
   source: RuntimeCameraControlSource;
   mode: RuntimeCameraProjectionMode;
+}
+
+export interface RuntimeCameraSetProjectionFovCommand {
+  type: "set-projection-fov";
+  source: RuntimeCameraControlSource;
+  fov: number;
 }

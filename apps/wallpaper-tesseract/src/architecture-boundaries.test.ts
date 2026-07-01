@@ -682,6 +682,7 @@ describe("architecture boundaries", () => {
         "packages/ui-framework/src/controls/",
         "packages/ui-framework/src/ui/button/",
         "packages/ui-framework/src/ui/collection/",
+        "packages/ui-framework/src/ui/field/",
         "packages/ui-framework/src/ui/scroll/",
         "packages/ui-framework/src/ui/toolbar/",
         "packages/ui-framework/src/ui/viewport/"
@@ -1966,6 +1967,12 @@ describe("architecture boundaries", () => {
     expect(appShellStyles).toMatch(/--window-fullscreen-presentation-layer/);
     expect(appShellStyles).toMatch(/:has\(\.floating-gizmo-window--fullscreen\)/);
     expect(floatingWindowStyles).toMatch(/floating-gizmo-window/);
+    expect(floatingWindowStyles).toMatch(
+      /\.floating-gizmo-window__resize--bottom-right::after\s*\{[\s\S]*right:\s*4px;[\s\S]*bottom:\s*4px;/
+    );
+    expect(floatingWindowStyles).not.toMatch(
+      /\.floating-gizmo-window__resize--bottom-right::after\s*\{[\s\S]*right:\s*20px;[\s\S]*bottom:\s*20px;/
+    );
     expect(camera3GizmoStyles).toMatch(/camera3-gizmo/);
     expect(sceneWindowStyles).toMatch(/scene-window/);
     expect(sceneWindowStyles).not.toMatch(/ui-render-viewport|ui-fullscreenable-view__control/);
@@ -1975,6 +1982,7 @@ describe("architecture boundaries", () => {
     expect(uiFrameworkControlsStyles).toMatch(/ui-render-viewport/);
     expect(uiFrameworkControlsStyles).toMatch(/ui-fullscreenable-view__control/);
     expect(uiFrameworkControlsStyles).toMatch(/ui-scroll-view/);
+    expect(uiFrameworkControlsStyles).toMatch(/ui-window-content-scroll-viewport/);
     expect(uiFrameworkControlsStyles).toMatch(/ui-tree-view/);
     expect(uiFrameworkControlsStyles).toMatch(/ui-list-view/);
     expect(uiFrameworkControlsStyles).not.toMatch(/app-menu-bar|scene-window|hierarchy-panel|debug-log-window/);
@@ -1991,6 +1999,47 @@ describe("architecture boundaries", () => {
     expect(appStyleManifestSource).not.toMatch(/["']editor\/debug\/debug-log\.css["']/);
     expect(appStyleManifestSource).not.toMatch(/["']editor\/hierarchy\/hierarchy\.css["']/);
     expect(appStyleManifestSource).toMatch(/["']editor\/camera3\/camera3-gizmo\.css["']/);
+  });
+
+  it("keeps ordinary window scrolling owned by the ui-framework window surface", () => {
+    const windowSurfaceSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/chrome/window-frame-surface-component.ts"] ?? "";
+    const uiFrameworkControlsStyles = readWorkspaceSourceFile(
+      "packages/ui-framework/src/ui/ui-framework-controls.css"
+    );
+    const inspectorStyles =
+      editorPackageSources["packages/editor/src/inspector/inspector.css"] ?? "";
+    const inspectorFactorySource =
+      editorPackageSources["packages/editor/src/inspector/inspector-view-actor-factory.ts"] ?? "";
+    const hierarchyFactorySource =
+      editorPackageSources["packages/editor/src/hierarchy/hierarchy-panel-actor-factory.ts"] ?? "";
+    const debugFactorySource =
+      editorPackageSources["packages/editor/src/debug/components/debug-log-window-actor-factory.ts"] ?? "";
+    const rootFrameSource = sourceFiles["./window-runtime/workspace-root-dock-frame-component.ts"] ?? "";
+    const floatingFrameSource = sourceFiles["./window-runtime/floating-window-component.ts"] ?? "";
+
+    expect(windowSurfaceSource).toMatch(/ui-window-content-scroll-viewport/);
+    expect(windowSurfaceSource).toMatch(/content-scrollbar/);
+    expect(windowSurfaceSource).toMatch(/offsetWidth\s*-\s*element\.clientWidth/);
+    expect(windowSurfaceSource).toMatch(/offsetHeight\s*-\s*element\.clientHeight/);
+    expect(uiFrameworkControlsStyles).toMatch(/\.ui-scroll-view,\s*\n\.ui-window-content-scroll-viewport/);
+    expect(uiFrameworkControlsStyles).toMatch(/scrollbar-gutter:\s*stable/);
+    expect(rootFrameSource).toMatch(/root-content-scrollbar/);
+    expect(rootFrameSource).toMatch(/content-control/);
+    expect(rootFrameSource).toMatch(/isContentScrollbar\s*\?\s*actorInputScopeRoutePriority\.contentControl/);
+    expect(floatingFrameSource).toMatch(/window-content-scrollbar/);
+    expect(floatingFrameSource).toMatch(/content-control/);
+    expect(floatingFrameSource).toMatch(/FloatingWindowHitSemanticClass/);
+    expect(floatingFrameSource).toMatch(/visible-content-control/);
+    expect(floatingFrameSource).toMatch(/scopeRoutePriority:\s*actorInputScopeRoutePriority\.contentControl/);
+    expect(floatingFrameSource).not.toMatch(
+      /partId:\s*"window-content-scrollbar"[\s\S]{0,220}actorInputScopeRoutePriority\.windowContent/
+    );
+    expect(inspectorStyles).not.toMatch(/overflow(?:-[xy])?\s*:\s*(?:auto|scroll)/);
+    expect(inspectorFactorySource).not.toMatch(/\bscrollViewComponentType\b/);
+    expect(hierarchyFactorySource).not.toMatch(/\bscrollViewComponentType\b/);
+    expect(debugFactorySource).toMatch(/\bscrollViewComponentType\b/);
+    expect(debugFactorySource).toMatch(/\bvirtualListViewComponentType\b/);
   });
 
   it("keeps App Menu routed through actor input and state observer bindings", () => {
@@ -2472,6 +2521,34 @@ describe("architecture boundaries", () => {
     expect(actorRuntimeSceneFrameImports).toEqual([]);
   });
 
+  it("keeps actor-system core free of UI frame and Inspector hook semantics", () => {
+    const actorSystemCoreSources = Object.fromEntries(
+      Object.entries(collectWorkspaceSourceFiles("packages/actor-system/src/core"))
+        .filter(([file]) => isProductionSourceFile(file))
+    );
+    const forbiddenActorCoreMatches = Object.entries(actorSystemCoreSources)
+      .filter(([, source]) => (
+        /\b(?:OnGUI|FrameUpdateParticipant|UiFrame|frameUpdateAttachment|Inspector)\b/.test(source) ||
+        /\b(?:HTMLElement|HTMLInputElement|document|addEventListener)\b/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+    const actorCoreAttachmentRuntimeSource =
+      actorSystemCoreSources["packages/actor-system/src/core/component-attachment-runtime.ts"] ?? "";
+    const actorCoreRegistrySource =
+      actorSystemCoreSources["packages/actor-system/src/core/component-registry.ts"] ?? "";
+    const uiFrameAttachmentSource =
+      uiFrameworkPackageSources["packages/ui-framework/src/ports/ui-frame-update-attachment-runtime.ts"] ?? "";
+
+    expect(forbiddenActorCoreMatches).toEqual([]);
+    expect(actorCoreAttachmentRuntimeSource).toMatch(/\binterface\s+ComponentAttachmentRuntime\b/);
+    expect(actorCoreAttachmentRuntimeSource).not.toMatch(/\bupdateFrame\s*\(/);
+    expect(actorCoreRegistrySource).toMatch(/\battachmentRuntime\.attach\b/);
+    expect(actorCoreRegistrySource).not.toMatch(/\b(?:OnGUI|FrameUpdateParticipant|UiFrame)\b/);
+    expect(uiFrameAttachmentSource).toMatch(/\bFrameUpdateAttachmentRuntime\b/);
+    expect(uiFrameAttachmentSource).toMatch(/\bupdateFrame\s*\(/);
+  });
+
   it("keeps actor-runtime independent from runtime ports", () => {
     const actorRuntimePortImports = Object.entries(sourceFiles)
       .filter(([file]) => file.startsWith("./actor-runtime/"))
@@ -2700,9 +2777,32 @@ describe("architecture boundaries", () => {
       .filter(([, source]) => /\bcreateElement\s*\(/.test(source))
       .map(([file]) => file)
       .sort();
+    const bodyContentHostShortcuts = /\binspector-window__content\b|\bWindowRegisteredContent\b|\bWindowContentRegistrationPort\b|\bregisterContent\b/.test(contentSource)
+      ? ["packages/editor/src/inspector/inspector-content-component.ts"]
+      : [];
     const facadeUses = Object.entries(productionInspectorSources)
       .filter(([, source]) => /import\s+\{[^}]*\bSelection\b|\bSelection\./.test(source))
       .map(([file]) => file)
+      .sort();
+    const inputFieldShortcuts = Object.entries(productionInspectorSources)
+      .filter(([, source]) => (
+        /createElement\s*\(\s*["']input["']/.test(source) ||
+        /createElement\s*\(\s*["'](?:textarea|select)["']/.test(source) ||
+        /\btagName\s*:\s*["']input["']/.test(source) ||
+        /\btagName\s*:\s*["'](?:textarea|select)["']/.test(source) ||
+        /\bHTMLInputElement\b/.test(source) ||
+        /(?:\.|\b)type\s*=\s*["']number["']/.test(source) ||
+        /setAttribute\s*\(\s*["']type["']\s*,\s*["']number["']/.test(source) ||
+        /\.oninput\s*=|\.onchange\s*=/.test(source) ||
+        /addEventListener\s*\(\s*["'](?:input|change)["']/.test(source)
+      ))
+      .map(([file]) => file)
+      .sort();
+    const appCompositionImports = listModuleEdges(productionInspectorSources)
+      .filter((edge) => edge.resolvedFile?.startsWith("apps/wallpaper-tesseract/src/app/") ||
+        edge.resolvedFile?.startsWith("apps/wallpaper-tesseract/src/features/") ||
+        edge.specifier.includes("create-wallpaper-app"))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
       .sort();
 
     expect(contentSource).toMatch(/\bUiElementComponent\b/);
@@ -2712,13 +2812,16 @@ describe("architecture boundaries", () => {
     expect(contentSource).toMatch(/\bInspectorLockStateSink\b/);
     expect(contentSource).not.toMatch(/\bselection\.activeObject\b/);
     expect(contentSource).not.toMatch(/\bWindowRegisteredContent\b|\bWindowContentRegistrationPort\b|\bregisterContent\b/);
+    expect(contentSource).not.toMatch(/\bActorSystem(?:View)?\b/);
     expect(definitionSource).toMatch(/\buiElementComponentType\b/);
     expect(definitionSource).toMatch(/\bstateObserverBindingComponentType\b/);
+    expect(definitionSource).toMatch(/\bframeUpdateAttachment\b/);
     expect(factorySource).toMatch(/\buiElementComponentType\b/);
     expect(factorySource).toMatch(/\buiLayoutHostComponentType\b/);
     expect(factorySource).toMatch(/\btoolbarComponentType\b/);
     expect(factorySource).toMatch(/\btoggleButtonComponentType\b/);
     expect(factorySource).toMatch(/\bselectionSource\b/);
+    expect(factorySource).toMatch(/\bdescriptorRegistry\b/);
     expect(factorySource).not.toMatch(/\bregisterContent\b/);
     expect(rootContentSource).toMatch(/\bWindowRegisteredContent\b/);
     expect(rootContentSource).toMatch(/\bregisterContent\b/);
@@ -2728,12 +2831,92 @@ describe("architecture boundaries", () => {
     expect(indexSource).not.toMatch(/\bRegisteredInspectorViewActor\b/);
     expect(indexSource).not.toMatch(/\bInspectorViewActorOptions\b/);
     expect(indexSource).not.toMatch(/\binstallInspectorComponentDefinitions\b/);
+    expect(indexSource).not.toMatch(/\bcreateActorSystemInspectorActorDetailsSource\b/);
     expect(featureSource).toMatch(/\bInspectorSelectionSnapshotSource\b/);
     expect(nonRootRegistrationOwners).toEqual([]);
     expect(hierarchyImports).toEqual([]);
     expect(clickShortcuts).toEqual([]);
-    expect(createElementCalls).toEqual([]);
+    expect(createElementCalls).toEqual(["packages/editor/src/inspector/inspector-content-component.ts"]);
+    expect(bodyContentHostShortcuts).toEqual([]);
     expect(facadeUses).toEqual([]);
+    expect(inputFieldShortcuts).toEqual([]);
+    expect(appCompositionImports).toEqual([]);
+  });
+
+  it("keeps Inspector details and property-edit contracts on narrow editor-owned paths", () => {
+    const productionSources = collectProductionWorkspaceSources();
+    const editorManifest = JSON.parse(readWorkspaceSourceFile("packages/editor/package.json")) as {
+      readonly dependencies?: Record<string, string>;
+      readonly peerDependencies?: Record<string, string>;
+    };
+    const editorProductionSources = Object.fromEntries(
+      Object.entries(editorPackageSources)
+        .filter(([file]) => isProductionSourceFile(file))
+    );
+    const editorWallpaperRuntimeImports = listModuleEdges(editorProductionSources)
+      .filter((edge) => edge.specifier === "wallpaper-runtime" ||
+        edge.specifier.startsWith("wallpaper-runtime/") ||
+        edge.resolvedFile?.startsWith("packages/wallpaper-runtime/"))
+      .map((edge) => `${edge.fromFile}: ${edge.specifier}`)
+      .sort();
+    const uiFrameworkInspectorLeaks = Object.entries(uiFrameworkPackageSources)
+      .filter(([file]) => isProductionSourceFile(file))
+      .filter(([, source]) => /\b(?:InspectorComponentDescriptor|InspectorProperty|Camera3MotionComponent|Tesseract4Component|wallpaper-runtime)\b/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const propertyEditControllerDefinitions = Object.entries(productionSources)
+      .filter(([, source]) => /\b(?:class|function|interface|type)\s+InspectorPropertyEditController\b/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const propertyEditControllerViolations = propertyEditControllerDefinitions
+      .filter((file) => !file.startsWith("packages/editor/src/inspector/"));
+    const propertyEditControllerForbiddenPackages = [
+      "packages/actor-system/src/",
+      "packages/ui-framework/src/",
+      "packages/runtime-core/src/",
+      "packages/runtime-three/src/",
+      "packages/wallpaper-runtime/src/",
+      "packages/four-rotation/src/",
+      "packages/four-camera/src/",
+      "packages/four-camera-three/src/"
+    ];
+    const propertyEditControllerForbiddenOccurrences = Object.entries(productionSources)
+      .filter(([file]) => propertyEditControllerForbiddenPackages.some((prefix) => file.startsWith(prefix)))
+      .filter(([, source]) => /\bInspectorPropertyEditController\b/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const frameCommandBatchDefinitions = Object.entries(productionSources)
+      .filter(([, source]) => /\b(?:class|function|interface|type)\s+FrameCommandBatch\b/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const displaySourceCompatibility = Object.entries(editorProductionSources)
+      .filter(([, source]) => /\bInspectorActorDisplaySource\b|\bcreateActorSystemInspectorActorDisplaySource\b/.test(source))
+      .map(([file]) => file)
+      .sort();
+    const appProductionSources = Object.fromEntries(
+      Object.entries(sourceFiles)
+        .filter(([file]) => !file.endsWith(".test.ts"))
+        .filter(([file]) => !file.includes("/test-support/"))
+    );
+    const appProductionEdges = listModuleEdges(appProductionSources);
+    const descriptorBridgeFiles = [...new Set(appProductionEdges
+      .filter((edge) => edge.specifier === "wallpaper-runtime" ||
+        edge.specifier.startsWith("wallpaper-runtime/"))
+      .filter((edge) => /\bInspectorComponentDescriptorRegistry\b/.test(appProductionSources[edge.fromFile] ?? ""))
+      .map((edge) => edge.fromFile))]
+      .sort();
+
+    expect(editorManifest.dependencies ?? {}).not.toHaveProperty("wallpaper-runtime");
+    expect(editorManifest.peerDependencies ?? {}).not.toHaveProperty("wallpaper-runtime");
+    expect(editorWallpaperRuntimeImports).toEqual([]);
+    expect(uiFrameworkInspectorLeaks).toEqual([]);
+    expect(propertyEditControllerViolations).toEqual([]);
+    expect(propertyEditControllerForbiddenOccurrences).toEqual([]);
+    expect(frameCommandBatchDefinitions).toEqual([]);
+    expect(displaySourceCompatibility).toEqual([]);
+    expect(descriptorBridgeFiles).toEqual([
+      "./features/inspector/install-wallpaper-inspector-descriptors.ts"
+    ]);
   });
 
   it("keeps feature actor factories on the actor-core creation context", () => {

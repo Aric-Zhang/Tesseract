@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ActorSystem } from "../actor-runtime";
 import { createActorInputEndEvent, createActorInputHit, createActorInputMoveEvent, createActorInputStartEvent } from "../test-support";
+import { actorInputScopeRoutePriority, getActorInputScopeRoutePriority } from "../gizmo-runtime";
 import { WINDOW_FRAME_TAB_PART_ID, type WindowFrameSurfaceComponent } from "ui-framework/window";
 import { uiVec2 } from "ui-framework/actor-ui";
 import type { WindowDockCommitIntent, WindowFrameIntentSink } from "./window-frame-lifecycle";
@@ -169,6 +170,73 @@ describe("FloatingWindowComponent", () => {
     }]);
     expect(component.state.position).toEqual({ x: 12, y: 24 });
   });
+
+  it("routes a visible content scrollbar before overlapping floating resize handles", () => {
+    const actorSystem = new ActorSystem();
+    const actor = actorSystem.createActor({ id: "inspector-frame" });
+    const document = new FakeDocument();
+    const parent = document.createElement("div");
+    const surface = createSurface();
+    vi.mocked(surface.hitTest).mockReturnValue({ part: "content-scrollbar", hitPriority: 2 });
+    const component = new FloatingWindowComponent(actor, {
+      id: "floating-window:inspector",
+      frameId: "inspector-frame",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      title: "Inspector",
+      stateBinding: { kind: "runtime" },
+      initialState: {
+        position: uiVec2(12, 24),
+        size: uiVec2(320, 180),
+        visible: true
+      }
+    }, {
+      surface
+    });
+    const root = parent.children[0]!;
+    const rightHandle = findChildByClass(root, "floating-gizmo-window__resize--right");
+    const bottomRightHandle = findChildByClass(root, "floating-gizmo-window__resize--bottom-right");
+    if (!rightHandle || !bottomRightHandle) throw new Error("Expected floating resize handles.");
+    rightHandle.rect = createRect(311, 16, 9, 148);
+    bottomRightHandle.rect = createRect(304, 164, 16, 16);
+
+    const hit = component.hitTestInput({ x: 315, y: 170 });
+
+    expect(hit?.partId).toBe("window-content-scrollbar");
+    expect(hit?.region).toBe("content-control");
+    expect(getActorInputScopeRoutePriority(hit!)).toBe(actorInputScopeRoutePriority.contentControl);
+  });
+
+  it("keeps floating resize handles hittable outside the window content bounds", () => {
+    const actorSystem = new ActorSystem();
+    const actor = actorSystem.createActor({ id: "inspector-frame" });
+    const document = new FakeDocument();
+    const parent = document.createElement("div");
+    const component = new FloatingWindowComponent(actor, {
+      id: "floating-window:inspector",
+      frameId: "inspector-frame",
+      parent: parent as unknown as HTMLElement,
+      document: document as unknown as Document,
+      title: "Inspector",
+      stateBinding: { kind: "runtime" },
+      initialState: {
+        position: uiVec2(12, 24),
+        size: uiVec2(320, 180),
+        visible: true
+      }
+    }, {
+      surface: createSurface()
+    });
+    const root = parent.children[0]!;
+    const rightHandle = findChildByClass(root, "floating-gizmo-window__resize--right");
+    if (!rightHandle) throw new Error("Expected floating right resize handle.");
+    rightHandle.rect = createRect(320, 16, 9, 148);
+
+    const hit = component.hitTestInput({ x: 324, y: 48 });
+
+    expect(hit?.partId).toBe("resize-right");
+    expect(getActorInputScopeRoutePriority(hit!)).toBe(actorInputScopeRoutePriority.windowChrome);
+  });
 });
 
 function createSurface(): WindowFrameSurfaceComponent {
@@ -207,6 +275,7 @@ class FakeElement {
   readonly style: Record<string, string> = {};
   readonly children: FakeElement[] = [];
   parentElement: FakeElement | null = null;
+  rect = createRect(0, 0, 320, 180);
 
   constructor(ownerDocument: FakeDocument, tagName: string) {
     this.ownerDocument = ownerDocument;
@@ -229,8 +298,17 @@ class FakeElement {
   }
 
   getBoundingClientRect(): DOMRectReadOnly {
-    return createRect(0, 0, 320, 180);
+    return this.rect;
   }
+}
+
+function findChildByClass(root: FakeElement, className: string): FakeElement | null {
+  if (root.className.includes(className)) return root;
+  for (const child of root.children) {
+    const match = findChildByClass(child, className);
+    if (match) return match;
+  }
+  return null;
 }
 
 function createRect(x: number, y: number, width: number, height: number): DOMRectReadOnly {

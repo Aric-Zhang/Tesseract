@@ -2,6 +2,8 @@ import type { ActorCreationContext } from "actor-system/core";
 import { createWindowWorkspaceContentId, windowViewInstanceId, windowViewKey, windowViewTypeKey, type WindowViewFactoryRegistry } from "ui-framework/window";
 import { uiVec2 } from "ui-framework/actor-ui";
 import type { InspectorSelectionSnapshotSource } from "./inspector-selection-source";
+import type { InspectorComponentDescriptorRegistry } from "./inspector-component-descriptor-registry";
+import type { InspectorPropertyEditController } from "./inspector-property-edit-controller";
 import type {
   EditorWindowWorkspaceFloatingFramePolicy
 } from "../tool-windows/editor-window-workspace-policy";
@@ -31,6 +33,8 @@ const INSPECTOR_INSTANCE_DEFINITIONS = [
 export interface InstallInspectorFeatureOptions {
   readonly context: ActorCreationContext;
   readonly viewFactories: WindowViewFactoryRegistry;
+  readonly descriptorRegistry: InspectorComponentDescriptorRegistry;
+  readonly propertyEditController: InspectorPropertyEditController;
   readonly selectionSource: InspectorSelectionSnapshotSource;
 }
 
@@ -81,6 +85,8 @@ export function installInspectorFeature(options: InstallInspectorFeatureOptions)
           parentActor: createOptions.parentFrameActor,
           contentId: createWindowWorkspaceContentId(createOptions.identity),
           contentRegistration: createOptions.contentRegistration,
+          descriptorRegistry: options.descriptorRegistry,
+          propertyEditController: options.propertyEditController,
           selectionSource: options.selectionSource
         });
         return {

@@ -172,10 +172,9 @@ Descriptor shape:
 
 ```ts
 interface InspectorComponentDescriptor<TComponent extends Component = Component> {
-  readonly componentType: ComponentType<TComponent>;
-  readonly displayName: string;
-  readonly order?: number;
-  readonly properties?: readonly InspectorPropertyDescriptor<TComponent>[];
+  readonly componentType: string;
+  readonly displayName?: string;
+  readProperties(component: TComponent, context: InspectorPropertyReadContext): readonly InspectorPropertySummary[];
 }
 ```
 
@@ -183,8 +182,10 @@ Default behavior:
 
 - every attached Component is shown;
 - components with no descriptor use `component.type` as display name;
-- components with no properties show a collapsed/empty details body;
+- components with no descriptor show no property rows;
 - property values are hidden unless a descriptor explicitly exposes them.
+- component ordering remains `actor.listComponents()` order until a later gate
+  proves descriptor-driven ordering is necessary.
 
 ## Inspector Actor Details Source
 
@@ -193,8 +194,7 @@ source:
 
 ```ts
 interface InspectorActorDetailsSource {
-  getActor(actorId: string): Actor | null;
-  getActorDisplayName(actorId: string): string | null;
+  getActorDetails(actorId: string): InspectorActorDetails | null;
 }
 ```
 
@@ -202,8 +202,8 @@ Rules:
 
 - the source may wrap `ActorSystemView`;
 - Inspector receives this narrow source, not the whole `ActorSystem`;
-- it exposes Actor identity and attached components only through the returned
-  `Actor`;
+- it exposes immutable actor/component/property summaries, not live `Actor` or
+  `Component` references;
 - it must not expose Hierarchy metadata, TreeView rows, app-local view
   factories, or window placement state.
 
@@ -254,6 +254,8 @@ Detailed executable plan:
 docs/editor-inspector-component-details-gate-0-interaction-contract-plan.md
 ```
 
+Status: complete as of 2026-07-01.
+
 Work:
 
 1. Add or update documentation and boundary tests for the Inspector interaction
@@ -282,19 +284,35 @@ Exit:
 - editor package still has no wallpaper-runtime dependency;
 - `ARCH-001` remains a watch item, not an active blocker.
 
+Completion evidence:
+
+```powershell
+npm run test -w wallpaper-tesseract -- architecture-boundaries
+git diff --check
+```
+
 ## Gate 1: Component Sections
 
 Purpose: prove Inspector can display the inspected Actor's Component list.
+
+Detailed executable plan:
+
+```text
+docs/editor-inspector-component-details-gate-1-component-sections-plan.md
+```
+
+Status: complete as of 2026-07-01.
 
 Work:
 
 1. Split Inspector body rendering from text-only `Inspecting: <name>` into an
    actor-details view.
-2. Add `InspectorActorDetailsSource` and update Inspector construction to pass
-   this source instead of the current display-name-only source.
+2. Replace `InspectorActorDisplaySource` with `InspectorActorDetailsSource` and
+   update Inspector construction to pass this source instead of the current
+   display-name-only source.
 3. For the inspected actor:
    - read `actor.listComponents()`;
-   - sort by descriptor order, then component attach order;
+   - preserve `actor.listComponents()` order for Gate 1;
    - render one Component section per Component.
 4. Show:
    - Component display name;
@@ -308,6 +326,9 @@ Work:
 7. Delete the old `Inspecting: <name>` text as the primary renderer. It may
    remain only as a title/header inside the actor details view.
 
+Descriptor-based labels and ordering begin in Gate 2, after descriptor
+ownership exists.
+
 Exit:
 
 - every component attached to the inspected Actor appears in Inspector;
@@ -318,9 +339,29 @@ Exit:
 - lock/unlock smoke still passes;
 - no property editing exists yet.
 
+Completion evidence:
+
+```text
+temp/editor-inspector-component-sections-smoke-data.json
+temp/editor-inspector-component-sections-smoke-report.md
+```
+
+Gate 1 replaced the display-name-only source with
+`InspectorActorDetailsSource`, renders read-only Component sections, and did not
+add descriptor registry, property rows, editable fields, runtime commands, or a
+frame-command batching primitive.
+
 ## Gate 2: Read-Only Properties
 
 Purpose: add explicit property display without editing.
+
+Detailed executable plan:
+
+```text
+docs/editor-inspector-component-details-gate-2-read-only-properties-plan.md
+```
+
+Status: complete as of 2026-07-01.
 
 Work:
 
@@ -329,7 +370,8 @@ Work:
    - label;
    - value;
    - kind-specific formatting.
-3. Register descriptors for editor-owned components inside `packages/editor`.
+3. Register editor-owned descriptors only when a real editor component has
+   useful public read-only properties; do not keep an empty installer.
 4. Register wallpaper-runtime descriptors from app-local code or an app-local
    descriptor installer, not from `packages/editor`:
    - `Camera3MotionComponent`: projection mode, distance, current FOV if
@@ -351,12 +393,25 @@ Exit:
 - Inspector does not read private runtime fields outside descriptor callbacks;
 - ui-framework remains generic.
 
+Gate 2 browser smoke evidence:
+
+```text
+temp/editor-inspector-readonly-properties-smoke-data.json
+temp/editor-inspector-readonly-properties-smoke-report.md
+```
+
 ## Gate 3: Editable Property Controller
 
 Purpose: make a first real editable property work through the unified
 interaction contract.
 
 First target: Camera FOV.
+
+Detailed executable plan:
+
+```text
+docs/editor-inspector-component-details-gate-3-editable-camera-fov-plan.md
+```
 
 Work:
 
@@ -400,9 +455,76 @@ Exit:
 - Camera3 Gizmo still works and does not share Inspector UI state;
 - no direct DOM or component field mutation from property controls.
 
+## Gate 3.5: Window Scroll Ownership Closure
+
+Purpose: close the visible Inspector scrollbar bug before general hardening by
+moving ordinary window content scrolling into the window surface owner.
+
+Detailed executable plan:
+
+```text
+docs/editor-inspector-component-details-gate-3-5-window-scroll-ownership-plan.md
+```
+
+Work:
+
+1. Add a window-owned content scroll viewport in
+   `WindowFrameSurfaceComponent`.
+2. Route native scrollbar gutter/thumb hits as actor-input `content-control`
+   hits so browser scrollbar dragging is not prevented by window content input.
+3. Delete Inspector's local `overflow: auto`.
+4. Remove Hierarchy's whole-window `ScrollViewComponent` installation.
+5. Keep Debug's scroll owner only as an explicitly tested virtual-list nested
+   scroll exception.
+6. Strengthen boundary tests so ordinary feature windows cannot reintroduce
+   feature-local default scrollbars.
+
+Exit:
+
+- ordinary window content scrollbars are owned by `ui-framework/window`;
+- Inspector and Hierarchy scrollbar styling and behavior are consistent;
+- scrollbar drag does not move, dock, resize, or otherwise steal window input;
+- Scene remains full-bleed without scrollbars when content fits;
+- Debug virtual list remains functional without double scrollbars.
+
+Status: complete as of 2026-07-01.
+
+## Gate 3.6: Floating Scrollbar Resize-Hit Closure
+
+Purpose: fix the follow-up floating-window UX issue where invisible side resize
+handles can cover the window-owned content scrollbar gutter and show an
+`ew-resize` cursor.
+
+Detailed executable plan:
+
+```text
+docs/editor-inspector-component-details-gate-3-6-floating-scrollbar-resize-hit-plan.md
+```
+
+Work:
+
+1. Make floating content scrollbar hits win over side resize handles.
+2. Adjust floating resize handle CSS geometry so transparent resize handles do
+   not cover visible content scrollbar gutters.
+3. Keep side and corner resize usable outside the scrollbar.
+4. Add browser evidence that scrollbar drag scrolls content while resize-band
+   drag still resizes the floating window.
+
+Exit:
+
+- floating Inspector scrollbar hover/drag is usable;
+- side resize still works outside the scrollbar gutter;
+- no Inspector-specific workaround is introduced.
+
 ## Gate 4: Hardening
 
 Purpose: make the feature stable enough to extend.
+
+Detailed execution plan:
+
+```text
+docs/editor-inspector-component-details-gate-4-hardening-plan.md
+```
 
 Work:
 

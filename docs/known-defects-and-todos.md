@@ -39,7 +39,7 @@ removed from `temp/` during Project Prism closure cleanup.
 
 ### ARB-001: Gate 7B needs deterministic large Hierarchy smoke fixture
 
-Status: `open`
+Status: `verified`
 
 Area: `packages/editor/src/hierarchy`, `apps/wallpaper-tesseract` smoke support
 
@@ -127,6 +127,172 @@ Verification:
 
 - Targeted unit, typecheck, build, architecture-boundary, and fresh Gate 7C.5
   browser smoke validation passed during closure.
+
+### ARB-003: Window default scroll ownership is split across features
+
+Status: `fixed-pending-verification`
+
+Area: `packages/ui-framework/src/chrome`,
+`packages/editor/src/inspector`, `packages/editor/src/hierarchy`,
+`packages/editor/src/debug`
+
+Evidence:
+
+- The lower Inspector can show an unthemed native scrollbar that cannot be
+  dragged reliably, while Hierarchy shows the themed scrollbar.
+- Inspector owns local default scroll through
+  `packages/editor/src/inspector/inspector.css` with `overflow: auto`.
+- Hierarchy installs `ScrollViewComponent` directly in its view actor factory to
+  make the whole window scroll.
+- Debug also installs `ScrollViewComponent`, but for the separate
+  `VirtualListViewComponent` scroll-source contract.
+- `WindowFrameSurfaceComponent` still appends registered content elements
+  directly and does not own ordinary default window scrolling.
+
+Impact:
+
+- Ordinary window scrollbars have multiple owners, so style and pointer behavior
+  can diverge between windows.
+- Native scrollbar dragging can be blocked when the global gizmo/input path sees
+  a scrollbar pointer down as `window-content` instead of `content-control`.
+
+Next action:
+
+- Commit the Gate 3.5 closure after final validation.
+
+Verification target:
+
+- Fresh browser smoke proves Inspector and Hierarchy share the same themed
+  window-owned scrollbar behavior, scrollbar dragging changes scroll position
+  without moving/docking/resizing the window, Scene does not get accidental
+  scrollbars, Debug remains virtualized without double scrollbars, and console
+  errors remain zero.
+
+Closure evidence:
+
+- Gate 3.5 moved ordinary window content scrolling into
+  `WindowFrameSurfaceComponent`, deleted Inspector local `overflow: auto`,
+  removed Hierarchy's whole-window `ScrollViewComponent`, and kept Debug as a
+  documented virtual-list nested scroll exception.
+- Fresh browser smoke generated
+  `temp/editor-inspector-window-scroll-ownership-smoke-data.json` and
+  `temp/editor-inspector-window-scroll-ownership-smoke-report.md`.
+
+### ARB-004: Floating side resize handles can cover content scrollbars
+
+Status: `verified`
+
+Area: `apps/wallpaper-tesseract/src/window-runtime`,
+`packages/ui-framework/src/chrome`
+
+Evidence:
+
+- After Gate 3.5, ordinary window scrollbars are window-owned and semantically
+  reported as `content-scrollbar`.
+- Floating windows still check transparent side resize handles before content
+  surface scrollbar hits.
+- The right/left floating resize handles can visually cover the native content
+  scrollbar gutter and show an `ew-resize` cursor, making scrollbar targeting
+  difficult.
+- Corner resize handles can have the same problem if they overlap a visible
+  scrollbar gutter near the bottom/right corner.
+- Root and floating frame adapters currently report scrollbar hits with
+  `region: "content-control"` but still assign `scopeRoutePriority` as
+  `windowContent`. This weakens the intended event-system invariant that
+  visible content controls should naturally outrank ordinary content and parent
+  chrome when they overlap.
+- Gate 3.5 smoke allowed `nativeVerticalGutter: 0`, which was useful for
+  proving default scroll behavior but is not strong enough to prove scrollbar
+  hover/drag ownership.
+
+Impact:
+
+- Floating window content scrollbars are hard to hover and drag when they sit
+  near the window edge.
+- A visible content control loses to an invisible parent frame resize affordance,
+  which conflicts with the intended client-control-before-frame-resize model.
+- The mismatch between `region: "content-control"` and `windowContent` scope
+  priority can mislead future event-routing fixes into adding local exceptions
+  instead of using the existing actor-input priority model.
+
+Resolution:
+
+- Gate 3.6 replaced floating window source-order hit checks with local semantic
+  candidate arbitration:
+  `visible content control > explicit chrome control > resize affordance >
+  chrome background > ordinary content`.
+- `window-content-scrollbar` and `root-content-scrollbar` now use
+  `content-control` scope instead of explicit `windowContent`.
+- Floating resize handles were moved outside the content edge so their DOM
+  cursor/hit area no longer covers the native scrollbar gutter.
+- The bottom-right resize grip visual now stays inside the same resize handle
+  element that owns cursor and actor-input hit testing; it is no longer drawn
+  back into the content area as a separate visual/cursor fact.
+- Window-owned scroll viewport CSS now uses `scrollbar-gutter: stable`, making
+  native gutter evidence measurable in browser smoke after `ui-framework` is
+  rebuilt.
+
+Verification target:
+
+- Targeted tests prove floating/root content scrollbar hits use the actor-input
+  `contentControl` scope and outrank overlapping resize affordances.
+- Browser smoke proves a positive native gutter, the sampled scrollbar point is
+  not covered by a resize handle, dragging changes scroll position, and the
+  floating window rect is unchanged.
+- Enhanced browser smoke also proves right-side resize and bottom-right corner
+  resize still change the floating window size, while the bottom/right scrollbar
+  gutter sample remains outside resize handles.
+- Headless Chromium native scrollbar dragging does not expose a page-level
+  actor-input pointer capture; this is why actor-input scrollbar scope is
+  verified by unit tests rather than by the browser smoke capture hook.
+
+Closure evidence:
+
+```text
+temp/editor-inspector-window-scroll-ownership-smoke-data.json
+temp/editor-inspector-window-scroll-ownership-smoke-report.md
+```
+
+### ARB-005: Generic menu hover and outside dismiss still use DOM listeners
+
+Status: `watch`
+
+Area: `packages/ui-framework/src/ui/menu`
+
+Evidence:
+
+- `PopupMenuComponent` implements actor-input hit testing and activates menu
+  items through `onInputEnd`.
+- It still uses DOM `pointermove` on the popup element to update hover
+  highlight and submenu bridge behavior.
+- It also uses document-level DOM `pointerdown` for outside dismiss and
+  document-level `keydown` for menu keyboard navigation.
+- Architecture boundary tests already forbid DOM `click` activation in generic
+  menus, so this is not the old double-activation bug.
+
+Impact:
+
+- Pointer activation has one owner, but menu hover/dismiss/navigation still has
+  DOM-assisted behavior outside the actor-input router.
+- This does not currently block Gate 3.6 because the floating scrollbar bug is
+  about pointer hit arbitration and resize ownership, not menu activation.
+- If the project later adds generic actor-input hover, keyboard, or outside
+  pointer-cancel semantics, menu should migrate to that shared path instead of
+  keeping a permanent DOM-specific interaction layer.
+
+Next action:
+
+- Keep the current menu behavior as an accepted watch item unless it causes a
+  concrete routing bug.
+- Do not add new DOM `click` activation or product-specific menu event paths.
+- Revisit this entry when designing a broader UI event-model cleanup after the
+  Inspector property-editing gates.
+
+Verification target:
+
+- Menu activation remains actor-input only.
+- Submenu hover bridge, outside dismiss, keyboard navigation, and theme submenu
+  smoke continue to pass until a reviewed replacement exists.
 
 ### DCK-001: Dock commit failures are silent
 

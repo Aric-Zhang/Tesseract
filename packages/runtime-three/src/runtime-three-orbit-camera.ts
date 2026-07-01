@@ -1,6 +1,7 @@
 import {
   runtimeCameraId,
   runtimeWorldId,
+  runtimeCameraProjectionFovConstraints,
   type RuntimeCameraAxis,
   type RuntimeCameraDescriptor,
   type RuntimeCameraId,
@@ -76,6 +77,13 @@ export class RuntimeThreeOrbitCamera {
   setProjectionMode(mode: RuntimeCameraProjectionMode): boolean {
     const before = this.#state;
     this.#state = setProjectionMode(this.#state, mode);
+    return this.#commitIfChanged(before);
+  }
+
+  setProjectionFov(fov: number): boolean {
+    assertProjectionFov(fov);
+    const before = this.#state;
+    this.#state = setProjectionFov(this.#state, fov);
     return this.#commitIfChanged(before);
   }
 
@@ -180,6 +188,20 @@ function setProjectionMode(
   };
 }
 
+function setProjectionFov(state: RuntimeCameraState, fov: number): RuntimeCameraState {
+  const projection = {
+    ...state.projection,
+    mode: state.projection?.mode ?? state.projectionMode ?? "perspective",
+    fov,
+    near: state.projection?.near ?? 0.1,
+    far: state.projection?.far ?? 1000
+  };
+  return {
+    ...state,
+    projection: withOrthographicHeight(state, projection)
+  };
+}
+
 function resizeProjection(state: RuntimeCameraState, width: number, height: number): RuntimeCameraState {
   const projection = state.projection;
   const fov = projection?.fov ?? 45;
@@ -196,6 +218,19 @@ function resizeProjection(state: RuntimeCameraState, width: number, height: numb
       viewport: { width, height },
       orthographicHeight
     }
+  };
+}
+
+function withOrthographicHeight(
+  state: RuntimeCameraState,
+  projection: NonNullable<RuntimeCameraState["projection"]>
+): NonNullable<RuntimeCameraState["projection"]> {
+  const viewport = projection.viewport;
+  if (!viewport) return projection;
+  const distance = getOrbitState(state).distance;
+  return {
+    ...projection,
+    orthographicHeight: 2 * distance * Math.tan((projection.fov ?? 45) * Math.PI / 360)
   };
 }
 
@@ -330,5 +365,13 @@ function sameRuntimeCameraState(a: RuntimeCameraState, b: RuntimeCameraState): b
 function assertFinite(value: number, label: string): void {
   if (!Number.isFinite(value)) {
     throw new Error(`RuntimeThreeOrbitCamera ${label} must be finite.`);
+  }
+}
+
+function assertProjectionFov(fov: number): void {
+  assertFinite(fov, "projection.fov");
+  const { min, max } = runtimeCameraProjectionFovConstraints;
+  if (fov < min || fov > max) {
+    throw new Error(`RuntimeThreeOrbitCamera projection.fov must be between ${min} and ${max}.`);
   }
 }

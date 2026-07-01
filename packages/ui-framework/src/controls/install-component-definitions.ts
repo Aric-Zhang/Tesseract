@@ -6,6 +6,7 @@ import {
   buttonComponentDefinition,
   toggleButtonComponentDefinition
 } from "../ui/button";
+import { numberFieldComponentDefinition } from "../ui/field";
 import {
   listViewComponentDefinition,
   listViewItemComponentDefinition,
@@ -23,6 +24,7 @@ import {
 export function installControlComponentDefinitions(componentRegistry: ComponentRegistry): void {
   installComponentDefinition(componentRegistry, buttonComponentDefinition);
   installComponentDefinition(componentRegistry, toggleButtonComponentDefinition);
+  installComponentDefinition(componentRegistry, numberFieldComponentDefinition);
   installComponentDefinition(componentRegistry, toolbarComponentDefinition);
   installComponentDefinition(componentRegistry, scrollViewComponentDefinition);
   installComponentDefinition(componentRegistry, listViewItemComponentDefinition);
